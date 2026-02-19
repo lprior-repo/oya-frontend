@@ -30,6 +30,10 @@ pub enum Commands {
     },
 }
 
+/// Run the dashboard application.
+///
+/// # Errors
+/// Returns an error if metrics export fails.
 pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let metrics_store = MetricsStore::new(&PathBuf::from("."));
 
@@ -60,33 +64,37 @@ pub fn print_summary(summary: &crate::metrics::MetricsSummary) {
     println!("  Sessions:");
     println!("    Total: {}", summary.total_sessions);
 
-    let passed_pct = if summary.total_sessions > 0 {
-        (summary.passed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let total = summary.total_sessions;
+    let passed_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.passed_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
-    let failed_pct = if summary.total_sessions > 0 {
-        (summary.failed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let failed_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.failed_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
-    let escalated_pct = if summary.total_sessions > 0 {
-        (summary.escalated_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let escalated_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.escalated_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
 
+    println!("    Passed: {} ({passed_pct:.1}%)", summary.passed_sessions);
+    println!("    Failed: {} ({failed_pct:.1}%)", summary.failed_sessions);
     println!(
-        "    Passed: {} ({:.1}%)",
-        summary.passed_sessions, passed_pct
-    );
-    println!(
-        "    Failed: {} ({:.1}%)",
-        summary.failed_sessions, failed_pct
-    );
-    println!(
-        "    Escalated: {} ({:.1}%)",
-        summary.escalated_sessions, escalated_pct
+        "    Escalated: {} ({escalated_pct:.1}%)",
+        summary.escalated_sessions
     );
     println!();
     println!("  Performance:");
@@ -104,7 +112,8 @@ pub fn print_sessions(_store: &MetricsStore, _count: usize) {
     println!("  (Session listing currently limited to summary view)");
 }
 
-pub fn format_status(status: &SessionStatus) -> &'static str {
+#[must_use]
+pub const fn format_status(status: &SessionStatus) -> &'static str {
     match status {
         SessionStatus::Passed => "✓",
         SessionStatus::Failed => "✗",
@@ -113,6 +122,10 @@ pub fn format_status(status: &SessionStatus) -> &'static str {
     }
 }
 
+/// Export metrics to a file.
+///
+/// # Errors
+/// Returns an error if writing to the output file fails.
 pub fn export_metrics(
     store: &MetricsStore,
     format: &str,
@@ -128,23 +141,33 @@ pub fn export_metrics(
 
     std::fs::write(output, report)?;
 
-    println!("✅ Exported metrics to {:?}", output);
+    println!("✅ Exported metrics to {}", output.display());
     Ok(())
 }
 
 fn format_text_summary(summary: &crate::metrics::MetricsSummary) -> String {
-    let passed_pct = if summary.total_sessions > 0 {
-        (summary.passed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let total = summary.total_sessions;
+    let passed_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.passed_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
-    let failed_pct = if summary.total_sessions > 0 {
-        (summary.failed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let failed_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.failed_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
-    let escalated_pct = if summary.total_sessions > 0 {
-        (summary.escalated_sessions as f64 / summary.total_sessions as f64 * 100.0)
+    let escalated_pct = if total > 0 {
+        #[allow(clippy::cast_precision_loss)]
+        {
+            summary.escalated_sessions as f64 / total as f64 * 100.0
+        }
     } else {
         0.0
     };
@@ -154,19 +177,16 @@ fn format_text_summary(summary: &crate::metrics::MetricsSummary) -> String {
 ====================
 
 Total Sessions: {}
-Passed: {} ({:.1}%)
-Failed: {} ({:.1}%)
-Escalated: {} ({:.1}%)
+Passed: {} ({passed_pct:.1}%)
+Failed: {} ({failed_pct:.1}%)
+Escalated: {} ({escalated_pct:.1}%)
 
 Avg Iterations to Pass: {:.2}
 ",
         summary.total_sessions,
         summary.passed_sessions,
-        passed_pct,
         summary.failed_sessions,
-        failed_pct,
         summary.escalated_sessions,
-        escalated_pct,
         summary.avg_iterations_to_pass
     )
 }

@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use super::twin_runtime::load_twin_definition;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TwinDeployment {
     pub name: String,
     pub definition_path: PathBuf,
@@ -17,7 +17,7 @@ pub struct TwinDeployment {
     pub status: TwinStatus,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TwinStatus {
     #[serde(rename = "stopped")]
     Stopped,
@@ -37,6 +37,7 @@ pub struct TwinDeploymentManager {
 }
 
 impl TwinDeploymentManager {
+    #[must_use]
     pub fn new(base_path: &Path) -> Self {
         Self {
             base_path: base_path.to_path_buf(),
@@ -44,6 +45,10 @@ impl TwinDeploymentManager {
         }
     }
 
+    /// Deploy a universe of twins.
+    ///
+    /// # Errors
+    /// Returns an error if manifest parsing or twin startup fails.
     pub fn deploy_universe(
         &self,
         manifest_path: &Path,
@@ -73,12 +78,12 @@ impl TwinDeploymentManager {
                 name: twin_name.to_string(),
                 definition_path: definition_path.clone(),
                 port,
-                config: self.extract_config(config)?,
+                config: Self::extract_config(config),
                 pid: None,
                 status: TwinStatus::Stopped,
             };
 
-            deployments.insert(twin_name.to_string(), deployment.clone());
+            let _ = deployments.insert(twin_name.to_string(), deployment.clone());
             deployment_result.twins.push(deployment);
             port += 1;
         }
@@ -87,7 +92,7 @@ impl TwinDeploymentManager {
             let mut guard = self
                 .deployments
                 .lock()
-                .map_err(|e| format!("Lock error: {}", e))?;
+                .map_err(|e| format!("Lock error: {e}"))?;
             *guard = deployments;
 
             for deployment in guard.values_mut() {
@@ -104,7 +109,8 @@ impl TwinDeploymentManager {
         &self,
         deployment: &mut TwinDeployment,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let _definition = load_twin_definition(deployment.definition_path.to_str().unwrap())?;
+        let _definition =
+            load_twin_definition(deployment.definition_path.to_str().ok_or("Invalid path")?)?;
 
         let child = Command::new("cargo")
             .arg("run")
@@ -113,7 +119,7 @@ impl TwinDeploymentManager {
             .arg("--port")
             .arg(deployment.port.to_string())
             .arg("--twin")
-            .arg(deployment.definition_path.to_str().unwrap())
+            .arg(deployment.definition_path.to_str().ok_or("Invalid path")?)
             .current_dir(&self.base_path)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -124,46 +130,50 @@ impl TwinDeploymentManager {
         Ok(())
     }
 
+    /// Stop all running twins.
+    ///
+    /// # Errors
+    /// Returns an error if the lock cannot be acquired.
     pub fn stop_all(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut guard = self
-            .deployments
+        self.deployments
             .lock()
-            .map_err(|e| format!("Lock error: {}", e))?;
-        for deployment in guard.values_mut() {
-            deployment.status = TwinStatus::Stopped;
-        }
+            .map_err(|e| format!("Lock error: {e}"))?
+            .values_mut()
+            .for_each(|deployment| {
+                deployment.status = TwinStatus::Stopped;
+            });
         Ok(())
     }
 
+    #[must_use]
     pub fn get_status(&self, name: &str) -> Option<TwinStatus> {
         let guard = self.deployments.lock().ok()?;
         guard.get(name).map(|d| d.status.clone())
     }
 
+    #[must_use]
     pub fn get_all_status(&self) -> HashMap<String, TwinStatus> {
-        if let Ok(guard) = self.deployments.lock() {
-            guard
-                .iter()
-                .map(|(n, d)| (n.clone(), d.status.clone()))
-                .collect()
-        } else {
-            HashMap::new()
-        }
+        self.deployments.lock().map_or_else(
+            |_| HashMap::new(),
+            |guard| {
+                guard
+                    .iter()
+                    .map(|(n, d)| (n.clone(), d.status.clone()))
+                    .collect()
+            },
+        )
     }
 
-    fn extract_config(
-        &self,
-        config: &serde_yaml::Value,
-    ) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+    fn extract_config(config: &serde_yaml::Value) -> HashMap<String, String> {
         let mut result = HashMap::new();
         if let Some(map) = config.as_mapping() {
             for (k, v) in map {
                 if let (Some(ks), Some(vs)) = (k.as_str(), v.as_str()) {
-                    result.insert(ks.to_string(), vs.to_string());
+                    let _ = result.insert(ks.to_string(), vs.to_string());
                 }
             }
         }
-        Ok(result)
+        result
     }
 }
 

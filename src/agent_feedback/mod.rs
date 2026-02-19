@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, clap::ValueEnum)]
 pub enum FailureCategory {
     #[serde(rename = "spec")]
     Spec,
@@ -41,11 +41,18 @@ struct FeedbackTemplate {
     pub hints: Vec<String>,
 }
 
+impl Default for FeedbackGenerator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FeedbackGenerator {
+    #[must_use]
     pub fn new() -> Self {
         let mut templates = HashMap::new();
 
-        templates.insert(
+        let _ = templates.insert(
             "spec-quality".to_string(),
             FeedbackTemplate {
                 title: "Specification Quality Issue".to_string(),
@@ -59,7 +66,7 @@ impl FeedbackGenerator {
             }
         );
 
-        templates.insert(
+        let _ = templates.insert(
             "validation-failure".to_string(),
             FeedbackTemplate {
                 title: "Behavioral Validation Failed".to_string(),
@@ -75,7 +82,7 @@ impl FeedbackGenerator {
             },
         );
 
-        templates.insert(
+        let _ = templates.insert(
             "security-issue".to_string(),
             FeedbackTemplate {
                 title: "Security Vulnerability Detected".to_string(),
@@ -90,7 +97,7 @@ impl FeedbackGenerator {
             },
         );
 
-        templates.insert(
+        let _ = templates.insert(
             "integration-failure".to_string(),
             FeedbackTemplate {
                 title: "Integration Issue".to_string(),
@@ -107,8 +114,9 @@ impl FeedbackGenerator {
         Self { templates }
     }
 
+    #[must_use]
     pub fn generate(&self, request: &FeedbackRequest) -> AgentFeedback {
-        let key = self.category_to_key(&request.failure_category);
+        let key = Self::category_to_key(request.failure_category);
         let template = self
             .templates
             .get(&key)
@@ -119,7 +127,7 @@ impl FeedbackGenerator {
                 hints: vec!["Review the spec for more details".to_string()],
             });
 
-        let priority = self.determine_priority(&request.failure_category);
+        let priority = Self::determine_priority(request.failure_category);
 
         AgentFeedback {
             message: format!("{}: {}", template.title, template.description),
@@ -130,7 +138,7 @@ impl FeedbackGenerator {
         }
     }
 
-    fn category_to_key(&self, category: &FailureCategory) -> String {
+    fn category_to_key(category: FailureCategory) -> String {
         match category {
             FailureCategory::Spec => "spec-quality".to_string(),
             FailureCategory::Validation => "validation-failure".to_string(),
@@ -139,15 +147,15 @@ impl FeedbackGenerator {
         }
     }
 
-    fn determine_priority(&self, category: &FailureCategory) -> String {
+    fn determine_priority(category: FailureCategory) -> String {
         match category {
-            FailureCategory::Security => "high".to_string(),
-            FailureCategory::Validation => "high".to_string(),
+            FailureCategory::Security | FailureCategory::Validation => "high".to_string(),
             FailureCategory::Integration => "medium".to_string(),
             FailureCategory::Spec => "low".to_string(),
         }
     }
 
+    #[must_use]
     pub fn generate_batch(&self, requests: &[FeedbackRequest]) -> Vec<AgentFeedback> {
         requests.iter().map(|r| self.generate(r)).collect()
     }

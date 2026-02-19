@@ -33,6 +33,7 @@ pub struct CoverageAnalyzer {
 }
 
 impl CoverageAnalyzer {
+    #[must_use]
     pub fn new(specs_dir: &Path, scenarios_dir: &Path) -> Self {
         Self {
             specs_dir: specs_dir.to_path_buf(),
@@ -40,6 +41,10 @@ impl CoverageAnalyzer {
         }
     }
 
+    /// Analyze scenario coverage.
+    ///
+    /// # Errors
+    /// Returns an error if finding files or reading content fails.
     pub fn analyze(&self) -> Result<CoverageReport, Box<dyn std::error::Error>> {
         let mut spec_coverage = Vec::new();
 
@@ -49,12 +54,12 @@ impl CoverageAnalyzer {
             }
         }
 
-        let (total_behaviors, covered_behaviors) = if !spec_coverage.is_empty() {
+        let (total_behaviors, covered_behaviors) = if spec_coverage.is_empty() {
+            (0, 0)
+        } else {
             let t: usize = spec_coverage.iter().map(|s| s.total_behaviors).sum();
             let c: usize = spec_coverage.iter().map(|s| s.covered_behaviors).sum();
             (t, c)
-        } else {
-            (0, 0)
         };
 
         let total_edge_cases: usize = spec_coverage.iter().map(|s| s.total_edge_cases).sum();
@@ -77,7 +82,10 @@ impl CoverageAnalyzer {
         Ok(CoverageReport {
             specs: spec_coverage,
             overall_coverage: if total_behaviors > 0 {
-                covered_behaviors as f64 / total_behaviors as f64 * 100.0
+                #[allow(clippy::cast_precision_loss)]
+                {
+                    covered_behaviors as f64 / total_behaviors as f64 * 100.0
+                }
             } else {
                 0.0
             },
@@ -95,7 +103,7 @@ impl CoverageAnalyzer {
             let entries = fs::read_dir(&self.specs_dir)?;
             for entry in entries {
                 let path = entry?.path();
-                if path.extension().map_or(false, |ext| ext == "yaml") {
+                if path.extension().is_some_and(|ext| ext == "yaml") {
                     specs.push(path);
                 }
             }
@@ -119,12 +127,12 @@ impl CoverageAnalyzer {
         if let Some(behaviors) = yaml["specification"]["behaviors"].as_sequence() {
             for behavior in behaviors {
                 if let Some(id) = behavior["id"].as_str() {
-                    behavior_ids.insert(id.to_string());
+                    let _ = behavior_ids.insert(id.to_string());
                 }
                 if let Some(edge_cases) = behavior["edge_cases"].as_sequence() {
                     for edge_case in edge_cases {
                         if let Some(id) = edge_case["id"].as_str() {
-                            edge_case_ids.insert(id.to_string());
+                            let _ = edge_case_ids.insert(id.to_string());
                         }
                     }
                 }
@@ -132,7 +140,7 @@ impl CoverageAnalyzer {
         }
 
         let mut scenario_behavior_ids: HashSet<String> = HashSet::new();
-        let mut scenario_edge_case_ids: HashSet<String> = HashSet::new();
+        let scenario_edge_case_ids: HashSet<String> = HashSet::new();
 
         if let Ok(scenarios) = self.find_scenarios_for_spec(&spec_id) {
             for scenario in scenarios {
@@ -141,7 +149,7 @@ impl CoverageAnalyzer {
                         if let Some(assertions) = step["assertions"].as_sequence() {
                             for assertion in assertions {
                                 if let Some(behavior_ref) = assertion["behavior_ref"].as_str() {
-                                    scenario_behavior_ids.insert(behavior_ref.to_string());
+                                    let _ = scenario_behavior_ids.insert(behavior_ref.to_string());
                                 }
                             }
                         }
@@ -171,10 +179,13 @@ impl CoverageAnalyzer {
             covered_behaviors,
             total_edge_cases: edge_case_ids.len(),
             covered_edge_cases,
-            coverage_percentage: if !behavior_ids.is_empty() {
-                covered_behaviors as f64 / behavior_ids.len() as f64 * 100.0
-            } else {
+            coverage_percentage: if behavior_ids.is_empty() {
                 0.0
+            } else {
+                #[allow(clippy::cast_precision_loss)]
+                {
+                    covered_behaviors as f64 / behavior_ids.len() as f64 * 100.0
+                }
             },
             missing_behaviors,
             missing_edge_cases,
@@ -190,7 +201,7 @@ impl CoverageAnalyzer {
             let entries = fs::read_dir(&self.scenarios_dir)?;
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().map_or(false, |ext| ext == "yaml") {
+                if path.extension().is_some_and(|ext| ext == "yaml") {
                     let content = fs::read_to_string(&path)?;
                     if let Ok(yaml) = serde_yaml::from_str::<Value>(&content) {
                         if let Some(scenario) = yaml.get("scenario") {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeedbackConfig {
     pub level: u8,
@@ -14,6 +14,7 @@ pub struct FeedbackConfig {
 }
 
 impl FeedbackConfig {
+    #[must_use]
     pub fn from_level(level: u8) -> Self {
         match level {
             1 => Self {
@@ -77,7 +78,7 @@ pub struct SanitizedFailure {
     pub spec_ref: String,
     pub description: String,
     pub hint: String,
-    pub spec_text: Option<String>,
+    pub spec_text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,12 +97,14 @@ pub struct FeedbackSanitizer {
 }
 
 impl FeedbackSanitizer {
+    #[must_use]
     pub fn new(level: u8) -> Self {
         Self {
             config: FeedbackConfig::from_level(level),
         }
     }
 
+    #[must_use]
     pub fn sanitize(
         &self,
         raw_results: &[super::scenario_runner::ScenarioResult],
@@ -114,13 +117,10 @@ impl FeedbackSanitizer {
         let failures: Vec<SanitizedFailure> = raw_results
             .iter()
             .filter(|r| !r.passed)
-            .map(|result| self.sanitize_failure(result))
+            .map(Self::sanitize_failure)
             .collect();
 
-        let summary = format!(
-            "{} of {} behavioral tests failed",
-            failed_count, total_count
-        );
+        let summary = format!("{failed_count} of {total_count} behavioral tests failed");
 
         SanitizedFeedback {
             iteration,
@@ -132,14 +132,11 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn sanitize_failure(
-        &self,
-        result: &super::scenario_runner::ScenarioResult,
-    ) -> SanitizedFailure {
-        let category = self.categorize_failure(result);
-        let description = self.sanitize_description(&category);
-        let hint = self.generate_hint(&category);
-        let spec_text = self.get_spec_text_reference(&category);
+    fn sanitize_failure(result: &super::scenario_runner::ScenarioResult) -> SanitizedFailure {
+        let category = Self::categorize_failure(result);
+        let description = Self::sanitize_description(&category);
+        let hint = Self::generate_hint(&category);
+        let spec_text = Self::get_spec_text_reference(&category);
 
         SanitizedFailure {
             category,
@@ -150,17 +147,17 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn categorize_failure(&self, result: &super::scenario_runner::ScenarioResult) -> String {
+    fn categorize_failure(result: &super::scenario_runner::ScenarioResult) -> String {
         let failed_step = result.steps.iter().find(|s| !s.passed);
 
         if let Some(step) = failed_step {
-            if step.error.as_ref().map_or(false, |e| e.contains("404")) {
+            if step.error.as_ref().is_some_and(|e| e.contains("404")) {
                 return "Resource Not Found".to_string();
             }
-            if step.error.as_ref().map_or(false, |e| e.contains("500")) {
+            if step.error.as_ref().is_some_and(|e| e.contains("500")) {
                 return "Server Error".to_string();
             }
-            if step.error.as_ref().map_or(false, |e| e.contains("timeout")) {
+            if step.error.as_ref().is_some_and(|e| e.contains("timeout")) {
                 return "Timeout".to_string();
             }
         }
@@ -173,7 +170,7 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn sanitize_description(&self, category: &str) -> String {
+    fn sanitize_description(category: &str) -> String {
         match category {
             "Security Violation" => "The system does not properly enforce security constraints.".to_string(),
             "Error Handling" => "The system does not gracefully handle error conditions.".to_string(),
@@ -185,7 +182,7 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn generate_hint(&self, category: &str) -> String {
+    fn generate_hint(category: &str) -> String {
         match category {
             "Security Violation" => {
                 "Review the spec's security requirements and ensure all invariants are enforced."
@@ -210,22 +207,21 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn get_spec_text_reference(&self, category: &str) -> Option<String> {
+    fn get_spec_text_reference(category: &str) -> String {
         match category {
             "Security Violation" => {
-                Some("Review context.invariants for security constraints.".to_string())
+                "Review context.invariants for security constraints.".to_string()
             }
             "Error Handling" => {
-                Some("Review behaviors[].edge_cases for required error handling.".to_string())
+                "Review behaviors[].edge_cases for required error handling.".to_string()
             }
-            "Happy Path" => {
-                Some("Review acceptance_criteria for the expected behavior.".to_string())
-            }
-            _ => Some("Review the relevant behavior in the spec.".to_string()),
+            "Happy Path" => "Review acceptance_criteria for the expected behavior.".to_string(),
+            _ => "Review the relevant behavior in the spec.".to_string(),
         }
     }
 }
 
+#[must_use]
 pub fn sanitize_results(
     raw_results: &[super::scenario_runner::ScenarioResult],
     iteration: u32,

@@ -2,10 +2,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SpecValidationMetrics {
     pub timestamp: DateTime<Utc>,
     pub spec_id: String,
@@ -18,7 +19,7 @@ pub struct SpecValidationMetrics {
     pub duration_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ScenarioValidationMetrics {
     pub timestamp: DateTime<Utc>,
     pub spec_id: String,
@@ -29,14 +30,14 @@ pub struct ScenarioValidationMetrics {
     pub duration_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CategoryStats {
     pub total: usize,
     pub passed: usize,
     pub failed: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct QualityGateIteration {
     pub iteration: u32,
     pub timestamp: DateTime<Utc>,
@@ -51,7 +52,7 @@ pub struct QualityGateIteration {
     pub duration_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct QualityGateSession {
     pub session_id: String,
     pub spec_id: String,
@@ -64,7 +65,7 @@ pub struct QualityGateSession {
     pub escalated: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SessionStatus {
     #[serde(rename = "in_progress")]
     InProgress,
@@ -76,7 +77,7 @@ pub enum SessionStatus {
     Escalated,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MetricsSummary {
     pub total_sessions: usize,
     pub passed_sessions: usize,
@@ -101,15 +102,12 @@ struct MetricsData {
 }
 
 impl MetricsStore {
+    #[must_use]
     pub fn new(base_path: &Path) -> Self {
         let data_path = base_path.join("quality-metrics");
         std::fs::create_dir_all(&data_path).ok();
 
-        let data = if let Ok(content) = Self::load_data(&data_path) {
-            content
-        } else {
-            MetricsData::default()
-        };
+        let data = Self::load_data(&data_path).unwrap_or_default();
 
         Self {
             base_path: data_path,
@@ -127,13 +125,18 @@ impl MetricsStore {
         }
     }
 
-    fn save_data(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let data = self
-            .data
-            .read()
-            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
-
-        let json = serde_json::to_string_pretty(&*data)?;
+    /// Save data to disk.
+    ///
+    /// # Errors
+    /// Returns an error if the lock cannot be acquired or writing fails.
+    pub fn save_data(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let json = {
+            let data = self
+                .data
+                .read()
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
+            serde_json::to_string_pretty(&*data)?
+        };
         let metrics_file = self.base_path.join("metrics.json");
 
         let mut file = OpenOptions::new()
@@ -142,12 +145,15 @@ impl MetricsStore {
             .truncate(true)
             .open(&metrics_file)?;
 
-        use std::io::Write;
         file.write_all(json.as_bytes())?;
 
         Ok(())
     }
 
+    /// Record spec validation metrics.
+    ///
+    /// # Errors
+    /// Returns an error if saving fails.
     pub fn record_spec_validation(
         &self,
         metrics: SpecValidationMetrics,
@@ -156,12 +162,16 @@ impl MetricsStore {
             let mut data = self
                 .data
                 .write()
-                .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
             data.spec_validations.push(metrics);
         }
         self.save_data()
     }
 
+    /// Record scenario validation metrics.
+    ///
+    /// # Errors
+    /// Returns an error if saving fails.
     pub fn record_scenario_validation(
         &self,
         metrics: ScenarioValidationMetrics,
@@ -170,12 +180,16 @@ impl MetricsStore {
             let mut data = self
                 .data
                 .write()
-                .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
             data.scenario_validations.push(metrics);
         }
         self.save_data()
     }
 
+    /// Start a new quality gate session.
+    ///
+    /// # Errors
+    /// Returns an error if saving fails.
     pub fn start_session(
         &self,
         spec_id: &str,
@@ -188,7 +202,7 @@ impl MetricsStore {
             let mut data = self
                 .data
                 .write()
-                .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
             let session = QualityGateSession {
                 session_id: session_id.clone(),
@@ -209,6 +223,10 @@ impl MetricsStore {
         Ok(session_id)
     }
 
+    /// Record a quality gate iteration.
+    ///
+    /// # Errors
+    /// Returns an error if saving fails.
     pub fn record_iteration(
         &self,
         session_id: &str,
@@ -218,7 +236,7 @@ impl MetricsStore {
             let mut data = self
                 .data
                 .write()
-                .map_err(|e| format!("Failed to acquire lock: {}", e))?;
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
             if let Some(session) = data
                 .sessions
@@ -242,6 +260,7 @@ impl MetricsStore {
         self.save_data()
     }
 
+    #[must_use]
     pub fn get_session(&self, session_id: &str) -> Option<QualityGateSession> {
         let data = self.data.read().ok()?;
         data.sessions
@@ -250,10 +269,12 @@ impl MetricsStore {
             .cloned()
     }
 
+    #[must_use]
     pub fn get_summary(&self) -> MetricsSummary {
-        let data_guard = self.data.read();
-        let empty_data = MetricsData::default();
-        let data = data_guard.as_deref().unwrap_or(&empty_data);
+        let Ok(data_guard) = self.data.read() else {
+            return MetricsSummary::default();
+        };
+        let data = &*data_guard;
 
         let total_sessions = data.sessions.len();
         let passed_sessions = data
@@ -274,35 +295,44 @@ impl MetricsStore {
             .filter(|s| s.status == SessionStatus::Passed)
             .collect();
 
-        let avg_iterations = if !passed_sessions_refs.is_empty() {
+        let avg_iterations = if passed_sessions_refs.is_empty() {
+            0.0
+        } else {
             let total_iterations: usize = passed_sessions_refs
                 .iter()
                 .map(|s| s.iterations.len())
                 .sum();
-            total_iterations as f64 / passed_sessions_refs.len() as f64
-        } else {
-            0.0
+            #[allow(clippy::cast_precision_loss)]
+            {
+                total_iterations as f64 / passed_sessions_refs.len() as f64
+            }
         };
 
         let total_duration_ms: u64 = passed_sessions_refs
             .iter()
             .map(|s| s.total_duration_ms)
             .sum();
-        let avg_duration_minutes = if !passed_sessions_refs.is_empty() {
-            total_duration_ms as f64 / passed_sessions_refs.len() as f64 / 60000.0
-        } else {
+        let avg_duration_minutes = if passed_sessions_refs.is_empty() {
             0.0
+        } else {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                total_duration_ms as f64 / passed_sessions_refs.len() as f64 / 60000.0
+            }
         };
 
         let spec_scores: Vec<f64> = data
             .spec_validations
             .iter()
-            .map(|v| v.overall_score as f64)
+            .map(|v| f64::from(v.overall_score))
             .collect();
-        let avg_spec_score = if !spec_scores.is_empty() {
-            spec_scores.iter().sum::<f64>() / spec_scores.len() as f64
-        } else {
+        let avg_spec_score = if spec_scores.is_empty() {
             0.0
+        } else {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                spec_scores.iter().sum::<f64>() / spec_scores.len() as f64
+            }
         };
 
         let mut failure_counts: HashMap<String, usize> = HashMap::new();
@@ -331,40 +361,54 @@ impl MetricsStore {
         }
     }
 
+    /// Export a metrics report.
+    ///
+    /// # Errors
+    /// Returns an error if export format is unsupported.
     pub fn export_report(&self, format: &str) -> Result<String, Box<dyn std::error::Error>> {
         let summary = self.get_summary();
 
         match format {
             "json" => Ok(serde_json::to_string_pretty(&summary)?),
-            "text" => Ok(self.format_text_report(&summary)),
+            "text" => Ok(Self::format_text_report(&summary)),
             _ => Err("Unsupported format. Use 'json' or 'text'".into()),
         }
     }
 
-    fn format_text_report(&self, summary: &MetricsSummary) -> String {
+    fn format_text_report(summary: &MetricsSummary) -> String {
         let failures_str = if summary.most_common_failure_categories.is_empty() {
             "  (none)".to_string()
         } else {
             summary
                 .most_common_failure_categories
                 .iter()
-                .map(|(cat, count)| format!("    - {} ({} times)", cat, count))
+                .map(|(cat, count)| format!("    - {cat} ({count} times)"))
                 .collect::<Vec<_>>()
                 .join("\n")
         };
 
-        let passed_pct = if summary.total_sessions > 0 {
-            (summary.passed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+        let total = summary.total_sessions;
+        let passed_pct = if total > 0 {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                summary.passed_sessions as f64 / total as f64 * 100.0
+            }
         } else {
             0.0
         };
-        let failed_pct = if summary.total_sessions > 0 {
-            (summary.failed_sessions as f64 / summary.total_sessions as f64 * 100.0)
+        let failed_pct = if total > 0 {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                summary.failed_sessions as f64 / total as f64 * 100.0
+            }
         } else {
             0.0
         };
-        let escalated_pct = if summary.total_sessions > 0 {
-            (summary.escalated_sessions as f64 / summary.total_sessions as f64 * 100.0)
+        let escalated_pct = if total > 0 {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                summary.escalated_sessions as f64 / total as f64 * 100.0
+            }
         } else {
             0.0
         };
@@ -377,9 +421,9 @@ impl MetricsStore {
 
   Sessions:
     Total: {}
-    Passed: {} ({:.1}%)
-    Failed: {} ({:.1}%)
-    Escalated: {} ({:.1}%)
+    Passed: {} ({passed_pct:.1}%)
+    Failed: {} ({failed_pct:.1}%)
+    Escalated: {} ({escalated_pct:.1}%)
 
   Performance:
     Avg iterations to pass: {:.2}
@@ -392,11 +436,8 @@ impl MetricsStore {
         ",
             summary.total_sessions,
             summary.passed_sessions,
-            passed_pct,
             summary.failed_sessions,
-            failed_pct,
             summary.escalated_sessions,
-            escalated_pct,
             summary.avg_iterations_to_pass,
             summary.avg_duration_minutes,
             summary.avg_spec_score,

@@ -169,6 +169,7 @@ pub struct CategoryScore {
 }
 
 impl LintReport {
+    #[must_use]
     pub fn new(spec_id: String, spec_version: String) -> Self {
         Self {
             spec_id,
@@ -186,7 +187,7 @@ impl LintReport {
         let mut total = 0u32;
         let mut count = 0u32;
 
-        for (_, cat) in &self.categories {
+        for cat in self.categories.values() {
             total += cat.score;
             count += 1;
         }
@@ -201,12 +202,20 @@ pub struct SpecLinter {
 }
 
 impl SpecLinter {
+    /// Create a new linter.
+    ///
+    /// # Errors
+    /// Returns an error if rules file cannot be read or parsed.
     pub fn new(rules_path: &Path) -> Result<Self, LintError> {
         let rules_content = fs::read_to_string(rules_path)?;
         let rules: LintRules = serde_yaml::from_str(&rules_content)?;
         Ok(Self { rules })
     }
 
+    /// Lint a specification file.
+    ///
+    /// # Errors
+    /// Returns an error if spec file cannot be read or parsed.
     pub fn lint(&self, spec_path: &Path) -> Result<LintReport, LintError> {
         let spec_content = fs::read_to_string(spec_path)?;
         let spec: Spec = serde_yaml::from_str(&spec_content)?;
@@ -216,21 +225,21 @@ impl SpecLinter {
             spec.specification.identity.version.clone(),
         );
 
-        self.check_completeness(&spec, &mut report);
-        self.check_clarity(&spec, &mut report);
-        self.check_security(&spec, &mut report);
-        self.check_testability(&spec, &mut report);
-        self.check_data_model(&spec, &mut report);
+        Self::check_completeness(&self.rules, &spec, &mut report);
+        Self::check_clarity(&spec, &mut report);
+        Self::check_security(&spec, &mut report);
+        Self::check_testability(&spec, &mut report);
+        Self::check_data_model(&spec, &mut report);
 
         report.calculate_score();
         Ok(report)
     }
 
-    fn check_completeness(&self, spec: &Spec, report: &mut LintReport) {
+    fn check_completeness(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
         let mut errors = 0;
         let mut total = 0;
 
-        for rule in &self.rules.rules {
+        for rule in &rules.rules {
             if !rule.id.starts_with("SPEC-00") || rule.severity == "warning" {
                 continue;
             }
@@ -241,13 +250,15 @@ impl SpecLinter {
                     let deps = &spec.specification.context.system_dependencies;
                     for dep in deps {
                         let has_error_handling = spec.specification.behaviors.iter().any(|b| {
-                            b.edge_cases.as_ref().map_or(false, |ec| {
+                            b.edge_cases.as_ref().is_some_and(|ec| {
                                 ec.iter().any(|e| {
                                     e.then.iter().any(|t| {
-                                        t.to_lowercase().contains(&dep.service.to_lowercase())
-                                            && (t.to_lowercase().contains("fail")
-                                                || t.to_lowercase().contains("error")
-                                                || t.to_lowercase().contains("unavailable"))
+                                        let t_low = t.to_lowercase();
+                                        let dep_low = dep.service.to_lowercase();
+                                        t_low.contains(&dep_low)
+                                            && (t_low.contains("fail")
+                                                || t_low.contains("error")
+                                                || t_low.contains("unavailable"))
                                     })
                                 })
                             })
@@ -306,9 +317,9 @@ impl SpecLinter {
         );
     }
 
-    fn check_clarity(&self, spec: &Spec, report: &mut LintReport) {
+    fn check_clarity(spec: &Spec, report: &mut LintReport) {
         let mut warnings = 0;
-        let banned = vec![
+        let banned = [
             "as appropriate",
             "if needed",
             "as necessary",
@@ -330,8 +341,8 @@ impl SpecLinter {
                             rule_name: "no-ambiguous-language".to_string(),
                             severity: "warning".to_string(),
                             message: format!(
-                                "Found ambiguous phrase: '{}' in behavior {}",
-                                phrase, behavior.id
+                                "Found ambiguous phrase: '{phrase}' in behavior {}",
+                                behavior.id
                             ),
                             line: None,
                         });
@@ -345,12 +356,12 @@ impl SpecLinter {
             "Clarity".to_string(),
             CategoryScore {
                 score,
-                details: format!("{} ambiguous phrases found", warnings),
+                details: format!("{warnings} ambiguous phrases found"),
             },
         );
     }
 
-    fn check_security(&self, spec: &Spec, report: &mut LintReport) {
+    fn check_security(spec: &Spec, report: &mut LintReport) {
         let mut score = 100;
 
         if let Some(contract) = &spec.specification.api_contract {
@@ -366,7 +377,7 @@ impl SpecLinter {
 
                 for endpoint in user_endpoints {
                     let has_enumeration_check = spec.specification.behaviors.iter().any(|b| {
-                        b.edge_cases.as_ref().map_or(false, |ec| {
+                        b.edge_cases.as_ref().is_some_and(|ec| {
                             ec.iter().any(|e| {
                                 e.id.contains("nonexist")
                                     || e.id.contains("not-found")
@@ -401,9 +412,9 @@ impl SpecLinter {
         );
     }
 
-    fn check_testability(&self, spec: &Spec, report: &mut LintReport) {
+    fn check_testability(spec: &Spec, report: &mut LintReport) {
         let mut errors = 0;
-        let observable_terms = vec!["http", "response", "status", "body", "api", "event"];
+        let observable_terms = ["http", "response", "status", "body", "api", "event"];
 
         for behavior in &spec.specification.behaviors {
             for then in &behavior.then {
@@ -423,7 +434,7 @@ impl SpecLinter {
                 rule_id: "SPEC-030".to_string(),
                 rule_name: "behaviors-are-observable".to_string(),
                 severity: "warning".to_string(),
-                message: format!("{} behaviors may not have observable outcomes", errors),
+                message: format!("{errors} behaviors may not have observable outcomes"),
                 line: None,
             });
         }
@@ -437,7 +448,7 @@ impl SpecLinter {
         );
     }
 
-    fn check_data_model(&self, spec: &Spec, report: &mut LintReport) {
+    fn check_data_model(spec: &Spec, report: &mut LintReport) {
         let mut score = 100;
 
         if let Some(data_model) = &spec.specification.data_model {
@@ -466,7 +477,7 @@ impl SpecLinter {
 }
 
 #[cfg(test)]
-mod tests;
+mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -475,15 +486,12 @@ mod tests;
         let mut file = NamedTempFile::new().unwrap();
         writeln!(
             file,
-            "{}",
-            r#"
-rules:
+            "rules:
   - id: SPEC-001
     name: test-rule
     severity: error
-    description: "Test rule"
-    banned_phrases: []
-"#
+    description: \"Test rule\"
+    banned_phrases: []"
         )
         .unwrap();
         file
@@ -493,36 +501,42 @@ rules:
         let mut file = NamedTempFile::new().unwrap();
         writeln!(
             file,
-            "{}",
-            r#"
-specification:
+            "specification:
   identity:
     id: spec-test
     version: 1.0.0
     status: draft
     author: test
-    created: "2026-01-01T00:00:00Z"
+    created: \"2026-01-01T00:00:00Z\"
   intent:
-    problem_statement: "Test problem"
+    problem_statement: \"Test problem\"
     success_criteria:
-      - "Test criteria"
+      - \"Test criteria\"
   context:
     system_dependencies:
       - service: test-service
         purpose: testing
         twin_available: true
     invariants:
-      - "Test invariant"
+      - \"Test invariant\"
   behaviors:
     - id: test-behavior
-      description: "Test"
+      description: \"Test\"
       then:
-        - "Test action"
+        - \"Test action\"
   acceptance_criteria:
     - id: ac-01
-      criterion: "Test criterion"
-"#
+      criterion: \"Test criterion\""
         )
         .unwrap();
         file
     }
+
+    #[test]
+    fn test_linter() {
+        let rules = create_test_rules();
+        let spec = create_test_spec();
+        let linter = SpecLinter::new(rules.path()).unwrap();
+        let _report = linter.lint(spec.path()).unwrap();
+    }
+}

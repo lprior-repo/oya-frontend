@@ -58,7 +58,8 @@ pub struct ResponseDefinition {
     pub body: Option<serde_json::Value>,
 }
 
-fn default_status() -> u16 {
+#[must_use]
+pub const fn default_status() -> u16 {
     200
 }
 
@@ -92,6 +93,7 @@ pub struct TwinInstance {
 }
 
 impl TwinInstance {
+    #[must_use]
     pub fn new(definition: TwinDefinition, config: HashMap<String, String>) -> Self {
         Self {
             definition,
@@ -100,13 +102,17 @@ impl TwinInstance {
         }
     }
 
+    /// Handle an incoming request to the twin.
+    /// 
+    /// # Errors
+    /// Returns an error if no handler matches.
     pub fn handle_request(
         &self,
         method: &str,
         path: &str,
         body: Option<&str>,
     ) -> Result<Response, TwinError> {
-        let key = format!("{} {}", method.to_uppercase(), path);
+        let key = format!("{} {path}", method.to_uppercase());
 
         if let Some(handler) = self.definition.handlers.get(&key) {
             return self.execute_handler(handler, body);
@@ -117,8 +123,7 @@ impl TwinInstance {
         }
 
         Err(TwinError::NotFound(format!(
-            "No handler for {} {}",
-            method, path
+            "No handler for {method} {path}"
         )))
     }
 
@@ -146,7 +151,7 @@ impl TwinInstance {
         handler: &HandlerDefinition,
         body: Option<&str>,
     ) -> Result<Response, TwinError> {
-        let collection_name = handler.collection.as_ref().ok_or(TwinError::ConfigError(
+        let collection_name = handler.collection.as_ref().ok_or_else(|| TwinError::ConfigError(
             "No collection specified".to_string(),
         ))?;
 
@@ -155,27 +160,28 @@ impl TwinInstance {
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(body_str) {
                 if let Some(obj) = parsed.as_object() {
                     for (k, v) in obj {
-                        data.insert(k.clone(), v.clone());
+                        let _ = data.insert(k.clone(), v.clone());
                     }
                 }
             }
         }
 
-        data.insert(
+        let _ = data.insert(
             "id".to_string(),
             serde_json::json!(Uuid::new_v4().to_string()),
         );
-        data.insert(
+        let _ = data.insert(
             "created_at".to_string(),
             serde_json::json!("2026-02-19T08:00:00Z"),
         );
 
-        let mut state = self.state.write().map_err(|_| TwinError::LockError)?;
-        let collection = state
+        self.state
+            .write()
+            .map_err(|_| TwinError::LockError)?
             .collections
             .entry(collection_name.clone())
-            .or_insert_with(Vec::new);
-        collection.push(serde_json::Value::Object(data));
+            .or_insert_with(Vec::new)
+            .push(serde_json::Value::Object(data));
 
         let response_status = handler.response.as_ref().map_or(200, |r| r.status);
         Ok(Response::new(
@@ -185,40 +191,38 @@ impl TwinInstance {
     }
 
     fn handle_read(&self, handler: &HandlerDefinition) -> Result<Response, TwinError> {
-        let collection_name = handler.collection.as_ref().ok_or(TwinError::ConfigError(
+        let collection_name = handler.collection.as_ref().ok_or_else(|| TwinError::ConfigError(
             "No collection specified".to_string(),
         ))?;
 
-        let state = self.state.read().map_err(|_| TwinError::LockError)?;
-        let collection = state.collections.get(collection_name);
+        let item = {
+            let state = self.state.read().map_err(|_| TwinError::LockError)?;
+            state.collections.get(collection_name).and_then(|items| items.first().cloned())
+        };
 
-        match collection {
-            Some(items) if !items.is_empty() => Ok(Response::new(
-                200,
-                items.first().cloned().unwrap_or(serde_json::Value::Null),
-            )),
-            _ => {
-                let error = handler
-                    .not_found
-                    .as_ref()
-                    .ok_or(TwinError::NotFound("Item not found".to_string()))?;
-                Ok(Response::new(error.status, error.body.clone()))
-            }
+        if let Some(val) = item {
+            Ok(Response::new(200, val))
+        } else {
+            let error = handler
+                .not_found
+                .as_ref()
+                .ok_or_else(|| TwinError::NotFound("Item not found".to_string()))?;
+            Ok(Response::new(error.status, error.body.clone()))
         }
     }
 
     fn handle_list(&self, handler: &HandlerDefinition) -> Result<Response, TwinError> {
-        let collection_name = handler.collection.as_ref().ok_or(TwinError::ConfigError(
+        let collection_name = handler.collection.as_ref().ok_or_else(|| TwinError::ConfigError(
             "No collection specified".to_string(),
         ))?;
 
-        let state = self.state.read().map_err(|_| TwinError::LockError)?;
-        let collection = state.collections.get(collection_name);
-
-        let items = collection.cloned().unwrap_or_default();
+        let items = {
+            let state = self.state.read().map_err(|_| TwinError::LockError)?;
+            state.collections.get(collection_name).cloned().unwrap_or_default()
+        };
         Ok(Response::new(
             200,
-            serde_json::json!({ "items": items, "total": items.len() }),
+            serde_json::json!({ "total": items.len(), "items": items }),
         ))
     }
 
@@ -227,7 +231,7 @@ impl TwinInstance {
         handler: &HandlerDefinition,
         body: Option<&str>,
     ) -> Result<Response, TwinError> {
-        let collection_name = handler.collection.as_ref().ok_or(TwinError::ConfigError(
+        let collection_name = handler.collection.as_ref().ok_or_else(|| TwinError::ConfigError(
             "No collection specified".to_string(),
         ))?;
 
@@ -236,7 +240,7 @@ impl TwinInstance {
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(body_str) {
                 if let Some(obj) = parsed.as_object() {
                     for (k, v) in obj {
-                        data.insert(k.clone(), v.clone());
+                        let _ = data.insert(k.clone(), v.clone());
                     }
                 }
             }
@@ -252,11 +256,12 @@ impl TwinInstance {
             let error = handler
                 .not_found
                 .as_ref()
-                .ok_or(TwinError::NotFound("Item not found".to_string()))?;
+                .ok_or_else(|| TwinError::NotFound("Item not found".to_string()))?;
             return Ok(Response::new(error.status, error.body.clone()));
         }
 
         collection.push(serde_json::Value::Object(data));
+        drop(state);
 
         let response_status = handler.response.as_ref().map_or(200, |r| r.status);
         Ok(Response::new(
@@ -266,12 +271,14 @@ impl TwinInstance {
     }
 
     fn handle_delete(&self, handler: &HandlerDefinition) -> Result<Response, TwinError> {
-        let collection_name = handler.collection.as_ref().ok_or(TwinError::ConfigError(
+        let collection_name = handler.collection.as_ref().ok_or_else(|| TwinError::ConfigError(
             "No collection specified".to_string(),
         ))?;
 
-        let mut state = self.state.write().map_err(|_| TwinError::LockError)?;
-        state.collections.remove(collection_name);
+        {
+            let mut state = self.state.write().map_err(|_| TwinError::LockError)?;
+            let _ = state.collections.remove(collection_name);
+        }
 
         let response_status = handler.response.as_ref().map_or(200, |r| r.status);
         Ok(Response::new(
@@ -281,14 +288,20 @@ impl TwinInstance {
     }
 
     fn handle_reset(&self) -> Result<Response, TwinError> {
-        let mut state = self.state.write().map_err(|_| TwinError::LockError)?;
-        *state = TwinState::default();
+        {
+            let mut state = self.state.write().map_err(|_| TwinError::LockError)?;
+            *state = TwinState::default();
+        }
         Ok(Response::new(
             200,
             serde_json::json!({"success": true, "message": "State reset"}),
         ))
     }
 
+    /// Get a collection of data from the twin.
+    /// 
+    /// # Errors
+    /// Returns an error if the lock cannot be acquired.
     pub fn get_collection(&self, name: &str) -> Result<Vec<serde_json::Value>, TwinError> {
         let state = self.state.read().map_err(|_| TwinError::LockError)?;
         Ok(state.collections.get(name).cloned().unwrap_or_default())
@@ -303,9 +316,10 @@ pub struct Response {
 }
 
 impl Response {
+    #[must_use]
     pub fn new(status: u16, body: serde_json::Value) -> Self {
         let mut headers = HashMap::new();
-        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        let _ = headers.insert("Content-Type".to_string(), "application/json".to_string());
         Self {
             status,
             body,
@@ -321,16 +335,16 @@ pub struct InspectionEndpoint {
 }
 
 impl TwinInstance {
+    #[must_use]
     pub fn inspection_api(&self) -> HashMap<String, InspectionEndpoint> {
-        let state = match self.state.read() {
-            Ok(s) => s,
-            Err(_) => return HashMap::new(),
+        let Ok(state) = self.state.read() else {
+            return HashMap::new();
         };
 
         let mut endpoints = HashMap::new();
         for (name, items) in &state.collections {
-            endpoints.insert(
-                format!("/__twin/{}", name),
+            let _ = endpoints.insert(
+                format!("/__twin/{name}"),
                 InspectionEndpoint {
                     collection: name.clone(),
                     items: items.clone(),
@@ -355,6 +369,10 @@ pub enum TwinError {
     IoError(#[from] std::io::Error),
 }
 
+/// Load a twin definition from a file.
+/// 
+/// # Errors
+/// Returns an error if file cannot be read or parsed.
 pub fn load_twin_definition(path: &str) -> Result<TwinDefinition, TwinError> {
     let content = std::fs::read_to_string(path)?;
     let definition: TwinDefinition =

@@ -1,7 +1,11 @@
+#[cfg(not(target_arch = "wasm32"))]
 use clap::Parser;
+#[cfg(not(target_arch = "wasm32"))]
 use new_app::coverage::{CoverageAnalyzer, CoverageReport};
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Parser)]
 #[command(name = "coverage")]
 #[command(about = "Analyze scenario coverage")]
@@ -16,6 +20,7 @@ struct Args {
     format: String,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     println!("Analyzing scenario coverage...");
@@ -26,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match args.format.as_str() {
         "json" => {
             let json = serde_json::to_string_pretty(&report)?;
-            println!("{}", json);
+            println!("{json}");
         }
         "text" => {
             print_text_report(&report);
@@ -40,6 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn print_text_report(report: &CoverageReport) {
     println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("  SCENARIO COVERAGE REPORT");
@@ -64,7 +70,7 @@ fn print_text_report(report: &CoverageReport) {
     if !report.common_gaps.is_empty() {
         println!("  Common Coverage Gaps:");
         for gap in &report.common_gaps {
-            println!("    - {}", gap);
+            println!("    - {gap}");
         }
     }
 
@@ -82,3 +88,6 @@ fn print_text_report(report: &CoverageReport) {
         report.total_edge_cases - report.covered_edge_cases
     );
 }
+
+#[cfg(target_arch = "wasm32")]
+fn main() {}

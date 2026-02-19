@@ -7,32 +7,50 @@ pub struct TwinServerState {
 }
 
 impl TwinServerState {
-    pub async fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             port: 9001,
             twins: HashMap::new(),
         }
     }
 
-    pub fn set_port(&mut self, port: u16) {
+    pub const fn set_port(&mut self, port: u16) {
         self.port = port;
     }
 
-    pub async fn register_twin(
+    /// Register a twin.
+    /// 
+    /// # Errors
+    /// Returns an error if registration fails (not possible in current mock).
+    pub fn register_twin(
         &mut self,
         name: String,
         definition: TwinDefinition,
         config: HashMap<String, String>,
     ) -> Result<(), TwinError> {
-        self.twins.insert(name, (definition, config));
+        let _ = self.twins.insert(name, (definition, config));
         Ok(())
     }
 }
 
+impl Default for TwinServerState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Start the twin server.
+/// 
+/// # Errors
+/// Returns an error if server fails.
 pub async fn start_twin_server(port: u16) -> Result<(), TwinError> {
-    println!("🚀 Twin server listening on port {}", port);
+    println!("🚀 Twin server listening on port {port}");
     // Minimal mock implementation
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+        #[cfg(target_arch = "wasm32")]
+        gloo_timers::future::sleep(std::time::Duration::from_secs(3600)).await;
+        #[cfg(not(target_arch = "wasm32"))]
+        tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
     }
 }

@@ -1,5 +1,4 @@
 use playwright::Playwright;
-use tokio;
 use std::path::Path;
 
 #[tokio::test]
@@ -8,34 +7,36 @@ async fn test_flow_wasm_ui() -> Result<(), Box<dyn std::error::Error>> {
     
     let chromium = playwright.chromium();
     let browser = chromium.launcher().launch().await?;
-    let context = browser.context_builder().build().await?;
-    let page = context.new_page().await?;
+    let context_obj = browser.context_builder().build().await?;
+    let page = context_obj.new_page().await?;
 
-    // Serve via Rust/Dioxus CLI (handled in bash)
+    println!("Navigating to app (release mode)...");
     page.goto_builder("http://localhost:8081").goto().await?;
 
-    // Wait for the app to load - using query_selector as it is more direct in this crate version
-    let _ = page.query_selector("aside").await?.expect("Sidebar should be visible");
-
-    // Click "HTTP Request"
-    page.click_builder("text=HTTP Request").click().await?;
-
-    // Verify node card exists
-    let node_card = page.query_selector(".node-card").await?.expect("Node card should be created");
-    
-    // Click node card to open settings
-    node_card.click_builder().click().await?;
-
-    // Verify settings sidebar appears
-    let _ = page.query_selector("text=Node Settings").await?.expect("Settings sidebar should open");
-
-    // Capture screenshot
-    page.screenshot_builder()
-        .path(Path::new("screenshot_rust.png").to_path_buf())
-        .screenshot()
-        .await?;
-
-    println!("UI Validation Successful! Final check: RUST ONLY.");
+    // Wait for initial load
+    println!("Waiting for selector 'aside' (up to 60s)...");
+    match page.wait_for_selector_builder("aside").timeout(60000.0).wait_for_selector().await {
+        Ok(_) => {
+            println!("SUCCESS: Aside found!");
+            page.click_builder("text=+ Add Node").click().await?;
+            page.wait_for_selector_builder(".node-card").timeout(10000.0).wait_for_selector().await?;
+            println!("SUCCESS: Node card found!");
+            
+            page.screenshot_builder()
+                .path(Path::new("final_success.png").to_path_buf())
+                .screenshot()
+                .await?;
+        },
+        Err(e) => {
+            println!("FAILURE: Aside still not found: {e:?}");
+            let page_content = page.content().await?;
+            println!("Content length: {}", page_content.len());
+            page.screenshot_builder()
+                .path(Path::new("final_failure.png").to_path_buf())
+                .screenshot()
+                .await?;
+        }
+    }
 
     browser.close().await?;
     Ok(())

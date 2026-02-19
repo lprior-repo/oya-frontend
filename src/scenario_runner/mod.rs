@@ -140,16 +140,17 @@ pub struct CategoryResult {
     pub failed: usize,
 }
 
-pub struct ScenarioRunner {
+pub struct ScenarioRunner<S = std::hash::RandomState> {
     http_client: reqwest::Client,
     application_endpoint: String,
     #[allow(dead_code)]
-    twin_endpoints: HashMap<String, String>,
+    twin_endpoints: HashMap<String, String, S>,
     extracted_values: HashMap<String, serde_json::Value>,
 }
 
-impl ScenarioRunner {
-    pub fn new(application_endpoint: &str, twins: HashMap<String, String>) -> Self {
+impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
+    #[must_use]
+    pub fn new(application_endpoint: &str, twins: HashMap<String, String, S>) -> Self {
         Self {
             http_client: reqwest::Client::new(),
             application_endpoint: application_endpoint.to_string(),
@@ -179,7 +180,7 @@ impl ScenarioRunner {
             category: scenario.scenario.category.clone(),
             passed,
             steps: step_results,
-            total_duration_ms: start.elapsed().as_millis() as u64,
+            total_duration_ms: u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
             error: None,
         }
     }
@@ -193,8 +194,8 @@ impl ScenarioRunner {
         let action_result = self.execute_action(&step.action).await;
 
         for assertion in &step.assertions {
-            match self.check_assertion(&action_result, assertion) {
-                Ok(_) => assertions_passed += 1,
+            match Self::check_assertion(&action_result, assertion) {
+                Ok(()) => assertions_passed += 1,
                 Err(e) => {
                     assertions_failed += 1;
                     error = Some(e);
@@ -209,7 +210,7 @@ impl ScenarioRunner {
         StepResult {
             step_id: step.id.clone(),
             passed: assertions_failed == 0,
-            duration_ms: start.elapsed().as_millis() as u64,
+            duration_ms: u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
             assertions_passed,
             assertions_failed,
             error,
@@ -225,11 +226,9 @@ impl ScenarioRunner {
                     .as_ref()
                     .unwrap()
                     .replace("${application.endpoint}", &self.application_endpoint);
-                let method_default = "GET".to_string();
-                let method = action.method.as_ref().unwrap_or(&method_default);
+                let method = action.method.as_deref().unwrap_or("GET");
 
-                let mut req = match method.as_str() {
-                    "GET" => client.get(&url),
+                let mut req = match method {
                     "POST" => client.post(&url),
                     "PUT" => client.put(&url),
                     "DELETE" => client.delete(&url),
@@ -271,15 +270,15 @@ impl ScenarioRunner {
         }
     }
 
-    fn check_assertion(&self, result: &ActionResult, assertion: &Assertion) -> Result<(), String> {
+    fn check_assertion(result: &ActionResult, assertion: &Assertion) -> Result<(), String> {
         match assertion.assertion_type.as_str() {
             "status" => {
                 let expected = assertion.expected.as_ref().unwrap();
-                let expected_status = expected.as_u64().unwrap_or(0) as u16;
+                let expected_status = u16::try_from(expected.as_u64().unwrap_or(0)).unwrap_or(0);
                 if result.status != expected_status {
                     return Err(format!(
-                        "Expected status {}, got {}",
-                        expected_status, result.status
+                        "Expected status {expected_status}, got {}",
+                        result.status
                     ));
                 }
             }
@@ -290,7 +289,7 @@ impl ScenarioRunner {
                         if let Some(expected) = &assertion.expected {
                             if let Some(actual) = value {
                                 if actual != expected {
-                                    return Err(format!("Path {}: expected {}, got {}", path, expected, actual));
+                                    return Err(format!("Path {path}: expected {expected}, got {actual}"));
                                 }
                             }
                         }
@@ -306,7 +305,7 @@ impl ScenarioRunner {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&result.body) {
             if let Some(path) = &extraction.path {
                 if let Some(value) = json.pointer(path) {
-                    self.extracted_values.insert(extraction.name.clone(), value.clone());
+                    let _ = self.extracted_values.insert(extraction.name.clone(), value.clone());
                 }
             }
         }
@@ -319,10 +318,14 @@ pub struct ActionResult {
     pub response_time_ms: u64,
 }
 
-pub async fn run_validation(
+/// Run validation on a directory of scenarios.
+/// 
+/// # Errors
+/// Returns an error if reading directory or files fails.
+pub async fn run_validation<S: std::hash::BuildHasher + Send + Sync>(
     scenario_dir: &Path,
     application_endpoint: &str,
-    twins: HashMap<String, String>,
+    twins: HashMap<String, String, S>,
 ) -> Result<ValidationReport, ScenarioError> {
     let mut results = Vec::new();
     let mut runner = ScenarioRunner::new(application_endpoint, twins);
@@ -330,7 +333,7 @@ pub async fn run_validation(
     let entries = fs::read_dir(scenario_dir)?;
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "yaml") {
+        if path.extension().is_some_and(|ext| ext == "yaml") {
             let content = fs::read_to_string(&path)?;
             let scenario: Scenario = serde_yaml::from_str(&content)?;
             let result = runner.run_scenario(&scenario).await;

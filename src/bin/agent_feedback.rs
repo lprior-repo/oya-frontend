@@ -1,7 +1,11 @@
+#[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser, Subcommand};
+#[cfg(not(target_arch = "wasm32"))]
 use new_app::agent_feedback::{FailureCategory, FeedbackGenerator, FeedbackRequest};
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Parser)]
 #[command(name = "agent-feedback")]
 #[command(about = "Generate feedback for AI agents")]
@@ -10,6 +14,7 @@ struct Args {
     command: Commands,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Subcommand)]
 enum Commands {
     #[command(about = "Generate feedback for single failure")]
@@ -31,6 +36,7 @@ enum Commands {
     },
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let generator = FeedbackGenerator::new();
@@ -45,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 failure_category: category,
                 spec_ref: spec_ref.unwrap_or_else(|| "unknown".to_string()),
                 iteration,
-                failure_context: format!("Implementation attempt {}", iteration),
+                failure_context: format!("Implementation attempt {iteration}"),
             };
 
             let feedback = generator.generate(&request);
@@ -90,3 +96,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[cfg(target_arch = "wasm32")]
+fn main() {}

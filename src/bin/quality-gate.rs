@@ -1,9 +1,15 @@
+#[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser, Subcommand};
+#[cfg(not(target_arch = "wasm32"))]
 use new_app::feedback::sanitize_results;
+#[cfg(not(target_arch = "wasm32"))]
 use new_app::linter::{LintReport, SpecLinter};
+#[cfg(not(target_arch = "wasm32"))]
 use new_app::scenario_runner::{run_validation, ValidationReport};
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Parser)]
 #[command(name = "quality-gate")]
 #[command(about = "Autonomous Development Quality Gate CLI", long_about = None)]
@@ -12,6 +18,7 @@ struct Cli {
     command: Commands,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Subcommand)]
 enum Commands {
     /// Validate a specification
@@ -35,6 +42,7 @@ enum Commands {
     },
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
@@ -44,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             spec_path,
             rules_path,
         } => {
-            println!("🔍 Linting spec: {:?}", spec_path);
+            println!("🔍 Linting spec: {}", spec_path.display());
             let linter = SpecLinter::new(&rules_path)?;
             let report = linter.lint(&spec_path)?;
             print_report(&report);
@@ -79,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn print_report(report: &LintReport) {
     println!("Spec: {} v{} | Score: {}/100", report.spec_id, report.spec_version, report.overall_score);
     for (cat, score) in &report.categories {
@@ -86,7 +95,11 @@ fn print_report(report: &LintReport) {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn print_validation_results(results: &ValidationReport) {
     println!("Report: {} | Total: {} | Passed: {} | Failed: {}", 
         results.spec_id, results.total_scenarios, results.passed_scenarios, results.failed_scenarios);
 }
+
+#[cfg(target_arch = "wasm32")]
+fn main() {}
