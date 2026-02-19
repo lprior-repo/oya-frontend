@@ -1,0 +1,10 @@
+[application]
+name = "new-app"
+default_platform = "web"
+out_dir = "dist"
+
+[web.app]
+title = "Clarity Tasks"
+
+[web.watcher]
+watch_path = ["src", "style.css"]

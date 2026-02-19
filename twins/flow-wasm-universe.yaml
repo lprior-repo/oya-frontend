@@ -1,0 +1,56 @@
+# Flow-WASM Development Universe
+# Development environment for the workflow WASM app
+
+universe:
+  name: flow-wasm-dev
+  description: "Development universe for flow-wasm application"
+
+  twins:
+    local-storage:
+      twin: local-storage-twin
+      config:
+        persistence_mode: memory
+    http-mock:
+      twin: http-mock-twin
+      config: {}
+
+  application:
+    source: ../new-app
+    type: web-app
+    build_command: "npm run build"
+    serve_command: "npx serve -s dist"
+    port: 8080
+
+    env:
+      TWIN_LOCAL_STORAGE_URL: "http://localhost:9001"
+      NODE_ENV: development
+
+    health_check:
+      path: /index.html
+      interval: 1s
+      timeout: 30s
+
+  initial_state:
+    local-storage:
+      workflows: []
+
+  networking:
+    mode: bridge
+    ports:
+      application: 8080:80
+      local-storage: 9001:8080
+      http-mock: 9002:8080
+
+  lifecycle:
+    startup_order:
+      - local-storage
+      - http-mock
+      - application
+
+    shutdown_order:
+      - application
+      - http-mock
+      - local-storage
+
+    reset_between_runs: true
+    snapshot_after_init: true

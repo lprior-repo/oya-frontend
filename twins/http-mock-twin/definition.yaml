@@ -1,0 +1,44 @@
+twin:
+  name: "http-mock-twin"
+  display_name: "HTTP Mock Twin"
+  version: "1.0.0"
+  description: "Mock endpoint for testing HTTP Request nodes"
+
+handlers:
+  "GET /health":
+    description: "Check twin health"
+    action: "health"
+
+  "POST /resources":
+    description: "Create a mock resource"
+    action: "create"
+    collection: "mock_data"
+    response:
+      status: 201
+      body:
+        success: true
+        id: "{{uuid}}"
+
+  "GET /resources":
+    description: "List mock resources"
+    action: "list"
+    collection: "mock_data"
+
+  "GET /resources/{{id}}":
+    description: "Read a mock resource"
+    action: "read"
+    collection: "mock_data"
+    not_found:
+      status: 404
+      body:
+        error: "Resource not found"
+
+  "PUT /resources/{{id}}":
+    description: "Update a mock resource"
+    action: "update"
+    collection: "mock_data"
+
+  "DELETE /resources/{{id}}":
+    description: "Delete a mock resource"
+    action: "delete"
+    collection: "mock_data"

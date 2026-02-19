@@ -1,0 +1,90 @@
+# WASM Runtime Digital Twin
+# Simulates WASM execution environment for workflow nodes
+
+twin:
+  name: wasm-runtime
+  display_name: "WASM Runtime"
+  version: "1.0"
+  description: "Simulates workflow execution in WASM sandbox"
+
+  auth:
+    type: none
+
+  state:
+    collections:
+      executions:
+        schema:
+          id: { type: string, generated: true, prefix: "exec_" }
+          workflow_id: { type: string }
+          status: { type: string, default: "pending" }
+          started_at: { type: datetime, auto: true }
+          completed_at: { type: datetime }
+          nodes_executed: { type: number }
+          success: { type: boolean }
+
+      node_results:
+        schema:
+          id: { type: string, generated: true }
+          execution_id: { type: string }
+          node_id: { type: string }
+          input: { type: object }
+          output: { type: object }
+          execution_time_ms: { type: number }
+          error: { type: string, nullable: true }
+
+  handlers:
+    POST /exec/run:
+      description: "Execute a workflow"
+      action: create
+      collection: executions
+      transform:
+        workflow_id: ${body.workflow_id}
+        status: "running"
+      response:
+        status: 202
+
+    GET /exec/{id}:
+      description: "Get execution status"
+      action: read
+      collection: executions
+
+    GET /exec/{id}/results:
+      description: "Get execution results"
+      action: list
+      collection: node_results
+      filters:
+        execution_id: ${path.id}
+
+    POST /exec/{id}/complete:
+      description: "Mark execution as complete"
+      action: update
+      collection: executions
+      transform:
+        status: "completed"
+        completed_at: ${now}
+        success: ${body.success}
+
+    POST /exec/{id}/node-result:
+      description: "Store node execution result"
+      action: create
+      collection: node_results
+      transform:
+        execution_id: ${path.id}
+        node_id: ${body.node_id}
+        input: ${body.input}
+        output: ${body.output}
+        execution_time_ms: ${body.execution_time_ms}
+
+  inspection:
+    GET /__twin/executions:
+      description: "List all executions"
+      action: list
+      collection: executions
+
+    GET /__twin/health:
+      description: "Health check"
+      action: health
+
+    DELETE /__twin/state:
+      description: "Reset state"
+      action: reset_all
