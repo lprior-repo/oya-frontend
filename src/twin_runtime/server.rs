@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::twin_runtime::{TwinDefinition, TwinError};
+use std::collections::HashMap;
 
 pub struct TwinServerState {
     pub port: u16,
@@ -20,7 +20,7 @@ impl TwinServerState {
     }
 
     /// Register a twin.
-    /// 
+    ///
     /// # Errors
     /// Returns an error if registration fails (not possible in current mock).
     pub fn register_twin(
@@ -41,7 +41,7 @@ impl Default for TwinServerState {
 }
 
 /// Start the twin server.
-/// 
+///
 /// # Errors
 /// Returns an error if server fails.
 pub async fn start_twin_server(port: u16) -> Result<(), TwinError> {

@@ -289,7 +289,9 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                         if let Some(expected) = &assertion.expected {
                             if let Some(actual) = value {
                                 if actual != expected {
-                                    return Err(format!("Path {path}: expected {expected}, got {actual}"));
+                                    return Err(format!(
+                                        "Path {path}: expected {expected}, got {actual}"
+                                    ));
                                 }
                             }
                         }
@@ -305,7 +307,9 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&result.body) {
             if let Some(path) = &extraction.path {
                 if let Some(value) = json.pointer(path) {
-                    let _ = self.extracted_values.insert(extraction.name.clone(), value.clone());
+                    let _ = self
+                        .extracted_values
+                        .insert(extraction.name.clone(), value.clone());
                 }
             }
         }
@@ -319,7 +323,7 @@ pub struct ActionResult {
 }
 
 /// Run validation on a directory of scenarios.
-/// 
+///
 /// # Errors
 /// Returns an error if reading directory or files fails.
 pub async fn run_validation<S: std::hash::BuildHasher + Send + Sync>(
@@ -349,9 +353,17 @@ pub async fn run_validation<S: std::hash::BuildHasher + Send + Sync>(
     for result in &results {
         let entry = category_breakdown
             .entry(result.category.clone())
-            .or_insert(CategoryResult { total: 0, passed: 0, failed: 0 });
+            .or_insert(CategoryResult {
+                total: 0,
+                passed: 0,
+                failed: 0,
+            });
         entry.total += 1;
-        if result.passed { entry.passed += 1; } else { entry.failed += 1; }
+        if result.passed {
+            entry.passed += 1;
+        } else {
+            entry.failed += 1;
+        }
     }
 
     Ok(ValidationReport {

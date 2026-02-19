@@ -128,15 +128,22 @@ impl Workflow {
         id
     }
 
-    pub fn add_connection(&mut self, source: NodeId, target: NodeId, source_port: &PortName, target_port: &PortName) -> bool {
+    pub fn add_connection(
+        &mut self,
+        source: NodeId,
+        target: NodeId,
+        source_port: &PortName,
+        target_port: &PortName,
+    ) -> bool {
         if source == target {
             return false;
         }
-        if self
-            .connections
-            .iter()
-            .any(|c| c.source == source && c.target == target && c.source_port == *source_port && c.target_port == *target_port)
-        {
+        if self.connections.iter().any(|c| {
+            c.source == source
+                && c.target == target
+                && c.source_port == *source_port
+                && c.target_port == *target_port
+        }) {
             return false;
         }
         self.connections.push(Connection {
@@ -200,7 +207,8 @@ impl Workflow {
                 config.clone()
             }
             serde_json::Value::Object(map) => {
-                let new_map = map.iter()
+                let new_map = map
+                    .iter()
                     .map(|(k, v)| (k.clone(), self.resolve_expressions(v)))
                     .collect();
                 serde_json::Value::Object(new_map)
@@ -214,9 +222,8 @@ impl Workflow {
 
     pub fn prepare_run(&mut self) {
         let mut queue = Vec::new();
-        let mut in_degree: std::collections::HashMap<NodeId, usize> = self.nodes.iter()
-            .map(|n| (n.id, 0))
-            .collect();
+        let mut in_degree: std::collections::HashMap<NodeId, usize> =
+            self.nodes.iter().map(|n| (n.id, 0)).collect();
 
         for conn in &self.connections {
             if let Some(count) = in_degree.get_mut(&conn.target) {
@@ -224,7 +231,9 @@ impl Workflow {
             }
         }
 
-        let mut available: Vec<NodeId> = self.nodes.iter()
+        let mut available: Vec<NodeId> = self
+            .nodes
+            .iter()
             .filter(|n| in_degree.get(&n.id).is_some_and(|&d| d == 0))
             .map(|n| n.id)
             .collect();
@@ -261,7 +270,11 @@ impl Workflow {
             node.executing = false;
             node.last_output = None;
             node.skipped = false;
-            if node.error.as_ref().is_none_or(|e| e != "Cyclic dependency detected") {
+            if node
+                .error
+                .as_ref()
+                .is_none_or(|e| e != "Cyclic dependency detected")
+            {
                 node.error = None;
             }
         }
@@ -283,12 +296,16 @@ impl Workflow {
                 "data": parent_outputs,
                 "config": resolved_config
             }),
-            "Function" => {
-                resolved_config.get("mapping").cloned().unwrap_or_else(|| serde_json::json!({}))
-            }
+            "Function" => resolved_config
+                .get("mapping")
+                .cloned()
+                .unwrap_or_else(|| serde_json::json!({})),
             "HTTP Request" => self.execute_http_request(resolved_config).await,
             "If" => {
-                let condition = resolved_config.get("condition").and_then(serde_json::Value::as_str).unwrap_or("false");
+                let condition = resolved_config
+                    .get("condition")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("false");
                 let result = condition == "true" || (!condition.is_empty() && condition != "false");
                 serde_json::json!({ "result": result, "condition": condition })
             }
@@ -302,9 +319,15 @@ impl Workflow {
     }
 
     async fn execute_http_request(&self, config: &serde_json::Value) -> serde_json::Value {
-        let url = config.get("url").and_then(serde_json::Value::as_str).unwrap_or("https://httpbin.org/get");
-        let method = config.get("method").and_then(serde_json::Value::as_str).unwrap_or("GET");
-        
+        let url = config
+            .get("url")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("https://httpbin.org/get");
+        let method = config
+            .get("method")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("GET");
+
         let client = reqwest::Client::new();
         let rb = match method {
             "POST" => client.post(url),
@@ -316,7 +339,8 @@ impl Workflow {
         match rb.send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let body: serde_json::Value = resp.json().await.unwrap_or_else(|_| serde_json::json!({}));
+                let body: serde_json::Value =
+                    resp.json().await.unwrap_or_else(|_| serde_json::json!({}));
                 serde_json::json!({ "status": status, "url": url, "body": body })
             }
             Err(e) => serde_json::json!({ "error": e.to_string(), "url": url }),
@@ -340,7 +364,12 @@ impl Workflow {
             None => return false,
         };
 
-        if self.nodes.iter().find(|n| n.id == node_id).is_some_and(|n| n.skipped) {
+        if self
+            .nodes
+            .iter()
+            .find(|n| n.id == node_id)
+            .is_some_and(|n| n.skipped)
+        {
             self.current_step += 1;
             return true;
         }
@@ -359,17 +388,24 @@ impl Workflow {
 
         if let Some(node) = self.nodes.iter().find(|n| n.id == node_id).cloned() {
             let resolved_config = self.resolve_expressions(&node.config);
-            let output = self.execute_node_type(&node.node_type, &resolved_config, &parent_outputs).await;
+            let output = self
+                .execute_node_type(&node.node_type, &resolved_config, &parent_outputs)
+                .await;
 
             if node.node_type == "If" {
-                let result = output.get("result").and_then(serde_json::Value::as_bool).unwrap_or(false);
+                let result = output
+                    .get("result")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false);
                 let skip_port = if result { "false" } else { "true" };
-                
-                let targets_to_skip: Vec<NodeId> = self.connections.iter()
+
+                let targets_to_skip: Vec<NodeId> = self
+                    .connections
+                    .iter()
                     .filter(|c| c.source == node_id && c.source_port.0 == skip_port)
                     .map(|c| c.target)
                     .collect();
-                
+
                 for target_id in targets_to_skip {
                     if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == target_id) {
                         target_node.skipped = true;
@@ -436,7 +472,7 @@ impl Workflow {
             results,
             success,
         });
-        
+
         if self.history.len() > 10 {
             let _ = self.history.remove(0);
         }

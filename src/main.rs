@@ -144,7 +144,7 @@ fn NodeCard(
 #[component]
 fn NodeConfigEditor(node: Node, on_change: EventHandler<serde_json::Value>) -> Element {
     let config = node.config.clone();
-    
+
     rsx! {
         div { class: "flex flex-col gap-4",
             match node.node_type.as_str() {
@@ -375,13 +375,15 @@ fn App() -> Element {
     // Toast Helper
     let add_toast = move |title: &str, kind: &str| {
         let id = Uuid::new_v4();
-        toasts.write().push((id, title.to_string(), kind.to_string()));
+        toasts
+            .write()
+            .push((id, title.to_string(), kind.to_string()));
         spawn(async move {
             #[cfg(target_arch = "wasm32")]
             gloo_timers::future::sleep(std::time::Duration::from_secs(3)).await;
             #[cfg(not(target_arch = "wasm32"))]
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-            
+
             toasts.write().retain(|(tid, _, _)| *tid != id);
         });
     };
@@ -396,25 +398,36 @@ fn App() -> Element {
 
             let mut wf_write = workflow.write();
             let mut should_run = false;
-            
+
             for node in &wf_write.nodes {
                 if node.node_type == "Schedule" {
-                    let interval = node.config.get("interval_sec").and_then(serde_json::Value::as_u64).unwrap_or(60);
-                    let last_run = node.last_output.as_ref()
+                    let interval = node
+                        .config
+                        .get("interval_sec")
+                        .and_then(serde_json::Value::as_u64)
+                        .unwrap_or(60);
+                    let last_run = node
+                        .last_output
+                        .as_ref()
                         .and_then(|o| o.get("timestamp"))
                         .and_then(serde_json::Value::as_str)
                         .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
-                    
+
                     let now = chrono::Utc::now();
-                    let elapsed = last_run.map_or(interval, |lr| (now - lr.with_timezone(&chrono::Utc)).num_seconds().max(0).unsigned_abs());
-                    
+                    let elapsed = last_run.map_or(interval, |lr| {
+                        (now - lr.with_timezone(&chrono::Utc))
+                            .num_seconds()
+                            .max(0)
+                            .unsigned_abs()
+                    });
+
                     if elapsed >= interval {
                         should_run = true;
                         break;
                     }
                 }
             }
-            
+
             if should_run {
                 wf_write.run().await;
             }
@@ -473,12 +486,12 @@ fn App() -> Element {
                         let hist_class = if is_hist { format!("{base} text-indigo-400 border-b-2 border-indigo-400") }
                                          else { format!("{base} text-slate-500") };
                         rsx! {
-                            button { 
+                            button {
                                 class: "{lib_class}",
                                 onclick: move |_| active_tab.set("library".to_string()),
                                 "Library"
                             }
-                            button { 
+                            button {
                                 class: "{hist_class}",
                                 onclick: move |_| active_tab.set("history".to_string()),
                                 "History"
@@ -761,7 +774,7 @@ fn App() -> Element {
             div { class: "fixed bottom-6 right-6 flex flex-col gap-2 z-[200]",
                 for (id, msg, kind) in toasts.read().iter() {
                     {
-                        let class = if kind == "success" { "bg-emerald-900/90 border-emerald-500 text-emerald-100" } 
+                        let class = if kind == "success" { "bg-emerald-900/90 border-emerald-500 text-emerald-100" }
                                     else { "bg-slate-900/90 border-slate-700 text-slate-100" };
                         rsx! {
                             div {

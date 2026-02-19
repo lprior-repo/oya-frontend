@@ -89,7 +89,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn print_report(report: &LintReport) {
-    println!("Spec: {} v{} | Score: {}/100", report.spec_id, report.spec_version, report.overall_score);
+    println!(
+        "Spec: {} v{} | Score: {}/100",
+        report.spec_id, report.spec_version, report.overall_score
+    );
     for (cat, score) in &report.categories {
         println!("  - {}: {} ({})", cat, score.score, score.details);
     }
@@ -97,8 +100,13 @@ fn print_report(report: &LintReport) {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn print_validation_results(results: &ValidationReport) {
-    println!("Report: {} | Total: {} | Passed: {} | Failed: {}", 
-        results.spec_id, results.total_scenarios, results.passed_scenarios, results.failed_scenarios);
+    println!(
+        "Report: {} | Total: {} | Passed: {} | Failed: {}",
+        results.spec_id,
+        results.total_scenarios,
+        results.passed_scenarios,
+        results.failed_scenarios
+    );
 }
 
 #[cfg(target_arch = "wasm32")]
