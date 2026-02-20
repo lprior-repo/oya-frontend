@@ -1,5 +1,5 @@
 [package]
-name = "new-app"
+name = "oya-frontend"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,10 +12,16 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 web-sys = { version = "0.3", features = ["Window", "Storage", "Document", "Element", "HtmlAnchorElement", "Blob", "Url"] }
 uuid = { version = "1.0", features = ["v4", "serde", "js"] }
-thiserror = "1.0"
+thiserror = "2.0"
 reqwest = { version = "0.11", features = ["json"] }
 chrono = { version = "0.4", features = ["serde"] }
 gloo-timers = { version = "0.3", features = ["futures"] }
+itertools = "0.14"
+tap = "1.0"
+rpds = "1.2"
+im = "15.1"
+anyhow = "1.0"
+petgraph = "0.8.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -27,11 +33,11 @@ playwright = "0.0.20"
 tokio = { version = "1", features = ["full"] }
 
 [lib]
-name = "new_app"
+name = "oya_frontend"
 path = "src/lib.rs"
 
 [[bin]]
-name = "new-app"
+name = "oya-frontend"
 path = "src/main.rs"
 
 [[bin]]

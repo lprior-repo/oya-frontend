@@ -1,8 +1,8 @@
-# Codanna configuration for new-app
+# Codanna configuration for oya-frontend
 # https://github.com/codanna/codanna
 
 [project]
-name = "new-app"
+name = "oya-frontend"
 language = "rust"
 
 [index]

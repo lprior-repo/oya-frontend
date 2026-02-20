@@ -1,7 +1,7 @@
 # Agent Instructions: Autonomous Development Loop
 
 ```jsonl
-{"kind":"meta","project":"new-app","version":"1.0.0","updated":"2026-02","format":"markdown-with-embedded-jsonl"}
+{"kind":"meta","project":"oya-frontend","version":"1.0.0","updated":"2026-02","format":"markdown-with-embedded-jsonl"}
 {"kind":"workflow","name":"core_loop","steps":["bv --robot-triage → br claim <bead-id>","zjj spawn <bead-id>","tdd15 + red-queen + functional skills","moon run :ci --force","zjj done"]}
 {"kind":"build_system","tool":"moon","allowed":[":serve",":check",":test",":clippy",":fmt",":build-web",":ci --force"],"forbidden":["dx directly","cargo directly","npm directly"]}
 {"kind":"framework","name":"dioxus","version":"0.7","state":"use_signal (atomic), use_store (nested)","props":"ReadOnlySignal<T>","styling":"Tailwind class: attribute","closures":"move |_|","assets":"asset!() macro","syntax":"rsx! only, no HTML tags"}

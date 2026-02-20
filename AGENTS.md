@@ -1,7 +1,7 @@
-# NEW-APP Quality Gate Instructions
+# OYA-FRONTEND Quality Gate Instructions
 
 ```jsonl
-{"kind":"meta","project":"new-app","version":"1.0.0","updated":"2026-02","format":"markdown-with-embedded-jsonl"}
+{"kind":"meta","project":"oya-frontend","version":"1.0.0","updated":"2026-02","format":"markdown-with-embedded-jsonl"}
 {"kind":"visibility","role":"agent","can_see":["specs/flow-wasm-v1.yaml","tests/","src/","specs/linter/rules.yaml","ACCEPTANCE CRITERIA"],"cannot_see":["../scenarios-vault/","holdout assertions","step sequences","raw validation results"]}
 {"kind":"framework","name":"dioxus","version":"0.7","reactivity":"use_signal, use_memo, use_resource","state_hierarchy":"use_signal (atomic), use_store + #[derive(Store)] (nested)","props":"ReadOnlySignal<T>","styling":"Tailwind class: attribute","events":"move |_| closures","architecture":"flat RSX, #[component] modular","assets":"asset!() macro"}
 {"kind":"code_intelligence","tool":"codanna","required":"mcp__codanna__*","forbidden":["grep","rg","ripgrep","find","cat for search"],"workflow":["semantic_search_with_context → anchor","find_symbol/search_symbols → lock","get_calls/find_callers/analyze_impact → hints","Read tool → confirm"]}
