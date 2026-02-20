@@ -6,99 +6,13 @@
 
 use crate::ui::{
     CanvasContextMenu, FlowEdges, FlowExecutionLane, FlowMinimap, FlowNodeComponent, FlowPosition,
-    FlowToolbar, NodeCommandPalette, NodeConfigEditor, NodeSidebar,
+    FlowToolbar, NodeCommandPalette, NodeSidebar, SelectedNodePanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, PortName, Workflow};
 
-#[cfg(target_arch = "wasm32")]
-use wasm_bindgen::{JsCast, JsValue};
-
 mod ui;
-
-#[cfg(target_arch = "wasm32")]
-fn canvas_rect_size() -> Option<(f32, f32)> {
-    use web_sys::window;
-
-    let document = window().and_then(|win| win.document())?;
-    let element = document.query_selector("main").ok().flatten()?;
-    let rect = element.get_bounding_client_rect();
-    #[allow(clippy::cast_possible_truncation)]
-    let width = rect.width() as f32;
-    #[allow(clippy::cast_possible_truncation)]
-    let height = rect.height() as f32;
-    Some((width, height))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-const fn canvas_rect_size() -> Option<(f32, f32)> {
-    None
-}
-
-#[cfg(target_arch = "wasm32")]
-fn download_workflow_json(name: &str, workflow: &Workflow) {
-    use js_sys::Array;
-    use web_sys::{window, Blob, HtmlAnchorElement, Url};
-
-    let json = match serde_json::to_string_pretty(workflow) {
-        Ok(value) => value,
-        Err(_) => return,
-    };
-
-    let chunks = Array::new();
-    chunks.push(&JsValue::from_str(&json));
-
-    let blob = match Blob::new_with_str_sequence(&chunks) {
-        Ok(value) => value,
-        Err(_) => return,
-    };
-
-    let url = match Url::create_object_url_with_blob(&blob) {
-        Ok(value) => value,
-        Err(_) => return,
-    };
-
-    let document = match window().and_then(|win| win.document()) {
-        Some(value) => value,
-        None => return,
-    };
-
-    let element = match document.create_element("a") {
-        Ok(value) => value,
-        Err(_) => {
-            let _ = Url::revoke_object_url(&url);
-            return;
-        }
-    };
-
-    let anchor = match element.dyn_into::<HtmlAnchorElement>() {
-        Ok(value) => value,
-        Err(_) => {
-            let _ = Url::revoke_object_url(&url);
-            return;
-        }
-    };
-
-    let filename = format!(
-        "{}.json",
-        name.trim()
-            .chars()
-            .map(|ch| {
-                if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
-                    ch
-                } else {
-                    '_'
-                }
-            })
-            .collect::<String>()
-    );
-
-    anchor.set_href(&url);
-    anchor.set_download(&filename);
-    anchor.click();
-    let _ = Url::revoke_object_url(&url);
-}
 
 // --- Application Shell ---
 
@@ -119,67 +33,7 @@ fn App() -> Element {
                 }
             }
         }
-        Workflow {
-            nodes: vec![
-                oya_frontend::graph::Node {
-                    id: oya_frontend::graph::NodeId::new(),
-                    name: "HTTP Handler".to_string(),
-                    description: "POST /SignupWorkflow/{userId}/run".to_string(),
-                    node_type: "http-handler".to_string(),
-                    category: oya_frontend::graph::NodeCategory::Entry,
-                    icon: "globe".to_string(),
-                    x: 350.0,
-                    y: 40.0,
-                    config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 0}),
-                    last_output: None,
-                    selected: false,
-                    executing: false,
-                    skipped: false,
-                    error: None,
-                },
-                oya_frontend::graph::Node {
-                    id: oya_frontend::graph::NodeId::new(),
-                    name: "Durable Step".to_string(),
-                    description: "Create user in database".to_string(),
-                    node_type: "run".to_string(),
-                    category: oya_frontend::graph::NodeCategory::Durable,
-                    icon: "shield".to_string(),
-                    x: 350.0,
-                    y: 170.0,
-                    config: serde_json::json!({"configured": true, "status": "completed", "durableStepName": "create-user", "journalIndex": 1}),
-                    last_output: None,
-                    selected: false,
-                    executing: false,
-                    skipped: false,
-                    error: None,
-                },
-                oya_frontend::graph::Node {
-                    id: oya_frontend::graph::NodeId::new(),
-                    name: "If / Else".to_string(),
-                    description: "Check if user creation succeeded".to_string(),
-                    node_type: "condition".to_string(),
-                    category: oya_frontend::graph::NodeCategory::Flow,
-                    icon: "git-branch".to_string(),
-                    x: 350.0,
-                    y: 300.0,
-                    config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 2}),
-                    last_output: None,
-                    selected: false,
-                    executing: false,
-                    skipped: false,
-                    error: None,
-                },
-            ],
-            connections: vec![], // we'll omit connections initially to keep it simple, user can connect them
-            viewport: oya_frontend::graph::Viewport {
-                x: 0.0,
-                y: 0.0,
-                zoom: 0.85,
-            },
-            execution_queue: vec![],
-            current_step: 0,
-            history: vec![],
-        }
+        crate::ui::app_bootstrap::default_workflow()
     });
 
     let mut selected_node_id = use_signal(|| None::<NodeId>);
@@ -333,7 +187,10 @@ fn App() -> Element {
                 on_save: move |_| {
                     #[cfg(target_arch = "wasm32")]
                     {
-                        download_workflow_json(&workflow_name.read(), &workflow.read());
+                        crate::ui::app_io::download_workflow_json(
+                            &workflow_name.read(),
+                            &workflow.read(),
+                        );
                     }
                 },
                 on_settings: move |_| {
@@ -584,7 +441,8 @@ fn App() -> Element {
                         let zoom = current_vp.zoom;
 
                         if !dragging_node_ids.read().is_empty() {
-                            let (canvas_w, canvas_h) = canvas_rect_size().map_or((960.0, 720.0), std::convert::identity);
+                            let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
+                                .map_or((960.0, 720.0), std::convert::identity);
                             let edge = 56.0_f32;
                             let max_pan = 18.0_f32;
 
@@ -914,152 +772,13 @@ fn App() -> Element {
                     }
                 }
 
-                if let Some(node_id) = *selected_node_id.read() {
-                    if let Some(selected_node) = nodes_by_id.read().get(&node_id).cloned() {
-                        {
-                            let badge_classes = match selected_node.category {
-                                oya_frontend::graph::NodeCategory::Entry => {
-                                    "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
-                                }
-                                oya_frontend::graph::NodeCategory::Durable => {
-                                    "bg-indigo-500/15 text-indigo-300 border-indigo-500/25"
-                                }
-                                oya_frontend::graph::NodeCategory::State => {
-                                    "bg-orange-500/15 text-orange-300 border-orange-500/25"
-                                }
-                                oya_frontend::graph::NodeCategory::Flow => {
-                                    "bg-amber-500/15 text-amber-300 border-amber-500/25"
-                                }
-                                oya_frontend::graph::NodeCategory::Timing => {
-                                    "bg-pink-500/15 text-pink-300 border-pink-500/25"
-                                }
-                                oya_frontend::graph::NodeCategory::Signal => {
-                                    "bg-blue-500/15 text-blue-300 border-blue-500/25"
-                                }
-                            };
-
-                            rsx! {
-                                aside { class: "animate-slide-in-right z-30 flex w-[300px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/95",
-                                div { class: "flex items-center justify-between border-b border-slate-800 px-4 py-3",
-                                    div { class: "flex items-center gap-2.5",
-                                        div { class: "flex h-7 w-7 items-center justify-center rounded-md border {badge_classes}",
-                                            {crate::ui::icons::icon_by_name(&selected_node.icon, "h-3.5 w-3.5".to_string())}
-                                        }
-                                        div {
-                                            h3 { class: "text-[13px] font-semibold text-slate-100", "{selected_node.name}" }
-                                            p { class: "text-[10px] text-slate-500", "{selected_node.description}" }
-                                        }
-                                    }
-                                    button {
-                                        class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-100",
-                                        onclick: move |_| {
-                                            selected_node_id.set(None);
-                                            selected_node_ids.set(Vec::new());
-                                        },
-                                        crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
-                                    }
-                                }
-
-                                div { class: "flex-1 overflow-y-auto p-4",
-                                    div { class: "mb-4 flex items-center gap-2",
-                                        span { class: "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium capitalize {badge_classes}", "{selected_node.category}" }
-                                        span { class: "text-[10px] font-mono text-slate-500", "ID: {selected_node.id}" }
-                                    }
-                                    div { class: "mb-4 flex flex-col gap-1.5",
-                                        label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Node Name" }
-                                        input {
-                                            class: "h-8 rounded-md border border-slate-700 bg-slate-950 px-3 text-[12px] text-slate-100 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30",
-                                            value: "{selected_node.name}",
-                                            oninput: move |evt| {
-                                                let mut wf = workflow.write();
-                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
-                                                    node.name = evt.value();
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    div { class: "mb-4 flex flex-col gap-1.5",
-                                        label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Notes" }
-                                        textarea {
-                                            rows: "3",
-                                            placeholder: "Add notes about this node...",
-                                            class: "rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-[12px] text-slate-100 placeholder:text-slate-500/70 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 resize-none",
-                                            value: "{selected_node.description}",
-                                            oninput: move |evt| {
-                                                let mut wf = workflow.write();
-                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
-                                                    node.description = evt.value();
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    div { class: "h-px bg-slate-800" }
-                                    div { class: "pt-4",
-                                        NodeConfigEditor {
-                                            node: selected_node.clone(),
-                                            on_change: move |new_config| {
-                                                let mut wf = workflow.write();
-                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
-                                                    node.config = new_config;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                div { class: "flex items-center gap-2 border-t border-slate-800 px-4 py-3",
-                                    button {
-                                        class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-700 text-[12px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100",
-                                        onclick: move |_| {
-                                            let snapshot = workflow.read().clone();
-                                            undo_stack.write().push(snapshot);
-                                            if undo_stack.read().len() > 60 {
-                                                let _ = undo_stack.write().remove(0);
-                                            }
-                                            redo_stack.write().clear();
-
-                                            let maybe_clone = workflow
-                                                .read()
-                                                .nodes
-                                                .iter()
-                                                .find(|node| node.id == node_id)
-                                                .cloned();
-                                            if let Some(mut clone) = maybe_clone {
-                                                clone.id = NodeId::new();
-                                                clone.x += 40.0;
-                                                clone.y += 40.0;
-                                                let cloned_id = clone.id;
-                                                workflow.write().nodes.push(clone);
-                                                selected_node_id.set(Some(cloned_id));
-                                                selected_node_ids.set(vec![cloned_id]);
-                                            }
-                                        },
-                                        crate::ui::icons::CopyIcon { class: "h-3.5 w-3.5" }
-                                        "Duplicate"
-                                    }
-                                    button {
-                                        class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-red-500/30 text-[12px] text-red-400 transition-colors hover:bg-red-500/10",
-                                        onclick: move |_| {
-                                            let snapshot = workflow.read().clone();
-                                            undo_stack.write().push(snapshot);
-                                            if undo_stack.read().len() > 60 {
-                                                let _ = undo_stack.write().remove(0);
-                                            }
-                                            redo_stack.write().clear();
-                                            workflow.write().remove_node(node_id);
-                                            selected_node_id.set(None);
-                                            selected_node_ids.set(Vec::new());
-                                        },
-                                        crate::ui::icons::TrashIcon { class: "h-3.5 w-3.5" }
-                                        "Delete"
-                                    }
-                                }
-                                }
-                            }
-                        }
-                    }
+                SelectedNodePanel {
+                    selected_node_id,
+                    selected_node_ids,
+                    nodes_by_id,
+                    workflow,
+                    undo_stack,
+                    redo_stack,
                 }
             }
         }

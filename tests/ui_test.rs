@@ -2,7 +2,8 @@ use playwright::Playwright;
 use std::path::Path;
 
 #[tokio::test]
-async fn test_flow_wasm_ui() -> Result<(), Box<dyn std::error::Error>> {
+async fn given_flow_editor_when_loaded_then_sidebar_and_node_canvas_are_interactive(
+) -> Result<(), Box<dyn std::error::Error>> {
     let playwright = Playwright::initialize().await?;
 
     let chromium = playwright.chromium();
@@ -13,8 +14,7 @@ async fn test_flow_wasm_ui() -> Result<(), Box<dyn std::error::Error>> {
     println!("Navigating to app (release mode)...");
     page.goto_builder("http://localhost:8081").goto().await?;
 
-    // Wait for initial load
-    println!("Waiting for selector 'aside' (up to 60s)...");
+    println!("Given the app loads, waiting for sidebar shell (up to 60s)...");
     match page
         .wait_for_selector_builder("aside")
         .timeout(60000.0)
@@ -23,12 +23,20 @@ async fn test_flow_wasm_ui() -> Result<(), Box<dyn std::error::Error>> {
     {
         Ok(_) => {
             println!("SUCCESS: Aside found!");
+            page.wait_for_selector_builder("input[placeholder='Search nodes...']")
+                .timeout(10000.0)
+                .wait_for_selector()
+                .await?;
+            page.wait_for_selector_builder("text=HTTP Trigger")
+                .timeout(10000.0)
+                .wait_for_selector()
+                .await?;
             page.click_builder("text=+ Add Node").click().await?;
             page.wait_for_selector_builder(".node-card")
                 .timeout(10000.0)
                 .wait_for_selector()
                 .await?;
-            println!("SUCCESS: Node card found!");
+            println!("Then adding a node renders an interactive node card.");
 
             page.screenshot_builder()
                 .path(Path::new("final_success.png").to_path_buf())

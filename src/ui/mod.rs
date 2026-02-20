@@ -1,3 +1,5 @@
+pub mod app_bootstrap;
+pub mod app_io;
 pub mod canvas_context_menu;
 pub mod command_palette;
 pub mod config_panel;
@@ -7,6 +9,7 @@ pub mod execution_lane;
 pub mod icons;
 pub mod minimap;
 pub mod node;
+pub mod selected_node_panel;
 pub mod sidebar;
 pub mod toolbar;
 
@@ -17,5 +20,6 @@ pub use edges::{FlowEdges, Position as FlowPosition};
 pub use execution_lane::FlowExecutionLane;
 pub use minimap::FlowMinimap;
 pub use node::FlowNodeComponent;
+pub use selected_node_panel::SelectedNodePanel;
 pub use sidebar::NodeSidebar;
 pub use toolbar::FlowToolbar;

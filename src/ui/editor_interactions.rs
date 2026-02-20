@@ -94,3 +94,69 @@ pub fn snap_handle(
 
     best.map(|(node_id, handle_kind, position, _)| (node_id, handle_kind, position))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{node_intersects_rect, normalize_rect, rect_contains, snap_handle};
+    use oya_frontend::graph::{Viewport, Workflow};
+
+    #[test]
+    fn given_drag_points_when_normalizing_then_rect_bounds_are_ordered() {
+        let rect = normalize_rect((120.0, 30.0), (20.0, 90.0));
+
+        assert_eq!(rect, (20.0, 30.0, 120.0, 90.0));
+    }
+
+    #[test]
+    fn given_rect_boundary_point_when_checking_contains_then_point_is_inside() {
+        let rect = (10.0, 10.0, 20.0, 20.0);
+
+        assert!(rect_contains(rect, (10.0, 20.0)));
+    }
+
+    #[test]
+    fn given_node_overlapping_selection_when_checking_intersection_then_it_is_detected() {
+        let intersects = node_intersects_rect(50.0, 50.0, (0.0, 0.0, 100.0, 100.0));
+
+        assert!(intersects);
+    }
+
+    #[test]
+    fn given_invalid_zoom_when_snapping_handle_then_no_handle_is_returned() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("http-handler", 200.0, 200.0);
+
+        let result = snap_handle(
+            &workflow.nodes,
+            200.0,
+            200.0,
+            &Viewport {
+                x: 0.0,
+                y: 0.0,
+                zoom: 0.0,
+            },
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn given_cursor_near_closest_handle_when_snapping_then_closest_handle_is_selected() {
+        let mut workflow = Workflow::new();
+        let first_id = workflow.add_node("first", 100.0, 100.0);
+        let _ = workflow.add_node("second", 300.0, 300.0);
+
+        let viewport = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: 1.0,
+        };
+
+        let snapped = snap_handle(&workflow.nodes, 210.0, 167.0, &viewport);
+
+        assert!(snapped.is_some());
+        let (node_id, handle_kind, _) = snapped.expect("closest handle should be detected");
+        assert_eq!(node_id, first_id);
+        assert_eq!(handle_kind, "source");
+    }
+}
