@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser, Subcommand};
 #[cfg(not(target_arch = "wasm32"))]
-use new_app::agent_feedback::{FailureCategory, FeedbackGenerator, FeedbackRequest};
+use oya_frontend::agent_feedback::{FailureCategory, FeedbackGenerator, FeedbackRequest};
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 

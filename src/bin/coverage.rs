@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use clap::Parser;
 #[cfg(not(target_arch = "wasm32"))]
-use new_app::coverage::{CoverageAnalyzer, CoverageReport};
+use oya_frontend::coverage::{CoverageAnalyzer, CoverageReport};
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 

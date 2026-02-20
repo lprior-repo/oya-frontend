@@ -2,9 +2,9 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Flow-WASM Component Parity', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:8081');
+    await page.goto('http://localhost:8082');
     // Wait for the shell rendered by our Dioxus components
-    await page.waitForSelector('.app-shell', { timeout: 15000 });
+    await page.waitForSelector('.canvas', { timeout: 15000 });
   });
 
   test('should open settings sidebar when node is clicked', async ({ page }) => {

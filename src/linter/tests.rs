@@ -2,8 +2,8 @@ use super::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
-fn create_test_rules() -> NamedTempFile {
-    let mut file = NamedTempFile::new().unwrap();
+fn create_test_rules() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
     writeln!(
         file,
         "{}",
@@ -22,13 +22,12 @@ rules:
       - "obviously"
       - "simply"
 "#
-    )
-    .unwrap();
-    file
+    )?;
+    Ok(file)
 }
 
-fn create_test_spec_minimal() -> NamedTempFile {
-    let mut file = NamedTempFile::new().unwrap();
+fn create_test_spec_minimal() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
     writeln!(
         file,
         "{}",
@@ -56,20 +55,21 @@ specification:
     - id: ac-01
       criterion: "Test criterion"
 "#
-    )
-    .unwrap();
-    file
+    )?;
+    Ok(file)
 }
 
 #[test]
-fn test_lint_spec_minimal() {
-    let rules_file = create_test_rules();
-    let spec_file = create_test_spec_minimal();
+fn test_lint_spec_minimal() -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_test_spec_minimal()?;
 
-    let linter = SpecLinter::new(rules_file.path()).unwrap();
-    let report = linter.lint(spec_file.path()).unwrap();
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
 
     assert_eq!(report.spec_id, "spec-test");
     assert!(report.overall_score >= 80);
     assert!(report.errors.is_empty());
+
+    Ok(())
 }

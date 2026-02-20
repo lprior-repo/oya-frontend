@@ -482,8 +482,8 @@ mod tests {
     use std::io::Write;
     use tempfile::NamedTempFile;
 
-    fn create_test_rules() -> NamedTempFile {
-        let mut file = NamedTempFile::new().unwrap();
+    fn create_test_rules() -> anyhow::Result<NamedTempFile> {
+        let mut file = NamedTempFile::new()?;
         writeln!(
             file,
             "rules:
@@ -492,13 +492,12 @@ mod tests {
     severity: error
     description: \"Test rule\"
     banned_phrases: []"
-        )
-        .unwrap();
-        file
+        )?;
+        Ok(file)
     }
 
-    fn create_test_spec() -> NamedTempFile {
-        let mut file = NamedTempFile::new().unwrap();
+    fn create_test_spec() -> anyhow::Result<NamedTempFile> {
+        let mut file = NamedTempFile::new()?;
         writeln!(
             file,
             "specification:
@@ -527,16 +526,16 @@ mod tests {
   acceptance_criteria:
     - id: ac-01
       criterion: \"Test criterion\""
-        )
-        .unwrap();
-        file
+        )?;
+        Ok(file)
     }
 
     #[test]
-    fn test_linter() {
-        let rules = create_test_rules();
-        let spec = create_test_spec();
-        let linter = SpecLinter::new(rules.path()).unwrap();
-        let _report = linter.lint(spec.path()).unwrap();
+    fn test_linter() -> anyhow::Result<()> {
+        let rules = create_test_rules()?;
+        let spec = create_test_spec()?;
+        let linter = SpecLinter::new(rules.path())?;
+        let _report = linter.lint(spec.path())?;
+        Ok(())
     }
 }

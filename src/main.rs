@@ -1,786 +1,1062 @@
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::expect_used)]
-#![allow(clippy::panic)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+#![forbid(unsafe_code)]
 
-use dioxus::prelude::dioxus_elements::input_data::MouseButton;
+use crate::ui::{
+    CanvasContextMenu, FlowEdges, FlowExecutionLane, FlowMinimap, FlowNodeComponent, FlowPosition,
+    FlowToolbar, NodeCommandPalette, NodeConfigEditor, NodeSidebar,
+};
+use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
-use new_app::graph::{Node, NodeId, Workflow};
-use uuid::Uuid;
+use oya_frontend::graph::{NodeId, PortName, Workflow};
 
-// --- Components ---
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::{JsCast, JsValue};
 
-#[component]
-fn NodeCard(
-    node: Node,
-    on_drag: EventHandler<()>,
-    on_select: EventHandler<bool>,
-    on_delete: EventHandler<()>,
-    on_pin_down: EventHandler<()>,
-    on_pin_up: EventHandler<()>,
-) -> Element {
-    let (color, icon) = match node.node_type.as_str() {
-        "Trigger" => (
-            "amber",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M13 10V3L4 14h7v7l9-11h-7z", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        "HTTP Request" => (
-            "indigo",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        "JSON Transform" => (
-            "violet",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        "Function" => (
-            "fuchsia",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        "If" => (
-            "orange",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        "Schedule" => (
-            "cyan",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
-        _ => (
-            "slate",
-            rsx! {
-                svg { fill: "none", stroke: "currentColor", stroke_width: "2", view_box: "0 0 24 24", class: "w-4 h-4",
-                    path { d: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 v2M7 7h10", stroke_linecap: "round", stroke_linejoin: "round" }
-                }
-            },
-        ),
+mod ui;
+
+#[cfg(target_arch = "wasm32")]
+fn canvas_rect_size() -> Option<(f32, f32)> {
+    use web_sys::window;
+
+    let document = window().and_then(|win| win.document())?;
+    let element = document.query_selector("main").ok().flatten()?;
+    let rect = element.get_bounding_client_rect();
+    #[allow(clippy::cast_possible_truncation)]
+    let width = rect.width() as f32;
+    #[allow(clippy::cast_possible_truncation)]
+    let height = rect.height() as f32;
+    Some((width, height))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+const fn canvas_rect_size() -> Option<(f32, f32)> {
+    None
+}
+
+#[cfg(target_arch = "wasm32")]
+fn download_workflow_json(name: &str, workflow: &Workflow) {
+    use js_sys::Array;
+    use web_sys::{window, Blob, HtmlAnchorElement, Url};
+
+    let json = match serde_json::to_string_pretty(workflow) {
+        Ok(value) => value,
+        Err(_) => return,
     };
 
-    let border = if node.error.is_some() {
-        "border-red-500 ring-4 ring-red-500/20".to_string()
-    } else if node.executing {
-        "border-emerald-500 ring-4 ring-emerald-500/20".to_string()
-    } else if node.selected {
-        format!("border-{color}-500 ring-4 ring-{color}-500/10")
-    } else if node.skipped {
-        "border-slate-800 opacity-40".to_string()
-    } else {
-        "border-slate-700 shadow-xl".to_string()
+    let chunks = Array::new();
+    chunks.push(&JsValue::from_str(&json));
+
+    let blob = match Blob::new_with_str_sequence(&chunks) {
+        Ok(value) => value,
+        Err(_) => return,
     };
 
-    rsx! {
-        div {
-            class: "absolute bg-slate-800 border-2 {border} rounded-2xl w-52 transition-all hover:border-{color}-400 group z-10 node-card",
-            style: "left: {node.x}px; top: {node.y}px; cursor: grab active:cursor-grabbing",
-            onmousedown: move |evt| {
-                evt.stop_propagation();
-                on_drag.call(());
-                on_select.call(evt.modifiers().shift());
-            },
-            div { class: "p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900/50 rounded-t-2xl",
-                div { class: "flex items-center gap-2",
-                    div { class: "text-{color}-400", {icon} }
-                    span { class: "text-[10px] uppercase tracking-widest font-bold text-slate-400", "{node.name}" }
-                }
-                button { class: "text-slate-600 hover:text-red-400", onclick: move |_| on_delete.call(()), "×" }
-            }
-            div { class: "p-4 min-h-[64px] flex flex-col justify-center",
-                if let Some(err) = &node.error {
-                    div { class: "text-[10px] font-bold text-red-400", "{err}" }
-                } else if let Some(out) = &node.last_output {
-                    div { class: "text-[10px] font-mono text-emerald-400 truncate wire-data", "{out}" }
+    let url = match Url::create_object_url_with_blob(&blob) {
+        Ok(value) => value,
+        Err(_) => return,
+    };
+
+    let document = match window().and_then(|win| win.document()) {
+        Some(value) => value,
+        None => return,
+    };
+
+    let element = match document.create_element("a") {
+        Ok(value) => value,
+        Err(_) => {
+            let _ = Url::revoke_object_url(&url);
+            return;
+        }
+    };
+
+    let anchor = match element.dyn_into::<HtmlAnchorElement>() {
+        Ok(value) => value,
+        Err(_) => {
+            let _ = Url::revoke_object_url(&url);
+            return;
+        }
+    };
+
+    let filename = format!(
+        "{}.json",
+        name.trim()
+            .chars()
+            .map(|ch| {
+                if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                    ch
                 } else {
-                    div { class: "text-[10px] text-slate-500 italic", if node.skipped { "Skipped" } else { "Ready" } }
+                    '_'
                 }
-            }
-            // Input Pin
-            div {
-                class: "absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-slate-700 border-2 border-slate-900 rounded-full hover:bg-{color}-500 cursor-pointer z-20",
-                onmouseup: move |_| on_pin_up.call(())
-            }
-            // Output Pin(s)
-            if node.node_type == "If" {
-                div { class: "absolute -right-2 top-1/4 -translate-y-1/2 flex flex-col gap-4",
-                    div {
-                        class: "w-4 h-4 bg-emerald-600 border-2 border-slate-900 rounded-full hover:bg-emerald-400 cursor-pointer z-20",
-                        onmousedown: move |evt| { evt.stop_propagation(); on_pin_down.call(()); }
-                    }
-                    div {
-                        class: "w-4 h-4 bg-red-600 border-2 border-slate-900 rounded-full hover:bg-red-400 cursor-pointer z-20",
-                        onmousedown: move |evt| { evt.stop_propagation(); on_pin_down.call(()); }
-                    }
-                }
-            } else {
-                div {
-                    class: "absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-slate-700 border-2 border-slate-900 rounded-full hover:bg-{color}-500 cursor-pointer z-20",
-                    onmousedown: move |evt| { evt.stop_propagation(); on_pin_down.call(()); }
-                }
-            }
-        }
-    }
+            })
+            .collect::<String>()
+    );
+
+    anchor.set_href(&url);
+    anchor.set_download(&filename);
+    anchor.click();
+    let _ = Url::revoke_object_url(&url);
 }
 
-#[component]
-fn NodeConfigEditor(node: Node, on_change: EventHandler<serde_json::Value>) -> Element {
-    let config = node.config.clone();
-
-    rsx! {
-        div { class: "flex flex-col gap-4",
-            match node.node_type.as_str() {
-                "HTTP Request" => {
-                    let method = config.get("method").and_then(serde_json::Value::as_str).unwrap_or("GET").to_string();
-                    let url = config.get("url").and_then(serde_json::Value::as_str).unwrap_or("").to_string();
-                    let cfg_clone1 = config.clone();
-                    let cfg_clone2 = config.clone();
-                    rsx! {
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "Method" }
-                            select {
-                                class: "bg-slate-950 border border-slate-700 p-2 rounded-xl text-[11px] text-white",
-                                value: "{method}",
-                                onchange: move |evt| {
-                                    let mut new_config = cfg_clone1.clone();
-                                    if let Some(obj) = new_config.as_object_mut() {
-                                        obj.insert("method".to_string(), serde_json::Value::String(evt.value()));
-                                        on_change.call(new_config);
-                                    }
-                                },
-                                option { value: "GET", "GET" }
-                                option { value: "POST", "POST" }
-                                option { value: "PUT", "PUT" }
-                                option { value: "DELETE", "DELETE" }
-                            }
-                        }
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "URL" }
-                            input {
-                                class: "bg-slate-950 border border-slate-700 p-2 rounded-xl text-[11px] text-white",
-                                value: "{url}",
-                                oninput: move |evt| {
-                                    let mut new_config = cfg_clone2.clone();
-                                    if let Some(obj) = new_config.as_object_mut() {
-                                        obj.insert("url".to_string(), serde_json::Value::String(evt.value()));
-                                        on_change.call(new_config);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "Function" => {
-                    let mapping = config.get("mapping").cloned().unwrap_or_else(|| serde_json::json!({}));
-                    let cfg_clone = config.clone();
-                    rsx! {
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "Result Mapping" }
-                            textarea {
-                                class: "w-full h-48 bg-slate-950 border border-slate-700 p-4 rounded-xl text-[11px] font-mono text-white",
-                                value: "{mapping}",
-                                oninput: move |evt| {
-                                    if let Ok(parsed) = serde_json::from_str(&evt.value()) {
-                                        let mut new_config = cfg_clone.clone();
-                                        if let Some(obj) = new_config.as_object_mut() {
-                                            obj.insert("mapping".to_string(), parsed);
-                                            on_change.call(new_config);
-                                        }
-                                    }
-                                }
-                            }
-                            span { class: "text-[9px] text-slate-600", "Format: {{ \"key\": \"{{{{ expression }}}}\" }}" }
-                        }
-                    }
-                },
-                "If" => {
-                    let condition = config.get("condition").and_then(serde_json::Value::as_str).unwrap_or("").to_string();
-                    let cfg_clone = config.clone();
-                    rsx! {
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "Condition" }
-                            input {
-                                class: "bg-slate-950 border border-slate-700 p-2 rounded-xl text-[11px] text-white font-mono",
-                                placeholder: "{{ $node[\"Trigger\"].json.data }}",
-                                value: "{condition}",
-                                oninput: move |evt| {
-                                    let mut new_config = cfg_clone.clone();
-                                    if let Some(obj) = new_config.as_object_mut() {
-                                        obj.insert("condition".to_string(), serde_json::Value::String(evt.value()));
-                                        on_change.call(new_config);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "Schedule" => {
-                    let interval = config.get("interval_sec").and_then(serde_json::Value::as_u64).unwrap_or(60);
-                    let cfg_clone = config.clone();
-                    rsx! {
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "Interval (Seconds)" }
-                            input {
-                                r#type: "number",
-                                class: "bg-slate-950 border border-slate-700 p-2 rounded-xl text-[11px] text-white",
-                                value: "{interval}",
-                                oninput: move |evt| {
-                                    let mut new_config = cfg_clone.clone();
-                                    if let Some(obj) = new_config.as_object_mut() {
-                                        if let Ok(n) = evt.value().parse::<u64>() {
-                                            obj.insert("interval_sec".to_string(), serde_json::Value::Number(n.into()));
-                                            on_change.call(new_config);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {
-                    let cfg_str = config.to_string();
-                    rsx! {
-                        div { class: "flex flex-col gap-2",
-                            label { class: "text-[10px] uppercase font-bold text-slate-500", "JSON Config" }
-                            textarea {
-                                class: "w-full h-48 bg-slate-950 border border-slate-700 p-4 rounded-xl text-[11px] font-mono text-white",
-                                value: "{cfg_str}",
-                                oninput: move |evt| {
-                                    if let Ok(parsed) = serde_json::from_str(&evt.value()) {
-                                        on_change.call(parsed);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if config.to_string().contains("{{") {
-                div { class: "flex items-center gap-2 mt-2",
-                    div { class: "w-2 h-2 rounded-full bg-indigo-500 animate-pulse" }
-                    span { class: "text-[10px] text-indigo-400 font-bold", "Expression Active" }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn CommandPalette(on_select: EventHandler<String>, on_close: EventHandler<()>) -> Element {
-    let mut search = use_signal(String::new);
-    let node_types = [
-        "HTTP Request",
-        "Trigger",
-        "JSON Transform",
-        "Function",
-        "If",
-        "Webhook",
-        "Schedule",
-    ];
-
-    let filtered: Vec<String> = node_types
-        .iter()
-        .filter(|t| t.to_lowercase().contains(&search.read().to_lowercase()))
-        .map(std::string::ToString::to_string)
-        .collect();
-
-    rsx! {
-        div {
-            class: "fixed inset-0 z-[100] flex items-start justify-center pt-32 bg-slate-950/80 backdrop-blur-sm px-4",
-            onmousedown: move |_| on_close.call(()),
-            div {
-                class: "w-full max-w-[500px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden",
-                onmousedown: move |evt| evt.stop_propagation(),
-                div { class: "p-4 border-b border-slate-800",
-                    input {
-                        class: "w-full bg-transparent text-xl outline-none placeholder-slate-600 text-white",
-                        placeholder: "Type a node name...",
-                        autofocus: true,
-                        value: "{search}",
-                        oninput: move |evt| search.set(evt.value()),
-                        onkeydown: move |evt| {
-                            if evt.key() == Key::Enter && !filtered.is_empty() {
-                                on_select.call(filtered[0].clone());
-                            }
-                            if evt.key() == Key::Escape {
-                                on_close.call(());
-                            }
-                        }
-                    }
-                }
-                div { class: "max-h-96 overflow-y-auto p-2 flex flex-col gap-1",
-                    for t in filtered.clone() {
-                        div {
-                            class: "p-3 hover:bg-indigo-600/30 rounded-xl cursor-pointer flex justify-between items-center group transition-colors",
-                            onclick: move |_| on_select.call(t.clone()),
-                            span { class: "font-medium text-white", "{t}" }
-                            span { class: "text-[10px] bg-slate-800 text-slate-500 group-hover:bg-indigo-500 group-hover:text-white px-2 py-1 rounded uppercase tracking-tighter", "Node" }
-                        }
-                    }
-                    if filtered.is_empty() {
-                        div { class: "p-8 text-center text-slate-500 italic text-sm", "No results found" }
-                    }
-                }
-            }
-        }
-    }
-}
+// --- Application Shell ---
 
 #[component]
 fn App() -> Element {
     let mut workflow = use_signal(|| {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Some(window) = web_sys::window() {
-                if let Ok(Some(storage)) = window.local_storage() {
-                    if let Ok(Some(json)) = storage.get_item("flow_wasm_workflow") {
-                        if let Ok(parsed) = serde_json::from_str::<Workflow>(&json) {
-                            return parsed;
-                        }
-                    }
+            use web_sys::window;
+            let storage = window().and_then(|w| w.local_storage().ok()).flatten();
+            if let Some(s) = storage {
+                match s.get_item("flow-wasm-v1-workflow") {
+                    Ok(Some(json)) => match serde_json::from_str::<Workflow>(&json) {
+                        Ok(parsed) => return parsed,
+                        Err(_) => {}
+                    },
+                    _ => {}
                 }
             }
         }
-        Workflow::new()
+        Workflow {
+            nodes: vec![
+                oya_frontend::graph::Node {
+                    id: oya_frontend::graph::NodeId::new(),
+                    name: "HTTP Handler".to_string(),
+                    description: "POST /SignupWorkflow/{userId}/run".to_string(),
+                    node_type: "http-handler".to_string(),
+                    category: oya_frontend::graph::NodeCategory::Entry,
+                    icon: "globe".to_string(),
+                    x: 350.0,
+                    y: 40.0,
+                    config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 0}),
+                    last_output: None,
+                    selected: false,
+                    executing: false,
+                    skipped: false,
+                    error: None,
+                },
+                oya_frontend::graph::Node {
+                    id: oya_frontend::graph::NodeId::new(),
+                    name: "Durable Step".to_string(),
+                    description: "Create user in database".to_string(),
+                    node_type: "run".to_string(),
+                    category: oya_frontend::graph::NodeCategory::Durable,
+                    icon: "shield".to_string(),
+                    x: 350.0,
+                    y: 170.0,
+                    config: serde_json::json!({"configured": true, "status": "completed", "durableStepName": "create-user", "journalIndex": 1}),
+                    last_output: None,
+                    selected: false,
+                    executing: false,
+                    skipped: false,
+                    error: None,
+                },
+                oya_frontend::graph::Node {
+                    id: oya_frontend::graph::NodeId::new(),
+                    name: "If / Else".to_string(),
+                    description: "Check if user creation succeeded".to_string(),
+                    node_type: "condition".to_string(),
+                    category: oya_frontend::graph::NodeCategory::Flow,
+                    icon: "git-branch".to_string(),
+                    x: 350.0,
+                    y: 300.0,
+                    config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 2}),
+                    last_output: None,
+                    selected: false,
+                    executing: false,
+                    skipped: false,
+                    error: None,
+                },
+            ],
+            connections: vec![], // we'll omit connections initially to keep it simple, user can connect them
+            viewport: oya_frontend::graph::Viewport {
+                x: 0.0,
+                y: 0.0,
+                zoom: 0.85,
+            },
+            execution_queue: vec![],
+            current_step: 0,
+            history: vec![],
+        }
     });
 
-    let mut dragging_node = use_signal(|| None::<NodeId>);
+    let mut selected_node_id = use_signal(|| None::<NodeId>);
+    let mut selected_node_ids = use_signal(Vec::<NodeId>::new);
+    let mut dragging_node_ids = use_signal(Vec::<NodeId>::new);
     let mut is_panning = use_signal(|| false);
+    let mut is_space_hand_tool = use_signal(|| false);
     let mut last_mouse_pos = use_signal(|| (0.0, 0.0));
-    let mut connecting_from = use_signal(|| None::<NodeId>);
-    let mut show_palette = use_signal(|| false);
-    let mut phantom_wire = use_signal(|| None::<((f32, f32), (f32, f32))>);
-    let mut selection_box = use_signal(|| None::<((f32, f32), (f32, f32))>);
-    let mut active_tab = use_signal(|| "library".to_string());
-    let mut toasts = use_signal(Vec::<(Uuid, String, String)>::new);
-
-    // Toast Helper
-    let add_toast = move |title: &str, kind: &str| {
-        let id = Uuid::new_v4();
-        toasts
-            .write()
-            .push((id, title.to_string(), kind.to_string()));
-        spawn(async move {
-            #[cfg(target_arch = "wasm32")]
-            gloo_timers::future::sleep(std::time::Duration::from_secs(3)).await;
-            #[cfg(not(target_arch = "wasm32"))]
-            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-
-            toasts.write().retain(|(tid, _, _)| *tid != id);
-        });
-    };
-
-    // Schedule Loop
-    use_future(move || async move {
-        loop {
-            #[cfg(target_arch = "wasm32")]
-            gloo_timers::future::sleep(std::time::Duration::from_secs(1)).await;
-            #[cfg(not(target_arch = "wasm32"))]
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
-            let mut wf_write = workflow.write();
-            let mut should_run = false;
-
-            for node in &wf_write.nodes {
-                if node.node_type == "Schedule" {
-                    let interval = node
-                        .config
-                        .get("interval_sec")
-                        .and_then(serde_json::Value::as_u64)
-                        .unwrap_or(60);
-                    let last_run = node
-                        .last_output
-                        .as_ref()
-                        .and_then(|o| o.get("timestamp"))
-                        .and_then(serde_json::Value::as_str)
-                        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok());
-
-                    let now = chrono::Utc::now();
-                    let elapsed = last_run.map_or(interval, |lr| {
-                        (now - lr.with_timezone(&chrono::Utc))
-                            .num_seconds()
-                            .max(0)
-                            .unsigned_abs()
-                    });
-
-                    if elapsed >= interval {
-                        should_run = true;
-                        break;
-                    }
-                }
-            }
-
-            if should_run {
-                wf_write.run().await;
-            }
-        }
-    });
+    let mut marquee_start = use_signal(|| None::<(f32, f32)>);
+    let mut marquee_current = use_signal(|| None::<(f32, f32)>);
+    let mut connecting_from = use_signal(|| None::<(NodeId, String)>);
+    let mut temp_edge_to = use_signal(|| None::<FlowPosition>);
+    let mut hovered_handle = use_signal(|| None::<(NodeId, String)>);
+    let mut workflow_name = use_signal(|| "SignupWorkflow".to_string());
+    let mut sidebar_search = use_signal(String::new);
+    let mut pending_sidebar_drop = use_signal(|| None::<String>);
+    let mut undo_stack = use_signal(Vec::<Workflow>::new);
+    let mut redo_stack = use_signal(Vec::<Workflow>::new);
+    let mut show_settings = use_signal(|| false);
+    let mut show_command_palette = use_signal(|| false);
+    let mut command_palette_query = use_signal(String::new);
+    let mut context_menu_open = use_signal(|| false);
+    let mut context_menu_x = use_signal(|| 0.0_f32);
+    let mut context_menu_y = use_signal(|| 0.0_f32);
+    let mut canvas_origin = use_signal(|| (0.0_f32, 0.0_f32));
 
     use_effect(move || {
         let wf = workflow.read();
-        let _json = serde_json::to_string(&*wf).unwrap_or_default();
-        #[cfg(target_arch = "wasm32")]
-        if let Some(window) = web_sys::window() {
-            if let Ok(Some(storage)) = window.local_storage() {
-                let _ = storage.set_item("flow_wasm_workflow", &_json);
+        if let Ok(_json) = serde_json::to_string(&*wf) {
+            #[cfg(target_arch = "wasm32")]
+            {
+                use web_sys::window;
+                let storage = window().and_then(|w| w.local_storage().ok()).flatten();
+                if let Some(s) = storage {
+                    let _ = s.set_item("flow-wasm-v1-workflow", &_json);
+                }
             }
         }
     });
 
-    let wf = workflow.read();
-    let vp = wf.viewport.clone();
-    let selected_node = wf.nodes.iter().find(|n| n.selected).cloned();
+    let nodes = use_memo(move || workflow.read().nodes.clone());
+    let nodes_by_id = use_memo(move || {
+        workflow
+            .read()
+            .nodes
+            .iter()
+            .cloned()
+            .map(|node| (node.id, node))
+            .collect::<std::collections::HashMap<_, _>>()
+    });
+    let connections = use_memo(move || workflow.read().connections.clone());
+    let execution_queue = use_memo(move || workflow.read().execution_queue.clone());
+    let current_step = use_memo(move || workflow.read().current_step);
+    let node_count = use_memo(move || workflow.read().nodes.len());
+    let edge_count = use_memo(move || workflow.read().connections.len());
+    let zoom_label = use_memo(move || format!("{:.0}%", workflow.read().viewport.zoom * 100.0));
+    let can_undo = use_memo(move || !undo_stack.read().is_empty());
+    let can_redo = use_memo(move || !redo_stack.read().is_empty());
+    let vp = use_memo(move || workflow.read().viewport.clone());
+
+    let temp_edge = use_memo(move || {
+        let conn = connecting_from.read();
+        let to = *temp_edge_to.read();
+
+        match (conn.as_ref(), to) {
+            (Some((id, handle_type)), Some(to_pos)) => {
+                let node = nodes_by_id.read().get(id).cloned();
+                node.map(|n| {
+                    let from = if handle_type == "source" {
+                        FlowPosition {
+                            x: n.x + 110.0,
+                            y: n.y + 68.0,
+                        }
+                    } else {
+                        FlowPosition {
+                            x: n.x + 110.0,
+                            y: n.y,
+                        }
+                    };
+                    (from, to_pos)
+                })
+            }
+            _ => None,
+        }
+    });
+
+    let vx = vp.read().x;
+    let vy = vp.read().y;
+    let vz = vp.read().zoom;
+    let canvas_cursor = use_memo(move || {
+        if *is_panning.read() {
+            "cursor-grabbing"
+        } else if *is_space_hand_tool.read() {
+            "cursor-grab"
+        } else {
+            "cursor-default"
+        }
+    });
 
     rsx! {
         script { src: "https://cdn.tailwindcss.com" }
         style {
             "@keyframes dash {{ to {{ stroke-dashoffset: -16; }} }}"
-            "@keyframes slide-in {{ from {{ transform: translateX(100%); opacity: 0; }} to {{ transform: translateX(0); opacity: 1; }} }}"
-            ".animate-slide-in {{ animation: slide-in 0.3s ease-out; }}"
+            "@keyframes slide-in-right {{ from {{ transform: translateX(24px); opacity: 0; }} to {{ transform: translateX(0); opacity: 1; }} }}"
+            ".animate-slide-in-right {{ animation: slide-in-right 0.22s ease-out; }}"
         }
-        div {
-            class: "flex h-screen w-screen bg-slate-950 text-slate-200 font-sans select-none overflow-hidden",
-            onkeydown: move |evt| {
-                if (evt.modifiers().meta() || evt.modifiers().ctrl()) && evt.key() == Key::Character("k".into()) {
-                    show_palette.toggle();
-                }
-                if evt.key() == Key::Escape {
-                    show_palette.set(false);
-                }
-            },
-            if *show_palette.read() {
-                CommandPalette {
-                    on_select: move |node_type: String| {
-                        workflow.write().add_node(&node_type, 200.0, 200.0);
-                        show_palette.set(false);
-                    },
-                    on_close: move |()| show_palette.set(false)
-                }
-            }
-            aside { class: "w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col gap-6 shadow-2xl z-20",
-                div { class: "flex border-b border-slate-800 mb-2",
-                    {
-                        let base = "flex-1 py-2 text-[10px] uppercase font-bold";
-                        let is_lib = *active_tab.read() == "library";
-                        let is_hist = *active_tab.read() == "history";
-                        let lib_class = if is_lib { format!("{base} text-indigo-400 border-b-2 border-indigo-400") }
-                                        else { format!("{base} text-slate-500") };
-                        let hist_class = if is_hist { format!("{base} text-indigo-400 border-b-2 border-indigo-400") }
-                                         else { format!("{base} text-slate-500") };
-                        rsx! {
-                            button {
-                                class: "{lib_class}",
-                                onclick: move |_| active_tab.set("library".to_string()),
-                                "Library"
-                            }
-                            button {
-                                class: "{hist_class}",
-                                onclick: move |_| active_tab.set("history".to_string()),
-                                "History"
-                            }
-                        }
-                    }
-                }
-                if *active_tab.read() == "library" {
-                    div { class: "flex flex-col gap-2",
-                        button {
-                            class: "w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition-all transform active:scale-95 text-white",
-                            onclick: move |_| { workflow.write().add_node("Trigger", 100.0, 100.0); },
-                            "+ Add Node"
-                        }
-                        p { class: "text-[9px] text-center text-slate-500 uppercase tracking-widest", "Tip: Press CMD+K" }
-                    }
-                } else {
-                    div { class: "flex flex-col gap-2 overflow-y-auto",
-                        for record in workflow.read().history.iter().rev() {
-                            {
-                                let time_str = record.timestamp.format("%H:%M:%S").to_string();
-                                let status_color = if record.success { "bg-emerald-500" } else { "bg-red-500" };
-                                let count = record.results.len();
-                                rsx! {
-                                    div { class: "p-3 bg-slate-950/50 border border-slate-800 rounded-xl flex flex-col gap-1",
-                                        div { class: "flex justify-between items-center",
-                                            span { class: "text-[9px] text-slate-400", "{time_str}" }
-                                            div { class: "w-2 h-2 rounded-full {status_color}" }
-                                        }
-                                        span { class: "text-[10px] text-slate-500", "{count} nodes executed" }
-                                    }
-                                }
-                            }
-                        }
-                        if workflow.read().history.is_empty() {
-                            div { class: "text-center text-[10px] text-slate-600 italic py-8", "No execution history" }
-                        }
-                    }
-                }
 
-                div { class: "flex flex-col gap-2 mt-auto pt-6 border-t border-slate-800",
-                    button {
-                        class: "w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold flex items-center justify-center gap-2 text-white",
-                        onclick: move |_| {
-                            let wf_data = workflow.read();
-                            let _json_pretty = serde_json::to_string_pretty(&*wf_data).unwrap_or_default();
-                            #[cfg(target_arch = "wasm32")]
-                            {
-                                use wasm_bindgen::JsCast;
-                                if let Some(window) = web_sys::window() {
-                                    if let Some(document) = window.document() {
-                                        let parts = js_sys::Array::of1(&_json_pretty.into());
-                                        let blob = web_sys::Blob::new_with_str_sequence(&parts).unwrap();
-                                        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                                        let a = document.create_element("a").unwrap().dyn_into::<web_sys::HtmlAnchorElement>().unwrap();
-                                        a.set_href(&url);
-                                        a.set_download("workflow.json");
-                                        a.click();
-                                        let _ = web_sys::Url::revoke_object_url(&url);
-                                    }
-                                }
-                            }
-                        },
-                        "📤 Export"
-                    }
-                }
-
-                div { class: "flex flex-col gap-2",
-                    button {
-                        class: "w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold transition-all text-white run-btn",
-                        onclick: move |_| {
-                            let mut t = add_toast;
-                            spawn(async move {
-                                let mut wf_write = workflow.write();
-                                if wf_write.current_step >= wf_write.execution_queue.len() || wf_write.execution_queue.is_empty() {
-                                    wf_write.prepare_run();
-                                }
-                                wf_write.step().await;
-                                t("Step executed", "info");
-                            });
-                        },
-                        "⏭ Step"
-                    }
-                    button {
-                        class: "w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-white",
-                        onclick: move |_| {
-                            let mut t = add_toast;
-                            spawn(async move {
-                                workflow.write().run().await;
-                                t("Workflow run complete", "success");
-                            });
-                        },
-                        "▶ Run"
-                    }
-                }
-            }
-
-            main {
-                class: "relative flex-1 overflow-hidden bg-slate-950 canvas",
-                onmousedown: move |evt| {
-                    let coord = evt.page_coordinates();
-                    #[allow(clippy::cast_possible_truncation)]
-                    let (mx, my) = (coord.x as f32, coord.y as f32);
-
-                    if evt.trigger_button() == Some(MouseButton::Auxiliary) || evt.modifiers().shift() {
-                        is_panning.set(true);
-                    } else {
-                        workflow.write().deselect_all();
-                        let current_vp = workflow.read().viewport.clone();
-                        let canvas_x = (mx - current_vp.x) / current_vp.zoom;
-                        let canvas_y = (my - current_vp.y) / current_vp.zoom;
-                        selection_box.set(Some(((canvas_x, canvas_y), (canvas_x, canvas_y))));
-                    }
-                    last_mouse_pos.set((mx, my));
+        div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-slate-950 text-slate-200 [font-family:'Geist',_'Inter',sans-serif] select-none",
+            FlowToolbar {
+                workflow_name: workflow_name,
+                on_workflow_name_change: move |value| workflow_name.set(value),
+                node_count: node_count,
+                edge_count: edge_count,
+                zoom_label: zoom_label,
+                can_undo: can_undo,
+                can_redo: can_redo,
+                on_zoom_in: move |_| workflow.write().zoom(0.12, 640.0, 400.0),
+                on_zoom_out: move |_| workflow.write().zoom(-0.12, 640.0, 400.0),
+                on_fit_view: move |_| workflow.write().fit_view(1280.0, 760.0, 200.0),
+                on_layout: move |_| {
+                    let snapshot = workflow.read().clone();
+                    undo_stack.write().push(snapshot);
+                    redo_stack.write().clear();
+                    workflow.write().apply_layout();
                 },
-                onmousemove: move |evt| {
-                    let coord = evt.page_coordinates();
-                    #[allow(clippy::cast_possible_truncation)]
-                    let (mx, my) = (coord.x as f32, coord.y as f32);
-                    let (lx, ly) = *last_mouse_pos.read();
-                    let dx = mx - lx;
-                    let dy = my - ly;
-                    let current_vp = workflow.read().viewport.clone();
-                    let zoom = current_vp.zoom;
+                on_execute: move |_| {
+                    spawn(async move {
+                        workflow.write().run().await;
+                    });
+                },
+                on_undo: move |_| {
+                    let previous = undo_stack.write().pop();
+                    if let Some(snapshot) = previous {
+                        let current = workflow.read().clone();
+                        redo_stack.write().push(current);
+                        workflow.set(snapshot);
+                        selected_node_id.set(None);
+                        selected_node_ids.set(Vec::new());
+                    }
+                },
+                on_redo: move |_| {
+                    let next = redo_stack.write().pop();
+                    if let Some(snapshot) = next {
+                        let current = workflow.read().clone();
+                        undo_stack.write().push(current);
+                        workflow.set(snapshot);
+                        selected_node_id.set(None);
+                        selected_node_ids.set(Vec::new());
+                    }
+                },
+                on_save: move |_| {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        download_workflow_json(&workflow_name.read(), &workflow.read());
+                    }
+                },
+                on_settings: move |_| {
+                    let is_open = *show_settings.read();
+                    show_settings.set(!is_open);
+                }
+            }
 
-                    if *is_panning.read() {
-                        let mut wf_write = workflow.write();
-                        wf_write.viewport.x += dx;
-                        wf_write.viewport.y += dy;
-                    } else if let Some(id) = *dragging_node.read() {
-                        let mut wf_write = workflow.write();
-                        let selected_ids: Vec<NodeId> = wf_write.nodes.iter()
-                            .filter(|n| n.selected)
-                            .map(|n| n.id)
-                            .collect();
+            if *show_settings.read() {
+                div { class: "absolute right-4 top-14 z-40 w-[280px] rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-2xl shadow-slate-950/70 backdrop-blur",
+                    div { class: "mb-2 flex items-center justify-between",
+                        h4 { class: "text-[12px] font-semibold text-slate-100", "Workflow Settings" }
+                        button {
+                            class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                            onclick: move |_| show_settings.set(false),
+                            crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
+                        }
+                    }
+                    p { class: "mb-3 text-[11px] leading-relaxed text-slate-400", "Use Save to export the current workflow as JSON. Undo and Redo track recent graph edits." }
+                    div { class: "flex items-center gap-2",
+                        button {
+                            class: "flex h-8 flex-1 items-center justify-center rounded-md border border-slate-700 text-[12px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                            onclick: move |_| show_settings.set(false),
+                            "Close"
+                        }
+                    }
+                }
+            }
 
-                        if selected_ids.contains(&id) {
-                            for nid in selected_ids {
-                                wf_write.update_node_position(nid, dx / zoom, dy / zoom);
+            NodeCommandPalette {
+                open: show_command_palette,
+                query: command_palette_query,
+                on_query_change: move |value| command_palette_query.set(value),
+                on_close: move |_| {
+                    show_command_palette.set(false);
+                },
+                on_pick: move |node_type| {
+                    let snapshot = workflow.read().clone();
+                    undo_stack.write().push(snapshot);
+                    if undo_stack.read().len() > 60 {
+                        let _ = undo_stack.write().remove(0);
+                    }
+                    redo_stack.write().clear();
+                    workflow.write().add_node_at_viewport_center(node_type);
+                    show_command_palette.set(false);
+                    command_palette_query.set(String::new());
+                }
+            }
+
+            CanvasContextMenu {
+                open: context_menu_open,
+                x: context_menu_x,
+                y: context_menu_y,
+                on_close: move |_| context_menu_open.set(false),
+                on_add_node: move |_| {
+                    context_menu_open.set(false);
+                    show_command_palette.set(true);
+                },
+                on_fit_view: move |_| {
+                    context_menu_open.set(false);
+                    workflow.write().fit_view(1280.0, 760.0, 200.0);
+                },
+                on_layout: move |_| {
+                    context_menu_open.set(false);
+                    let snapshot = workflow.read().clone();
+                    undo_stack.write().push(snapshot);
+                    if undo_stack.read().len() > 60 {
+                        let _ = undo_stack.write().remove(0);
+                    }
+                    redo_stack.write().clear();
+                    workflow.write().apply_layout();
+                }
+            }
+
+            div { class: "flex flex-1 overflow-hidden",
+                NodeSidebar {
+                    search: sidebar_search,
+                    on_search_change: move |value| sidebar_search.set(value),
+                    on_pickup_node: move |node_type: &'static str| {
+                        pending_sidebar_drop.set(Some(node_type.to_string()));
+                    },
+                    on_add_node: move |node_type: &'static str| {
+                        let snapshot = workflow.read().clone();
+                        undo_stack.write().push(snapshot);
+                        if undo_stack.read().len() > 60 {
+                            let _ = undo_stack.write().remove(0);
+                        }
+                        redo_stack.write().clear();
+                        pending_sidebar_drop.set(None);
+                        workflow.write().add_node_at_viewport_center(node_type);
+                    }
+                }
+
+                main {
+                    class: "relative flex-1 overflow-hidden bg-slate-950 {canvas_cursor}",
+                    tabindex: "0",
+                    onmouseenter: move |evt| {
+                        let page = evt.page_coordinates();
+                        let element = evt.element_coordinates();
+                        #[allow(clippy::cast_possible_truncation)]
+                        let origin_x = page.x as f32 - element.x as f32;
+                        #[allow(clippy::cast_possible_truncation)]
+                        let origin_y = page.y as f32 - element.y as f32;
+                        canvas_origin.set((origin_x, origin_y));
+                    },
+                    oncontextmenu: move |evt| {
+                        evt.prevent_default();
+                        let coordinates = evt.page_coordinates();
+                        #[allow(clippy::cast_possible_truncation)]
+                        context_menu_x.set(coordinates.x as f32);
+                        #[allow(clippy::cast_possible_truncation)]
+                        context_menu_y.set(coordinates.y as f32);
+                        context_menu_open.set(true);
+                        show_command_palette.set(false);
+                    },
+                    onkeydown: move |evt| {
+                        let key = evt.key().to_string().to_lowercase();
+
+                        if key == " " || key == "space" {
+                            evt.prevent_default();
+                            is_space_hand_tool.set(true);
+                            return;
+                        }
+
+                        if key == "escape" {
+                            evt.prevent_default();
+                            show_command_palette.set(false);
+                            context_menu_open.set(false);
+                            connecting_from.set(None);
+                            temp_edge_to.set(None);
+                            hovered_handle.set(None);
+                            return;
+                        }
+
+                        if key == "k" {
+                            evt.prevent_default();
+                            context_menu_open.set(false);
+                            let is_open = *show_command_palette.read();
+                            show_command_palette.set(!is_open);
+                            if !is_open {
+                                command_palette_query.set(String::new());
+                            }
+                            return;
+                        }
+
+                        if key == "+" || key == "=" || key == "add" {
+                            evt.prevent_default();
+                            workflow.write().zoom(0.12, 640.0, 400.0);
+                            return;
+                        }
+
+                        if key == "-" || key == "_" || key == "subtract" {
+                            evt.prevent_default();
+                            workflow.write().zoom(-0.12, 640.0, 400.0);
+                            return;
+                        }
+
+                        if key == "0" {
+                            evt.prevent_default();
+                            workflow.write().fit_view(1280.0, 760.0, 200.0);
+                            return;
+                        }
+
+                        if key == "z" {
+                            evt.prevent_default();
+                            let previous = undo_stack.write().pop();
+                            if let Some(snapshot) = previous {
+                                let current = workflow.read().clone();
+                                redo_stack.write().push(current);
+                                workflow.set(snapshot);
+                                selected_node_id.set(None);
+                                selected_node_ids.set(Vec::new());
+                            }
+                            return;
+                        }
+
+                        if key == "y" {
+                            evt.prevent_default();
+                            let next = redo_stack.write().pop();
+                            if let Some(snapshot) = next {
+                                let current = workflow.read().clone();
+                                undo_stack.write().push(current);
+                                workflow.set(snapshot);
+                                selected_node_id.set(None);
+                                selected_node_ids.set(Vec::new());
+                            }
+                            return;
+                        }
+
+                        if key == "backspace" || key == "delete" {
+                            let mut ids = selected_node_ids.read().clone();
+                            if ids.is_empty() {
+                                if let Some(node_id) = *selected_node_id.read() {
+                                    ids.push(node_id);
+                                }
+                            }
+                            if ids.is_empty() {
+                                return;
+                            }
+
+                            evt.prevent_default();
+                            let snapshot = workflow.read().clone();
+                            undo_stack.write().push(snapshot);
+                            if undo_stack.read().len() > 60 {
+                                let _ = undo_stack.write().remove(0);
+                            }
+                            redo_stack.write().clear();
+
+                            let mut wf = workflow.write();
+                            for node_id in ids {
+                                wf.remove_node(node_id);
+                            }
+                            selected_node_id.set(None);
+                            selected_node_ids.set(Vec::new());
+                        }
+                    },
+                    onkeyup: move |evt| {
+                        let key = evt.key().to_string().to_lowercase();
+                        if key == " " || key == "space" {
+                            evt.prevent_default();
+                            is_space_hand_tool.set(false);
+                            is_panning.set(false);
+                        }
+                    },
+                    onwheel: move |evt| {
+                        evt.prevent_default();
+                        let page = evt.page_coordinates();
+                        let (origin_x, origin_y) = *canvas_origin.read();
+                        #[allow(clippy::cast_possible_truncation)]
+                        let delta = -evt.delta().strip_units().y as f32 * 0.001;
+                        #[allow(clippy::cast_possible_truncation)]
+                        let zoom_x = page.x as f32 - origin_x;
+                        #[allow(clippy::cast_possible_truncation)]
+                        let zoom_y = page.y as f32 - origin_y;
+                        workflow.write().zoom(delta, zoom_x, zoom_y);
+                    },
+                    onmousemove: move |evt| {
+                        let page = evt.page_coordinates();
+                        let (origin_x, origin_y) = *canvas_origin.read();
+                        #[allow(clippy::cast_possible_truncation)]
+                        let (mx, my) = (page.x as f32 - origin_x, page.y as f32 - origin_y);
+                        let (lx, ly) = *last_mouse_pos.read();
+                        let dx = mx - lx;
+                        let dy = my - ly;
+                        last_mouse_pos.set((mx, my));
+
+                        let current_vp = workflow.read().viewport.clone();
+                        let zoom = current_vp.zoom;
+
+                        if !dragging_node_ids.read().is_empty() {
+                            let (canvas_w, canvas_h) = canvas_rect_size().map_or((960.0, 720.0), std::convert::identity);
+                            let edge = 56.0_f32;
+                            let max_pan = 18.0_f32;
+
+                            let pan_x = if mx < edge {
+                                ((edge - mx) / edge).clamp(0.0, 1.0) * max_pan
+                            } else if mx > canvas_w - edge {
+                                -(((mx - (canvas_w - edge)) / edge).clamp(0.0, 1.0) * max_pan)
+                            } else {
+                                0.0
+                            };
+
+                            let pan_y = if my < edge {
+                                ((edge - my) / edge).clamp(0.0, 1.0) * max_pan
+                            } else if my > canvas_h - edge {
+                                -(((my - (canvas_h - edge)) / edge).clamp(0.0, 1.0) * max_pan)
+                            } else {
+                                0.0
+                            };
+
+                            if pan_x != 0.0 || pan_y != 0.0 {
+                                let mut wf = workflow.write();
+                                wf.viewport.x += pan_x;
+                                wf.viewport.y += pan_y;
+                            }
+
+                            let node_dx = (dx - pan_x) / zoom;
+                            let node_dy = (dy - pan_y) / zoom;
+                            for node_id in dragging_node_ids.read().iter().copied() {
+                                workflow.write().update_node_position(node_id, node_dx, node_dy);
+                            }
+                        } else if connecting_from.read().is_some() {
+                            let canvas_x = (mx - current_vp.x) / zoom;
+                            let canvas_y = (my - current_vp.y) / zoom;
+
+                            if let Some((source_id, source_kind)) = connecting_from.read().clone() {
+                                let node_list = workflow.read().nodes.clone();
+                                let snapped = crate::ui::editor_interactions::snap_handle(
+                                    &node_list,
+                                    mx,
+                                    my,
+                                    &current_vp,
+                                )
+                                .filter(|(node_id, handle_kind, _)| {
+                                    *node_id != source_id && *handle_kind != source_kind
+                                });
+
+                                if let Some((node_id, handle_kind, snapped_pos)) = snapped {
+                                    hovered_handle.set(Some((node_id, handle_kind)));
+                                    temp_edge_to.set(Some(snapped_pos));
+                                } else {
+                                    hovered_handle.set(None);
+                                    temp_edge_to.set(Some(FlowPosition {
+                                        x: canvas_x,
+                                        y: canvas_y,
+                                    }));
+                                }
+                            }
+                        } else if let Some(start) = *marquee_start.read() {
+                            marquee_current.set(Some((mx, my)));
+                            let start_canvas = (
+                                (start.0 - current_vp.x) / zoom,
+                                (start.1 - current_vp.y) / zoom,
+                            );
+                            let end_canvas = (
+                                (mx - current_vp.x) / zoom,
+                                (my - current_vp.y) / zoom,
+                            );
+                            let rect = crate::ui::editor_interactions::normalize_rect(
+                                start_canvas,
+                                end_canvas,
+                            );
+                            let selected = workflow
+                                .read()
+                                .nodes
+                                .iter()
+                                .filter(|node| {
+                                    crate::ui::editor_interactions::node_intersects_rect(
+                                        node.x, node.y, rect,
+                                    )
+                                })
+                                .map(|node| node.id)
+                                .collect::<Vec<_>>();
+                            selected_node_id.set(selected.first().copied());
+                            selected_node_ids.set(selected);
+                        } else if *is_panning.read() {
+                            let mut wf = workflow.write();
+                            wf.viewport.x += dx;
+                            wf.viewport.y += dy;
+                        }
+                    },
+                    onmouseup: move |evt| {
+                        let from = connecting_from.read().clone();
+                        let over = hovered_handle.read().clone();
+                        let is_dragging = !dragging_node_ids.read().is_empty();
+                        let pending_drop = pending_sidebar_drop.read().clone();
+                        let mut should_clear_selection = false;
+
+                        if let (Some((src_id, src_handle)), Some((tgt_id, _))) = (from, over) {
+                            if src_id != tgt_id {
+                                let (source, target) = if src_handle == "source" {
+                                    (src_id, tgt_id)
+                                } else {
+                                    (tgt_id, src_id)
+                                };
+
+                                let snapshot = workflow.read().clone();
+                                undo_stack.write().push(snapshot);
+                                if undo_stack.read().len() > 60 {
+                                    let _ = undo_stack.write().remove(0);
+                                }
+                                redo_stack.write().clear();
+
+                                workflow
+                                    .write()
+                                    .add_connection(source, target, &PortName("main".to_string()), &PortName("main".to_string()));
+                            }
+                        } else if !is_dragging && marquee_start.read().is_none() {
+                            if let Some(node_type) = pending_drop {
+                                let coords = evt.page_coordinates();
+                                let (origin_x, origin_y) = *canvas_origin.read();
+                                #[allow(clippy::cast_possible_truncation)]
+                                let mx = coords.x as f32 - origin_x;
+                                #[allow(clippy::cast_possible_truncation)]
+                                let my = coords.y as f32 - origin_y;
+                                let current_vp = workflow.read().viewport.clone();
+                                let canvas_x = (mx - current_vp.x) / current_vp.zoom - 110.0;
+                                let canvas_y = (my - current_vp.y) / current_vp.zoom - 34.0;
+
+                                let snapshot = workflow.read().clone();
+                                undo_stack.write().push(snapshot);
+                                if undo_stack.read().len() > 60 {
+                                    let _ = undo_stack.write().remove(0);
+                                }
+                                redo_stack.write().clear();
+
+                                workflow.write().add_node(&node_type, canvas_x, canvas_y);
+                            }
+                        }
+
+                        if let (Some(start), Some(end)) = (*marquee_start.read(), *marquee_current.read()) {
+                            let rect = crate::ui::editor_interactions::normalize_rect(start, end);
+                            let tiny_click = (rect.2 - rect.0).abs() < 2.0 && (rect.3 - rect.1).abs() < 2.0;
+                            if tiny_click
+                                && crate::ui::editor_interactions::rect_contains(rect, start)
+                                && !is_dragging
+                            {
+                                should_clear_selection = true;
+                            }
+                        }
+
+                        dragging_node_ids.set(Vec::new());
+                        connecting_from.set(None);
+                        temp_edge_to.set(None);
+                        pending_sidebar_drop.set(None);
+                        is_panning.set(false);
+                        hovered_handle.set(None);
+                        marquee_start.set(None);
+                        marquee_current.set(None);
+
+                        if should_clear_selection {
+                            selected_node_id.set(None);
+                            selected_node_ids.set(Vec::new());
+                        }
+                    },
+                    onmouseleave: move |_| {
+                        let is_active_interaction = !dragging_node_ids.read().is_empty()
+                            || *is_panning.read()
+                            || marquee_start.read().is_some()
+                            || connecting_from.read().is_some();
+                        if is_active_interaction {
+                            return;
+                        }
+                        dragging_node_ids.set(Vec::new());
+                        connecting_from.set(None);
+                        temp_edge_to.set(None);
+                        pending_sidebar_drop.set(None);
+                        is_panning.set(false);
+                        hovered_handle.set(None);
+                        marquee_start.set(None);
+                        marquee_current.set(None);
+                    },
+                    onmousedown: move |evt| {
+                        context_menu_open.set(false);
+                        let trigger_button = evt.trigger_button();
+                        if matches!(trigger_button, Some(MouseButton::Primary | MouseButton::Auxiliary)) {
+                            evt.prevent_default();
+                            let page = evt.page_coordinates();
+                            let coordinates = evt.element_coordinates();
+                            #[allow(clippy::cast_possible_truncation)]
+                            let origin_x = page.x as f32 - coordinates.x as f32;
+                            #[allow(clippy::cast_possible_truncation)]
+                            let origin_y = page.y as f32 - coordinates.y as f32;
+                            canvas_origin.set((origin_x, origin_y));
+                            #[allow(clippy::cast_possible_truncation)]
+                            let mouse_pos = (coordinates.x as f32, coordinates.y as f32);
+                            last_mouse_pos.set(mouse_pos);
+
+                            let has_pending_drop = pending_sidebar_drop.read().is_some();
+                            if matches!(trigger_button, Some(MouseButton::Auxiliary))
+                                || (matches!(trigger_button, Some(MouseButton::Primary))
+                                    && *is_space_hand_tool.read())
+                            {
+                                is_panning.set(true);
+                            } else if matches!(trigger_button, Some(MouseButton::Primary))
+                                && !has_pending_drop
+                            {
+                                marquee_start.set(Some(mouse_pos));
+                                marquee_current.set(Some(mouse_pos));
                             }
                         } else {
-                            wf_write.update_node_position(id, dx / zoom, dy / zoom);
+                            selected_node_id.set(None);
+                            selected_node_ids.set(Vec::new());
                         }
-                    } else if let Some(id) = *connecting_from.read() {
-                        if let Some(node) = workflow.read().nodes.iter().find(|n| n.id == id) {
-                            let start = (node.x + 208.0, node.y + 40.0);
-                            let end = ((mx - current_vp.x) / zoom, (my - current_vp.y) / zoom);
-                            phantom_wire.set(Some((start, end)));
-                        }
-                    } else {
-                        let sb = *selection_box.read();
-                        if let Some((start, _)) = sb {
-                            let end = ((mx - current_vp.x) / zoom, (my - current_vp.y) / zoom);
-                            selection_box.set(Some((start, end)));
-                        }
-                    }
-                    last_mouse_pos.set((mx, my));
-                },
-                onmouseup: move |_| {
-                    if let Some((start, end)) = *selection_box.read() {
-                        let x1 = start.0.min(end.0);
-                        let y1 = start.1.min(end.1);
-                        let x2 = start.0.max(end.0);
-                        let y2 = start.1.max(end.1);
-
-                        let mut wf_write = workflow.write();
-                        for node in &mut wf_write.nodes {
-                            if node.x >= x1 && node.x <= x2 && node.y >= y1 && node.y <= y2 {
-                                node.selected = true;
-                            }
-                        }
-                    }
-                    is_panning.set(false);
-                    dragging_node.set(None);
-                    connecting_from.set(None);
-                    phantom_wire.set(None);
-                    selection_box.set(None);
-                },
-                onwheel: move |evt| {
-                    #[allow(clippy::cast_possible_truncation)]
-                    let delta = -evt.delta().strip_units().y as f32 * 0.001;
-                    workflow.write().zoom(delta, 640.0, 400.0);
-                },
-
-                div {
-                    class: "absolute inset-0 origin-top-left",
-                    style: "transform: translate({vp.x}px, {vp.y}px) scale({vp.zoom});",
+                    },
 
                     div {
-                        class: "absolute inset-[-10000px] pointer-events-none opacity-20",
-                        style: "background-image: radial-gradient(circle, #4f46e5 1px, transparent 1px); background-size: 40px 40px;"
+                        class: "absolute inset-0 pointer-events-none",
+                        style: "background-image: radial-gradient(circle, rgba(71, 85, 105, 0.75) 1px, transparent 1px); background-size: calc(20px * {vz}) calc(20px * {vz}); background-position: {vx}px {vy}px;"
                     }
 
-                    svg { class: "absolute inset-0 pointer-events-none w-[10000px] h-[10000px]",
-                        for conn in workflow.read().connections.iter() {
-                            if let (Some(s), Some(t)) = (
-                                workflow.read().nodes.iter().find(|n| n.id == conn.source),
-                                workflow.read().nodes.iter().find(|n| n.id == conn.target)
-                            ) {
-                                path {
-                                    key: "{conn.id}",
-                                    d: "M {s.x + 208.0} {s.y + 40.0} C {s.x + 268.0} {s.y + 40.0}, {t.x - 60.0} {t.y + 40.0}, {t.x} {t.y + 40.0}",
-                                    stroke: if s.executing { "#10b981" } else { "#6366f1" },
-                                    stroke_width: "3",
-                                    fill: "none",
-                                    class: if s.executing { "opacity-100" } else { "opacity-40" },
-                                    style: if s.executing { "stroke-dasharray: 8; animation: dash 1s linear infinite;" } else { "" }
-                                }
-                            }
+                    div {
+                        class: "absolute origin-top-left",
+                        style: "transform: translate({vx}px, {vy}px) scale({vz}); will-change: transform;",
+                        FlowEdges {
+                            edges: connections,
+                            nodes: nodes,
+                            temp_edge: temp_edge
                         }
-                        if let Some(((sx, sy), (ex, ey))) = *phantom_wire.read() {
-                            path {
-                                d: "M {sx} {sy} C {sx + 60.0} {sy}, {ex - 60.0} {ey}, {ex} {ey}",
-                                stroke: "#6366f1",
-                                stroke_width: "2",
-                                fill: "none",
-                                class: "opacity-50",
-                                style: "stroke-dasharray: 4;"
-                            }
-                        }
-                        if let Some((start, end)) = *selection_box.read() {
+
+                        for node in nodes.read().iter().cloned() {
                             {
-                                let x = start.0.min(end.0);
-                                let y = start.1.min(end.1);
-                                let w = (start.0 - end.0).abs();
-                                let h = (start.1 - end.1).abs();
+                                let node_id = node.id;
+                                let selected_ids = selected_node_ids.read().clone();
+                                let is_selected = selected_ids.contains(&node_id);
+
                                 rsx! {
-                                    rect {
-                                        x: "{x}",
-                                        y: "{y}",
-                                        width: "{w}",
-                                        height: "{h}",
-                                        fill: "rgba(99, 102, 241, 0.1)",
-                                        stroke: "#6366f1",
-                                        stroke_width: "1",
-                                        style: "stroke-dasharray: 4;"
+                                    FlowNodeComponent {
+                                        key: "{node_id}",
+                                        node,
+                                        selected: is_selected,
+                                        on_mouse_down: move |_| {
+                                            let snapshot = workflow.read().clone();
+                                            undo_stack.write().push(snapshot);
+                                            if undo_stack.read().len() > 60 {
+                                                let _ = undo_stack.write().remove(0);
+                                            }
+                                            redo_stack.write().clear();
+
+                                            let currently_selected = selected_node_ids.read().clone();
+                                            let drag_targets = if currently_selected.contains(&node_id) {
+                                                if currently_selected.is_empty() {
+                                                    vec![node_id]
+                                                } else {
+                                                    currently_selected
+                                                }
+                                            } else {
+                                                vec![node_id]
+                                            };
+                                            dragging_node_ids.set(drag_targets);
+
+                                            if !selected_node_ids.read().contains(&node_id) {
+                                                selected_node_ids.set(vec![node_id]);
+                                            }
+                                            selected_node_id.set(Some(node_id));
+                                        },
+                                        on_click: move |_| {
+                                            selected_node_id.set(Some(node_id));
+                                            selected_node_ids.set(vec![node_id]);
+                                        },
+                                        on_handle_mouse_down: move |args: (MouseEvent, String)| {
+                                            let (evt, handle_type) = args;
+                                            connecting_from.set(Some((node_id, handle_type.clone())));
+                                            hovered_handle.set(Some((node_id, handle_type)));
+                                            selected_node_id.set(Some(node_id));
+                                            selected_node_ids.set(vec![node_id]);
+                                            let current_vp = workflow.read().viewport.clone();
+                                            let coord = evt.page_coordinates();
+                                            let (origin_x, origin_y) = *canvas_origin.read();
+                                            #[allow(clippy::cast_possible_truncation)]
+                                            let local_x = coord.x as f32 - origin_x;
+                                            #[allow(clippy::cast_possible_truncation)]
+                                            let local_y = coord.y as f32 - origin_y;
+                                            let canvas_x = (local_x - current_vp.x) / current_vp.zoom;
+                                            #[allow(clippy::cast_possible_truncation)]
+                                            let canvas_y = (local_y - current_vp.y) / current_vp.zoom;
+                                            temp_edge_to.set(Some(FlowPosition { x: canvas_x, y: canvas_y }));
+                                        },
+                                        on_handle_mouse_enter: move |handle_type| hovered_handle.set(Some((node_id, handle_type))),
+                                        on_handle_mouse_leave: move |()| hovered_handle.set(None)
                                     }
                                 }
                             }
                         }
                     }
 
-                    for node in workflow.read().nodes.iter().cloned() {
-                        NodeCard {
-                            node: node.clone(),
-                            on_drag: move |()| { dragging_node.set(Some(node.id)); },
-                            on_select: move |multi| { workflow.write().select_node(node.id, multi); },
-                            on_delete: move |()| { workflow.write().remove_node(node.id); },
-                            on_pin_down: move |()| { connecting_from.set(Some(node.id)); },
-                            on_pin_up: move |()| {
-                                let src_opt = *connecting_from.read();
-                                if let Some(src) = src_opt {
-                                    workflow.write().add_connection(src, node.id, &"main".into(), &"main".into());
-                                    connecting_from.set(None);
-                                    phantom_wire.set(None);
+                    if let (Some(start), Some(end)) = (*marquee_start.read(), *marquee_current.read()) {
+                        {
+                            let rect = crate::ui::editor_interactions::normalize_rect(start, end);
+                            let left = rect.0;
+                            let top = rect.1;
+                            let width = (rect.2 - rect.0).max(1.0);
+                            let height = (rect.3 - rect.1).max(1.0);
+
+                            rsx! {
+                                div {
+                                    class: "pointer-events-none absolute border border-indigo-400/70 bg-indigo-500/10",
+                                    style: "left: {left}px; top: {top}px; width: {width}px; height: {height}px;",
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            if let Some(node) = selected_node {
-                aside { class: "w-96 bg-slate-900 border-l border-slate-800 p-6 flex flex-col z-30 shadow-2xl settings-panel",
-                    h3 { class: "text-sm font-bold mb-6 text-white", "Node Settings" }
-                    NodeConfigEditor {
-                        node: node.clone(),
-                        on_change: move |new_config| {
-                            let mut wf_write = workflow.write();
-                            if let Some(n) = wf_write.nodes.iter_mut().find(|n| n.id == node.id) {
-                                n.config = new_config;
-                            }
+                    FlowMinimap {
+                        nodes: nodes,
+                        edges: connections,
+                        selected_node_id: selected_node_id
+                    }
+
+                    FlowExecutionLane {
+                        nodes: nodes,
+                        queue: execution_queue,
+                        current_step: current_step,
+                        on_jump_to_node: move |node_id| {
+                            selected_node_id.set(Some(node_id));
+                            selected_node_ids.set(vec![node_id]);
                         }
                     }
-                    button { class: "mt-auto w-full py-3 bg-indigo-600 rounded-xl font-bold text-white", onclick: move |_| { workflow.write().deselect_all(); }, "Close" }
                 }
-            }
 
-            // Toasts
-            div { class: "fixed bottom-6 right-6 flex flex-col gap-2 z-[200]",
-                for (id, msg, kind) in toasts.read().iter() {
-                    {
-                        let class = if kind == "success" { "bg-emerald-900/90 border-emerald-500 text-emerald-100" }
-                                    else { "bg-slate-900/90 border-slate-700 text-slate-100" };
-                        rsx! {
-                            div {
-                                key: "{id}",
-                                class: "px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-3 animate-slide-in {class}",
-                                span { class: "text-sm font-medium", "{msg}" }
+                if let Some(node_id) = *selected_node_id.read() {
+                    if let Some(selected_node) = nodes_by_id.read().get(&node_id).cloned() {
+                        {
+                            let badge_classes = match selected_node.category {
+                                oya_frontend::graph::NodeCategory::Entry => {
+                                    "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+                                }
+                                oya_frontend::graph::NodeCategory::Durable => {
+                                    "bg-indigo-500/15 text-indigo-300 border-indigo-500/25"
+                                }
+                                oya_frontend::graph::NodeCategory::State => {
+                                    "bg-orange-500/15 text-orange-300 border-orange-500/25"
+                                }
+                                oya_frontend::graph::NodeCategory::Flow => {
+                                    "bg-amber-500/15 text-amber-300 border-amber-500/25"
+                                }
+                                oya_frontend::graph::NodeCategory::Timing => {
+                                    "bg-pink-500/15 text-pink-300 border-pink-500/25"
+                                }
+                                oya_frontend::graph::NodeCategory::Signal => {
+                                    "bg-blue-500/15 text-blue-300 border-blue-500/25"
+                                }
+                            };
+
+                            rsx! {
+                                aside { class: "animate-slide-in-right z-30 flex w-[300px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/95",
+                                div { class: "flex items-center justify-between border-b border-slate-800 px-4 py-3",
+                                    div { class: "flex items-center gap-2.5",
+                                        div { class: "flex h-7 w-7 items-center justify-center rounded-md border {badge_classes}",
+                                            {crate::ui::icons::icon_by_name(&selected_node.icon, "h-3.5 w-3.5".to_string())}
+                                        }
+                                        div {
+                                            h3 { class: "text-[13px] font-semibold text-slate-100", "{selected_node.name}" }
+                                            p { class: "text-[10px] text-slate-500", "{selected_node.description}" }
+                                        }
+                                    }
+                                    button {
+                                        class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                                        onclick: move |_| {
+                                            selected_node_id.set(None);
+                                            selected_node_ids.set(Vec::new());
+                                        },
+                                        crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
+                                    }
+                                }
+
+                                div { class: "flex-1 overflow-y-auto p-4",
+                                    div { class: "mb-4 flex items-center gap-2",
+                                        span { class: "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium capitalize {badge_classes}", "{selected_node.category}" }
+                                        span { class: "text-[10px] font-mono text-slate-500", "ID: {selected_node.id}" }
+                                    }
+                                    div { class: "mb-4 flex flex-col gap-1.5",
+                                        label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Node Name" }
+                                        input {
+                                            class: "h-8 rounded-md border border-slate-700 bg-slate-950 px-3 text-[12px] text-slate-100 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30",
+                                            value: "{selected_node.name}",
+                                            oninput: move |evt| {
+                                                let mut wf = workflow.write();
+                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
+                                                    node.name = evt.value();
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    div { class: "mb-4 flex flex-col gap-1.5",
+                                        label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Notes" }
+                                        textarea {
+                                            rows: "3",
+                                            placeholder: "Add notes about this node...",
+                                            class: "rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-[12px] text-slate-100 placeholder:text-slate-500/70 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 resize-none",
+                                            value: "{selected_node.description}",
+                                            oninput: move |evt| {
+                                                let mut wf = workflow.write();
+                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
+                                                    node.description = evt.value();
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    div { class: "h-px bg-slate-800" }
+                                    div { class: "pt-4",
+                                        NodeConfigEditor {
+                                            node: selected_node.clone(),
+                                            on_change: move |new_config| {
+                                                let mut wf = workflow.write();
+                                                if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
+                                                    node.config = new_config;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                div { class: "flex items-center gap-2 border-t border-slate-800 px-4 py-3",
+                                    button {
+                                        class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-700 text-[12px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                                        onclick: move |_| {
+                                            let snapshot = workflow.read().clone();
+                                            undo_stack.write().push(snapshot);
+                                            if undo_stack.read().len() > 60 {
+                                                let _ = undo_stack.write().remove(0);
+                                            }
+                                            redo_stack.write().clear();
+
+                                            let maybe_clone = workflow
+                                                .read()
+                                                .nodes
+                                                .iter()
+                                                .find(|node| node.id == node_id)
+                                                .cloned();
+                                            if let Some(mut clone) = maybe_clone {
+                                                clone.id = NodeId::new();
+                                                clone.x += 40.0;
+                                                clone.y += 40.0;
+                                                let cloned_id = clone.id;
+                                                workflow.write().nodes.push(clone);
+                                                selected_node_id.set(Some(cloned_id));
+                                                selected_node_ids.set(vec![cloned_id]);
+                                            }
+                                        },
+                                        crate::ui::icons::CopyIcon { class: "h-3.5 w-3.5" }
+                                        "Duplicate"
+                                    }
+                                    button {
+                                        class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-red-500/30 text-[12px] text-red-400 transition-colors hover:bg-red-500/10",
+                                        onclick: move |_| {
+                                            let snapshot = workflow.read().clone();
+                                            undo_stack.write().push(snapshot);
+                                            if undo_stack.read().len() > 60 {
+                                                let _ = undo_stack.write().remove(0);
+                                            }
+                                            redo_stack.write().clear();
+                                            workflow.write().remove_node(node_id);
+                                            selected_node_id.set(None);
+                                            selected_node_ids.set(Vec::new());
+                                        },
+                                        crate::ui::icons::TrashIcon { class: "h-3.5 w-3.5" }
+                                        "Delete"
+                                    }
+                                }
+                                }
                             }
                         }
                     }

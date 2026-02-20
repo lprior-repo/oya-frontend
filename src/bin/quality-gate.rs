@@ -1,11 +1,11 @@
 #[cfg(not(target_arch = "wasm32"))]
 use clap::{Parser, Subcommand};
 #[cfg(not(target_arch = "wasm32"))]
-use new_app::feedback::sanitize_results;
+use oya_frontend::feedback::sanitize_results;
 #[cfg(not(target_arch = "wasm32"))]
-use new_app::linter::{LintReport, SpecLinter};
+use oya_frontend::linter::{LintReport, SpecLinter};
 #[cfg(not(target_arch = "wasm32"))]
-use new_app::scenario_runner::{run_validation, ValidationReport};
+use oya_frontend::scenario_runner::{run_validation, ValidationReport};
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 

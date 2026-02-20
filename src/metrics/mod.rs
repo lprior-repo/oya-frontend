@@ -461,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn test_spec_validation_metrics() {
+    fn test_spec_validation_metrics() -> anyhow::Result<()> {
         let metrics = SpecValidationMetrics {
             timestamp: Utc::now(),
             spec_id: "test-spec".to_string(),
@@ -474,10 +474,12 @@ mod tests {
             duration_ms: 500,
         };
 
-        let json = serde_json::to_string(&metrics).unwrap();
-        let deserialized: SpecValidationMetrics = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&metrics)?;
+        let deserialized: SpecValidationMetrics = serde_json::from_str(&json)?;
 
         assert_eq!(deserialized.spec_id, metrics.spec_id);
         assert_eq!(deserialized.overall_score, metrics.overall_score);
+
+        Ok(())
     }
 }

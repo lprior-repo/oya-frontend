@@ -1,0 +1,25 @@
+$schema: "https://moonrepo.dev/schemas/project.json"
+
+tasks:
+  serve:
+    command: "dx serve --platform web --port 8081"
+    options:
+      cache: false
+
+  check:
+    command: "cargo check"
+
+  test:
+    command: "cargo test"
+
+  clippy:
+    command: "cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic"
+
+  fmt:
+    command: "cargo fmt --check"
+
+  build-web:
+    command: "dx build --platform web"
+
+  ci:
+    command: "cargo check && cargo test && cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic"

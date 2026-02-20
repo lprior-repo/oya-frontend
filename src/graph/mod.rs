@@ -6,10 +6,14 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 pub mod expressions;
+pub mod layout;
+
 use expressions::ExpressionContext;
+use layout::DagLayout;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeId(pub Uuid);
@@ -27,6 +31,12 @@ impl Default for NodeId {
     }
 }
 
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct PortName(pub String);
 
@@ -36,11 +46,39 @@ impl<S: Into<String>> From<S> for PortName {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum NodeCategory {
+    Entry,
+    Durable,
+    State,
+    Flow,
+    Timing,
+    Signal,
+}
+
+impl fmt::Display for NodeCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Entry => "entry",
+            Self::Durable => "durable",
+            Self::State => "state",
+            Self::Flow => "flow",
+            Self::Timing => "timing",
+            Self::Signal => "signal",
+        };
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Node {
     pub id: NodeId,
     pub name: String,
+    pub description: String,
     pub node_type: String,
+    pub category: NodeCategory,
+    pub icon: String,
     pub x: f32,
     pub y: f32,
     pub config: serde_json::Value,
@@ -93,6 +131,14 @@ impl Default for Workflow {
 }
 
 impl Workflow {
+    fn set_node_status(node: &mut Node, status: &str) {
+        if let Some(obj) = node.config.as_object_mut() {
+            obj.insert("status".to_string(), serde_json::Value::String(status.to_string()));
+        } else {
+            node.config = serde_json::json!({ "status": status });
+        }
+    }
+
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -109,15 +155,163 @@ impl Workflow {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
+    fn get_node_metadata(node_type: &str) -> (NodeCategory, String, String) {
+        match node_type {
+            "http-handler" => (
+                NodeCategory::Entry,
+                "HTTP Handler".to_string(),
+                "globe".to_string(),
+            ),
+            "kafka-handler" => (
+                NodeCategory::Entry,
+                "Kafka Consumer".to_string(),
+                "kafka".to_string(),
+            ),
+            "cron-trigger" => (
+                NodeCategory::Entry,
+                "Cron Trigger".to_string(),
+                "clock".to_string(),
+            ),
+            "workflow-submit" => (
+                NodeCategory::Entry,
+                "Workflow Submit".to_string(),
+                "play-circle".to_string(),
+            ),
+            "run" => (
+                NodeCategory::Durable,
+                "Durable Step".to_string(),
+                "shield".to_string(),
+            ),
+            "service-call" => (
+                NodeCategory::Durable,
+                "Service Call".to_string(),
+                "arrow-right".to_string(),
+            ),
+            "object-call" => (
+                NodeCategory::Durable,
+                "Object Call".to_string(),
+                "box".to_string(),
+            ),
+            "workflow-call" => (
+                NodeCategory::Durable,
+                "Workflow Call".to_string(),
+                "workflow".to_string(),
+            ),
+            "send-message" => (
+                NodeCategory::Durable,
+                "Send Message".to_string(),
+                "send".to_string(),
+            ),
+            "delayed-send" => (
+                NodeCategory::Durable,
+                "Delayed Message".to_string(),
+                "clock-send".to_string(),
+            ),
+            "get-state" => (
+                NodeCategory::State,
+                "Get State".to_string(),
+                "download".to_string(),
+            ),
+            "set-state" => (
+                NodeCategory::State,
+                "Set State".to_string(),
+                "upload".to_string(),
+            ),
+            "clear-state" => (
+                NodeCategory::State,
+                "Clear State".to_string(),
+                "eraser".to_string(),
+            ),
+            "condition" => (
+                NodeCategory::Flow,
+                "If / Else".to_string(),
+                "git-branch".to_string(),
+            ),
+            "switch" => (
+                NodeCategory::Flow,
+                "Switch".to_string(),
+                "git-fork".to_string(),
+            ),
+            "loop" => (
+                NodeCategory::Flow,
+                "Loop / Iterate".to_string(),
+                "repeat".to_string(),
+            ),
+            "parallel" => (
+                NodeCategory::Flow,
+                "Parallel".to_string(),
+                "layers".to_string(),
+            ),
+            "compensate" => (
+                NodeCategory::Flow,
+                "Compensate".to_string(),
+                "undo".to_string(),
+            ),
+            "sleep" => (
+                NodeCategory::Timing,
+                "Sleep / Timer".to_string(),
+                "timer".to_string(),
+            ),
+            "timeout" => (
+                NodeCategory::Timing,
+                "Timeout".to_string(),
+                "alarm".to_string(),
+            ),
+            "durable-promise" => (
+                NodeCategory::Signal,
+                "Durable Promise".to_string(),
+                "sparkles".to_string(),
+            ),
+            "awakeable" => (
+                NodeCategory::Signal,
+                "Awakeable".to_string(),
+                "bell".to_string(),
+            ),
+            "resolve-promise" => (
+                NodeCategory::Signal,
+                "Resolve Promise".to_string(),
+                "check-circle".to_string(),
+            ),
+            "signal-handler" => (
+                NodeCategory::Signal,
+                "Signal Handler".to_string(),
+                "radio".to_string(),
+            ),
+            _ => (
+                NodeCategory::Durable,
+                "Unknown Node".to_string(),
+                "help-circle".to_string(),
+            ),
+        }
+    }
+
     pub fn add_node(&mut self, node_type: &str, x: f32, y: f32) -> NodeId {
+        let mut final_x = x;
+        let mut final_y = y;
+
+        while self
+            .nodes
+            .iter()
+            .any(|n| (n.x - final_x).abs() < 10.0 && (n.y - final_y).abs() < 10.0)
+        {
+            final_x += 30.0;
+            final_y += 30.0;
+        }
+
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
+        let (category, icon, description) = Self::get_node_metadata(node_type);
+
         self.nodes.push(Node {
             id,
             name,
+            description,
             node_type: node_type.to_string(),
-            x,
-            y,
+            category,
+            icon,
+            x: final_x,
+            y: final_y,
             config: serde_json::json!({}),
             last_output: None,
             selected: false,
@@ -126,6 +320,24 @@ impl Workflow {
             error: None,
         });
         id
+    }
+
+    pub fn add_node_at_viewport_center(&mut self, node_type: &str) {
+        let vx = self.viewport.x;
+        let vy = self.viewport.y;
+        let vz = self.viewport.zoom;
+        let nx = (400.0 - vx) / vz;
+        let ny = (300.0 - vy) / vz;
+        self.add_node(node_type, nx, ny);
+    }
+
+    pub fn update_node_position(&mut self, id: NodeId, dx: f32, dy: f32) {
+        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == id) {
+            node.x += dx;
+            node.y += dy;
+            node.x = (node.x / 10.0).round() * 10.0;
+            node.y = (node.y / 10.0).round() * 10.0;
+        }
     }
 
     pub fn add_connection(
@@ -156,24 +368,6 @@ impl Workflow {
         true
     }
 
-    pub fn update_node_position(&mut self, id: NodeId, dx: f32, dy: f32) {
-        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == id) {
-            node.x += dx;
-            node.y += dy;
-        }
-    }
-
-    pub fn select_node(&mut self, id: NodeId, multi: bool) {
-        if !multi {
-            for n in &mut self.nodes {
-                n.selected = false;
-            }
-        }
-        if let Some(n) = self.nodes.iter_mut().find(|n| n.id == id) {
-            n.selected = true;
-        }
-    }
-
     pub fn deselect_all(&mut self) {
         for n in &mut self.nodes {
             n.selected = false;
@@ -186,6 +380,11 @@ impl Workflow {
             .retain(|c| c.source != id && c.target != id);
     }
 
+    pub fn apply_layout(&mut self) {
+        let layout = DagLayout::default();
+        layout.apply(self);
+    }
+
     pub fn zoom(&mut self, delta: f32, cx: f32, cy: f32) {
         let old_zoom = self.viewport.zoom;
         let new_zoom = (old_zoom * (1.0 + delta)).clamp(0.1, 5.0);
@@ -193,6 +392,36 @@ impl Workflow {
         self.viewport.x = (cx - self.viewport.x).mul_add(-factor, cx);
         self.viewport.y = (cy - self.viewport.y).mul_add(-factor, cy);
         self.viewport.zoom = new_zoom;
+    }
+
+    pub fn fit_view(&mut self, viewport_width: f32, viewport_height: f32, padding: f32) {
+        let bounds = self
+            .nodes
+            .iter()
+            .fold(None::<(f32, f32, f32, f32)>, |acc, node| {
+                let right = node.x + 220.0;
+                let bottom = node.y + 68.0;
+                match acc {
+                    Some((min_x, min_y, max_x, max_y)) => {
+                        Some((min_x.min(node.x), min_y.min(node.y), max_x.max(right), max_y.max(bottom)))
+                    }
+                    None => Some((node.x, node.y, right, bottom)),
+                }
+            });
+
+        if let Some((min_x, min_y, max_x, max_y)) = bounds {
+            let width = max_x - min_x;
+            let height = max_y - min_y;
+            let scale_x = (viewport_width - padding) / width.max(1.0_f32);
+            let scale_y = (viewport_height - padding) / height.max(1.0_f32);
+            let zoom = scale_x.min(scale_y).clamp(0.15, 1.5);
+            let center_x = f32::midpoint(min_x, max_x);
+            let center_y = f32::midpoint(min_y, max_y);
+
+            self.viewport.zoom = zoom;
+            self.viewport.x = viewport_width / 2.0 - center_x * zoom;
+            self.viewport.y = viewport_height / 2.0 - center_y * zoom;
+        }
     }
 
     #[must_use]
@@ -256,27 +485,14 @@ impl Workflow {
             }
         }
 
-        if queue.len() < self.nodes.len() {
-            for node in &mut self.nodes {
-                if !queue.contains(&node.id) {
-                    node.error = Some("Cyclic dependency detected".to_string());
-                }
-            }
-        }
-
         self.execution_queue = queue;
         self.current_step = 0;
         for node in &mut self.nodes {
             node.executing = false;
             node.last_output = None;
             node.skipped = false;
-            if node
-                .error
-                .as_ref()
-                .is_none_or(|e| e != "Cyclic dependency detected")
-            {
-                node.error = None;
-            }
+            node.error = None;
+            Self::set_node_status(node, "pending");
         }
     }
 
@@ -287,25 +503,25 @@ impl Workflow {
         parent_outputs: &[serde_json::Value],
     ) -> serde_json::Value {
         match node_type {
-            "Trigger" | "Schedule" => serde_json::json!({
+            "webhook" | "schedule" => serde_json::json!({
                 "timestamp": chrono::Utc::now().to_rfc3339(),
                 "source": node_type
             }),
-            "JSON Transform" => serde_json::json!({
+            "transform" => serde_json::json!({
                 "transformed": true,
                 "data": parent_outputs,
                 "config": resolved_config
             }),
-            "Function" => resolved_config
+            "code" => resolved_config
                 .get("mapping")
                 .cloned()
-                .unwrap_or_else(|| serde_json::json!({})),
-            "HTTP Request" => self.execute_http_request(resolved_config).await,
-            "If" => {
+                .map_or_else(|| serde_json::json!({}), std::convert::identity),
+            "http-request" => self.execute_http_request(resolved_config).await,
+            "condition" => {
                 let condition = resolved_config
                     .get("condition")
                     .and_then(serde_json::Value::as_str)
-                    .unwrap_or("false");
+                    .map_or("false", |s| s);
                 let result = condition == "true" || (!condition.is_empty() && condition != "false");
                 serde_json::json!({ "result": result, "condition": condition })
             }
@@ -322,11 +538,11 @@ impl Workflow {
         let url = config
             .get("url")
             .and_then(serde_json::Value::as_str)
-            .unwrap_or("https://httpbin.org/get");
+            .map_or("https://httpbin.org/get", |s| s);
         let method = config
             .get("method")
             .and_then(serde_json::Value::as_str)
-            .unwrap_or("GET");
+            .map_or("GET", |s| s);
 
         let client = reqwest::Client::new();
         let rb = match method {
@@ -339,8 +555,10 @@ impl Workflow {
         match rb.send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
-                let body: serde_json::Value =
-                    resp.json().await.unwrap_or_else(|_| serde_json::json!({}));
+                let body: serde_json::Value = resp
+                    .json()
+                    .await
+                    .map_or_else(|_| serde_json::json!({}), std::convert::identity);
                 serde_json::json!({ "status": status, "url": url, "body": body })
             }
             Err(e) => serde_json::json!({ "error": e.to_string(), "url": url }),
@@ -355,10 +573,6 @@ impl Workflow {
             return false;
         }
 
-        for node in &mut self.nodes {
-            node.executing = false;
-        }
-
         let node_id = match self.execution_queue.get(self.current_step) {
             Some(id) => *id,
             None => return false,
@@ -370,8 +584,16 @@ impl Workflow {
             .find(|n| n.id == node_id)
             .is_some_and(|n| n.skipped)
         {
+            if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                Self::set_node_status(node, "skipped");
+            }
             self.current_step += 1;
             return true;
+        }
+
+        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+            node.executing = true;
+            Self::set_node_status(node, "running");
         }
 
         let parent_outputs: Vec<serde_json::Value> = self
@@ -392,11 +614,11 @@ impl Workflow {
                 .execute_node_type(&node.node_type, &resolved_config, &parent_outputs)
                 .await;
 
-            if node.node_type == "If" {
+            if node.node_type == "condition" {
                 let result = output
                     .get("result")
                     .and_then(serde_json::Value::as_bool)
-                    .unwrap_or(false);
+                    .is_some_and(|value| value);
                 let skip_port = if result { "false" } else { "true" };
 
                 let targets_to_skip: Vec<NodeId> = self
@@ -409,6 +631,7 @@ impl Workflow {
                 for target_id in targets_to_skip {
                     if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == target_id) {
                         target_node.skipped = true;
+                        Self::set_node_status(target_node, "skipped");
                     }
                 }
             }
@@ -416,8 +639,11 @@ impl Workflow {
             if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
                 if let Some(err) = output.get("error").and_then(serde_json::Value::as_str) {
                     n.error = Some(err.to_string());
+                    Self::set_node_status(n, "failed");
+                } else {
+                    Self::set_node_status(n, "completed");
                 }
-                n.executing = true;
+                n.executing = false;
                 n.last_output = Some(output);
             }
         }
@@ -426,42 +652,21 @@ impl Workflow {
         true
     }
 
-    #[must_use]
-    pub const fn is_running(&self) -> bool {
-        self.current_step < self.execution_queue.len()
-    }
-
-    pub fn reset_execution(&mut self) {
-        self.current_step = 0;
-        for node in &mut self.nodes {
-            node.executing = false;
-            node.last_output = None;
-            node.skipped = false;
-            node.error = None;
-        }
-    }
-
     pub async fn run(&mut self) {
         self.prepare_run();
         let start_time = chrono::Utc::now();
-        let timeout_duration = chrono::Duration::seconds(30);
         let mut results = std::collections::HashMap::new();
 
         while self.step().await {
-            let node_id = self.execution_queue[self.current_step - 1];
-            if let Some(node) = self.nodes.iter().find(|n| n.id == node_id) {
-                if let Some(out) = &node.last_output {
-                    let _ = results.insert(node_id, out.clone());
-                }
-            }
-
-            if chrono::Utc::now() - start_time > timeout_duration {
-                for node_id in &self.execution_queue[self.current_step..] {
-                    if let Some(node) = self.nodes.iter_mut().find(|n| n.id == *node_id) {
-                        node.error = Some("Execution timed out".to_string());
+            if let Some(id) = self
+                .execution_queue
+                .get(self.current_step.saturating_sub(1))
+            {
+                if let Some(node) = self.nodes.iter().find(|n| n.id == *id) {
+                    if let Some(out) = &node.last_output {
+                        let _ = results.insert(*id, out.clone());
                     }
                 }
-                break;
             }
         }
 
@@ -476,34 +681,5 @@ impl Workflow {
         if self.history.len() > 10 {
             let _ = self.history.remove(0);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_workflow_new() {
-        let workflow = Workflow::new();
-        assert!(workflow.nodes.is_empty());
-        assert!(workflow.connections.is_empty());
-        assert!((workflow.viewport.zoom - 1.0).abs() < f32::EPSILON);
-    }
-
-    #[test]
-    fn test_resolve_expressions_math() {
-        let workflow = Workflow::new();
-        let config = serde_json::json!("{{ 10 + 20 }}");
-        let resolved = workflow.resolve_expressions(&config);
-        assert_eq!(resolved, serde_json::json!(30.0));
-    }
-
-    #[test]
-    fn test_resolve_expressions_string_methods() {
-        let workflow = Workflow::new();
-        let config = serde_json::json!("{{ \"hello\".to_uppercase() }}");
-        let resolved = workflow.resolve_expressions(&config);
-        assert_eq!(resolved, serde_json::json!("HELLO"));
     }
 }

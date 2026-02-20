@@ -221,11 +221,18 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
         match action.action_type.as_str() {
             "http" => {
                 let client = &self.http_client;
-                let url = action
-                    .url
-                    .as_ref()
-                    .unwrap()
-                    .replace("${application.endpoint}", &self.application_endpoint);
+                let url = action.url.as_ref().map_or_else(String::new, |value| {
+                    value.replace("${application.endpoint}", &self.application_endpoint)
+                });
+
+                if url.is_empty() {
+                    return ActionResult {
+                        status: 0,
+                        body: "Missing URL for http action".to_string(),
+                        response_time_ms: 0,
+                    };
+                }
+
                 let method = action.method.as_deref().unwrap_or("GET");
 
                 let mut req = match method {
@@ -273,7 +280,10 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
     fn check_assertion(result: &ActionResult, assertion: &Assertion) -> Result<(), String> {
         match assertion.assertion_type.as_str() {
             "status" => {
-                let expected = assertion.expected.as_ref().unwrap();
+                let expected = match assertion.expected.as_ref() {
+                    Some(value) => value,
+                    None => return Err("Missing expected value for status assertion".to_string()),
+                };
                 let expected_status = u16::try_from(expected.as_u64().unwrap_or(0)).unwrap_or(0);
                 if result.status != expected_status {
                     return Err(format!(
