@@ -1,0 +1,22 @@
+# Codanna configuration for new-app
+# https://github.com/codanna/codanna
+
+[project]
+name = "new-app"
+language = "rust"
+
+[index]
+# Include source files
+include = ["src/**/*.rs"]
+
+# Exclude generated and dependency files
+exclude = [
+    "target/**",
+    ".zjj/**",
+    ".beads/**",
+    "node_modules/**",
+    "*.lock",
+]
+
+[semantic_search]
+enabled = true

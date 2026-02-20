@@ -1,34 +1,30 @@
 # Agent Instructions: Autonomous Development Loop
 
-This project uses **Beads** for triage, **ZJJ** for isolation, and **Moon** for absolute quality.
+```jsonl
+{"kind":"meta","project":"new-app","version":"1.0.0","updated":"2026-02","format":"markdown-with-embedded-jsonl"}
+{"kind":"workflow","name":"core_loop","steps":["bv --robot-triage → br claim <bead-id>","zjj spawn <bead-id>","tdd15 + red-queen + functional skills","moon run :ci --force","zjj done"]}
+{"kind":"build_system","tool":"moon","allowed":[":serve",":check",":test",":clippy",":fmt",":build-web",":ci --force"],"forbidden":["dx directly","cargo directly","npm directly"]}
+{"kind":"framework","name":"dioxus","version":"0.7","state":"use_signal (atomic), use_store (nested)","props":"ReadOnlySignal<T>","styling":"Tailwind class: attribute","closures":"move |_|","assets":"asset!() macro","syntax":"rsx! only, no HTML tags"}
+{"kind":"code_intelligence","tool":"codanna","required":"mcp__codanna__*","forbidden":["grep","rg","ripgrep","find","cat for search"],"workflow":["semantic_search_with_context → anchor","find_symbol/search_symbols → lock","get_calls/find_callers/analyze_impact → hints","Read tool → confirm"]}
+{"kind":"zero_policy","rules":["no .unwrap() or .expect()","no panic!() or unsafe","Result<T,Error> with combinators"]}
+{"kind":"ui_design","approach":"v0","principles":["high-quality Tailwind","ARIA accessibility","keyboard navigation","flat RSX trees","#[component] functions"]}
+{"kind":"landing","requirements":["moon run :ci --force passes","zjj done executed","git push succeeds"]}
+{"kind":"tool","name":"semantic_search_with_context","purpose":"Search by concept with full context","when":"Start here for exploration"}
+{"kind":"tool","name":"find_symbol","purpose":"Exact symbol lookup","when":"Know the exact name"}
+{"kind":"tool","name":"search_symbols","purpose":"Fuzzy text search","when":"Partial name matches"}
+{"kind":"tool","name":"get_calls","purpose":"What function calls","when":"Call graph outbound"}
+{"kind":"tool","name":"find_callers","purpose":"What calls function","when":"Call graph inbound"}
+{"kind":"tool","name":"analyze_impact","purpose":"Full dependency graph","when":"Change impact analysis"}
+{"kind":"tool","name":"search_documents","purpose":"Search markdown/docs","when":"Find project docs"}
+{"kind":"tool","name":"get_index_info","purpose":"Index statistics","when":"Verify index health"}
+```
 
-## Core Workflow (The Loop)
+## Quick Reference
 
-1. **Triage & Pull**: Use `bv --robot-triage` to find the highest-impact bead. Claim it with `br claim <bead-id>`.
-2. **Isolate**: Invoke `zjj spawn <bead-id>`. This provisions an isolated workspace at `.zjj/workspaces/<bead-id>/`.
-3. **Execute Skills**:
-   - **tdd15**: Drive development through small, failing tests.
-   - **red-queen**: Adhere to rigorous adversarial verification standards.
-   - **functional**: Ensure purely functional Rust (ROP, zero unwraps).
-4. **Absolute Quality**: Run `moon run :ci --force` (the `--force` flag is mandatory to bypass cache and ensure absolute correctness).
-5. **Merge & Close**: Run `zjj done`. This merges your work into `main` and marks the bead as completed.
-
-## Build System (Moon Only)
-
-**NEVER use raw cargo.**
-- ✅ `moon run :quick` (Fast check)
-- ✅ `moon run :ci --force` (Absolute verification)
-- ❌ `cargo build/test`
-
-## Zero-Policy (Enforced)
-
-- No `.unwrap()` or `.expect()`
-- No `panic!()` or `unsafe`
-- All errors use `Result<T, Error>` with proper combinators (`map`, `and_then`).
-
-## Landing Rules
-
-Work is not complete until:
-1. `moon run :ci --force` passes.
-2. `zjj done` has been executed.
-3. `git push` succeeds.
+| Area | Rule |
+|------|------|
+| **Triage** | `bv --robot-triage` → `br claim <id>` → `zjj spawn <id>` |
+| **Build** | `moon run :ci --force` (mandatory `--force`) |
+| **State** | `use_signal` / `use_store`, NEVER `use_state` |
+| **Code Search** | Codanna MCP tools ONLY, no grep/rg/find |
+| **Errors** | `Result<T, Error>` with combinators, no unwrap |
