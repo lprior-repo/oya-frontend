@@ -10,22 +10,23 @@ use dioxus::prelude::*;
 /// Follows functional reactive pattern:
 /// - State stored in Copy signals
 /// - Methods for mutations
-/// - ReadSignal accessors for derived views
+/// - `ReadSignal` accessors for derived views
 #[derive(Clone, Copy, PartialEq)]
 pub struct SelectionState {
     selected_id: Signal<Option<NodeId>>,
     selected_ids: Signal<Vec<NodeId>>,
 }
 
+#[allow(dead_code)]
 impl SelectionState {
-    /// Read-only access to the primary selected node ID
-    pub fn selected_id(&self) -> ReadSignal<Option<NodeId>> {
-        self.selected_id.into()
+    /// Access to the primary selected node ID signal
+    pub fn selected_id(&self) -> Signal<Option<NodeId>> {
+        self.selected_id
     }
 
-    /// Read-only access to all selected node IDs
-    pub fn selected_ids(&self) -> ReadSignal<Vec<NodeId>> {
-        self.selected_ids.into()
+    /// Access to all selected node IDs signal
+    pub fn selected_ids(&self) -> Signal<Vec<NodeId>> {
+        self.selected_ids
     }
 
     // === Mutation methods (take `self` since Copy) ===

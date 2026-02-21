@@ -29,6 +29,7 @@ pub struct UiPanels {
     context_menu: Signal<ContextMenuState>,
 }
 
+#[allow(dead_code)]
 impl UiPanels {
     /// Read-only access to settings panel state
     pub fn settings_open(&self) -> ReadSignal<bool> {

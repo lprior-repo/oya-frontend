@@ -6,6 +6,7 @@ use thiserror::Error;
 use oya_frontend::graph::NodeId;
 
 #[derive(Debug, Error, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum WorkflowError {
     #[error("Node {0} not found")]
     NodeNotFound(NodeId),

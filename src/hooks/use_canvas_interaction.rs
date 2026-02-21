@@ -7,8 +7,9 @@ use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
 
 /// Interaction mode state machine - ensures illegal states are unrepresentable.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum InteractionMode {
+    #[default]
     Idle,
     Panning,
     Dragging { node_ids: Vec<NodeId> },
@@ -16,15 +17,9 @@ pub enum InteractionMode {
     Marquee { start: (f32, f32), current: (f32, f32) },
 }
 
-impl Default for InteractionMode {
-    fn default() -> Self {
-        Self::Idle
-    }
-}
-
 /// Canvas interaction hook - manages all canvas interaction state.
 ///
-/// Uses a state machine (InteractionMode) to ensure consistent state.
+/// Uses a state machine (`InteractionMode`) to ensure consistent state.
 /// Follows functional reactive pattern with methods for state transitions.
 #[derive(Clone, Copy, PartialEq)]
 pub struct CanvasInteraction {
@@ -36,6 +31,7 @@ pub struct CanvasInteraction {
     hovered_handle: Signal<Option<(NodeId, String)>>,
 }
 
+#[allow(dead_code)]
 impl CanvasInteraction {
     /// Read-only access to current interaction mode
     pub fn mode(&self) -> ReadSignal<InteractionMode> {

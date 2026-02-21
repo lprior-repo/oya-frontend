@@ -26,14 +26,14 @@ pub struct WorkflowState {
 }
 
 impl WorkflowState {
-    /// Read-only access to workflow data
-    pub fn workflow(&self) -> ReadSignal<Workflow> {
-        self.workflow.into()
+    /// Access to workflow data signal
+    pub fn workflow(&self) -> Signal<Workflow> {
+        self.workflow
     }
 
-    /// Read-only access to workflow name
-    pub fn workflow_name(&self) -> ReadSignal<String> {
-        self.workflow_name.into()
+    /// Access to workflow name signal
+    pub fn workflow_name(&self) -> Signal<String> {
+        self.workflow_name
     }
 
     /// Read-only access to nodes list (memoized)
@@ -54,6 +54,16 @@ impl WorkflowState {
     /// Read-only access to viewport (memoized)
     pub fn viewport(&self) -> ReadSignal<Viewport> {
         self.viewport.into()
+    }
+
+    /// Access to undo stack signal
+    pub fn undo_stack(&self) -> Signal<Vec<Workflow>> {
+        self.undo_stack
+    }
+
+    /// Access to redo stack signal
+    pub fn redo_stack(&self) -> Signal<Vec<Workflow>> {
+        self.redo_stack
     }
 
     /// Save current state to undo stack before mutation

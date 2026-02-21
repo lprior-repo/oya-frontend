@@ -3,9 +3,8 @@
 #![deny(clippy::panic)]
 
 use crate::hooks::{CanvasInteraction, SelectionState, WorkflowState};
-use crate::ui::{FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition};
+use crate::ui::{FlowEdges, FlowMinimap, FlowNodeComponent};
 use dioxus::prelude::*;
-use oya_frontend::graph::NodeId;
 
 #[component]
 pub fn Canvas(
@@ -65,7 +64,7 @@ pub fn Canvas(
                                 on_handle_mouse_enter: move |handle| {
                                     canvas_clone.set_hovered_handle(Some((node_id, handle)));
                                 },
-                                on_handle_mouse_leave: move |_| {
+                                on_handle_mouse_leave: move |()| {
                                     canvas_clone.set_hovered_handle(None);
                                 }
                             }

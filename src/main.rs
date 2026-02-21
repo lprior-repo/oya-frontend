@@ -10,7 +10,7 @@ use crate::ui::{
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, PortName, Workflow};
+use oya_frontend::graph::PortName;
 
 mod ui;
 mod errors;
@@ -21,50 +21,20 @@ mod components;
 
 #[component]
 fn App() -> Element {
-    let mut workflow = use_signal(|| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            use web_sys::window;
-            let storage = window().and_then(|w| w.local_storage().ok()).flatten();
-            if let Some(s) = storage {
-                match s.get_item("flow-wasm-v1-workflow") {
-                    Ok(Some(json)) => match serde_json::from_str::<Workflow>(&json) {
-                        Ok(parsed) => return parsed,
-                        Err(_) => {}
-                    },
-                    _ => {}
-                }
-            }
-        }
-        crate::ui::app_bootstrap::default_workflow()
-    });
+    // Hook-based state management
+    let workflow = crate::hooks::use_workflow_state();
+    let selection = crate::hooks::use_selection();
+    let canvas = crate::hooks::use_canvas_interaction();
+    let panels = crate::hooks::use_ui_panels();
 
-    let mut selected_node_id = use_signal(|| None::<NodeId>);
-    let mut selected_node_ids = use_signal(Vec::<NodeId>::new);
-    let mut dragging_node_ids = use_signal(Vec::<NodeId>::new);
-    let mut is_panning = use_signal(|| false);
-    let mut is_space_hand_tool = use_signal(|| false);
-    let mut last_mouse_pos = use_signal(|| (0.0, 0.0));
-    let mut marquee_start = use_signal(|| None::<(f32, f32)>);
-    let mut marquee_current = use_signal(|| None::<(f32, f32)>);
-    let mut connecting_from = use_signal(|| None::<(NodeId, String)>);
-    let mut temp_edge_to = use_signal(|| None::<FlowPosition>);
-    let mut hovered_handle = use_signal(|| None::<(NodeId, String)>);
-    let mut workflow_name = use_signal(|| "SignupWorkflow".to_string());
+    // Local UI state not yet in hooks
     let mut sidebar_search = use_signal(String::new);
     let mut pending_sidebar_drop = use_signal(|| None::<String>);
-    let mut undo_stack = use_signal(Vec::<Workflow>::new);
-    let mut redo_stack = use_signal(Vec::<Workflow>::new);
-    let mut show_settings = use_signal(|| false);
-    let mut show_command_palette = use_signal(|| false);
-    let mut command_palette_query = use_signal(String::new);
-    let mut context_menu_open = use_signal(|| false);
-    let mut context_menu_x = use_signal(|| 0.0_f32);
-    let mut context_menu_y = use_signal(|| 0.0_f32);
-    let mut canvas_origin = use_signal(|| (0.0_f32, 0.0_f32));
 
+    // Persist workflow to localStorage
     use_effect(move || {
-        let wf = workflow.read();
+        let wf_signal = workflow.workflow();
+        let wf = wf_signal.read();
         if let Ok(_json) = serde_json::to_string(&*wf) {
             #[cfg(target_arch = "wasm32")]
             {
@@ -77,33 +47,30 @@ fn App() -> Element {
         }
     });
 
-    let nodes = use_memo(move || workflow.read().nodes.clone());
-    let nodes_by_id = use_memo(move || {
-        workflow
-            .read()
-            .nodes
-            .iter()
-            .cloned()
-            .map(|node| (node.id, node))
-            .collect::<std::collections::HashMap<_, _>>()
-    });
-    let connections = use_memo(move || workflow.read().connections.clone());
-    let node_count = use_memo(move || workflow.read().nodes.len());
-    let edge_count = use_memo(move || workflow.read().connections.len());
-    let zoom_label = use_memo(move || format!("{:.0}%", workflow.read().viewport.zoom * 100.0));
-    let can_undo = use_memo(move || !undo_stack.read().is_empty());
-    let can_redo = use_memo(move || !redo_stack.read().is_empty());
-    let vp = use_memo(move || workflow.read().viewport.clone());
+    // Derived computations
+    let nodes = workflow.nodes();
+    let nodes_by_id = workflow.nodes_by_id();
+    let connections = workflow.connections();
+    let node_count = use_memo(move || workflow.nodes().read().len());
+    let edge_count = use_memo(move || workflow.connections().read().len());
+    let zoom_label = use_memo(move || format!("{:.0}%", workflow.viewport().read().zoom * 100.0));
+    let can_undo = use_memo(move || workflow.can_undo());
+    let can_redo = use_memo(move || workflow.can_redo());
 
+    let vp = workflow.viewport();
+    let vx = vp.read().x;
+    let vy = vp.read().y;
+    let vz = vp.read().zoom;
+
+    // Temp edge computation for connecting mode
     let temp_edge = use_memo(move || {
-        let conn = connecting_from.read();
-        let to = *temp_edge_to.read();
-
-        match (conn.as_ref(), to) {
-            (Some((id, handle_type)), Some(to_pos)) => {
-                let node = nodes_by_id.read().get(id).cloned();
+        let mode = canvas.mode().read().clone();
+        if let crate::hooks::InteractionMode::Connecting { from, handle } = mode {
+            let to = *canvas.temp_edge_to().read();
+            if let Some((to_pos, _)) = to {
+                let node = nodes_by_id.read().get(&from).cloned();
                 node.map(|n| {
-                    let from = if handle_type == "source" {
+                    let from_pos = if handle == "source" {
                         FlowPosition {
                             x: n.x + 110.0,
                             y: n.y + 68.0,
@@ -114,23 +81,13 @@ fn App() -> Element {
                             y: n.y,
                         }
                     };
-                    (from, to_pos)
+                    (from_pos, to_pos)
                 })
+            } else {
+                None
             }
-            _ => None,
-        }
-    });
-
-    let vx = vp.read().x;
-    let vy = vp.read().y;
-    let vz = vp.read().zoom;
-    let canvas_cursor = use_memo(move || {
-        if *is_panning.read() {
-            "cursor-grabbing"
-        } else if *is_space_hand_tool.read() {
-            "cursor-grab"
         } else {
-            "cursor-default"
+            None
         }
     });
 
@@ -144,69 +101,39 @@ fn App() -> Element {
 
         div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f4f6fb] text-slate-900 [font-family:'Geist',_'Inter',sans-serif] select-none",
             FlowToolbar {
-                workflow_name: workflow_name,
-                on_workflow_name_change: move |value| workflow_name.set(value),
+                workflow_name: workflow.workflow_name(),
+                on_workflow_name_change: move |value| workflow.workflow_name().set(value),
                 node_count: node_count,
                 edge_count: edge_count,
                 zoom_label: zoom_label,
                 can_undo: can_undo,
                 can_redo: can_redo,
-                on_zoom_in: move |_| workflow.write().zoom(0.12, 640.0, 400.0),
-                on_zoom_out: move |_| workflow.write().zoom(-0.12, 640.0, 400.0),
-                on_fit_view: move |_| workflow.write().fit_view(1280.0, 760.0, 200.0),
-                on_layout: move |_| {
-                    let snapshot = workflow.read().clone();
-                    undo_stack.write().push(snapshot);
-                    redo_stack.write().clear();
-                    workflow.write().apply_layout();
-                },
-                on_execute: move |_| {
-                    spawn(async move {
-                        workflow.write().run().await;
-                    });
-                },
-                on_undo: move |_| {
-                    let previous = undo_stack.write().pop();
-                    if let Some(snapshot) = previous {
-                        let current = workflow.read().clone();
-                        redo_stack.write().push(current);
-                        workflow.set(snapshot);
-                        selected_node_id.set(None);
-                        selected_node_ids.set(Vec::new());
-                    }
-                },
-                on_redo: move |_| {
-                    let next = redo_stack.write().pop();
-                    if let Some(snapshot) = next {
-                        let current = workflow.read().clone();
-                        undo_stack.write().push(current);
-                        workflow.set(snapshot);
-                        selected_node_id.set(None);
-                        selected_node_ids.set(Vec::new());
-                    }
-                },
+                on_zoom_in: move |_| workflow.zoom(0.12, 640.0, 400.0),
+                on_zoom_out: move |_| workflow.zoom(-0.12, 640.0, 400.0),
+                on_fit_view: move |_| workflow.fit_view(1280.0, 760.0, 200.0),
+                on_layout: move |_| workflow.apply_layout(),
+                on_execute: move |_| workflow.run(),
+                on_undo: move |_| { workflow.undo(); selection.clear(); },
+                on_redo: move |_| { workflow.redo(); selection.clear(); },
                 on_save: move |_| {
                     #[cfg(target_arch = "wasm32")]
                     {
                         crate::ui::app_io::download_workflow_json(
-                            &workflow_name.read(),
-                            &workflow.read(),
+                            &workflow.workflow_name().read(),
+                            &workflow.workflow().read(),
                         );
                     }
                 },
-                on_settings: move |_| {
-                    let is_open = *show_settings.read();
-                    show_settings.set(!is_open);
-                }
+                on_settings: move |_| panels.toggle_settings()
             }
 
-            if *show_settings.read() {
+            if *panels.settings_open().read() {
                 div { class: "absolute right-4 top-14 z-40 w-[280px] rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-2xl shadow-slate-950/70 backdrop-blur",
                     div { class: "mb-2 flex items-center justify-between",
                         h4 { class: "text-[12px] font-semibold text-slate-100", "Workflow Settings" }
                         button {
                             class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-100",
-                            onclick: move |_| show_settings.set(false),
+                            onclick: move |_| panels.close_settings(),
                             crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
                         }
                     }
@@ -214,7 +141,7 @@ fn App() -> Element {
                     div { class: "flex items-center gap-2",
                         button {
                             class: "flex h-8 flex-1 items-center justify-center rounded-md border border-slate-700 text-[12px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100",
-                            onclick: move |_| show_settings.set(false),
+                            onclick: move |_| panels.close_settings(),
                             "Close"
                         }
                     }
@@ -222,47 +149,32 @@ fn App() -> Element {
             }
 
             NodeCommandPalette {
-                open: show_command_palette,
-                query: command_palette_query,
-                on_query_change: move |value| command_palette_query.set(value),
-                on_close: move |()| {
-                    show_command_palette.set(false);
-                },
+                open: panels.palette_open(),
+                query: panels.palette_query(),
+                on_query_change: move |value| panels.set_palette_query(value),
+                on_close: move |()| panels.close_palette(),
                 on_pick: move |node_type| {
-                    let snapshot = workflow.read().clone();
-                    undo_stack.write().push(snapshot);
-                    if undo_stack.read().len() > 60 {
-                        let _ = undo_stack.write().remove(0);
-                    }
-                    redo_stack.write().clear();
-                    workflow.write().add_node_at_viewport_center(node_type);
-                    show_command_palette.set(false);
-                    command_palette_query.set(String::new());
+                    workflow.add_node_at_viewport_center(node_type);
+                    panels.close_palette();
                 }
             }
 
             CanvasContextMenu {
-                open: context_menu_open,
-                x: context_menu_x,
-                y: context_menu_y,
-                on_close: move |_| context_menu_open.set(false),
+                open: panels.context_menu().read().open,
+                x: panels.context_menu().read().x,
+                y: panels.context_menu().read().y,
+                on_close: move |_| panels.close_context_menu(),
                 on_add_node: move |_| {
-                    context_menu_open.set(false);
-                    show_command_palette.set(true);
+                    panels.close_context_menu();
+                    panels.open_palette();
                 },
                 on_fit_view: move |_| {
-                    context_menu_open.set(false);
-                    workflow.write().fit_view(1280.0, 760.0, 200.0);
+                    panels.close_context_menu();
+                    workflow.fit_view(1280.0, 760.0, 200.0);
                 },
                 on_layout: move |_| {
-                    context_menu_open.set(false);
-                    let snapshot = workflow.read().clone();
-                    undo_stack.write().push(snapshot);
-                    if undo_stack.read().len() > 60 {
-                        let _ = undo_stack.write().remove(0);
-                    }
-                    redo_stack.write().clear();
-                    workflow.write().apply_layout();
+                    panels.close_context_menu();
+                    workflow.apply_layout();
                 }
             }
 
@@ -274,19 +186,13 @@ fn App() -> Element {
                         pending_sidebar_drop.set(Some(node_type.to_string()));
                     },
                     on_add_node: move |node_type: &'static str| {
-                        let snapshot = workflow.read().clone();
-                        undo_stack.write().push(snapshot);
-                        if undo_stack.read().len() > 60 {
-                            let _ = undo_stack.write().remove(0);
-                        }
-                        redo_stack.write().clear();
                         pending_sidebar_drop.set(None);
-                        workflow.write().add_node_at_viewport_center(node_type);
+                        workflow.add_node_at_viewport_center(node_type);
                     }
                 }
 
                 main {
-                    class: "relative flex-1 overflow-hidden bg-[#f8fafc] {canvas_cursor}",
+                    class: "relative flex-1 overflow-hidden bg-[#f8fafc] {canvas.cursor_class()}",
                     tabindex: "0",
                     onmouseenter: move |evt| {
                         let page = evt.page_coordinates();
@@ -295,153 +201,115 @@ fn App() -> Element {
                         let origin_x = page.x as f32 - element.x as f32;
                         #[allow(clippy::cast_possible_truncation)]
                         let origin_y = page.y as f32 - element.y as f32;
-                        canvas_origin.set((origin_x, origin_y));
+                        canvas.set_origin((origin_x, origin_y));
                     },
                     oncontextmenu: move |evt| {
                         evt.prevent_default();
                         let coordinates = evt.page_coordinates();
                         #[allow(clippy::cast_possible_truncation)]
-                        context_menu_x.set(coordinates.x as f32);
-                        #[allow(clippy::cast_possible_truncation)]
-                        context_menu_y.set(coordinates.y as f32);
-                        context_menu_open.set(true);
-                        show_command_palette.set(false);
+                        panels.show_context_menu(coordinates.x as f32, coordinates.y as f32);
                     },
                     onkeydown: move |evt| {
                         let key = evt.key().to_string().to_lowercase();
 
                         if key == " " || key == "space" {
                             evt.prevent_default();
-                            is_space_hand_tool.set(true);
+                            canvas.enable_space_hand();
                             return;
                         }
 
                         if key == "escape" {
                             evt.prevent_default();
-                            show_command_palette.set(false);
-                            context_menu_open.set(false);
-                            connecting_from.set(None);
-                            temp_edge_to.set(None);
-                            hovered_handle.set(None);
+                            panels.close_all();
+                            canvas.cancel_interaction();
                             return;
                         }
 
                         if key == "k" {
                             evt.prevent_default();
-                            context_menu_open.set(false);
-                            let is_open = *show_command_palette.read();
-                            show_command_palette.set(!is_open);
-                            if !is_open {
-                                command_palette_query.set(String::new());
-                            }
+                            panels.toggle_palette();
                             return;
                         }
 
                         if key == "+" || key == "=" || key == "add" {
                             evt.prevent_default();
-                            workflow.write().zoom(0.12, 640.0, 400.0);
+                            workflow.zoom(0.12, 640.0, 400.0);
                             return;
                         }
 
                         if key == "-" || key == "_" || key == "subtract" {
                             evt.prevent_default();
-                            workflow.write().zoom(-0.12, 640.0, 400.0);
+                            workflow.zoom(-0.12, 640.0, 400.0);
                             return;
                         }
 
                         if key == "0" {
                             evt.prevent_default();
-                            workflow.write().fit_view(1280.0, 760.0, 200.0);
+                            workflow.fit_view(1280.0, 760.0, 200.0);
                             return;
                         }
 
                         if key == "z" {
                             evt.prevent_default();
-                            let previous = undo_stack.write().pop();
-                            if let Some(snapshot) = previous {
-                                let current = workflow.read().clone();
-                                redo_stack.write().push(current);
-                                workflow.set(snapshot);
-                                selected_node_id.set(None);
-                                selected_node_ids.set(Vec::new());
-                            }
+                            workflow.undo();
+                            selection.clear();
                             return;
                         }
 
                         if key == "y" {
                             evt.prevent_default();
-                            let next = redo_stack.write().pop();
-                            if let Some(snapshot) = next {
-                                let current = workflow.read().clone();
-                                undo_stack.write().push(current);
-                                workflow.set(snapshot);
-                                selected_node_id.set(None);
-                                selected_node_ids.set(Vec::new());
-                            }
+                            workflow.redo();
+                            selection.clear();
                             return;
                         }
 
                         if key == "backspace" || key == "delete" {
-                            let mut ids = selected_node_ids.read().clone();
-                            if ids.is_empty() {
-                                if let Some(node_id) = *selected_node_id.read() {
-                                    ids.push(node_id);
-                                }
-                            }
+                            let ids = selection.selected_ids().read().clone();
                             if ids.is_empty() {
                                 return;
                             }
 
                             evt.prevent_default();
-                            let snapshot = workflow.read().clone();
-                            undo_stack.write().push(snapshot);
-                            if undo_stack.read().len() > 60 {
-                                let _ = undo_stack.write().remove(0);
-                            }
-                            redo_stack.write().clear();
-
-                            let mut wf = workflow.write();
                             for node_id in ids {
-                                wf.remove_node(node_id);
+                                let _ = workflow.remove_node(node_id);
                             }
-                            selected_node_id.set(None);
-                            selected_node_ids.set(Vec::new());
+                            selection.clear();
                         }
                     },
                     onkeyup: move |evt| {
                         let key = evt.key().to_string().to_lowercase();
                         if key == " " || key == "space" {
                             evt.prevent_default();
-                            is_space_hand_tool.set(false);
-                            is_panning.set(false);
+                            canvas.disable_space_hand();
+                            canvas.end_interaction();
                         }
                     },
                     onwheel: move |evt| {
                         evt.prevent_default();
                         let page = evt.page_coordinates();
-                        let (origin_x, origin_y) = *canvas_origin.read();
+                        let (origin_x, origin_y) = *canvas.canvas_origin().read();
                         #[allow(clippy::cast_possible_truncation)]
                         let delta = -evt.delta().strip_units().y as f32 * 0.001;
                         #[allow(clippy::cast_possible_truncation)]
                         let zoom_x = page.x as f32 - origin_x;
                         #[allow(clippy::cast_possible_truncation)]
                         let zoom_y = page.y as f32 - origin_y;
-                        workflow.write().zoom(delta, zoom_x, zoom_y);
+                        workflow.zoom(delta, zoom_x, zoom_y);
                     },
                     onmousemove: move |evt| {
                         let page = evt.page_coordinates();
-                        let (origin_x, origin_y) = *canvas_origin.read();
+                        let (origin_x, origin_y) = *canvas.canvas_origin().read();
                         #[allow(clippy::cast_possible_truncation)]
                         let (mx, my) = (page.x as f32 - origin_x, page.y as f32 - origin_y);
-                        let (lx, ly) = *last_mouse_pos.read();
+                        let (lx, ly) = *canvas.mouse_pos().read();
                         let dx = mx - lx;
                         let dy = my - ly;
-                        last_mouse_pos.set((mx, my));
+                        canvas.update_mouse((mx, my));
 
-                        let current_vp = workflow.read().viewport.clone();
+                        let current_vp = workflow.viewport().read().clone();
                         let zoom = current_vp.zoom;
 
-                        if !dragging_node_ids.read().is_empty() {
+                        if canvas.is_dragging() {
                             let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
                                 .map_or((960.0, 720.0), std::convert::identity);
                             let edge = 56.0_f32;
@@ -464,22 +332,22 @@ fn App() -> Element {
                             };
 
                             if pan_x != 0.0 || pan_y != 0.0 {
-                                let mut wf = workflow.write();
-                                wf.viewport.x += pan_x;
-                                wf.viewport.y += pan_y;
+                                workflow.pan(pan_x, pan_y);
                             }
 
                             let node_dx = (dx - pan_x) / zoom;
                             let node_dy = (dy - pan_y) / zoom;
-                            for node_id in dragging_node_ids.read().iter().copied() {
-                                workflow.write().update_node_position(node_id, node_dx, node_dy);
+                            if let Some(node_ids) = canvas.dragging_node_ids() {
+                                for node_id in node_ids {
+                                    workflow.update_node_position(node_id, node_dx, node_dy);
+                                }
                             }
-                        } else if connecting_from.read().is_some() {
+                        } else if canvas.is_connecting() {
                             let canvas_x = (mx - current_vp.x) / zoom;
                             let canvas_y = (my - current_vp.y) / zoom;
 
-                            if let Some((source_id, source_kind)) = connecting_from.read().clone() {
-                                let node_list = workflow.read().nodes.clone();
+                            if let Some((source_id, source_kind)) = canvas.connecting_from() {
+                                let node_list = workflow.nodes().read().clone();
                                 let snapped = crate::ui::editor_interactions::snap_handle(
                                     &node_list,
                                     mx,
@@ -491,53 +359,52 @@ fn App() -> Element {
                                 });
 
                                 if let Some((node_id, handle_kind, snapped_pos)) = snapped {
-                                    hovered_handle.set(Some((node_id, handle_kind)));
-                                    temp_edge_to.set(Some(snapped_pos));
+                                    canvas.set_hovered_handle(Some((node_id, handle_kind)));
+                                    canvas.set_temp_edge(Some((snapped_pos, snapped_pos)));
                                 } else {
-                                    hovered_handle.set(None);
-                                    temp_edge_to.set(Some(FlowPosition {
-                                        x: canvas_x,
-                                        y: canvas_y,
-                                    }));
+                                    canvas.set_hovered_handle(None);
+                                    canvas.set_temp_edge(Some((
+                                        FlowPosition { x: canvas_x, y: canvas_y },
+                                        FlowPosition { x: canvas_x, y: canvas_y },
+                                    )));
                                 }
                             }
-                        } else if let Some(start) = *marquee_start.read() {
-                            marquee_current.set(Some((mx, my)));
-                            let start_canvas = (
-                                (start.0 - current_vp.x) / zoom,
-                                (start.1 - current_vp.y) / zoom,
-                            );
-                            let end_canvas = (
-                                (mx - current_vp.x) / zoom,
-                                (my - current_vp.y) / zoom,
-                            );
-                            let rect = crate::ui::editor_interactions::normalize_rect(
-                                start_canvas,
-                                end_canvas,
-                            );
-                            let selected = workflow
-                                .read()
-                                .nodes
-                                .iter()
-                                .filter(|node| {
-                                    crate::ui::editor_interactions::node_intersects_rect(
-                                        node.x, node.y, rect,
-                                    )
-                                })
-                                .map(|node| node.id)
-                                .collect::<Vec<_>>();
-                            selected_node_id.set(selected.first().copied());
-                            selected_node_ids.set(selected);
-                        } else if *is_panning.read() {
-                            let mut wf = workflow.write();
-                            wf.viewport.x += dx;
-                            wf.viewport.y += dy;
+                        } else if canvas.is_marquee() {
+                            if let Some((start, _)) = canvas.marquee_rect() {
+                                canvas.update_marquee((mx, my));
+                                let start_canvas = (
+                                    (start.0 - current_vp.x) / zoom,
+                                    (start.1 - current_vp.y) / zoom,
+                                );
+                                let end_canvas = (
+                                    (mx - current_vp.x) / zoom,
+                                    (my - current_vp.y) / zoom,
+                                );
+                                let rect = crate::ui::editor_interactions::normalize_rect(
+                                    start_canvas,
+                                    end_canvas,
+                                );
+                                let selected = workflow
+                                    .nodes()
+                                    .read()
+                                    .iter()
+                                    .filter(|node| {
+                                        crate::ui::editor_interactions::node_intersects_rect(
+                                            node.x, node.y, rect,
+                                        )
+                                    })
+                                    .map(|node| node.id)
+                                    .collect::<Vec<_>>();
+                                selection.set_multiple(selected);
+                            }
+                        } else if canvas.is_panning() {
+                            workflow.pan(dx, dy);
                         }
                     },
                     onmouseup: move |evt| {
-                        let from = connecting_from.read().clone();
-                        let over = hovered_handle.read().clone();
-                        let is_dragging = !dragging_node_ids.read().is_empty();
+                        let from = canvas.connecting_from();
+                        let over = canvas.hovered_handle().read().clone();
+                        let is_dragging = canvas.is_dragging();
                         let pending_drop = pending_sidebar_drop.read().clone();
                         let mut should_clear_selection = false;
 
@@ -549,41 +416,30 @@ fn App() -> Element {
                                     (tgt_id, src_id)
                                 };
 
-                                let snapshot = workflow.read().clone();
-                                undo_stack.write().push(snapshot);
-                                if undo_stack.read().len() > 60 {
-                                    let _ = undo_stack.write().remove(0);
-                                }
-                                redo_stack.write().clear();
-
-                                workflow
-                                    .write()
-                                    .add_connection(source, target, &PortName("main".to_string()), &PortName("main".to_string()));
+                                let _ = workflow.add_connection(
+                                    source,
+                                    target,
+                                    &PortName("main".to_string()),
+                                    &PortName("main".to_string()),
+                                );
                             }
-                        } else if !is_dragging && marquee_start.read().is_none() {
+                        } else if !is_dragging && !canvas.is_marquee() {
                             if let Some(node_type) = pending_drop {
                                 let coords = evt.page_coordinates();
-                                let (origin_x, origin_y) = *canvas_origin.read();
+                                let (origin_x, origin_y) = *canvas.canvas_origin().read();
                                 #[allow(clippy::cast_possible_truncation)]
                                 let mx = coords.x as f32 - origin_x;
                                 #[allow(clippy::cast_possible_truncation)]
                                 let my = coords.y as f32 - origin_y;
-                                let current_vp = workflow.read().viewport.clone();
+                                let current_vp = workflow.viewport().read().clone();
                                 let canvas_x = (mx - current_vp.x) / current_vp.zoom - 110.0;
                                 let canvas_y = (my - current_vp.y) / current_vp.zoom - 34.0;
 
-                                let snapshot = workflow.read().clone();
-                                undo_stack.write().push(snapshot);
-                                if undo_stack.read().len() > 60 {
-                                    let _ = undo_stack.write().remove(0);
-                                }
-                                redo_stack.write().clear();
-
-                                workflow.write().add_node(&node_type, canvas_x, canvas_y);
+                                workflow.add_node(&node_type, canvas_x, canvas_y);
                             }
                         }
 
-                        if let (Some(start), Some(end)) = (*marquee_start.read(), *marquee_current.read()) {
+                        if let Some((start, end)) = canvas.marquee_rect() {
                             let rect = crate::ui::editor_interactions::normalize_rect(start, end);
                             let tiny_click = (rect.2 - rect.0).abs() < 2.0 && (rect.3 - rect.1).abs() < 2.0;
                             if tiny_click
@@ -594,39 +450,22 @@ fn App() -> Element {
                             }
                         }
 
-                        dragging_node_ids.set(Vec::new());
-                        connecting_from.set(None);
-                        temp_edge_to.set(None);
+                        canvas.end_interaction();
                         pending_sidebar_drop.set(None);
-                        is_panning.set(false);
-                        hovered_handle.set(None);
-                        marquee_start.set(None);
-                        marquee_current.set(None);
 
                         if should_clear_selection {
-                            selected_node_id.set(None);
-                            selected_node_ids.set(Vec::new());
+                            selection.clear();
                         }
                     },
                     onmouseleave: move |_| {
-                        let is_active_interaction = !dragging_node_ids.read().is_empty()
-                            || *is_panning.read()
-                            || marquee_start.read().is_some()
-                            || connecting_from.read().is_some();
-                        if is_active_interaction {
+                        if canvas.is_dragging() || canvas.is_panning() || canvas.is_marquee() || canvas.is_connecting() {
                             return;
                         }
-                        dragging_node_ids.set(Vec::new());
-                        connecting_from.set(None);
-                        temp_edge_to.set(None);
+                        canvas.cancel_interaction();
                         pending_sidebar_drop.set(None);
-                        is_panning.set(false);
-                        hovered_handle.set(None);
-                        marquee_start.set(None);
-                        marquee_current.set(None);
                     },
                     onmousedown: move |evt| {
-                        context_menu_open.set(false);
+                        panels.close_context_menu();
                         let trigger_button = evt.trigger_button();
                         if matches!(trigger_button, Some(MouseButton::Primary | MouseButton::Auxiliary)) {
                             evt.prevent_default();
@@ -636,26 +475,24 @@ fn App() -> Element {
                             let origin_x = page.x as f32 - coordinates.x as f32;
                             #[allow(clippy::cast_possible_truncation)]
                             let origin_y = page.y as f32 - coordinates.y as f32;
-                            canvas_origin.set((origin_x, origin_y));
+                            canvas.set_origin((origin_x, origin_y));
                             #[allow(clippy::cast_possible_truncation)]
                             let mouse_pos = (coordinates.x as f32, coordinates.y as f32);
-                            last_mouse_pos.set(mouse_pos);
+                            canvas.update_mouse(mouse_pos);
 
                             let has_pending_drop = pending_sidebar_drop.read().is_some();
                             if matches!(trigger_button, Some(MouseButton::Auxiliary))
                                 || (matches!(trigger_button, Some(MouseButton::Primary))
-                                    && *is_space_hand_tool.read())
+                                    && *canvas.is_space_hand().read())
                             {
-                                is_panning.set(true);
+                                canvas.start_pan();
                             } else if matches!(trigger_button, Some(MouseButton::Primary))
                                 && !has_pending_drop
                             {
-                                marquee_start.set(Some(mouse_pos));
-                                marquee_current.set(Some(mouse_pos));
+                                canvas.start_marquee(mouse_pos);
                             }
                         } else {
-                            selected_node_id.set(None);
-                            selected_node_ids.set(Vec::new());
+                            selection.clear();
                         }
                     },
 
@@ -676,8 +513,10 @@ fn App() -> Element {
                         for node in nodes.read().iter().cloned() {
                             {
                                 let node_id = node.id;
-                                let selected_ids = selected_node_ids.read().clone();
-                                let is_selected = selected_ids.contains(&node_id);
+                                let is_selected = selection.is_selected(node_id);
+                                let workflow_clone = workflow;
+                                let selection_clone = selection;
+                                let canvas_clone = canvas;
 
                                 rsx! {
                                     FlowNodeComponent {
@@ -685,14 +524,7 @@ fn App() -> Element {
                                         node,
                                         selected: is_selected,
                                         on_mouse_down: move |_| {
-                                            let snapshot = workflow.read().clone();
-                                            undo_stack.write().push(snapshot);
-                                            if undo_stack.read().len() > 60 {
-                                                let _ = undo_stack.write().remove(0);
-                                            }
-                                            redo_stack.write().clear();
-
-                                            let currently_selected = selected_node_ids.read().clone();
+                                            let currently_selected = selection_clone.selected_ids().read().clone();
                                             let drag_targets = if currently_selected.contains(&node_id) {
                                                 if currently_selected.is_empty() {
                                                     vec![node_id]
@@ -702,26 +534,19 @@ fn App() -> Element {
                                             } else {
                                                 vec![node_id]
                                             };
-                                            dragging_node_ids.set(drag_targets);
-
-                                            if !selected_node_ids.read().contains(&node_id) {
-                                                selected_node_ids.set(vec![node_id]);
-                                            }
-                                            selected_node_id.set(Some(node_id));
+                                            canvas_clone.start_drag(node_id, drag_targets.clone());
+                                            selection_clone.set_multiple(drag_targets);
                                         },
                                         on_click: move |_| {
-                                            selected_node_id.set(Some(node_id));
-                                            selected_node_ids.set(vec![node_id]);
+                                            selection_clone.select_single(node_id);
                                         },
                                         on_handle_mouse_down: move |args: (MouseEvent, String)| {
                                             let (evt, handle_type) = args;
-                                            connecting_from.set(Some((node_id, handle_type.clone())));
-                                            hovered_handle.set(Some((node_id, handle_type)));
-                                            selected_node_id.set(Some(node_id));
-                                            selected_node_ids.set(vec![node_id]);
-                                            let current_vp = workflow.read().viewport.clone();
+                                            canvas_clone.start_connect(node_id, handle_type.clone());
+                                            selection_clone.select_single(node_id);
+                                            let current_vp = workflow_clone.viewport().read().clone();
                                             let coord = evt.page_coordinates();
-                                            let (origin_x, origin_y) = *canvas_origin.read();
+                                            let (origin_x, origin_y) = *canvas_clone.canvas_origin().read();
                                             #[allow(clippy::cast_possible_truncation)]
                                             let local_x = coord.x as f32 - origin_x;
                                             #[allow(clippy::cast_possible_truncation)]
@@ -729,17 +554,20 @@ fn App() -> Element {
                                             let canvas_x = (local_x - current_vp.x) / current_vp.zoom;
                                             #[allow(clippy::cast_possible_truncation)]
                                             let canvas_y = (local_y - current_vp.y) / current_vp.zoom;
-                                            temp_edge_to.set(Some(FlowPosition { x: canvas_x, y: canvas_y }));
+                                            canvas_clone.set_temp_edge(Some((
+                                                FlowPosition { x: canvas_x, y: canvas_y },
+                                                FlowPosition { x: canvas_x, y: canvas_y },
+                                            )));
                                         },
-                                        on_handle_mouse_enter: move |handle_type| hovered_handle.set(Some((node_id, handle_type))),
-                                        on_handle_mouse_leave: move |()| hovered_handle.set(None)
+                                        on_handle_mouse_enter: move |handle_type| canvas_clone.set_hovered_handle(Some((node_id, handle_type))),
+                                        on_handle_mouse_leave: move |()| canvas_clone.set_hovered_handle(None)
                                     }
                                 }
                             }
                         }
                     }
 
-                    if let (Some(start), Some(end)) = (*marquee_start.read(), *marquee_current.read()) {
+                    if let Some((start, end)) = canvas.marquee_rect() {
                         {
                             let rect = crate::ui::editor_interactions::normalize_rect(start, end);
                             let left = rect.0;
@@ -759,17 +587,17 @@ fn App() -> Element {
                     FlowMinimap {
                         nodes: nodes,
                         edges: connections,
-                        selected_node_id: selected_node_id
+                        selected_node_id: selection.selected_id()
                     }
                 }
 
                 SelectedNodePanel {
-                    selected_node_id,
-                    selected_node_ids,
+                    selected_node_id: selection.selected_id(),
+                    selected_node_ids: selection.selected_ids(),
                     nodes_by_id,
-                    workflow,
-                    undo_stack,
-                    redo_stack,
+                    workflow: workflow.workflow(),
+                    undo_stack: workflow.undo_stack(),
+                    redo_stack: workflow.redo_stack(),
                 }
             }
         }
