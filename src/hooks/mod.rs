@@ -3,10 +3,12 @@
 
 pub mod use_canvas_interaction;
 pub mod use_selection;
+pub mod use_sidebar;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-pub use use_canvas_interaction::{use_canvas_interaction, CanvasInteraction, InteractionMode};
-pub use use_selection::{use_selection, SelectionState};
+pub use use_canvas_interaction::{use_canvas_interaction, InteractionMode};
+pub use use_selection::use_selection;
+pub use use_sidebar::use_sidebar;
 pub use use_ui_panels::use_ui_panels;
-pub use use_workflow_state::{use_workflow_state, WorkflowState};
+pub use use_workflow_state::use_workflow_state;

@@ -15,7 +15,6 @@ use oya_frontend::graph::PortName;
 mod ui;
 mod errors;
 mod hooks;
-mod components;
 
 // --- Application Shell ---
 
@@ -26,10 +25,7 @@ fn App() -> Element {
     let selection = crate::hooks::use_selection();
     let canvas = crate::hooks::use_canvas_interaction();
     let panels = crate::hooks::use_ui_panels();
-
-    // Local UI state not yet in hooks
-    let mut sidebar_search = use_signal(String::new);
-    let mut pending_sidebar_drop = use_signal(|| None::<String>);
+    let sidebar = crate::hooks::use_sidebar();
 
     // Persist workflow to localStorage
     use_effect(move || {
@@ -180,13 +176,13 @@ fn App() -> Element {
 
             div { class: "flex flex-1 overflow-hidden",
                 NodeSidebar {
-                    search: sidebar_search,
-                    on_search_change: move |value| sidebar_search.set(value),
+                    search: sidebar.search(),
+                    on_search_change: move |value| sidebar.set_search(value),
                     on_pickup_node: move |node_type: &'static str| {
-                        pending_sidebar_drop.set(Some(node_type.to_string()));
+                        sidebar.pickup_node(node_type);
                     },
                     on_add_node: move |node_type: &'static str| {
-                        pending_sidebar_drop.set(None);
+                        sidebar.clear_pending_drop();
                         workflow.add_node_at_viewport_center(node_type);
                     }
                 }
@@ -405,7 +401,7 @@ fn App() -> Element {
                         let from = canvas.connecting_from();
                         let over = canvas.hovered_handle().read().clone();
                         let is_dragging = canvas.is_dragging();
-                        let pending_drop = pending_sidebar_drop.read().clone();
+                        let pending_drop = sidebar.pending_drop().read().clone();
                         let mut should_clear_selection = false;
 
                         if let (Some((src_id, src_handle)), Some((tgt_id, _))) = (from, over) {
@@ -451,7 +447,7 @@ fn App() -> Element {
                         }
 
                         canvas.end_interaction();
-                        pending_sidebar_drop.set(None);
+                        sidebar.clear_pending_drop();
 
                         if should_clear_selection {
                             selection.clear();
@@ -462,7 +458,7 @@ fn App() -> Element {
                             return;
                         }
                         canvas.cancel_interaction();
-                        pending_sidebar_drop.set(None);
+                        sidebar.clear_pending_drop();
                     },
                     onmousedown: move |evt| {
                         panels.close_context_menu();
@@ -480,7 +476,7 @@ fn App() -> Element {
                             let mouse_pos = (coordinates.x as f32, coordinates.y as f32);
                             canvas.update_mouse(mouse_pos);
 
-                            let has_pending_drop = pending_sidebar_drop.read().is_some();
+                            let has_pending_drop = sidebar.has_pending_drop();
                             if matches!(trigger_button, Some(MouseButton::Auxiliary))
                                 || (matches!(trigger_button, Some(MouseButton::Primary))
                                     && *canvas.is_space_hand().read())
