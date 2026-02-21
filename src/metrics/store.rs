@@ -14,7 +14,7 @@ impl MetricsStore {
         let data_path = base_path.join("quality-metrics");
         std::fs::create_dir_all(&data_path).ok();
 
-        let data = Self::load_data(&data_path).unwrap_or_default();
+        let data: MetricsData = Self::load_data(&data_path).unwrap_or_default();
 
         Self {
             base_path: data_path,

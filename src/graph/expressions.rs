@@ -25,15 +25,17 @@ impl<'a> ExpressionContext<'a> {
         // 1. Path Resolution: $node["Name"].json.path
         if let Some(node_part) = trimmed.strip_prefix("$node[\"") {
             if let Some((node_name, path_part)) = node_part.split_once("\"]") {
-                let path = path_part.strip_prefix(".json.").unwrap_or(path_part);
-                return self
+                let path = path_part
+                    .strip_prefix(".json.")
+                    .map_or(path_part, |prefix| prefix);
+                let resolved = self
                     .nodes
                     .iter()
                     .find(|n| n.name == node_name)
                     .and_then(|n| n.last_output.as_ref())
-                    .and_then(|out| out.pointer(&format!("/{}", path.replace('.', "/"))))
-                    .cloned()
-                    .unwrap_or(Value::Null);
+                    .and_then(|out| out.pointer(&format!("/{}", path.replace('.', "/"))));
+
+                return resolved.map_or(Value::Null, std::clone::Clone::clone);
             }
         }
 

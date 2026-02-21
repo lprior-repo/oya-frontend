@@ -10,7 +10,7 @@ js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
-web-sys = { version = "0.3", features = ["Window", "Storage", "Document", "Element", "HtmlAnchorElement", "Blob", "Url"] }
+web-sys = { version = "0.3", features = ["Window", "Storage", "Document", "Element", "HtmlAnchorElement", "Blob", "Url", "MouseEvent"] }
 uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 thiserror = "2.0"
 reqwest = { version = "0.11", features = ["json"] }

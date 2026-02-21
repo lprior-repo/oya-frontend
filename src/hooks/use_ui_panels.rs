@@ -14,7 +14,11 @@ pub struct ContextMenuState {
 
 impl Default for ContextMenuState {
     fn default() -> Self {
-        Self { open: false, x: 0.0, y: 0.0 }
+        Self {
+            open: false,
+            x: 0.0,
+            y: 0.0,
+        }
     }
 }
 

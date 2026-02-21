@@ -1,8 +1,26 @@
 use crate::ui::workflow_nodes::schema::LoadFromMemoryConfig;
 use dioxus::prelude::*;
 
+fn json_to_display(value: &serde_json::Value) -> String {
+    if let Ok(value) = serde_json::to_string_pretty(value) {
+        value
+    } else {
+        String::new()
+    }
+}
+
+fn optional_json_to_display(value: Option<&serde_json::Value>) -> String {
+    if let Some(value) = value {
+        json_to_display(value)
+    } else {
+        String::new()
+    }
+}
+
 #[component]
 pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
+    let pretty_default = optional_json_to_display(config.read().default.as_ref());
+
     rsx! {
         div {
             class: "space-y-4",
@@ -48,7 +66,7 @@ pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm",
                     rows: 2,
                     placeholder: "null",
-                    value: "{config.read().default.as_ref().map(|v| serde_json::to_string_pretty(v).unwrap_or_default()).unwrap_or_default()}",
+                    value: "{pretty_default}",
                     oninput: move |e| {
                         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&e.value()) {
                             config.write().default = Some(v);
@@ -57,7 +75,7 @@ pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
                 }
                 p {
                     class: "text-xs text-gray-500 mt-1",
-                    "What to use if nothing is saved yet"
+                    "Invalid JSON is ignored to preserve last valid value"
                 }
             }
         }

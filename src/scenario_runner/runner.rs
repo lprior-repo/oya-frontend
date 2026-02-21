@@ -41,7 +41,7 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
             step_results.push(step_result);
         }
 
-        let duration = start.elapsed().as_millis().try_into().unwrap_or(u64::MAX);
+        let duration = u64::try_from(start.elapsed().as_millis()).map_or(u64::MAX, |value| value);
         ScenarioResult {
             scenario_id: scenario.scenario.id.clone(),
             spec_ref: scenario.scenario.spec_ref.clone(),
@@ -75,7 +75,7 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
             self.extract_value(&action_result, extraction);
         }
 
-        let duration = start.elapsed().as_millis().try_into().unwrap_or(u64::MAX);
+        let duration = u64::try_from(start.elapsed().as_millis()).map_or(u64::MAX, |value| value);
         StepResult {
             step_id: step.id.clone(),
             passed: assertions_failed == 0,
@@ -102,7 +102,7 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                     };
                 }
 
-                let method = action.method.as_deref().unwrap_or("GET");
+                let method = action.method.as_deref().map_or("GET", |value| value);
 
                 let mut req = match method {
                     "POST" => client.post(&url),
@@ -154,7 +154,7 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                     None => return Err("Missing expected value for status assertion".to_string()),
                 };
                 let expected_status = match expected.as_u64() {
-                    Some(v) => u16::try_from(v).unwrap_or(0),
+                    Some(v) => u16::try_from(v).map_or(0, |status| status),
                     None => 0,
                 };
                 if result.status != expected_status {

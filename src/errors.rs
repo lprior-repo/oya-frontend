@@ -2,8 +2,8 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use thiserror::Error;
 use oya_frontend::graph::NodeId;
+use thiserror::Error;
 
 #[derive(Debug, Error, Clone, PartialEq)]
 #[allow(dead_code)]

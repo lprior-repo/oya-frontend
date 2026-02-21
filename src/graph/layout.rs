@@ -69,7 +69,7 @@ impl DagLayout {
                 .neighbors_directed(node_idx, petgraph::Direction::Incoming)
                 .filter_map(|parent| layers.get(&parent).map(|&l| l + 1))
                 .max()
-                .unwrap_or(0);
+                .map_or(0, |layer| layer);
             layers.insert(node_idx, layer);
         }
 

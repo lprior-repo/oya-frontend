@@ -121,7 +121,7 @@ impl SpecLinter {
         } else {
             100
         };
-        let score: u32 = score.try_into().unwrap_or(100);
+        let score: u32 = score.try_into().map_or(100, |score| score);
         report.categories.insert(
             "Completeness".to_string(),
             CategoryScore {

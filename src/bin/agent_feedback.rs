@@ -49,7 +49,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } => {
             let request = FeedbackRequest {
                 failure_category: category,
-                spec_ref: spec_ref.unwrap_or_else(|| "unknown".to_string()),
+                spec_ref: match spec_ref {
+                    Some(value) => value,
+                    None => "unknown".to_string(),
+                },
                 iteration,
                 failure_context: format!("Implementation attempt {iteration}"),
             };
@@ -76,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 iteration: 0,
                                 failure_context: format!(
                                     "Scenario failed: {}",
-                                    entry["id"].as_str().unwrap_or("unknown")
+                                    entry["id"].as_str().map_or("unknown", |value| value)
                                 ),
                             });
                         }

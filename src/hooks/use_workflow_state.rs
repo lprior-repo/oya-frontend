@@ -3,8 +3,8 @@
 #![deny(clippy::panic)]
 
 use crate::errors::{WorkflowError, WorkflowResult};
-use oya_frontend::graph::{Connection, Node, NodeId, PortName, Viewport, Workflow};
 use dioxus::prelude::*;
+use oya_frontend::graph::{Connection, Node, NodeId, PortName, Viewport, Workflow};
 use std::collections::HashMap;
 
 /// Workflow state hook - manages workflow data, undo/redo, and derived views.
@@ -84,10 +84,8 @@ impl WorkflowState {
     /// Add a node at the viewport center
     pub fn add_node_at_viewport_center(mut self, node_type: &str) -> NodeId {
         self.save_undo_point();
-        let new_id = NodeId::new();
         let vp = self.workflow.read().viewport.clone();
-        self.workflow.write().add_node(node_type, vp.x, vp.y);
-        new_id
+        self.workflow.write().add_node(node_type, vp.x, vp.y)
     }
 
     /// Remove a node by ID - returns error if not found
@@ -113,7 +111,9 @@ impl WorkflowState {
             return Err(WorkflowError::SelfConnection);
         }
         self.save_undo_point();
-        self.workflow.write().add_connection(source, target, source_port, target_port);
+        self.workflow
+            .write()
+            .add_connection(source, target, source_port, target_port);
         Ok(())
     }
 
@@ -177,6 +177,9 @@ impl WorkflowState {
 
     /// Update node position
     pub fn update_node_position(mut self, node_id: NodeId, dx: f32, dy: f32) {
+        if !dx.is_finite() || !dy.is_finite() {
+            return;
+        }
         self.workflow.write().update_node_position(node_id, dx, dy);
     }
 

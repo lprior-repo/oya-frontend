@@ -19,10 +19,15 @@ fn given_unknown_category_when_getting_label_then_it_falls_back_to_other() {
 fn given_schedule_query_when_matching_templates_then_schedule_node_is_found() {
     let schedule_template = NODE_TEMPLATES
         .iter()
-        .find(|template| template.node_type == "cron-trigger")
-        .expect("cron-trigger template should exist");
+        .find(|template| template.node_type == "cron-trigger");
 
-    let matches = template_matches_query(schedule_template, "schedule");
+    let matches = match schedule_template {
+        Some(schedule_template) => template_matches_query(schedule_template, "schedule"),
+        None => {
+            assert!(false, "cron-trigger template should exist");
+            false
+        }
+    };
 
     assert!(matches);
 }
@@ -31,10 +36,15 @@ fn given_schedule_query_when_matching_templates_then_schedule_node_is_found() {
 fn given_friendly_phrase_when_matching_templates_then_template_matches_behavior_text() {
     let template = NODE_TEMPLATES
         .iter()
-        .find(|item| item.node_type == "send-message")
-        .expect("send-message template should exist");
+        .find(|item| item.node_type == "send-message");
 
-    let matches = template_matches_query(template, "without waiting");
+    let matches = match template {
+        Some(template) => template_matches_query(template, "without waiting"),
+        None => {
+            assert!(false, "send-message template should exist");
+            false
+        }
+    };
 
     assert!(matches);
 }
@@ -43,10 +53,15 @@ fn given_friendly_phrase_when_matching_templates_then_template_matches_behavior_
 fn given_non_matching_query_when_matching_templates_then_template_does_not_match() {
     let template = NODE_TEMPLATES
         .iter()
-        .find(|item| item.node_type == "http-handler")
-        .expect("http-handler template should exist");
+        .find(|item| item.node_type == "http-handler");
 
-    let matches = template_matches_query(template, "totally-unrelated-query");
+    let matches = match template {
+        Some(template) => template_matches_query(template, "totally-unrelated-query"),
+        None => {
+            assert!(false, "http-handler template should exist");
+            false
+        }
+    };
 
     assert!(!matches);
 }

@@ -155,8 +155,13 @@ mod tests {
         let snapped = snap_handle(&workflow.nodes, 210.0, 167.0, &viewport);
 
         assert!(snapped.is_some());
-        let (node_id, handle_kind, _) = snapped.expect("closest handle should be detected");
-        assert_eq!(node_id, first_id);
-        assert_eq!(handle_kind, "source");
+
+        match snapped {
+            Some((node_id, handle_kind, _)) => {
+                assert_eq!(node_id, first_id);
+                assert_eq!(handle_kind, "source");
+            }
+            None => assert!(false, "closest handle should be detected"),
+        }
     }
 }

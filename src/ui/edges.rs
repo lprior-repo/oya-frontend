@@ -46,7 +46,7 @@ fn create_smooth_step_path(from: Position, to: Position, bend_y: f32) -> (String
     let dx = to.x - from.x;
     let dy = to.y - from.y;
 
-    if dx.abs() < 2.0 {
+    if dx.abs() < 2.0 || !dx.is_finite() || !dy.is_finite() {
         return (
             format!("M {} {} L {} {}", from.x, from.y, to.x, to.y),
             Position {
@@ -94,6 +94,45 @@ fn resolve_edge_anchors(edges: &[Connection], nodes: &[Node]) -> HashMap<String,
         .collect()
 }
 
+fn sanitize_bend_input(input: f32, start_bend: f32) -> f32 {
+    if !input.is_finite() {
+        return start_bend;
+    }
+    input.clamp(-BEND_CLAMP, BEND_CLAMP)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{create_smooth_step_path, sanitize_bend_input, Position};
+
+    #[test]
+    fn given_non_finite_bend_when_sanitizing_then_start_bend_is_kept() {
+        let sanitized = sanitize_bend_input(f32::NAN, 12.0);
+
+        assert_eq!(sanitized, 12.0);
+    }
+
+    #[test]
+    fn given_bend_over_clamp_when_sanitizing_then_it_is_clamped() {
+        let sanitized = sanitize_bend_input(500.0, 0.0);
+
+        assert_eq!(sanitized, 200.0);
+    }
+
+    #[test]
+    fn given_non_finite_positions_when_building_path_then_path_is_straight() {
+        let from = Position { x: 10.0, y: 20.0 };
+        let to = Position {
+            x: f32::NAN,
+            y: 40.0,
+        };
+
+        let (path, _) = create_smooth_step_path(from, to, 0.0);
+
+        assert!(path.starts_with("M "));
+    }
+}
+
 #[component]
 pub fn FlowEdges(
     edges: ReadSignal<Vec<Connection>>,
@@ -138,7 +177,10 @@ pub fn FlowEdges(
                     let coordinates = evt.page_coordinates();
                     #[allow(clippy::cast_possible_truncation)]
                     let page_y = coordinates.y as f32;
-                    let next_bend = (state.start_bend + (page_y - state.start_y)).clamp(-BEND_CLAMP, BEND_CLAMP);
+                    if !page_y.is_finite() {
+                        return;
+                    }
+                    let next_bend = sanitize_bend_input(state.start_bend + (page_y - state.start_y), state.start_bend);
                     bend_offsets.write().insert(state.edge_id, next_bend);
                 }
             },
@@ -181,7 +223,11 @@ pub fn FlowEdges(
                     let anchor = edge_anchors.read().get(&edge_id).copied();
 
                     if let Some(anchor) = anchor {
-                        let bend = bend_offsets.read().get(&edge_id).copied().unwrap_or(0.0);
+                        let bend = bend_offsets
+                            .read()
+                            .get(&edge_id)
+                            .copied()
+                            .map_or(0.0, |value| value);
                         let (path, midpoint) = create_smooth_step_path(anchor.from, anchor.to, bend);
                         let dragging_this = drag_state
                             .read()
@@ -262,7 +308,14 @@ pub fn FlowEdges(
                                             let coordinates = evt.page_coordinates();
                                             #[allow(clippy::cast_possible_truncation)]
                                             let page_y = coordinates.y as f32;
-                                            let current_bend = bend_offsets.read().get(&edge_id).copied().unwrap_or(0.0);
+                                            if !page_y.is_finite() {
+                                                return;
+                                            }
+                    let current_bend = bend_offsets
+                        .read()
+                        .get(&edge_id)
+                        .copied()
+                        .map_or(0.0, |value| value);
                                             drag_state.set(Some(DragState {
                                                 edge_id: edge_id.clone(),
                                                 start_y: page_y,

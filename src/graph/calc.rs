@@ -88,11 +88,22 @@ pub fn find_safe_position(
 
 #[must_use]
 pub fn update_node_position(current_x: f32, current_y: f32, dx: f32, dy: f32) -> (f32, f32) {
+    // Safety check: if any value is NaN or infinite, don't update
+    if !dx.is_finite() || !dy.is_finite() || !current_x.is_finite() || !current_y.is_finite() {
+        return (current_x, current_y);
+    }
+
     let new_x = (current_x + dx / 10.0).round() * 10.0;
     let new_y = (current_y + dy / 10.0).round() * 10.0;
+
+    // Additional safety: clamp to reasonable bounds
+    let new_x = new_x.clamp(-100_000.0, 100_000.0);
+    let new_y = new_y.clamp(-100_000.0, 100_000.0);
+
     (new_x, new_y)
 }
 
+#[must_use]
 pub const fn calculate_rect_center(rect: (f32, f32, f32, f32)) -> (f32, f32) {
     let (min_x, min_y, max_x, max_y) = rect;
     (f32::midpoint(min_x, max_x), f32::midpoint(min_y, max_y))

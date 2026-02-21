@@ -29,8 +29,8 @@ pub struct Edge {
 }
 
 pub struct LayeredLayout {
-    pub node_spacing: f64,   // horizontal spacing between nodes
-    pub layer_spacing: f64,  // vertical spacing between layers
+    pub node_spacing: f64,  // horizontal spacing between nodes
+    pub layer_spacing: f64, // vertical spacing between layers
 }
 
 impl Default for LayeredLayout {
@@ -51,12 +51,12 @@ impl LayeredLayout {
         // Build adjacency lists
         let mut adj: HashMap<String, Vec<String>> = HashMap::new();
         let mut in_degree: HashMap<String, usize> = HashMap::new();
-        
+
         for node in nodes {
             adj.entry(node.id.clone()).or_insert_with(Vec::new);
             in_degree.entry(node.id.clone()).or_insert(0);
         }
-        
+
         for edge in edges {
             adj.entry(edge.source.clone())
                 .or_insert_with(Vec::new)
@@ -66,10 +66,10 @@ impl LayeredLayout {
 
         // Step 1: Layer assignment (topological sort + longest path)
         let layers = self.assign_layers(nodes, &adj, &in_degree);
-        
+
         // Step 2: Crossing minimization (simplified barycenter)
         let ordered_layers = self.minimize_crossings(&layers, edges);
-        
+
         // Step 3: Position assignment
         self.assign_positions(nodes, &ordered_layers)
     }
@@ -99,8 +99,8 @@ impl LayeredLayout {
 
         // Topological sort with layer tracking
         while let Some(node) = queue.pop_front() {
-            let layer = node_layer.get(&node).copied().unwrap_or(0);
-            
+            let layer = node_layer.get(&node).copied().map_or(0, |layer| layer);
+
             while layers.len() <= layer {
                 layers.push(Vec::new());
             }
@@ -109,10 +109,11 @@ impl LayeredLayout {
             if let Some(neighbors) = adj.get(&node) {
                 for neighbor in neighbors {
                     let neighbor_layer = layer + 1;
-                    node_layer.entry(neighbor.clone())
+                    node_layer
+                        .entry(neighbor.clone())
                         .and_modify(|l| *l = (*l).max(neighbor_layer))
                         .or_insert(neighbor_layer);
-                    
+
                     if let Some(d) = degree.get_mut(neighbor) {
                         *d = d.saturating_sub(1);
                         if *d == 0 {
@@ -124,15 +125,13 @@ impl LayeredLayout {
         }
 
         // Add any orphaned nodes to final layer
-        let all_layered: HashSet<String> = layers.iter()
-            .flat_map(|l| l.iter())
-            .cloned()
-            .collect();
-        let orphans: Vec<String> = nodes.iter()
+        let all_layered: HashSet<String> = layers.iter().flat_map(|l| l.iter()).cloned().collect();
+        let orphans: Vec<String> = nodes
+            .iter()
             .map(|n| n.id.clone())
             .filter(|id| !all_layered.contains(id))
             .collect();
-        
+
         if !orphans.is_empty() {
             layers.push(orphans);
         }
@@ -140,19 +139,16 @@ impl LayeredLayout {
         layers
     }
 
-    fn minimize_crossings(
-        &self,
-        layers: &[Vec<String>],
-        edges: &[Edge],
-    ) -> Vec<Vec<String>> {
+    fn minimize_crossings(&self, layers: &[Vec<String>], edges: &[Edge]) -> Vec<Vec<String>> {
         // Simplified barycenter heuristic
         // For each layer, order nodes by average position of neighbors in previous layer
         let mut ordered = layers.to_vec();
-        
+
         // Build edge map
         let mut edge_map: HashMap<String, Vec<String>> = HashMap::new();
         for edge in edges {
-            edge_map.entry(edge.source.clone())
+            edge_map
+                .entry(edge.source.clone())
                 .or_insert_with(Vec::new)
                 .push(edge.target.clone());
         }
@@ -162,7 +158,7 @@ impl LayeredLayout {
             for layer_idx in 1..ordered.len() {
                 let prev_layer = &ordered[layer_idx - 1];
                 let curr_layer = &ordered[layer_idx];
-                
+
                 // Calculate barycenter for each node
                 let mut barycenters: Vec<(String, f64)> = curr_layer
                     .iter()
@@ -171,25 +167,29 @@ impl LayeredLayout {
                             .iter()
                             .enumerate()
                             .filter(|(_, prev_node)| {
-                                edge_map.get(*prev_node)
+                                edge_map
+                                    .get(*prev_node)
                                     .map(|targets| targets.contains(node))
-                                    .unwrap_or(false)
+                                    .is_some_and(|contains| contains)
                             })
                             .map(|(idx, _)| idx as f64)
                             .collect();
-                        
+
                         let barycenter = if positions.is_empty() {
                             0.0
                         } else {
                             positions.iter().sum::<f64>() / positions.len() as f64
                         };
-                        
+
                         (node.clone(), barycenter)
                     })
                     .collect();
-                
+
                 // Sort by barycenter
-                barycenters.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+                barycenters.sort_by(|a, b| match a.1.partial_cmp(&b.1) {
+                    Some(ordering) => ordering,
+                    None => std::cmp::Ordering::Equal,
+                });
                 ordered[layer_idx] = barycenters.into_iter().map(|(id, _)| id).collect();
             }
         }
@@ -203,18 +203,16 @@ impl LayeredLayout {
         layers: &[Vec<String>],
     ) -> HashMap<String, Position> {
         let mut positions = HashMap::new();
-        let node_map: HashMap<String, &Node> = nodes.iter()
-            .map(|n| (n.id.clone(), n))
-            .collect();
+        let node_map: HashMap<String, &Node> = nodes.iter().map(|n| (n.id.clone(), n)).collect();
 
         for (layer_idx, layer) in layers.iter().enumerate() {
             let layer_width = layer.len() as f64 * (240.0 + self.node_spacing);
             let start_x = -layer_width / 2.0;
-            
+
             for (node_idx, node_id) in layer.iter().enumerate() {
                 let x = start_x + node_idx as f64 * (240.0 + self.node_spacing);
                 let y = layer_idx as f64 * self.layer_spacing;
-                
+
                 positions.insert(node_id.clone(), Position { x, y });
             }
         }
@@ -243,69 +241,106 @@ impl Default for ForceDirectedLayout {
 }
 
 impl ForceDirectedLayout {
-    pub fn layout(&self, nodes: &[Node], edges: &[Edge], initial: &HashMap<String, Position>) -> HashMap<String, Position> {
+    pub fn layout(
+        &self,
+        nodes: &[Node],
+        edges: &[Edge],
+        initial: &HashMap<String, Position>,
+    ) -> HashMap<String, Position> {
         let mut positions = initial.clone();
         let mut velocities: HashMap<String, Position> = HashMap::new();
-        
+
         // Initialize missing positions
         for node in nodes {
-            positions.entry(node.id.clone()).or_insert(Position { x: 0.0, y: 0.0 });
+            positions
+                .entry(node.id.clone())
+                .or_insert(Position { x: 0.0, y: 0.0 });
             velocities.insert(node.id.clone(), Position { x: 0.0, y: 0.0 });
         }
 
         for _ in 0..self.iterations {
             let mut forces: HashMap<String, Position> = HashMap::new();
-            
+
             // Repulsion between all nodes
             for i in 0..nodes.len() {
                 for j in (i + 1)..nodes.len() {
                     let id1 = &nodes[i].id;
                     let id2 = &nodes[j].id;
-                    
+
                     if let (Some(p1), Some(p2)) = (positions.get(id1), positions.get(id2)) {
                         let dx = p2.x - p1.x;
                         let dy = p2.y - p1.y;
                         let dist = (dx * dx + dy * dy).sqrt().max(1.0);
                         let force = self.repulsion_strength / (dist * dist);
-                        
+
                         let fx = (dx / dist) * force;
                         let fy = (dy / dist) * force;
-                        
-                        forces.entry(id1.clone()).or_insert(Position { x: 0.0, y: 0.0 }).x -= fx;
-                        forces.entry(id1.clone()).or_insert(Position { x: 0.0, y: 0.0 }).y -= fy;
-                        forces.entry(id2.clone()).or_insert(Position { x: 0.0, y: 0.0 }).x += fx;
-                        forces.entry(id2.clone()).or_insert(Position { x: 0.0, y: 0.0 }).y += fy;
+
+                        forces
+                            .entry(id1.clone())
+                            .or_insert(Position { x: 0.0, y: 0.0 })
+                            .x -= fx;
+                        forces
+                            .entry(id1.clone())
+                            .or_insert(Position { x: 0.0, y: 0.0 })
+                            .y -= fy;
+                        forces
+                            .entry(id2.clone())
+                            .or_insert(Position { x: 0.0, y: 0.0 })
+                            .x += fx;
+                        forces
+                            .entry(id2.clone())
+                            .or_insert(Position { x: 0.0, y: 0.0 })
+                            .y += fy;
                     }
                 }
             }
-            
+
             // Spring attraction for edges
             for edge in edges {
-                if let (Some(p1), Some(p2)) = (positions.get(&edge.source), positions.get(&edge.target)) {
+                if let (Some(p1), Some(p2)) =
+                    (positions.get(&edge.source), positions.get(&edge.target))
+                {
                     let dx = p2.x - p1.x;
                     let dy = p2.y - p1.y;
                     let dist = (dx * dx + dy * dy).sqrt().max(1.0);
                     let force = self.spring_strength * (dist - self.spring_length);
-                    
+
                     let fx = (dx / dist) * force;
                     let fy = (dy / dist) * force;
-                    
-                    forces.entry(edge.source.clone()).or_insert(Position { x: 0.0, y: 0.0 }).x += fx;
-                    forces.entry(edge.source.clone()).or_insert(Position { x: 0.0, y: 0.0 }).y += fy;
-                    forces.entry(edge.target.clone()).or_insert(Position { x: 0.0, y: 0.0 }).x -= fx;
-                    forces.entry(edge.target.clone()).or_insert(Position { x: 0.0, y: 0.0 }).y -= fy;
+
+                    forces
+                        .entry(edge.source.clone())
+                        .or_insert(Position { x: 0.0, y: 0.0 })
+                        .x += fx;
+                    forces
+                        .entry(edge.source.clone())
+                        .or_insert(Position { x: 0.0, y: 0.0 })
+                        .y += fy;
+                    forces
+                        .entry(edge.target.clone())
+                        .or_insert(Position { x: 0.0, y: 0.0 })
+                        .x -= fx;
+                    forces
+                        .entry(edge.target.clone())
+                        .or_insert(Position { x: 0.0, y: 0.0 })
+                        .y -= fy;
                 }
             }
-            
+
             // Apply forces with damping
             let damping = 0.8;
             for node in nodes {
                 if let Some(force) = forces.get(&node.id) {
-                    let vel = velocities.get_mut(&node.id).unwrap();
+                    let Some(vel) = velocities.get_mut(&node.id) else {
+                        continue;
+                    };
                     vel.x = (vel.x + force.x) * damping;
                     vel.y = (vel.y + force.y) * damping;
-                    
-                    let pos = positions.get_mut(&node.id).unwrap();
+
+                    let Some(pos) = positions.get_mut(&node.id) else {
+                        continue;
+                    };
                     pos.x += vel.x;
                     pos.y += vel.y;
                 }

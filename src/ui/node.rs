@@ -68,11 +68,9 @@ pub fn FlowNodeComponent(
             class: "absolute select-none group rounded-xl border bg-white transition-shadow duration-150 cursor-grab active:cursor-grabbing {category_border} {selected_classes} {running_classes}",
             style: "left: {node.x}px; top: {node.y}px; width: 220px; z-index: {z_index};",
             onmousedown: move |e| {
-                e.stop_propagation();
                 on_mouse_down.call(e);
             },
             onclick: move |e| {
-                e.stop_propagation();
                 on_click.call(e);
             },
 

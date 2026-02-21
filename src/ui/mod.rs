@@ -6,6 +6,7 @@ pub mod config_panel;
 pub mod edges;
 pub mod editor_interactions;
 pub mod icons;
+pub mod interaction_guards;
 pub mod minimap;
 pub mod node;
 pub mod selected_node_panel;

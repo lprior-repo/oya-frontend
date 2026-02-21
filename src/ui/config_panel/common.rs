@@ -9,8 +9,8 @@ pub(super) fn CommonConfig(
     update_str: EventHandler<(String, String)>,
     input_cls: &'static str,
 ) -> Element {
-    let max_retries = get_u64_val(&config, "maxRetries").unwrap_or(3);
-    let backoff_ms = get_u64_val(&config, "backoffMs").unwrap_or(1000);
+    let max_retries = get_u64_val(&config, "maxRetries").map_or(3, |value| value);
+    let backoff_ms = get_u64_val(&config, "backoffMs").map_or(1000, |value| value);
     let idempotency_key = get_str_val(&config, "idempotencyKey");
 
     rsx! {

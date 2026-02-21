@@ -64,7 +64,7 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                             }
                             p {
                                 class: "text-xs text-gray-500 mt-1",
-                                "Simple expressions with {{ step.field }} values"
+                                "Use double braces like {{ and }} to render literals"
                             }
                         }
                     }
@@ -88,7 +88,7 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                             }
                             p {
                                 class: "text-xs text-gray-500 mt-1",
-                                "Access previous step data via 'input' variable"
+                                "Use double braces like {{ and }} to render literals"
                             }
                         }
                     }

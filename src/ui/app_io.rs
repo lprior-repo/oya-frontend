@@ -15,8 +15,27 @@ pub fn canvas_rect_size() -> Option<(f32, f32)> {
     Some((width, height))
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn canvas_origin() -> Option<(f32, f32)> {
+    use web_sys::window;
+
+    let document = window().and_then(|win| win.document())?;
+    let element = document.query_selector("main").ok().flatten()?;
+    let rect = element.get_bounding_client_rect();
+    #[allow(clippy::cast_possible_truncation)]
+    let left = rect.left() as f32;
+    #[allow(clippy::cast_possible_truncation)]
+    let top = rect.top() as f32;
+    Some((left, top))
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub const fn canvas_rect_size() -> Option<(f32, f32)> {
+    None
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub const fn canvas_origin() -> Option<(f32, f32)> {
     None
 }
 

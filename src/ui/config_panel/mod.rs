@@ -117,7 +117,7 @@ pub(crate) fn get_str_val(config: &Value, key: &str) -> String {
     config
         .get(key)
         .and_then(Value::as_str)
-        .unwrap_or("")
+        .map_or("", |value| value)
         .to_string()
 }
 

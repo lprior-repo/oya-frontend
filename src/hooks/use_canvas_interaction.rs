@@ -2,9 +2,9 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use oya_frontend::graph::NodeId;
 use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
+use oya_frontend::graph::NodeId;
 
 /// Interaction mode state machine - ensures illegal states are unrepresentable.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12,9 +12,17 @@ pub enum InteractionMode {
     #[default]
     Idle,
     Panning,
-    Dragging { node_ids: Vec<NodeId> },
-    Connecting { from: NodeId, handle: String },
-    Marquee { start: (f32, f32), current: (f32, f32) },
+    Dragging {
+        node_ids: Vec<NodeId>,
+    },
+    Connecting {
+        from: NodeId,
+        handle: String,
+    },
+    Marquee {
+        start: (f32, f32),
+        current: (f32, f32),
+    },
 }
 
 /// Canvas interaction hook - manages all canvas interaction state.
@@ -29,6 +37,7 @@ pub struct CanvasInteraction {
     canvas_origin: Signal<(f32, f32)>,
     temp_edge_to: Signal<Option<(FlowPosition, FlowPosition)>>,
     hovered_handle: Signal<Option<(NodeId, String)>>,
+    drag_anchor: Signal<Option<(f32, f32)>>,
 }
 
 #[allow(dead_code)]
@@ -74,25 +83,40 @@ impl CanvasInteraction {
 
     /// Start dragging nodes
     pub fn start_drag(mut self, _node_id: NodeId, selected_ids: Vec<NodeId>) {
-        self.mode.set(InteractionMode::Dragging { node_ids: selected_ids });
+        // Ensure we have at least one node to drag
+        if selected_ids.is_empty() {
+            return;
+        }
+        self.mode.set(InteractionMode::Dragging {
+            node_ids: selected_ids,
+        });
     }
 
     /// Start connecting from a handle
     pub fn start_connect(mut self, node_id: NodeId, handle: String) {
         self.hovered_handle.set(Some((node_id, handle.clone())));
-        self.mode.set(InteractionMode::Connecting { from: node_id, handle });
+        self.mode.set(InteractionMode::Connecting {
+            from: node_id,
+            handle,
+        });
     }
 
     /// Start marquee selection
     pub fn start_marquee(mut self, pos: (f32, f32)) {
-        self.mode.set(InteractionMode::Marquee { start: pos, current: pos });
+        self.mode.set(InteractionMode::Marquee {
+            start: pos,
+            current: pos,
+        });
     }
 
     /// Update marquee current position
     pub fn update_marquee(mut self, pos: (f32, f32)) {
         let mode = self.mode.read().clone();
         if let InteractionMode::Marquee { start, .. } = mode {
-            self.mode.set(InteractionMode::Marquee { start, current: pos });
+            self.mode.set(InteractionMode::Marquee {
+                start,
+                current: pos,
+            });
         }
     }
 
@@ -116,6 +140,16 @@ impl CanvasInteraction {
         self.hovered_handle.set(handle);
     }
 
+    /// Start drag anchor for thresholding
+    pub fn start_drag_anchor(mut self, pos: (f32, f32)) {
+        self.drag_anchor.set(Some(pos));
+    }
+
+    /// Clear drag anchor
+    pub fn clear_drag_anchor(mut self) {
+        self.drag_anchor.set(None);
+    }
+
     /// Enable space-hand tool mode
     pub fn enable_space_hand(mut self) {
         self.is_space_hand.set(true);
@@ -131,6 +165,7 @@ impl CanvasInteraction {
         self.mode.set(InteractionMode::Idle);
         self.temp_edge_to.set(None);
         self.hovered_handle.set(None);
+        self.drag_anchor.set(None);
     }
 
     /// Cancel current interaction and reset state
@@ -139,6 +174,7 @@ impl CanvasInteraction {
         self.temp_edge_to.set(None);
         self.hovered_handle.set(None);
         self.is_space_hand.set(false);
+        self.drag_anchor.set(None);
     }
 
     // === Query methods ===
@@ -185,6 +221,11 @@ impl CanvasInteraction {
         }
     }
 
+    /// Get drag anchor position if set
+    pub fn drag_anchor(&self) -> Option<(f32, f32)> {
+        *self.drag_anchor.read()
+    }
+
     /// Get connection source if in connecting mode
     pub fn connecting_from(&self) -> Option<(NodeId, String)> {
         match &*self.mode.read() {
@@ -209,6 +250,7 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
     let canvas_origin = use_signal(|| (0.0_f32, 0.0_f32));
     let temp_edge_to = use_signal(|| None::<(FlowPosition, FlowPosition)>);
     let hovered_handle = use_signal(|| None::<(NodeId, String)>);
+    let drag_anchor = use_signal(|| None::<(f32, f32)>);
 
     CanvasInteraction {
         mode,
@@ -217,5 +259,6 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
         canvas_origin,
         temp_edge_to,
         hovered_handle,
+        drag_anchor,
     }
 }

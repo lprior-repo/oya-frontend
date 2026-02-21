@@ -2,8 +2,8 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use oya_frontend::graph::NodeId;
 use dioxus::prelude::*;
+use oya_frontend::graph::NodeId;
 
 /// Selection state hook - manages which nodes are selected.
 ///
@@ -15,6 +15,7 @@ use dioxus::prelude::*;
 pub struct SelectionState {
     selected_id: Signal<Option<NodeId>>,
     selected_ids: Signal<Vec<NodeId>>,
+    pending_drag: Signal<Option<Vec<NodeId>>>,
 }
 
 #[allow(dead_code)]
@@ -77,6 +78,21 @@ impl SelectionState {
         self.selected_ids.set(Vec::new());
     }
 
+    /// Set pending drag targets
+    pub fn set_pending_drag(mut self, ids: Vec<NodeId>) {
+        self.pending_drag.set(Some(ids));
+    }
+
+    /// Clear pending drag targets
+    pub fn clear_pending_drag(mut self) {
+        self.pending_drag.set(None);
+    }
+
+    /// Access pending drag targets
+    pub fn pending_drag(&self) -> ReadSignal<Option<Vec<NodeId>>> {
+        self.pending_drag.into()
+    }
+
     /// Check if a node is selected
     pub fn is_selected(&self, id: NodeId) -> bool {
         self.selected_ids.read().contains(&id)
@@ -96,9 +112,11 @@ impl SelectionState {
 pub fn use_selection() -> SelectionState {
     let selected_id = use_signal(|| None::<NodeId>);
     let selected_ids = use_signal(Vec::<NodeId>::new);
+    let pending_drag = use_signal(|| None::<Vec<NodeId>>);
 
     SelectionState {
         selected_id,
         selected_ids,
+        pending_drag,
     }
 }

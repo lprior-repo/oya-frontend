@@ -3,6 +3,17 @@ use dioxus::prelude::*;
 
 #[component]
 pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
+    let pretty_input = if let Ok(value) = serde_json::to_string_pretty(&*config.read().input) {
+        value
+    } else {
+        String::new()
+    };
+
+    let key_value = match config.read().key.clone() {
+        Some(value) => value,
+        None => String::new(),
+    };
+
     rsx! {
         div {
             class: "space-y-4",
@@ -72,7 +83,7 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500",
                     placeholder: "e.g., user-456",
-                    value: "{config.read().key.as_deref().unwrap_or("")}",
+                    value: "{key_value}",
                     oninput: move |e| {
                         config.write().key = Some(e.value().clone());
                     }
@@ -105,12 +116,16 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm",
                     rows: 3,
+                    value: "{pretty_input}",
                     oninput: move |e| {
                         if let Ok(v) = serde_json::from_str(&e.value()) {
                             config.write().input = v;
                         }
                     },
-                    "{serde_json::to_string_pretty(&*config.read().input).unwrap_or_default()}"
+                }
+                p {
+                    class: "text-xs text-gray-500 mt-1",
+                    "Invalid JSON is ignored to preserve last valid value"
                 }
             }
 
