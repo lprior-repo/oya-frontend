@@ -18,6 +18,75 @@ mod errors;
 mod hooks;
 mod ui;
 
+#[cfg(any(test, target_arch = "wasm32"))]
+const fn should_end_canvas_interaction(
+    is_dragging: bool,
+    is_panning: bool,
+    is_marquee: bool,
+    is_connecting: bool,
+) -> bool {
+    is_dragging || is_panning || is_marquee || is_connecting
+}
+
+#[cfg(target_arch = "wasm32")]
+struct GlobalMouseupListenerInner {
+    window: web_sys::Window,
+    callback: wasm_bindgen::closure::Closure<dyn FnMut(web_sys::MouseEvent)>,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Drop for GlobalMouseupListenerInner {
+    fn drop(&mut self) {
+        use wasm_bindgen::JsCast;
+
+        let _ = self.window.remove_event_listener_with_callback(
+            "mouseup",
+            self.callback.as_ref().unchecked_ref(),
+        );
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Clone)]
+struct GlobalMouseupListener {
+    _inner: std::rc::Rc<GlobalMouseupListenerInner>,
+}
+
+#[cfg(target_arch = "wasm32")]
+fn register_global_mouseup_listener(
+    canvas: crate::hooks::use_canvas_interaction::CanvasInteraction,
+    selection: crate::hooks::use_selection::SelectionState,
+) -> Option<GlobalMouseupListener> {
+    use wasm_bindgen::{closure::Closure, JsCast};
+    use web_sys::window;
+
+    let window = window()?;
+    let canvas_end = canvas;
+    let selection_end = selection;
+    let callback = Closure::<dyn FnMut(web_sys::MouseEvent)>::new(move |_evt| {
+        if should_end_canvas_interaction(
+            canvas_end.is_dragging(),
+            canvas_end.is_panning(),
+            canvas_end.is_marquee(),
+            canvas_end.is_connecting(),
+        ) {
+            canvas_end.end_interaction();
+        }
+        selection_end.clear_pending_drag();
+    });
+
+    if window
+        .add_event_listener_with_callback("mouseup", callback.as_ref().unchecked_ref())
+        .is_err()
+    {
+        return None;
+    }
+
+    Some(GlobalMouseupListener {
+        _inner: std::rc::Rc::new(GlobalMouseupListenerInner { window, callback }),
+    })
+}
+
 // --- Application Shell ---
 
 #[component]
@@ -31,35 +100,25 @@ fn App() -> Element {
 
     #[cfg(target_arch = "wasm32")]
     {
+        let _global_mouseup_listener = use_hook(move || {
+            register_global_mouseup_listener(canvas, selection)
+        });
+
         use_effect(move || {
-            use std::rc::Rc;
-            use wasm_bindgen::{closure::Closure, JsCast};
+            use wasm_bindgen::{JsCast, JsValue};
             use web_sys::window;
 
             let Some(win) = window() else {
                 return;
             };
 
-            let canvas_end = canvas;
-            let selection_end = selection;
-            let listener = Rc::new(Closure::<dyn FnMut(web_sys::MouseEvent)>::new(
-                move |_evt| {
-                    if canvas_end.is_dragging()
-                        || canvas_end.is_panning()
-                        || canvas_end.is_marquee()
-                        || canvas_end.is_connecting()
-                    {
-                        canvas_end.end_interaction();
+            if let Ok(tailwind) = js_sys::Reflect::get(win.as_ref(), &JsValue::from_str("tailwind")) {
+                if let Ok(refresh) = js_sys::Reflect::get(&tailwind, &JsValue::from_str("refresh")) {
+                    if let Some(refresh_fn) = refresh.dyn_ref::<js_sys::Function>() {
+                        let _ = refresh_fn.call0(&tailwind);
                     }
-                    selection_end.clear_pending_drag();
-                },
-            ));
-
-            let _ = win.add_event_listener_with_callback(
-                "mouseup",
-                listener.as_ref().as_ref().unchecked_ref(),
-            );
-
+                }
+            }
         });
     }
 
@@ -126,6 +185,8 @@ fn App() -> Element {
 
     rsx! {
         script { src: "https://cdn.tailwindcss.com" }
+        document::Stylesheet { href: asset!("/assets/tailwind.css") }
+        document::Stylesheet { href: asset!("/style.css") }
         style {
             "@keyframes dash {{ to {{ stroke-dashoffset: -16; }} }}"
             "@keyframes slide-in-right {{ from {{ transform: translateX(24px); opacity: 0; }} to {{ transform: translateX(0); opacity: 1; }} }}"
@@ -386,10 +447,9 @@ fn App() -> Element {
                             if let Some((ax, ay)) = canvas.drag_anchor() {
                                 let moved = (mx - ax).hypot(my - ay);
                                 if moved >= DRAG_THRESHOLD_PX {
-                                    if let Some(node_ids) = selection.pending_drag().read().clone() {
+                                    if let Some(node_ids) = selection.take_pending_drag() {
                                         if let Some(primary_id) = node_ids.first().copied() {
                                             canvas.start_drag(primary_id, node_ids);
-                                            selection.clear_pending_drag();
                                         }
                                     }
                                     canvas.clear_drag_anchor();
@@ -753,6 +813,33 @@ fn App() -> Element {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_end_canvas_interaction;
+
+    #[test]
+    fn given_idle_canvas_when_global_mouseup_fires_then_interaction_stays_idle() {
+        let should_end = should_end_canvas_interaction(false, false, false, false);
+
+        assert!(!should_end);
+    }
+
+    #[test]
+    fn given_active_canvas_mode_when_global_mouseup_fires_then_interaction_ends() {
+        let should_end = should_end_canvas_interaction(false, true, false, false);
+
+        assert!(should_end);
+    }
+
+    #[test]
+    fn given_app_source_when_registering_mouseup_then_listener_is_not_forgotten() {
+        let source = include_str!("main.rs");
+        let leak_pattern = ["listener", ".forget()"].join("");
+
+        assert!(!source.contains(&leak_pattern));
     }
 }
 

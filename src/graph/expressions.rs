@@ -71,7 +71,13 @@ impl<'a> ExpressionContext<'a> {
         if (trimmed.starts_with('"') && trimmed.ends_with('"'))
             || (trimmed.starts_with('\'') && trimmed.ends_with('\''))
         {
-            return Value::String(trimmed[1..trimmed.len() - 1].to_string());
+            let quote = trimmed.chars().next().map_or('\0', std::convert::identity);
+            if let Some(inner) = trimmed
+                .strip_prefix(quote)
+                .and_then(|value| value.strip_suffix(quote))
+            {
+                return Value::String(inner.to_string());
+            }
         }
         if trimmed == "true" {
             return Value::Bool(true);
@@ -93,5 +99,37 @@ impl<'a> ExpressionContext<'a> {
             return op(l, r);
         }
         Value::Null
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ExpressionContext;
+
+    #[test]
+    fn given_single_quote_token_when_resolving_then_it_does_not_panic() {
+        let ctx = ExpressionContext::new(&[]);
+
+        let value = ctx.resolve("'");
+
+        assert_eq!(value, serde_json::Value::String("'".to_string()));
+    }
+
+    #[test]
+    fn given_double_quote_token_when_resolving_then_it_does_not_panic() {
+        let ctx = ExpressionContext::new(&[]);
+
+        let value = ctx.resolve("\"");
+
+        assert_eq!(value, serde_json::Value::String("\"".to_string()));
+    }
+
+    #[test]
+    fn given_wrapped_literal_when_resolving_then_quotes_are_trimmed() {
+        let ctx = ExpressionContext::new(&[]);
+
+        let value = ctx.resolve("'hello'");
+
+        assert_eq!(value, serde_json::Value::String("hello".to_string()));
     }
 }

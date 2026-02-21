@@ -25,6 +25,11 @@ pub struct WorkflowState {
     viewport: Memo<Viewport>,
 }
 
+async fn run_workflow_detached(mut workflow: Workflow) -> Workflow {
+    workflow.run().await;
+    workflow
+}
+
 impl WorkflowState {
     /// Access to workflow data signal
     pub fn workflow(&self) -> Signal<Workflow> {
@@ -184,10 +189,13 @@ impl WorkflowState {
     }
 
     /// Run the workflow asynchronously
-    pub fn run(mut self) {
-        // Note: This spawns an async task. The workflow.run() is handled internally.
+    pub fn run(self) {
+        let mut workflow_signal = self.workflow;
+        let workflow_snapshot = workflow_signal.read().clone();
+
         spawn(async move {
-            self.workflow.write().run().await;
+            let workflow_result = run_workflow_detached(workflow_snapshot).await;
+            workflow_signal.set(workflow_result);
         });
     }
 }
@@ -238,5 +246,30 @@ pub fn use_workflow_state() -> WorkflowState {
         nodes_by_id,
         connections,
         viewport,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_workflow_detached;
+    use oya_frontend::graph::Workflow;
+
+    #[tokio::test]
+    async fn given_detached_workflow_when_running_then_history_is_recorded() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("transform", 0.0, 0.0);
+
+        let updated = run_workflow_detached(workflow).await;
+
+        assert_eq!(updated.history.len(), 1);
+        assert!(updated.history[0].success);
+    }
+
+    #[test]
+    fn given_workflow_state_source_when_running_async_then_no_write_guard_spans_await() {
+        let source = include_str!("use_workflow_state.rs");
+        let bad_pattern = [".write()", ".run()", ".await"].join("");
+
+        assert!(!source.contains(&bad_pattern));
     }
 }

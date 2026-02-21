@@ -5,7 +5,7 @@
 use dioxus::prelude::*;
 
 /// Context menu state
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Store)]
 pub struct ContextMenuState {
     pub open: bool,
     pub x: f32,
@@ -30,7 +30,8 @@ pub struct UiPanels {
     settings_open: Signal<bool>,
     palette_open: Signal<bool>,
     palette_query: Signal<String>,
-    context_menu: Signal<ContextMenuState>,
+    context_menu: Store<ContextMenuState>,
+    context_menu_state: Memo<ContextMenuState>,
 }
 
 #[allow(dead_code)]
@@ -52,7 +53,7 @@ impl UiPanels {
 
     /// Read-only access to context menu state
     pub fn context_menu(&self) -> ReadSignal<ContextMenuState> {
-        self.context_menu.into()
+        self.context_menu_state.into()
     }
 
     // === Settings panel ===
@@ -119,7 +120,7 @@ impl UiPanels {
 
     /// Check if context menu is open
     pub fn is_context_menu_open(&self) -> bool {
-        self.context_menu.read().open
+        self.context_menu_state.read().open
     }
 
     // === Bulk operations ===
@@ -133,7 +134,9 @@ impl UiPanels {
 
     /// Check if any panel is open
     pub fn any_open(&self) -> bool {
-        *self.settings_open.read() || *self.palette_open.read() || self.context_menu.read().open
+        *self.settings_open.read()
+            || *self.palette_open.read()
+            || self.context_menu_state.read().open
     }
 }
 
@@ -141,12 +144,14 @@ pub fn use_ui_panels() -> UiPanels {
     let settings_open = use_signal(|| false);
     let palette_open = use_signal(|| false);
     let palette_query = use_signal(String::new);
-    let context_menu = use_signal(ContextMenuState::default);
+    let context_menu = use_store(ContextMenuState::default);
+    let context_menu_state = use_memo(move || context_menu.cloned());
 
     UiPanels {
         settings_open,
         palette_open,
         palette_query,
         context_menu,
+        context_menu_state,
     }
 }

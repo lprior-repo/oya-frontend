@@ -80,12 +80,24 @@ impl SelectionState {
 
     /// Set pending drag targets
     pub fn set_pending_drag(mut self, ids: Vec<NodeId>) {
-        self.pending_drag.set(Some(ids));
+        if let Ok(mut pending_drag) = self.pending_drag.try_write() {
+            *pending_drag = Some(ids);
+        }
     }
 
     /// Clear pending drag targets
     pub fn clear_pending_drag(mut self) {
-        self.pending_drag.set(None);
+        if let Ok(mut pending_drag) = self.pending_drag.try_write() {
+            *pending_drag = None;
+        }
+    }
+
+    /// Read and clear pending drag targets atomically if present.
+    pub fn take_pending_drag(mut self) -> Option<Vec<NodeId>> {
+        self.pending_drag
+            .try_write()
+            .ok()
+            .and_then(|mut pending_drag| pending_drag.take())
     }
 
     /// Access pending drag targets
