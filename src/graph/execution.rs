@@ -209,12 +209,12 @@ impl Workflow {
                     .map(|c| c.target)
                     .collect();
 
-                targets_to_skip.iter().for_each(|target_id| {
+                for target_id in &targets_to_skip {
                     if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == *target_id) {
                         target_node.skipped = true;
                         Self::set_node_status(target_node, "skipped");
                     }
-                });
+                }
             }
 
             if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {

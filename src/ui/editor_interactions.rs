@@ -37,15 +37,15 @@ pub fn snap_handle(
     String,
     crate::ui::edges::Position,
 )> {
+    const SNAP_RADIUS: f32 = 24.0;
+    let radius_sq = SNAP_RADIUS * SNAP_RADIUS;
+
     if !viewport.zoom.is_finite() || viewport.zoom.abs() <= f32::EPSILON {
         return None;
     }
 
     let canvas_x = (mx - viewport.x) / viewport.zoom;
     let canvas_y = (my - viewport.y) / viewport.zoom;
-
-    const SNAP_RADIUS: f32 = 24.0;
-    let radius_sq = SNAP_RADIUS * SNAP_RADIUS;
 
     let mut best: Option<(
         oya_frontend::graph::NodeId,

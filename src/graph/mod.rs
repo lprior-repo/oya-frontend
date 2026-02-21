@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
 
+mod calc;
 mod connectivity;
 mod core;
 mod execution;

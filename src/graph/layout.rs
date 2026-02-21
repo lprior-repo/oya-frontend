@@ -18,17 +18,21 @@ impl Default for DagLayout {
     }
 }
 
+const NODE_WIDTH: f32 = 220.0;
+const NODE_HEIGHT: f32 = 68.0;
+const LEFT_PADDING: f32 = 120.0;
+const TOP_PADDING: f32 = 80.0;
+
 impl DagLayout {
-    #[allow(clippy::cast_precision_loss)]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::too_many_lines,
+        clippy::items_after_statements
+    )]
     pub fn apply(&self, workflow: &mut Workflow) {
         if workflow.nodes.is_empty() {
             return;
         }
-
-        const NODE_WIDTH: f32 = 220.0;
-        const NODE_HEIGHT: f32 = 68.0;
-        const LEFT_PADDING: f32 = 120.0;
-        const TOP_PADDING: f32 = 80.0;
 
         let mut graph = Graph::<NodeId, ()>::new();
         let mut index_map = HashMap::new();

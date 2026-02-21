@@ -110,6 +110,15 @@ pub fn FlowEdges(
         resolve_edge_anchors(&edge_list, &node_list)
     });
 
+    let node_by_id = use_memo(move || {
+        nodes
+            .read()
+            .iter()
+            .cloned()
+            .map(|node| (node.id, node))
+            .collect::<HashMap<_, _>>()
+    });
+
     let temp_path = use_memo(move || {
         (*temp_edge.read()).map(|(from, to)| create_smooth_step_path(from, to, 0.0).0)
     });
@@ -177,14 +186,30 @@ pub fn FlowEdges(
                         let dragging_this = drag_state
                             .read()
                             .as_ref()
-                            .map(|state| state.edge_id == edge_id)
-                            .unwrap_or(false);
+                            .is_some_and(|state| state.edge_id == edge_id);
                         let hovered_this = hovered_edge
                             .read()
                             .as_ref()
-                            .map(|id| id == &edge_id)
-                            .unwrap_or(false);
+                            .is_some_and(|id| *id == edge_id);
                         let handle_opacity = if hovered_this || dragging_this { "1" } else { "0" };
+                        let source_status = node_by_id
+                            .read()
+                            .get(&edge.source)
+                            .and_then(|node| node.config.get("status"))
+                            .and_then(serde_json::Value::as_str)
+                            .map_or_else(|| "pending".to_string(), std::string::ToString::to_string);
+                        let stroke_color = match source_status {
+                            ref status if status == "running" => "rgba(37, 99, 235, 0.95)",
+                            ref status if status == "completed" => "rgba(16, 185, 129, 0.85)",
+                            ref status if status == "failed" => "rgba(244, 63, 94, 0.85)",
+                            _ => "rgba(148, 163, 184, 0.9)",
+                        };
+                        let marker = if source_status == "running" {
+                            "url(#arrowhead-active)"
+                        } else {
+                            "url(#arrowhead)"
+                        };
+                        let dash = if source_status == "running" { "8 5" } else { "0" };
 
                         rsx! {
                             g { key: "{edge_id}",
@@ -205,8 +230,7 @@ pub fn FlowEdges(
                                             let is_dragging = drag_state
                                                 .read()
                                                 .as_ref()
-                                                .map(|state| state.edge_id == edge_id)
-                                                .unwrap_or(false);
+                                                .is_some_and(|state| state.edge_id == edge_id);
                                             if !is_dragging {
                                                 hovered_edge.set(None);
                                             }
@@ -216,9 +240,11 @@ pub fn FlowEdges(
                                 path {
                                     d: "{path}",
                                     fill: "none",
-                                    stroke: "rgba(71, 85, 105, 0.75)",
+                                    stroke: "{stroke_color}",
                                     stroke_width: "2",
-                                    marker_end: "url(#arrowhead)"
+                                    marker_end: "{marker}",
+                                    stroke_dasharray: "{dash}",
+                                    class: "transition-all duration-150"
                                 }
                                 circle {
                                     cx: "{midpoint.x}",

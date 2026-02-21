@@ -1,5 +1,5 @@
 use super::{Node, NodeId, Viewport, Workflow};
-use crate::graph::metadata::node_metadata;
+use crate::graph::{calc, metadata::node_metadata};
 
 impl Workflow {
     pub(super) fn set_node_status(node: &mut Node, status: &str) {
@@ -30,17 +30,8 @@ impl Workflow {
     }
 
     pub fn add_node(&mut self, node_type: &str, x: f32, y: f32) -> NodeId {
-        let mut final_x = x;
-        let mut final_y = y;
-
-        while self
-            .nodes
-            .iter()
-            .any(|n| (n.x - final_x).abs() < 10.0 && (n.y - final_y).abs() < 10.0)
-        {
-            final_x += 30.0;
-            final_y += 30.0;
-        }
+        let existing_positions: Vec<(f32, f32)> = self.nodes.iter().map(|n| (n.x, n.y)).collect();
+        let (final_x, final_y) = calc::find_safe_position(&existing_positions, x, y, 30.0);
 
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
@@ -76,10 +67,9 @@ impl Workflow {
 
     pub fn update_node_position(&mut self, id: NodeId, dx: f32, dy: f32) {
         if let Some(node) = self.nodes.iter_mut().find(|n| n.id == id) {
-            node.x += dx;
-            node.y += dy;
-            node.x = (node.x / 10.0).round() * 10.0;
-            node.y = (node.y / 10.0).round() * 10.0;
+            let (new_x, new_y) = calc::update_node_position(node.x, node.y, dx, dy);
+            node.x = new_x;
+            node.y = new_y;
         }
     }
 

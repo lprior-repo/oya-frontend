@@ -41,13 +41,14 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
             step_results.push(step_result);
         }
 
+        let duration = start.elapsed().as_millis().try_into().unwrap_or(u64::MAX);
         ScenarioResult {
             scenario_id: scenario.scenario.id.clone(),
             spec_ref: scenario.scenario.spec_ref.clone(),
             category: scenario.scenario.category.clone(),
             passed,
             steps: step_results,
-            total_duration_ms: u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+            total_duration_ms: duration,
             error: None,
         }
     }
@@ -74,10 +75,11 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
             self.extract_value(&action_result, extraction);
         }
 
+        let duration = start.elapsed().as_millis().try_into().unwrap_or(u64::MAX);
         StepResult {
             step_id: step.id.clone(),
             passed: assertions_failed == 0,
-            duration_ms: u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX),
+            duration_ms: duration,
             assertions_passed,
             assertions_failed,
             error,
@@ -151,7 +153,10 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                     Some(value) => value,
                     None => return Err("Missing expected value for status assertion".to_string()),
                 };
-                let expected_status = u16::try_from(expected.as_u64().unwrap_or(0)).unwrap_or(0);
+                let expected_status = match expected.as_u64() {
+                    Some(v) => u16::try_from(v).unwrap_or(0),
+                    None => 0,
+                };
                 if result.status != expected_status {
                     return Err(format!(
                         "Expected status {expected_status}, got {}",
@@ -216,26 +221,32 @@ pub async fn run_validation<S: std::hash::BuildHasher + Send + Sync>(
         }
     }
 
-    let total = results.len();
-    let passed = results.iter().filter(|r| r.passed).count();
-    let failed = total - passed;
-
-    let mut category_breakdown = HashMap::new();
-    for result in &results {
-        let entry = category_breakdown
-            .entry(result.category.clone())
-            .or_insert(CategoryResult {
-                total: 0,
-                passed: 0,
-                failed: 0,
-            });
-        entry.total += 1;
+    let (passed, failed) = results.iter().fold((0, 0), |(passed, failed), result| {
         if result.passed {
-            entry.passed += 1;
+            (passed + 1, failed)
         } else {
-            entry.failed += 1;
+            (passed, failed + 1)
         }
-    }
+    });
+    let total = passed + failed;
+
+    let category_breakdown: HashMap<_, _> =
+        results.iter().fold(HashMap::new(), |mut acc, result| {
+            let entry = acc
+                .entry(result.category.clone())
+                .or_insert(CategoryResult {
+                    total: 0,
+                    passed: 0,
+                    failed: 0,
+                });
+            entry.total += 1;
+            if result.passed {
+                entry.passed += 1;
+            } else {
+                entry.failed += 1;
+            }
+            acc
+        });
 
     Ok(ValidationReport {
         spec_id: "flow-wasm-v1".to_string(),

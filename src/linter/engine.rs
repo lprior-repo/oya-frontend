@@ -42,76 +42,78 @@ impl SpecLinter {
     }
 
     fn check_completeness(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
-        let mut errors = 0;
-        let mut total = 0;
-
-        rules
+        let (errors, total) = rules
             .rules
             .iter()
             .filter(|rule| rule.id.starts_with("SPEC-00") && rule.severity != "warning")
-            .for_each(|rule| {
-                total += 1;
-
-                match rule.id.as_str() {
-                    "SPEC-001" => {
-                        spec.specification
-                            .context
-                            .system_dependencies
-                            .iter()
-                            .for_each(|dep| {
-                                let has_error_handling =
-                                    spec.specification.behaviors.iter().any(|behavior| {
-                                        behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
-                                            edge_cases.iter().any(|edge_case| {
-                                                edge_case.then.iter().any(|then_clause| {
-                                                    let then_lower = then_clause.to_lowercase();
-                                                    let dep_lower = dep.service.to_lowercase();
-                                                    then_lower.contains(&dep_lower)
-                                                        && (then_lower.contains("fail")
-                                                            || then_lower.contains("error")
-                                                            || then_lower.contains("unavailable"))
-                                                })
-                                            })
+            .fold((0, 0), |(errors, total), rule| {
+                let rule_errors = match rule.id.as_str() {
+                    "SPEC-001" => spec
+                        .specification
+                        .context
+                        .system_dependencies
+                        .iter()
+                        .filter(|dep| dep.twin_available)
+                        .filter(|dep| {
+                            !spec.specification.behaviors.iter().any(|behavior| {
+                                behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
+                                    edge_cases.iter().any(|edge_case| {
+                                        edge_case.then.iter().any(|then_clause| {
+                                            let then_lower = then_clause.to_lowercase();
+                                            let dep_lower = dep.service.to_lowercase();
+                                            then_lower.contains(&dep_lower)
+                                                && (then_lower.contains("fail")
+                                                    || then_lower.contains("error")
+                                                    || then_lower.contains("unavailable"))
                                         })
-                                    });
-                                if !has_error_handling && dep.twin_available {
-                                    errors += 1;
-                                    report.errors.push(LintIssue {
-                                        rule_id: rule.id.clone(),
-                                        rule_name: rule.name.clone(),
-                                        severity: rule.severity.clone(),
-                                        message: format!(
-                                            "Dependency '{}' has no error handling edge case",
-                                            dep.service
-                                        ),
-                                        line: None,
-                                    });
-                                }
+                                    })
+                                })
+                            })
+                        })
+                        .map(|dep| {
+                            report.errors.push(LintIssue {
+                                rule_id: rule.id.clone(),
+                                rule_name: rule.name.clone(),
+                                severity: rule.severity.clone(),
+                                message: format!(
+                                    "Dependency '{}' has no error handling edge case",
+                                    dep.service
+                                ),
+                                line: None,
                             });
-                    }
+                            1
+                        })
+                        .sum::<usize>(),
                     "SPEC-003" => {
                         if let Some(contract) = &spec.specification.api_contract {
                             if let Some(endpoints) = &contract.endpoints {
-                                endpoints.iter().for_each(|endpoint| {
-                                    if endpoint.authentication.is_none() {
-                                        errors += 1;
+                                endpoints
+                                    .iter()
+                                    .filter(|endpoint| endpoint.authentication.is_none())
+                                    .map(|endpoint| {
                                         report.errors.push(LintIssue {
                                             rule_id: rule.id.clone(),
                                             rule_name: rule.name.clone(),
                                             severity: rule.severity.clone(),
                                             message: format!(
-                                                "Endpoint {} {} missing authentication specification",
-                                                endpoint.method, endpoint.path
-                                            ),
+                                            "Endpoint {} {} missing authentication specification",
+                                            endpoint.method, endpoint.path
+                                        ),
                                             line: None,
                                         });
-                                    }
-                                });
+                                        1
+                                    })
+                                    .sum::<usize>()
+                            } else {
+                                0
                             }
+                        } else {
+                            0
                         }
                     }
-                    _ => {}
-                }
+                    _ => 0,
+                };
+                (errors + rule_errors, total + 1)
             });
 
         let score = if total > 0 {
@@ -119,6 +121,7 @@ impl SpecLinter {
         } else {
             100
         };
+        let score: u32 = score.try_into().unwrap_or(100);
         report.categories.insert(
             "Completeness".to_string(),
             CategoryScore {
@@ -129,7 +132,6 @@ impl SpecLinter {
     }
 
     fn check_clarity(spec: &Spec, report: &mut LintReport) {
-        let mut warnings = 0;
         let banned = [
             "as appropriate",
             "if needed",
@@ -142,32 +144,42 @@ impl SpecLinter {
             "standard practice",
         ];
 
-        spec.specification.behaviors.iter().for_each(|behavior| {
-            behavior.then.iter().for_each(|then_clause| {
-                banned.iter().for_each(|phrase| {
-                    if then_clause.to_lowercase().contains(phrase) {
-                        warnings += 1;
-                        report.warnings.push(LintIssue {
-                            rule_id: "SPEC-010".to_string(),
-                            rule_name: "no-ambiguous-language".to_string(),
-                            severity: "warning".to_string(),
-                            message: format!(
-                                "Found ambiguous phrase: '{phrase}' in behavior {}",
-                                behavior.id
-                            ),
-                            line: None,
-                        });
-                    }
-                });
-            });
+        let warnings: Vec<_> = spec
+            .specification
+            .behaviors
+            .iter()
+            .flat_map(|behavior| {
+                behavior.then.iter().filter_map(|then_clause| {
+                    banned.iter().find_map(|phrase| {
+                        if then_clause.to_lowercase().contains(phrase) {
+                            Some(LintIssue {
+                                rule_id: "SPEC-010".to_string(),
+                                rule_name: "no-ambiguous-language".to_string(),
+                                severity: "warning".to_string(),
+                                message: format!(
+                                    "Found ambiguous phrase: '{phrase}' in behavior {}",
+                                    behavior.id
+                                ),
+                                line: None,
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                })
+            })
+            .collect();
+
+        warnings.iter().for_each(|issue| {
+            report.warnings.push(issue.clone());
         });
 
-        let score = if warnings > 0 { 88 } else { 100 };
+        let score = if warnings.is_empty() { 100 } else { 88 };
         report.categories.insert(
             "Clarity".to_string(),
             CategoryScore {
                 score,
-                details: format!("{warnings} ambiguous phrases found"),
+                details: format!("{} ambiguous phrases found", warnings.len()),
             },
         );
     }

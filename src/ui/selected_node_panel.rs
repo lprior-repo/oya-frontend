@@ -16,28 +16,28 @@ pub fn SelectedNodePanel(
     if let Some(node_id) = *selected_node_id.read() {
         if let Some(selected_node) = nodes_by_id.read().get(&node_id).cloned() {
             let badge_classes = match selected_node.category {
-                NodeCategory::Entry => "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
-                NodeCategory::Durable => "bg-indigo-500/15 text-indigo-300 border-indigo-500/25",
-                NodeCategory::State => "bg-orange-500/15 text-orange-300 border-orange-500/25",
-                NodeCategory::Flow => "bg-amber-500/15 text-amber-300 border-amber-500/25",
-                NodeCategory::Timing => "bg-pink-500/15 text-pink-300 border-pink-500/25",
-                NodeCategory::Signal => "bg-blue-500/15 text-blue-300 border-blue-500/25",
+                NodeCategory::Entry => "bg-emerald-50 text-emerald-700 border-emerald-200",
+                NodeCategory::Durable => "bg-indigo-50 text-indigo-700 border-indigo-200",
+                NodeCategory::State => "bg-orange-50 text-orange-700 border-orange-200",
+                NodeCategory::Flow => "bg-amber-50 text-amber-700 border-amber-200",
+                NodeCategory::Timing => "bg-pink-50 text-pink-700 border-pink-200",
+                NodeCategory::Signal => "bg-blue-50 text-blue-700 border-blue-200",
             };
 
             return rsx! {
-                aside { class: "animate-slide-in-right z-30 flex w-[300px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/95",
-                    div { class: "flex items-center justify-between border-b border-slate-800 px-4 py-3",
+                aside { class: "animate-slide-in-right z-30 flex w-[320px] shrink-0 flex-col border-l border-slate-200 bg-white/95",
+                    div { class: "flex items-center justify-between border-b border-slate-200 px-4 py-3",
                         div { class: "flex items-center gap-2.5",
                             div { class: "flex h-7 w-7 items-center justify-center rounded-md border {badge_classes}",
                                 {crate::ui::icons::icon_by_name(&selected_node.icon, "h-3.5 w-3.5".to_string())}
                             }
                             div {
-                                h3 { class: "text-[13px] font-semibold text-slate-100", "{selected_node.name}" }
+                                h3 { class: "text-[13px] font-semibold text-slate-900", "{selected_node.name}" }
                                 p { class: "text-[10px] text-slate-500", "{selected_node.description}" }
                             }
                         }
                         button {
-                            class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                            class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900",
                             onclick: move |_| {
                                 selected_node_id.set(None);
                                 selected_node_ids.set(Vec::new());
@@ -54,7 +54,7 @@ pub fn SelectedNodePanel(
                         div { class: "mb-4 flex flex-col gap-1.5",
                             label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Node Name" }
                             input {
-                                class: "h-8 rounded-md border border-slate-700 bg-slate-950 px-3 text-[12px] text-slate-100 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30",
+                                class: "h-8 rounded-md border border-slate-300 bg-white px-3 text-[12px] text-slate-900 outline-none transition-colors focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30",
                                 value: "{selected_node.name}",
                                 oninput: move |evt| {
                                     let mut wf = workflow.write();
@@ -70,7 +70,7 @@ pub fn SelectedNodePanel(
                             textarea {
                                 rows: "3",
                                 placeholder: "Add notes about this node...",
-                                class: "rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-[12px] text-slate-100 placeholder:text-slate-500/70 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 resize-none",
+                                class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-[12px] text-slate-900 placeholder:text-slate-500/70 outline-none transition-colors focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 resize-none",
                                 value: "{selected_node.description}",
                                 oninput: move |evt| {
                                     let mut wf = workflow.write();
@@ -81,7 +81,7 @@ pub fn SelectedNodePanel(
                             }
                         }
 
-                        div { class: "h-px bg-slate-800" }
+                        div { class: "h-px bg-slate-200" }
                         div { class: "pt-4",
                             NodeConfigEditor {
                                 node: selected_node.clone(),
@@ -95,9 +95,9 @@ pub fn SelectedNodePanel(
                         }
                     }
 
-                    div { class: "flex items-center gap-2 border-t border-slate-800 px-4 py-3",
+                    div { class: "flex items-center gap-2 border-t border-slate-200 px-4 py-3",
                         button {
-                            class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-700 text-[12px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100",
+                            class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-300 text-[12px] text-slate-700 transition-colors hover:bg-slate-100",
                             onclick: move |_| {
                                 let snapshot = workflow.read().clone();
                                 undo_stack.write().push(snapshot);
