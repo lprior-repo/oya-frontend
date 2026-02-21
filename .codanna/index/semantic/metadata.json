@@ -1,0 +1,8 @@
+{
+  "model_name": "AllMiniLML6V2",
+  "dimension": 384,
+  "embedding_count": 16,
+  "created_at": 1771641807,
+  "updated_at": 1771641807,
+  "version": 1
+}

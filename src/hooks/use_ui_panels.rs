@@ -21,7 +21,7 @@ impl Default for ContextMenuState {
 /// UI panels hook - manages modal and overlay state.
 ///
 /// Follows functional reactive pattern with methods for panel control.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct UiPanels {
     settings_open: Signal<bool>,
     palette_open: Signal<bool>,

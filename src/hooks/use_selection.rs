@@ -11,7 +11,7 @@ use dioxus::prelude::*;
 /// - State stored in Copy signals
 /// - Methods for mutations
 /// - ReadSignal accessors for derived views
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct SelectionState {
     selected_id: Signal<Option<NodeId>>,
     selected_ids: Signal<Vec<NodeId>>,

@@ -13,7 +13,7 @@ use std::collections::HashMap;
 /// - State is stored in Copy signals
 /// - Actions are methods that mutate state immutably (clone, modify, set)
 /// - Derived data is computed via Memo for performance
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct WorkflowState {
     workflow: Signal<Workflow>,
     workflow_name: Signal<String>,

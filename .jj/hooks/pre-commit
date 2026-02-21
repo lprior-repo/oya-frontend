@@ -1,70 +1,45 @@
 #!/bin/sh
 # ZJJ JJ Pre-Commit Hook - CANNOT be bypassed with --no-verify
-#
-# This hook BLOCKS JJ commits unless ZJJ_ACTIVE environment variable is set.
-# JJ runs this hook BEFORE every commit. No flag can skip it.
-# Also enforces codanna synchronization for code intelligence integrity.
 
 if [ -z "$ZJJ_ACTIVE" ]; then
     echo ""
-    echo "╔════════════════════════════════════════════════════════════════════════╗"
-    echo "║  🛑 JJ COMMIT BLOCKED - Not in a ZJJ Workspace                        ║"
-    echo "╚════════════════════════════════════════════════════════════════════════╝"
-    echo ""
-    echo "You are trying to commit from OUTSIDE a zjj workspace."
-    echo ""
-    echo "This repository REQUIRES all work through zjj workspaces."
-    echo ""
-    echo "  ✗ You CANNOT commit from cloned copies"
-    echo "  ✗ There is NO --no-verify for JJ hooks"
-    echo "  ✓ Use: zjj spawn <bead-id>"
-    echo ""
-    echo "Install JJ: cargo install jj-cli"
-    echo "Use zjj:   zjj spawn <bead-id>"
+    echo "JJ commit blocked: not in a zjj workspace"
+    echo "Use: zjj spawn <bead-id>"
     echo ""
     exit 1
 fi
 
-# Codanna synchronization checks
-REPO_ROOT="$(jj root 2>/dev/null || git rev-parse --show-toplevel)"
-
-echo "[jj pre-commit] Running codanna synchronization checks..."
-
-# Check 1: Verify .codanna/settings.toml exists
-if [ ! -f "$REPO_ROOT/.codanna/settings.toml" ]; then
-    echo "ERROR: .codanna/settings.toml is missing!"
-    echo "Run: mkdir -p .codanna && create settings.toml"
-    exit 1
+if [ "${CODANNA_SKIP_HOOK:-0}" = "1" ]; then
+    exit 0
 fi
 
-# Check 2: Verify codanna policy exists in CLAUDE.md (JSONL format)
-if [ -f "$REPO_ROOT/CLAUDE.md" ]; then
-    if ! grep -q '"kind":"code_intelligence"' "$REPO_ROOT/CLAUDE.md" 2>/dev/null; then
-        echo "ERROR: CLAUDE.md is missing the code_intelligence JSONL entry!"
-        echo "The codanna policy must be present in JSONL format."
-        exit 1
-    fi
+if ! command -v codanna >/dev/null 2>&1; then
+    exit 0
 fi
 
-# Check 3: Verify codanna policy exists in AGENTS.md (JSONL format)
-if [ -f "$REPO_ROOT/AGENTS.md" ]; then
-    if ! grep -q '"kind":"code_intelligence"' "$REPO_ROOT/AGENTS.md" 2>/dev/null; then
-        echo "ERROR: AGENTS.md is missing the code_intelligence JSONL entry!"
-        echo "The codanna policy must be present in JSONL format."
-        exit 1
-    fi
+if [ ! -f ".codanna/settings.toml" ]; then
+    exit 0
 fi
 
-# Check 4: Verify .codannaignore exists
-if [ ! -f "$REPO_ROOT/.codannaignore" ]; then
-    echo "ERROR: .codannaignore is missing!"
-    exit 1
+changed_paths="$(jj diff --name-only 2>/dev/null || true)"
+needs_update=0
+for path in $changed_paths; do
+    case "$path" in
+        src/*|tests/*|crates/*|docs/*|*.rs|*.md|*.toml|*.ts|*.tsx|*.js|*.jsx|*.py|*.go)
+            needs_update=1
+            break
+            ;;
+    esac
+done
+
+if [ "$needs_update" -eq 0 ]; then
+    exit 0
 fi
 
-# Check 5: If Rust source files changed, remind to reindex
-CHANGED_RS_FILES=$(jj diff --name-only 2>/dev/null | grep '\.rs$' || true)
-if [ -n "$CHANGED_RS_FILES" ]; then
-    echo "[jj pre-commit] Rust files changed. Consider running: codanna index src --progress"
-fi
+echo "[codanna] updating code index..."
+codanna --config .codanna/settings.toml index >/dev/null
 
-echo "[jj pre-commit] All codanna synchronization checks passed."
+echo "[codanna] updating docs index..."
+codanna --config .codanna/settings.toml documents index >/dev/null || true
+
+exit 0

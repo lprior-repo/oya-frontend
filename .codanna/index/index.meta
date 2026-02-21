@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "data_source": {
+    "Tantivy": {
+      "path": ".codanna/index/tantivy",
+      "doc_count": 3686,
+      "timestamp": 1771641247
+    }
+  },
+  "symbol_count": 1674,
+  "file_count": 169,
+  "last_modified": 1771641247,
+  "indexed_paths": [
+    "/home/lewis/src/oya-frontend"
+  ]
+}

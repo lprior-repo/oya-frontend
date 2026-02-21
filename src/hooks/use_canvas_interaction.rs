@@ -26,13 +26,13 @@ impl Default for InteractionMode {
 ///
 /// Uses a state machine (InteractionMode) to ensure consistent state.
 /// Follows functional reactive pattern with methods for state transitions.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct CanvasInteraction {
     mode: Signal<InteractionMode>,
     is_space_hand: Signal<bool>,
     mouse_pos: Signal<(f32, f32)>,
     canvas_origin: Signal<(f32, f32)>,
-    temp_edge_to: Signal<Option<FlowPosition>>,
+    temp_edge_to: Signal<Option<(FlowPosition, FlowPosition)>>,
     hovered_handle: Signal<Option<(NodeId, String)>>,
 }
 
@@ -58,7 +58,7 @@ impl CanvasInteraction {
     }
 
     /// Read-only access to temporary edge target position
-    pub fn temp_edge_to(&self) -> ReadSignal<Option<FlowPosition>> {
+    pub fn temp_edge_to(&self) -> ReadSignal<Option<(FlowPosition, FlowPosition)>> {
         self.temp_edge_to.into()
     }
 
@@ -111,7 +111,7 @@ impl CanvasInteraction {
     }
 
     /// Set temporary edge target position
-    pub fn set_temp_edge(mut self, pos: Option<FlowPosition>) {
+    pub fn set_temp_edge(mut self, pos: Option<(FlowPosition, FlowPosition)>) {
         self.temp_edge_to.set(pos);
     }
 
@@ -211,7 +211,7 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
     let is_space_hand = use_signal(|| false);
     let mouse_pos = use_signal(|| (0.0_f32, 0.0_f32));
     let canvas_origin = use_signal(|| (0.0_f32, 0.0_f32));
-    let temp_edge_to = use_signal(|| None::<FlowPosition>);
+    let temp_edge_to = use_signal(|| None::<(FlowPosition, FlowPosition)>);
     let hovered_handle = use_signal(|| None::<(NodeId, String)>);
 
     CanvasInteraction {
