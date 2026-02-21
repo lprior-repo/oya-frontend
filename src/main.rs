@@ -5,14 +5,15 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::{
-    CanvasContextMenu, FlowEdges, FlowExecutionLane, FlowMinimap, FlowNodeComponent, FlowPosition,
-    FlowToolbar, NodeCommandPalette, NodeSidebar, SelectedNodePanel,
+    CanvasContextMenu, FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition, FlowToolbar,
+    NodeCommandPalette, NodeSidebar, SelectedNodePanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, PortName, Workflow};
 
 mod ui;
+mod errors;
 
 // --- Application Shell ---
 
@@ -85,8 +86,6 @@ fn App() -> Element {
             .collect::<std::collections::HashMap<_, _>>()
     });
     let connections = use_memo(move || workflow.read().connections.clone());
-    let execution_queue = use_memo(move || workflow.read().execution_queue.clone());
-    let current_step = use_memo(move || workflow.read().current_step);
     let node_count = use_memo(move || workflow.read().nodes.len());
     let edge_count = use_memo(move || workflow.read().connections.len());
     let zoom_label = use_memo(move || format!("{:.0}%", workflow.read().viewport.zoom * 100.0));
@@ -141,7 +140,7 @@ fn App() -> Element {
             ".animate-slide-in-right {{ animation: slide-in-right 0.22s ease-out; }}"
         }
 
-        div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-slate-950 text-slate-200 [font-family:'Geist',_'Inter',sans-serif] select-none",
+        div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f4f6fb] text-slate-900 [font-family:'Geist',_'Inter',sans-serif] select-none",
             FlowToolbar {
                 workflow_name: workflow_name,
                 on_workflow_name_change: move |value| workflow_name.set(value),
@@ -224,7 +223,7 @@ fn App() -> Element {
                 open: show_command_palette,
                 query: command_palette_query,
                 on_query_change: move |value| command_palette_query.set(value),
-                on_close: move |_| {
+                on_close: move |()| {
                     show_command_palette.set(false);
                 },
                 on_pick: move |node_type| {
@@ -285,7 +284,7 @@ fn App() -> Element {
                 }
 
                 main {
-                    class: "relative flex-1 overflow-hidden bg-slate-950 {canvas_cursor}",
+                    class: "relative flex-1 overflow-hidden bg-[#f8fafc] {canvas_cursor}",
                     tabindex: "0",
                     onmouseenter: move |evt| {
                         let page = evt.page_coordinates();
@@ -660,7 +659,7 @@ fn App() -> Element {
 
                     div {
                         class: "absolute inset-0 pointer-events-none",
-                        style: "background-image: radial-gradient(circle, rgba(71, 85, 105, 0.75) 1px, transparent 1px); background-size: calc(20px * {vz}) calc(20px * {vz}); background-position: {vx}px {vy}px;"
+                        style: "background-image: radial-gradient(circle, rgba(148, 163, 184, 0.5) 1px, transparent 1px); background-size: calc(22px * {vz}) calc(22px * {vz}); background-position: {vx}px {vy}px;"
                     }
 
                     div {
@@ -759,16 +758,6 @@ fn App() -> Element {
                         nodes: nodes,
                         edges: connections,
                         selected_node_id: selected_node_id
-                    }
-
-                    FlowExecutionLane {
-                        nodes: nodes,
-                        queue: execution_queue,
-                        current_step: current_step,
-                        on_jump_to_node: move |node_id| {
-                            selected_node_id.set(Some(node_id));
-                            selected_node_ids.set(vec![node_id]);
-                        }
                     }
                 }
 
