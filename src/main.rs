@@ -14,6 +14,7 @@ use oya_frontend::graph::{NodeId, PortName, Workflow};
 
 mod ui;
 mod errors;
+mod hooks;
 
 // --- Application Shell ---
 
