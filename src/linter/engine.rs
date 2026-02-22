@@ -15,7 +15,62 @@ impl SpecLinter {
     pub fn new(rules_path: &Path) -> Result<Self, LintError> {
         let rules_content = fs::read_to_string(rules_path)?;
         let rules: LintRules = serde_yaml::from_str(&rules_content)?;
+        Self::validate_rules(&rules)?;
         Ok(Self { rules })
+    }
+
+    fn validate_rules(rules: &LintRules) -> Result<(), LintError> {
+        const ALLOWED_RULE_IDS: [&str; 10] = [
+            "SPEC-001", "SPEC-002", "SPEC-003", "SPEC-004", "SPEC-010", "SPEC-011", "SPEC-020",
+            "SPEC-021", "SPEC-030", "SPEC-040",
+        ];
+
+        for rule in &rules.rules {
+            let rule_id = rule.id.trim();
+            if rule_id.is_empty() {
+                return Err(LintError::MissingRequiredField {
+                    rule_id: "<unknown>".to_string(),
+                    field: "id".to_string(),
+                });
+            }
+
+            if !ALLOWED_RULE_IDS.contains(&rule_id) {
+                return Err(LintError::UnknownRuleId {
+                    rule_id: rule_id.to_string(),
+                });
+            }
+
+            if rule.name.trim().is_empty() {
+                return Err(LintError::MissingRequiredField {
+                    rule_id: rule.id.clone(),
+                    field: "name".to_string(),
+                });
+            }
+
+            if rule.description.trim().is_empty() {
+                return Err(LintError::MissingRequiredField {
+                    rule_id: rule.id.clone(),
+                    field: "description".to_string(),
+                });
+            }
+
+            let severity = rule.severity.trim();
+            if severity.is_empty() {
+                return Err(LintError::MissingRequiredField {
+                    rule_id: rule.id.clone(),
+                    field: "severity".to_string(),
+                });
+            }
+
+            if severity != "error" && severity != "warning" {
+                return Err(LintError::InvalidSeverity {
+                    rule_id: rule.id.clone(),
+                    severity: rule.severity.clone(),
+                });
+            }
+        }
+
+        Ok(())
     }
 
     /// Lint a specification file.
@@ -46,7 +101,7 @@ impl SpecLinter {
             .rules
             .iter()
             .filter(|rule| rule.id.starts_with("SPEC-00") && rule.severity != "warning")
-            .fold((0, 0), |(errors, total), rule| {
+            .fold((0usize, 0usize), |(errors, total), rule| {
                 let rule_errors = match rule.id.as_str() {
                     "SPEC-001" => spec
                         .specification
@@ -116,8 +171,9 @@ impl SpecLinter {
                 (errors + rule_errors, total + 1)
             });
 
+        let passed = total.saturating_sub(errors);
         let score = if total > 0 {
-            ((total - errors) * 100) / total
+            (passed * 100) / total
         } else {
             100
         };
@@ -126,7 +182,7 @@ impl SpecLinter {
             "Completeness".to_string(),
             CategoryScore {
                 score,
-                details: format!("{}/{} rules passed", total - errors, total),
+                details: format!("{passed}/{total} rules passed"),
             },
         );
     }

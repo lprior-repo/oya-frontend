@@ -57,6 +57,31 @@ fn chevron_rotation_class(collapsed: bool) -> &'static str {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{format_elapsed, status_badge_classes};
+
+    #[test]
+    fn given_recent_timestamp_when_formatting_elapsed_then_it_returns_just_now() {
+        let timestamp = chrono::Utc::now() - chrono::Duration::seconds(30);
+        assert_eq!(format_elapsed(&timestamp), "just now");
+    }
+
+    #[test]
+    fn given_hour_old_timestamp_when_formatting_elapsed_then_it_returns_hours_ago() {
+        let timestamp = chrono::Utc::now() - chrono::Duration::hours(2);
+        assert_eq!(format_elapsed(&timestamp), "2h ago");
+    }
+
+    #[test]
+    fn given_success_status_when_requesting_badge_classes_then_success_classes_are_returned() {
+        assert_eq!(
+            status_badge_classes(true),
+            "bg-emerald-50 text-emerald-700 border-emerald-200"
+        );
+    }
+}
+
 #[component]
 pub fn ExecutionHistoryPanel(
     history: Memo<Vec<RunRecord>>,

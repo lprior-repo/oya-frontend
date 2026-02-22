@@ -1,0 +1,54 @@
+{
+  "bead_id": "bd-dt0",
+  "title": "ui: Add inline node config expansion on click",
+  "status": "completed",
+  "implementation": {
+    "files_modified": [
+      "src/hooks/use_ui_panels.rs",
+      "src/ui/node.rs",
+      "src/ui/inline_config_panel.rs",
+      "src/ui/mod.rs",
+      "src/main.rs"
+    ],
+    "files_created": [
+      "src/ui/inline_config_panel.rs"
+    ],
+    "features": [
+      {
+        "name": "inline_panel_state",
+        "description": "Track which node has inline config panel open in use_ui_panels hook",
+        "location": "src/hooks/use_ui_panels.rs"
+      },
+      {
+        "name": "double_click_handler",
+        "description": "Detect double-click on nodes to toggle inline config panel",
+        "location": "src/ui/node.rs"
+      },
+      {
+        "name": "inline_config_panel",
+        "description": "Compact config editor showing essential fields based on node category",
+        "location": "src/ui/inline_config_panel.rs"
+      },
+      {
+        "name": "click_outside_collapse",
+        "description": "Close inline panel when clicking elsewhere on canvas",
+        "location": "src/main.rs (onmousedown handler)"
+      },
+      {
+        "name": "escape_key_close",
+        "description": "Close inline panel when pressing Escape key",
+        "location": "src/hooks/use_ui_panels.rs (close_all method)"
+      }
+    ]
+  },
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed (1 pre-existing warning unrelated to changes)"
+  },
+  "testing_notes": [
+    "Double-click any node to open inline config panel",
+    "Click outside or press Escape to close",
+    "Changes sync with side panel configuration",
+    "Only essential config fields shown inline per node type"
+  ]
+}

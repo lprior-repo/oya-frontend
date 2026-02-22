@@ -36,7 +36,7 @@ fn given_dirty_runtime_state_when_preparing_run_then_nodes_reset_to_pending() {
 #[tokio::test]
 async fn given_simple_chain_when_running_then_nodes_complete_and_history_is_recorded() {
     let mut workflow = Workflow::new();
-    let start = workflow.add_node("start-custom", 20.0, 20.0);
+    let start = workflow.add_node("http-handler", 20.0, 20.0);
     let next = workflow.add_node("next-custom", 50.0, 110.0);
     let main = PortName("main".to_string());
     let _ = workflow.add_connection(start, next, &main, &main);
@@ -58,7 +58,7 @@ async fn given_simple_chain_when_running_then_nodes_complete_and_history_is_reco
 #[tokio::test]
 async fn given_true_condition_when_running_then_false_branch_is_marked_skipped() {
     let mut workflow = Workflow::new();
-    let trigger = workflow.add_node("trigger", 0.0, 0.0);
+    let trigger = workflow.add_node("http-handler", 0.0, 0.0);
     let condition = workflow.add_node("condition", 0.0, 0.0);
     let true_branch = workflow.add_node("true-branch", 0.0, 0.0);
     let false_branch = workflow.add_node("false-branch", 0.0, 0.0);
@@ -178,7 +178,10 @@ async fn given_more_than_ten_runs_when_recording_history_then_history_is_capped(
 #[tokio::test]
 async fn given_failed_http_request_when_running_then_history_marks_run_unsuccessful() {
     let mut workflow = Workflow::new();
+    let trigger_id = workflow.add_node("http-handler", 0.0, 0.0);
     let node_id = workflow.add_node("http-request", 0.0, 0.0);
+    let main = PortName("main".to_string());
+    let _ = workflow.add_connection(trigger_id, node_id, &main, &main);
 
     if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == node_id) {
         node.config = json!({"url": "http://127.0.0.1:0", "method": "GET"});
@@ -193,6 +196,95 @@ async fn given_failed_http_request_when_running_then_history_marks_run_unsuccess
         .iter()
         .find(|node| node.id == node_id)
         .is_some_and(|node| node.error.is_some()));
+}
+
+#[test]
+fn given_orphan_source_connection_when_preparing_run_then_target_still_schedules() {
+    let mut workflow = Workflow::new();
+    let target = workflow.add_node("run", 0.0, 0.0);
+
+    workflow.connections.push(Connection {
+        id: Uuid::new_v4(),
+        source: oya_frontend::graph::NodeId::new(),
+        target,
+        source_port: PortName("main".to_string()),
+        target_port: PortName("main".to_string()),
+    });
+
+    workflow.prepare_run();
+
+    assert!(workflow.execution_queue.contains(&target));
+}
+
+#[tokio::test]
+async fn given_false_branch_with_descendants_when_condition_skips_then_descendants_are_skipped() {
+    let mut workflow = Workflow::new();
+    let trigger = workflow.add_node("http-handler", 0.0, 0.0);
+    let condition = workflow.add_node("condition", 0.0, 0.0);
+    let false_branch = workflow.add_node("false-branch", 0.0, 0.0);
+    let false_grandchild = workflow.add_node("false-grandchild", 0.0, 0.0);
+    let true_branch = workflow.add_node("true-branch", 0.0, 0.0);
+
+    if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == condition) {
+        node.config = json!({"condition": "true"});
+    }
+
+    let main = PortName("main".to_string());
+    let _ = workflow.add_connection(trigger, condition, &main, &main);
+    workflow.connections.push(Connection {
+        id: Uuid::new_v4(),
+        source: condition,
+        target: true_branch,
+        source_port: PortName("true".to_string()),
+        target_port: PortName("main".to_string()),
+    });
+    workflow.connections.push(Connection {
+        id: Uuid::new_v4(),
+        source: condition,
+        target: false_branch,
+        source_port: PortName("false".to_string()),
+        target_port: PortName("main".to_string()),
+    });
+    let _ = workflow.add_connection(false_branch, false_grandchild, &main, &main);
+
+    workflow.run().await;
+
+    assert!(workflow
+        .nodes
+        .iter()
+        .find(|node| node.id == false_branch)
+        .is_some_and(|node| node.skipped));
+    assert!(workflow
+        .nodes
+        .iter()
+        .find(|node| node.id == false_grandchild)
+        .is_some_and(|node| node.skipped));
+    assert!(workflow
+        .nodes
+        .iter()
+        .find(|node| node.id == true_branch)
+        .is_some_and(|node| !node.skipped));
+}
+
+#[tokio::test]
+async fn given_empty_workflow_when_running_then_history_marks_run_unsuccessful() {
+    let mut workflow = Workflow::new();
+
+    workflow.run().await;
+
+    assert_eq!(workflow.history.len(), 1);
+    assert!(!workflow.history[0].success);
+}
+
+#[tokio::test]
+async fn given_no_entry_nodes_when_running_then_history_marks_run_unsuccessful() {
+    let mut workflow = Workflow::new();
+    let _ = workflow.add_node("run", 0.0, 0.0);
+
+    workflow.run().await;
+
+    assert_eq!(workflow.history.len(), 1);
+    assert!(!workflow.history[0].success);
 }
 
 #[tokio::test]

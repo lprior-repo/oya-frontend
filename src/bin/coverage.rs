@@ -10,20 +10,19 @@ use std::path::PathBuf;
 #[command(name = "coverage")]
 #[command(about = "Analyze scenario coverage")]
 struct Args {
-    #[arg(short, long, default_value = "specs")]
+    #[arg(short = 's', long, default_value = "specs")]
     specs_dir: PathBuf,
 
-    #[arg(short, long, default_value = "../scenarios-vault")]
+    #[arg(short = 'c', long, default_value = "../scenarios-vault")]
     scenarios_dir: PathBuf,
 
-    #[arg(short, long, default_value = "text")]
+    #[arg(short = 'f', long, default_value = "text")]
     format: String,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    println!("Analyzing scenario coverage...");
 
     let analyzer = CoverageAnalyzer::new(&args.specs_dir, &args.scenarios_dir);
     let report = analyzer.analyze()?;
@@ -34,6 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{json}");
         }
         "text" => {
+            println!("Analyzing scenario coverage...");
             print_text_report(&report);
         }
         _ => {

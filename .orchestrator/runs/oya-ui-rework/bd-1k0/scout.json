@@ -1,0 +1,249 @@
+{
+  "bead_id": "bd-1k0",
+  "phase": "SCOUT",
+  "agent_id": "claude-scout",
+  "findings": {
+    "restate_service_kinds": [
+      {
+        "kind": "Service",
+        "description": "Stateless RPC handlers with unlimited parallel invocations. No state management. All handlers receive base Context with ContextClient, ContextTimers, ContextSideEffects, ContextAwakeables."
+      },
+      {
+        "kind": "VirtualObject",
+        "description": "Stateful key-addressable entities with key-value store and serial per-key concurrency. Exclusive handlers get ObjectContext with full state read/write. Shared handlers get SharedObjectContext with read-only state access."
+      },
+      {
+        "kind": "Workflow",
+        "description": "Long-running processes with per-execution state and serial per-key concurrency. Main run() handler gets WorkflowContext with promises, state, and awakeables. Shared handlers get SharedWorkflowContext with read-only state and promise operations."
+      }
+    ],
+    "context_capabilities": {
+      "Context (Service)": {
+        "methods": ["invocation_id()", "headers()", "headers_mut()"],
+        "traits": ["ContextClient", "ContextTimers", "ContextSideEffects", "ContextAwakeables"],
+        "state_access": "none",
+        "promise_access": "none"
+      },
+      "ObjectContext": {
+        "methods": ["invocation_id()", "headers()", "headers_mut()", "key()"],
+        "traits": ["ContextClient", "ContextTimers", "ContextSideEffects", "ContextAwakeables", "ContextReadState", "ContextWriteState"],
+        "state_access": "full",
+        "promise_access": "none"
+      },
+      "SharedObjectContext": {
+        "methods": ["invocation_id()", "headers()", "headers_mut()", "key()"],
+        "traits": ["ContextClient", "ContextTimers", "ContextSideEffects", "ContextAwakeables", "ContextReadState"],
+        "state_access": "read_only",
+        "promise_access": "none"
+      },
+      "WorkflowContext": {
+        "methods": ["invocation_id()", "headers()", "headers_mut()", "key()"],
+        "traits": ["ContextClient", "ContextTimers", "ContextSideEffects", "ContextAwakeables", "ContextReadState", "ContextWriteState", "ContextPromises"],
+        "state_access": "full",
+        "promise_access": "full"
+      },
+      "SharedWorkflowContext": {
+        "methods": ["invocation_id()", "headers()", "headers_mut()", "key()"],
+        "traits": ["ContextClient", "ContextTimers", "ContextSideEffects", "ContextAwakeables", "ContextReadState", "ContextPromises"],
+        "state_access": "read_only",
+        "promise_access": "full"
+      }
+    },
+    "workflow_node_to_service_kind_mapping": {
+      "http-handler": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Entry point - can be attached to any service kind"
+      },
+      "kafka-handler": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Entry point - can be attached to any service kind"
+      },
+      "cron-trigger": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Entry point - can be attached to any service kind"
+      },
+      "workflow-submit": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Entry point - can be attached to any service kind"
+      },
+      "run": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Durable side effect - uses ContextSideEffects trait available on all contexts"
+      },
+      "service-call": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Calls stateless service - uses ContextClient trait available on all contexts"
+      },
+      "object-call": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Calls Virtual Object - uses object_client() available on all contexts. TARGET must be VirtualObject"
+      },
+      "workflow-call": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Calls Workflow - uses workflow_client() available on all contexts. TARGET must be Workflow"
+      },
+      "send-message": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "One-way send - uses ContextClient trait available on all contexts"
+      },
+      "delayed-send": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Delayed one-way send - uses ContextClient trait available on all contexts"
+      },
+      "get-state": {
+        "compatible_kinds": ["VirtualObject", "Workflow"],
+        "required_context": ["ObjectContext", "SharedObjectContext", "WorkflowContext", "SharedWorkflowContext"],
+        "notes": "Requires ContextReadState trait - NOT available on Service context"
+      },
+      "set-state": {
+        "compatible_kinds": ["VirtualObject", "Workflow"],
+        "required_context": ["ObjectContext", "WorkflowContext"],
+        "notes": "Requires ContextWriteState trait - NOT available on Service or Shared contexts"
+      },
+      "clear-state": {
+        "compatible_kinds": ["VirtualObject", "Workflow"],
+        "required_context": ["ObjectContext", "WorkflowContext"],
+        "notes": "Requires ContextWriteState trait - NOT available on Service or Shared contexts"
+      },
+      "condition": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Flow control - no special context requirements"
+      },
+      "switch": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Flow control - no special context requirements"
+      },
+      "loop": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Flow control - no special context requirements"
+      },
+      "parallel": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Flow control - no special context requirements"
+      },
+      "compensate": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Saga compensation - no special context requirements"
+      },
+      "sleep": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Uses ContextTimers::sleep() available on all contexts"
+      },
+      "timeout": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Timing wrapper - no special context requirements"
+      },
+      "durable-promise": {
+        "compatible_kinds": ["Workflow"],
+        "required_context": ["WorkflowContext", "SharedWorkflowContext"],
+        "notes": "Requires ContextPromises trait - EXCLUSIVE to Workflow context"
+      },
+      "awakeable": {
+        "compatible_kinds": ["Service", "VirtualObject", "Workflow"],
+        "required_context": "any",
+        "notes": "Uses ContextAwakeables trait available on all contexts"
+      },
+      "resolve-promise": {
+        "compatible_kinds": ["Workflow"],
+        "required_context": ["WorkflowContext", "SharedWorkflowContext"],
+        "notes": "Requires ContextPromises trait - EXCLUSIVE to Workflow context"
+      },
+      "signal-handler": {
+        "compatible_kinds": ["Workflow"],
+        "required_context": ["SharedWorkflowContext"],
+        "notes": "Signal handlers on workflows use SharedWorkflowContext"
+      }
+    },
+    "existing_implementation": {
+      "location": "src/flow_extender/mod.rs",
+      "enums": {
+        "RestateServiceKind": {
+          "variants": ["Service", "VirtualObject", "Workflow"],
+          "serde_rename": "kebab-case",
+          "traits": ["Debug", "Clone", "Copy", "Serialize", "Deserialize", "PartialEq", "Eq", "Hash"]
+        },
+        "RestateCapability": {
+          "variants": ["EntryTrigger", "DurableExecution", "TimerGuard", "StateStore", "Compensation", "PromiseResolution"],
+          "serde_rename": "kebab-case",
+          "traits": ["Debug", "Clone", "Copy", "Serialize", "Deserialize", "PartialEq", "Eq", "Hash"]
+        }
+      },
+      "structs": {
+        "ExtensionSemantics": {
+          "fields": ["compatible_service_kinds: Vec<RestateServiceKind>", "requires: Vec<RestateCapability>", "provides: Vec<RestateCapability>"],
+          "usage": "Defines semantic compatibility for extension suggestions"
+        }
+      },
+      "inference_function": {
+        "name": "infer_workflow_service_kinds",
+        "logic": [
+          "If has promise semantics (durable-promise, resolve-promise, signal wait) -> Workflow only",
+          "If has state semantics (get-state, set-state, clear-state) -> VirtualObject OR Workflow",
+          "If empty workflow -> Any (Service, VirtualObject, Workflow)",
+          "Otherwise -> Service only"
+        ]
+      }
+    },
+    "validation_rules": [
+      "State operations (get-state, set-state, clear-state) REQUIRE VirtualObject or Workflow service kind",
+      "Promise operations (durable-promise, resolve-promise) REQUIRE Workflow service kind EXCLUSIVELY",
+      "Signal-handler nodes REQUIRE Workflow service kind",
+      "Entry points (http-handler, kafka-handler, cron-trigger, workflow-submit) can be ANY service kind",
+      "Call operations (service-call, object-call, workflow-call, send-message, delayed-send) can be ANY service kind - the TARGET determines what kind it is calling",
+      "The inference algorithm should check the most restrictive requirement first (Workflow -> VirtualObject -> Service)"
+    ],
+    "integration_points": [
+      {
+        "location": "src/graph/workflow_node.rs",
+        "action": "Add methods to WorkflowNode for service kind requirements",
+        "details": "Add fn required_service_kind(&self) -> Option<RestateServiceKind> and fn compatible_service_kinds(&self) -> Vec<RestateServiceKind>"
+      },
+      {
+        "location": "src/graph/mod.rs or src/graph/workflow_node.rs",
+        "action": "Add ContextType enum if needed for handler-level context typing",
+        "details": "May want to add ContextType enum with variants: Service, ObjectExclusive, ObjectShared, WorkflowExclusive, WorkflowShared"
+      },
+      {
+        "location": "src/flow_extender/mod.rs",
+        "action": "Potentially move RestateServiceKind and RestateCapability to a shared types module",
+        "details": "These types are already well-defined; could move to src/graph/restate_types.rs for reuse"
+      },
+      {
+        "location": "src/graph/mod.rs - Node struct",
+        "action": "Consider adding service_kind field to Node",
+        "details": "Each node in a workflow may need to track its parent service's kind for validation"
+      }
+    ],
+    "recommended_approach": {
+      "summary": "Leverage existing RestateServiceKind from flow_extender, add ContextType enum, add service kind methods to WorkflowNode",
+      "steps": [
+        "1. Move RestateServiceKind and RestateCapability from flow_extender/mod.rs to src/graph/restate_types.rs for shared access",
+        "2. Add ContextType enum to restate_types.rs with variants: Service, ObjectExclusive, ObjectShared, WorkflowExclusive, WorkflowShared",
+        "3. Add methods to WorkflowNode: compatible_service_kinds() -> Vec<RestateServiceKind> and required_context_types() -> Vec<ContextType>",
+        "4. Add mapping function: service_kind_to_context_types(RestateServiceKind) -> Vec<ContextType>",
+        "5. Update infer_workflow_service_kinds in flow_extender to use new methods",
+        "6. Add validation in Workflow to ensure nodes are compatible with declared service kind"
+      ],
+      "rationale": "The existing RestateServiceKind enum is well-designed and already used for inference. Rather than duplicate, we should share it and add the complementary ContextType enum to model the Restate context hierarchy. This aligns with Restate SDK v0.8.0's actual context types while keeping the type system simple for the UI layer."
+    }
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T09:35:00Z"
+}

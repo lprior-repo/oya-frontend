@@ -105,6 +105,28 @@ impl<'a> ExpressionContext<'a> {
 #[cfg(test)]
 mod tests {
     use super::ExpressionContext;
+    use crate::graph::{ExecutionState, Node, NodeCategory, NodeId};
+    use serde_json::json;
+
+    fn node_with_output(name: &str, output: serde_json::Value) -> Node {
+        Node {
+            id: NodeId::new(),
+            name: name.to_string(),
+            description: String::new(),
+            node_type: "test".to_string(),
+            category: NodeCategory::Flow,
+            icon: String::new(),
+            x: 0.0,
+            y: 0.0,
+            config: json!({}),
+            last_output: Some(output),
+            selected: false,
+            executing: false,
+            skipped: false,
+            error: None,
+            execution_state: ExecutionState::Idle,
+        }
+    }
 
     #[test]
     fn given_single_quote_token_when_resolving_then_it_does_not_panic() {
@@ -131,5 +153,58 @@ mod tests {
         let value = ctx.resolve("'hello'");
 
         assert_eq!(value, serde_json::Value::String("hello".to_string()));
+    }
+
+    #[test]
+    fn given_node_json_path_expression_when_resolving_then_returns_pointer_value() {
+        let node = node_with_output("Fetcher", json!({"user": {"email": "a@b.dev"}}));
+        let nodes = [node];
+        let ctx = ExpressionContext::new(&nodes);
+
+        let value = ctx.resolve("$node[\"Fetcher\"].json.user.email");
+
+        assert_eq!(value, serde_json::Value::String("a@b.dev".to_string()));
+    }
+
+    #[test]
+    fn given_numeric_binary_expression_when_resolving_then_returns_computed_number() {
+        let ctx = ExpressionContext::new(&[]);
+
+        assert_eq!(ctx.resolve("3 + 4"), serde_json::Value::from(7.0));
+        assert_eq!(ctx.resolve("9 - 2"), serde_json::Value::from(7.0));
+    }
+
+    #[test]
+    fn given_len_calls_when_resolving_then_returns_string_or_array_length() {
+        let node = node_with_output("Fetcher", json!({"names": ["a", "b", "c"]}));
+        let nodes = [node];
+        let ctx = ExpressionContext::new(&nodes);
+
+        assert_eq!(ctx.resolve("'hello'.len()"), serde_json::Value::from(5));
+        assert_eq!(
+            ctx.resolve("$node[\"Fetcher\"].json.names.len()"),
+            serde_json::Value::Null
+        );
+    }
+
+    #[test]
+    fn given_uppercase_call_when_resolving_then_string_is_transformed() {
+        let ctx = ExpressionContext::new(&[]);
+
+        let value = ctx.resolve("'hello'.to_uppercase()");
+
+        assert_eq!(value, serde_json::Value::String("HELLO".to_string()));
+    }
+
+    #[test]
+    fn given_unknown_token_when_resolving_then_original_trimmed_string_is_returned() {
+        let ctx = ExpressionContext::new(&[]);
+
+        let value = ctx.resolve("  no_such_token  ");
+
+        assert_eq!(
+            value,
+            serde_json::Value::String("no_such_token".to_string())
+        );
     }
 }

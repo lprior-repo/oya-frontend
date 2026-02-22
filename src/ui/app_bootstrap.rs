@@ -66,3 +66,29 @@ pub fn default_workflow() -> Workflow {
         history: vec![],
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::default_workflow;
+    use oya_frontend::graph::NodeCategory;
+
+    #[test]
+    fn given_default_workflow_when_created_then_it_contains_expected_starter_nodes() {
+        let workflow = default_workflow();
+
+        assert_eq!(workflow.nodes.len(), 3);
+        assert_eq!(workflow.nodes[0].node_type, "http-handler");
+        assert_eq!(workflow.nodes[1].node_type, "run");
+        assert_eq!(workflow.nodes[2].node_type, "condition");
+        assert_eq!(workflow.nodes[0].category, NodeCategory::Entry);
+    }
+
+    #[test]
+    fn given_default_workflow_when_created_then_viewport_defaults_are_expected() {
+        let workflow = default_workflow();
+
+        assert_eq!(workflow.viewport.x, 0.0);
+        assert_eq!(workflow.viewport.y, 0.0);
+        assert_eq!(workflow.viewport.zoom, 0.85);
+    }
+}

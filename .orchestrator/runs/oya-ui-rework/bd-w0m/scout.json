@@ -1,0 +1,50 @@
+{
+  "bead_id": "bd-w0m",
+  "phase": "SCOUT",
+  "agent_id": "claude-scout",
+  "findings": {
+    "selected_node_panel_structure": "SelectedNodePanel is a 320px right sidebar (aside element) that displays node details when selected. It contains: header with node icon/name/description and close button, category badge + ID display, editable name field, editable notes textarea, then renders NodeConfigEditor component with input_payloads. After that, it has an extensive 'Extend Flow' section for extension suggestions with undo/redo. The panel does NOT have its own tabs - it delegates to NodeConfigEditor for tabbed content.",
+    "execution_tab_exists": "YES - ExecutionTab in src/ui/config_panel/execution.rs (356 lines) already shows Input Payloads (from upstream nodes) and Output Payload (from node.last_output). It has: status indicator (running/completed/failed etc), journal index display, retry count, Input Payloads section (shows array of upstream outputs with json_preview), Output Payload section with pin/unpin functionality, Execution Timeline section. Uses json_preview(payload, max_lines) for pretty-printing with truncation and payload_shape(payload) for type descriptions.",
+    "node_output_field": "Node struct in src/graph/mod.rs has: config: serde_json::Value (node configuration), last_output: Option<serde_json::Value> (execution result). The collect_input_payloads() function in selected_node_panel.rs collects outputs from upstream nodes by traversing connections where target == current node_id.",
+    "tab_patterns": [
+      "Tab pattern in NodeConfigEditor (config_panel/mod.rs): uses enum Tab { Config, Execution }, use_signal(|| Tab::Config) for state, conditional CSS classes (border-b-2 border-indigo-500 for active, border-transparent for inactive), match on tab_val to render content",
+      "Tab styling: active='flex-1 border-b-2 border-indigo-500 py-2 text-[11px] font-medium capitalize text-slate-100', inactive='flex-1 border-b-2 border-transparent py-2 text-[11px] font-medium capitalize text-slate-500 hover:text-slate-300'"
+    ],
+    "json_display_patterns": [
+      "JSON display: <pre> tag with 'overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-4 text-slate-300'",
+      "Container: 'rounded-lg border border-slate-700 bg-slate-900/65 p-2'",
+      "json_preview function: uses serde_json::to_string_pretty() and truncates to max_lines with '... (truncated)' suffix",
+      "payload_shape function: returns type info like 'object (5)', 'array (3)', 'string (12)', etc",
+      "No syntax highlighting library - just monospace font styling"
+    ],
+    "copy_icon_exists": "YES - CopyIcon is defined in src/ui/icons/set_c.rs and exported. It's a Lucide-style icon with SVG rect and path.",
+    "copy_functionality_missing": "No clipboard/copy-to-clipboard functionality exists in the codebase. Will need to implement using web-sys clipboard API or similar.",
+    "recommended_approach": {
+      "summary": "The Input/Output payload display already EXISTS in the ExecutionTab. The bead should ENHANCE it with copy functionality and possibly syntax highlighting.",
+      "option_a_enhance_existing": {
+        "description": "Enhance the existing ExecutionTab with copy buttons and syntax highlighting",
+        "steps": [
+          "Add copy button next to each JSON payload display in execution.rs",
+          "Implement copy_to_clipboard function using web-sys (navigator.clipboard.writeText)",
+          "Add visual feedback on copy (brief 'Copied!' tooltip or icon change)",
+          "Optionally add CSS-based syntax highlighting for JSON keys/values",
+          "Reuse existing CopyIcon from set_c.rs"
+        ],
+        "pros": "Minimal changes, reuses existing tab structure, consistent with current UI"
+      },
+      "option_b_new_dedicated_tabs": {
+        "description": "Add new Input/Output tabs alongside Config/Execution in NodeConfigEditor",
+        "steps": [
+          "Add Input and Output to Tab enum",
+          "Create new InputTab component showing node.config + upstream outputs",
+          "Create new OutputTab component showing last_output with copy/syntax highlighting",
+          "Add 4-tab navigation (Config | Execution | Input | Output)"
+        ],
+        "pros": "Clearer separation of concerns, dedicated payload views"
+      },
+      "recommended": "option_a_enhance_existing - The Input/Output payload display already works. Focus on adding copy functionality and potentially syntax highlighting to the existing ExecutionTab. This is a smaller, more focused change that doesn't require restructuring the tab navigation."
+    }
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T12:00:00Z"
+}

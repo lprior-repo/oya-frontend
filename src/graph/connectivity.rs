@@ -154,3 +154,66 @@ impl Workflow {
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn given_self_connection_when_adding_checked_connection_then_self_connection_error_is_returned()
+    {
+        let mut workflow = Workflow::new();
+        let node_id = workflow.add_node("http-handler", 0.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let result = workflow.add_connection_checked(node_id, node_id, &main, &main);
+
+        assert_eq!(result, Err(ConnectionError::SelfConnection));
+    }
+
+    #[test]
+    fn given_duplicate_connection_when_adding_checked_connection_then_duplicate_error_is_returned()
+    {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let target = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let first = workflow.add_connection_checked(source, target, &main, &main);
+        assert!(matches!(first, Ok(ConnectionResult::Created)));
+
+        let duplicate = workflow.add_connection_checked(source, target, &main, &main);
+
+        assert_eq!(duplicate, Err(ConnectionError::Duplicate));
+    }
+
+    #[test]
+    fn given_back_edge_when_adding_checked_connection_then_cycle_error_is_returned() {
+        let mut workflow = Workflow::new();
+        let first = workflow.add_node("http-handler", 0.0, 0.0);
+        let second = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let created = workflow.add_connection_checked(first, second, &main, &main);
+        assert!(matches!(created, Ok(ConnectionResult::Created)));
+
+        let cycle = workflow.add_connection_checked(second, first, &main, &main);
+
+        assert_eq!(cycle, Err(ConnectionError::WouldCreateCycle));
+    }
+
+    #[test]
+    fn given_type_mismatch_ports_when_adding_checked_connection_then_warning_result_is_returned() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("condition", 0.0, 0.0);
+        let target = workflow.add_node("signal-handler", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let result = workflow.add_connection_checked(source, target, &main, &main);
+
+        assert!(matches!(
+            result,
+            Ok(ConnectionResult::CreatedWithTypeWarning(_))
+        ));
+    }
+}

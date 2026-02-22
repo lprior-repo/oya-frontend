@@ -5,6 +5,20 @@
 use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
+fn toggle_palette_state(current_open: bool) -> (bool, bool) {
+    let next_open = !current_open;
+    let should_clear_query = next_open;
+    (next_open, should_clear_query)
+}
+
+fn toggle_inline_target(current: Option<NodeId>, node_id: NodeId) -> Option<NodeId> {
+    if current == Some(node_id) {
+        None
+    } else {
+        Some(node_id)
+    }
+}
+
 /// Context menu state
 #[derive(Clone, Debug, PartialEq, Store)]
 pub struct ContextMenuState {
@@ -81,8 +95,9 @@ impl UiPanels {
     /// Toggle command palette
     pub fn toggle_palette(mut self) {
         let current = *self.palette_open.read();
-        self.palette_open.set(!current);
-        if !current {
+        let (next_open, should_clear_query) = toggle_palette_state(current);
+        self.palette_open.set(next_open);
+        if should_clear_query {
             self.palette_query.set(String::new());
         }
     }
@@ -159,11 +174,8 @@ impl UiPanels {
 
     pub fn toggle_inline_panel(mut self, node_id: NodeId) {
         let current = *self.inline_panel_node_id.read();
-        if current == Some(node_id) {
-            self.inline_panel_node_id.set(None);
-        } else {
-            self.inline_panel_node_id.set(Some(node_id));
-        }
+        self.inline_panel_node_id
+            .set(toggle_inline_target(current, node_id));
     }
 
     pub fn is_inline_panel_open(&self, node_id: NodeId) -> bool {
@@ -186,5 +198,32 @@ pub fn use_ui_panels() -> UiPanels {
         context_menu,
         context_menu_state,
         inline_panel_node_id,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{toggle_inline_target, toggle_palette_state};
+    use oya_frontend::graph::NodeId;
+
+    #[test]
+    fn given_palette_closed_when_toggling_then_it_opens_and_query_should_clear() {
+        let (open, clear_query) = toggle_palette_state(false);
+        assert!(open);
+        assert!(clear_query);
+    }
+
+    #[test]
+    fn given_palette_open_when_toggling_then_it_closes_and_query_not_forced_clear() {
+        let (open, clear_query) = toggle_palette_state(true);
+        assert!(!open);
+        assert!(!clear_query);
+    }
+
+    #[test]
+    fn given_same_node_when_toggling_inline_panel_then_panel_closes() {
+        let id = NodeId::new();
+        let next = toggle_inline_target(Some(id), id);
+        assert_eq!(next, None);
     }
 }

@@ -1,0 +1,405 @@
+{
+  "bead_id": "bd-39q",
+  "phase": "ATDD",
+  "agent_id": "atdd-agent-001",
+  "test_scenarios": {
+    "happy_paths": [
+      {
+        "name": "given_all_24_node_templates_when_converting_to_workflow_node_then_each_maps_to_variant",
+        "given": "All 24 NODE_TEMPLATES from sidebar/model.rs exist with their kebab-case node_type strings",
+        "when": "Each node_type string is parsed into a WorkflowNode enum variant",
+        "then": [
+          "Each of the 24 node_type strings produces a valid WorkflowNode variant",
+          "Variant names use PascalCase (http-handler -> HttpHandler)",
+          "No variant is missing or duplicated",
+          "Result is Ok(WorkflowNode) not Err"
+        ],
+        "contracts": {
+          "precondition": "Input string is one of the 24 valid node_type values from NODE_TEMPLATES",
+          "postcondition": "Returns Ok(WorkflowNode) with correct variant",
+          "invariant": "All 24 node_type strings map to exactly 24 distinct variants"
+        }
+      },
+      {
+        "name": "given_workflow_node_variant_when_getting_category_then_returns_correct_category",
+        "given": "A WorkflowNode variant is instantiated for any of the 24 types",
+        "when": "The .category() method is called on the variant",
+        "then": [
+          "Entry variants (http-handler, kafka-handler, cron-trigger, workflow-submit) return NodeCategory::Entry",
+          "Durable variants (run, service-call, object-call, workflow-call, send-message, delayed-send) return NodeCategory::Durable",
+          "State variants (get-state, set-state, clear-state) return NodeCategory::State",
+          "Flow variants (condition, switch, loop, parallel, compensate) return NodeCategory::Flow",
+          "Timing variants (sleep, timeout) return NodeCategory::Timing",
+          "Signal variants (durable-promise, awakeable, resolve-promise, signal-handler) return NodeCategory::Signal"
+        ],
+        "contracts": {
+          "precondition": "WorkflowNode variant is fully constructed",
+          "postcondition": "Returns correct NodeCategory matching NODE_TEMPLATES category",
+          "invariant": "category() always returns a valid NodeCategory, never panics"
+        }
+      },
+      {
+        "name": "given_workflow_node_variant_when_getting_icon_then_returns_correct_icon",
+        "given": "A WorkflowNode variant is instantiated",
+        "when": "The .icon() method is called",
+        "then": [
+          "Each variant returns its corresponding icon string from node_metadata()",
+          "http-handler returns 'globe'",
+          "kafka-handler returns 'kafka'",
+          "cron-trigger returns 'clock'",
+          "All 24 variants have matching icons"
+        ],
+        "contracts": {
+          "precondition": "WorkflowNode variant is fully constructed",
+          "postcondition": "Returns static &'static str matching NODE_TEMPLATES icon",
+          "invariant": "icon() always returns a valid non-empty string"
+        }
+      },
+      {
+        "name": "given_workflow_node_with_typed_config_when_serializing_then_produces_valid_json",
+        "given": "A WorkflowNode variant with its typed config struct populated",
+        "when": "The variant is serialized to JSON using serde",
+        "then": [
+          "JSON contains 'type' field with kebab-case value (e.g., 'http-handler')",
+          "Config fields are serialized as flat object properties",
+          "Output is valid JSON that can be deserialized back",
+          "Format is compatible with existing workflow JSON structure"
+        ],
+        "contracts": {
+          "precondition": "WorkflowNode variant with valid config data",
+          "postcondition": "Produces valid JSON with type field",
+          "invariant": "Serialization never fails for valid config"
+        }
+      },
+      {
+        "name": "given_valid_json_with_type_field_when_deserializing_then_produces_correct_variant",
+        "given": "A JSON string with 'type' field set to one of the 24 valid node_type values",
+        "when": "The JSON is deserialized into a WorkflowNode",
+        "then": [
+          "Correct WorkflowNode variant is selected based on 'type' field",
+          "Config fields are populated into the variant's config struct",
+          "Result is Ok(WorkflowNode)",
+          "No data loss during deserialization"
+        ],
+        "contracts": {
+          "precondition": "JSON has valid 'type' field matching a known variant",
+          "postcondition": "Returns Ok with correct variant and populated config",
+          "invariant": "Deserialization is deterministic for same input"
+        }
+      }
+    ],
+    "error_paths": [
+      {
+        "name": "given_invalid_node_type_string_when_parsing_then_returns_error",
+        "given": "A string that is NOT one of the 24 valid node_type values",
+        "when": "The string is parsed into a WorkflowNode via FromStr or TryFrom",
+        "then": [
+          "Returns Err(UnknownNodeType) or equivalent error",
+          "Error contains the invalid string for debugging",
+          "No panic occurs",
+          "Error implements std::error::Error trait"
+        ],
+        "contracts": {
+          "precondition": "Input string does not match any valid node_type",
+          "postcondition": "Returns Err with descriptive error message",
+          "invariant": "Invalid input never panics, always returns Err"
+        },
+        "test_cases": [
+          "Empty string",
+          "Whitespace only",
+          "Unknown type like 'foo-bar'",
+          "Typo like 'http-handlr'",
+          "Case mismatch like 'HTTP-HANDLER'"
+        ]
+      },
+      {
+        "name": "given_json_with_unknown_type_when_deserializing_then_returns_error",
+        "given": "JSON with 'type' field set to unknown value",
+        "when": "The JSON is deserialized into a WorkflowNode",
+        "then": [
+          "Returns Err containing the unknown type value",
+          "Error message indicates which type was unknown",
+          "No panic occurs",
+          "Partial data is not retained (atomic deserialization)"
+        ],
+        "contracts": {
+          "precondition": "JSON has 'type' field with unknown value",
+          "postcondition": "Returns serde::de::Error or custom error",
+          "invariant": "Unknown type always fails deserialization"
+        }
+      },
+      {
+        "name": "given_json_missing_type_field_when_deserializing_then_returns_error",
+        "given": "JSON object without a 'type' field",
+        "when": "The JSON is deserialized into a WorkflowNode",
+        "then": [
+          "Returns Err indicating missing type field",
+          "No panic occurs",
+          "Error is descriptive"
+        ],
+        "contracts": {
+          "precondition": "JSON object exists but lacks 'type' field",
+          "postcondition": "Returns Err with missing field message",
+          "invariant": "Missing type always fails deserialization"
+        }
+      }
+    ],
+    "edge_cases": [
+      {
+        "name": "given_empty_config_when_creating_variant_then_succeeds_with_defaults",
+        "given": "A WorkflowNode variant is created with empty/default config",
+        "when": "The variant is constructed with minimal or default config values",
+        "then": [
+          "Variant is successfully created",
+          "All optional config fields are None",
+          "All required config fields have sensible defaults",
+          "Serialization produces valid JSON"
+        ],
+        "contracts": {
+          "precondition": "Variant type is known",
+          "postcondition": "Returns valid WorkflowNode with default config",
+          "invariant": "All variants implement Default for their config"
+        }
+      },
+      {
+        "name": "given_config_with_unicode_when_serializing_then_preserves_unicode",
+        "given": "A WorkflowNode with config containing unicode characters",
+        "when": "The variant is serialized and deserialized",
+        "then": [
+          "Unicode characters are preserved exactly",
+          "No corruption or escaping issues",
+          "Round-trip produces identical config"
+        ]
+      },
+      {
+        "name": "given_config_with_nested_json_when_accessing_then_returns_correct_value",
+        "given": "A WorkflowNode with config containing nested objects or arrays",
+        "when": "Config fields are accessed via typed accessors",
+        "then": [
+          "Nested values are correctly typed",
+          "Accessors return correct types",
+          "No silent data conversion"
+        ]
+      },
+      {
+        "name": "given_all_variants_when_iterating_then_count_is_24",
+        "given": "The WorkflowNode enum is defined with all variants",
+        "when": "A method to iterate or count all possible variants is called",
+        "then": [
+          "Count is exactly 24",
+          "No variants are hidden or skipped",
+          "Order matches NODE_TEMPLATES order or is documented"
+        ]
+      },
+      {
+        "name": "given_variant_with_max_string_length_when_serializing_then_succeeds",
+        "given": "A WorkflowNode with config containing very long strings (e.g., 64KB code block)",
+        "when": "The variant is serialized",
+        "then": [
+          "Serialization succeeds",
+          "No truncation occurs",
+          "Memory usage is reasonable"
+        ]
+      }
+    ],
+    "contract_tests": [
+      {
+        "name": "precondition_all_node_type_strings_are_valid_utf8",
+        "given": "All 24 node_type string constants from NODE_TEMPLATES",
+        "when": "Each string is examined",
+        "then": "All strings are valid UTF-8 with no null bytes"
+      },
+      {
+        "name": "precondition_variant_names_follow_pascal_case",
+        "given": "All WorkflowNode variant names",
+        "when": "Variant names are checked against convention",
+        "then": "All variants use PascalCase (HttpHandler, KafkaHandler, etc.)"
+      },
+      {
+        "name": "postcondition_category_matches_node_templates",
+        "given": "Each WorkflowNode variant",
+        "when": "The category() result is compared to NODE_TEMPLATES category",
+        "then": "Categories match exactly for all 24 variants"
+      },
+      {
+        "name": "postcondition_icon_matches_node_metadata",
+        "given": "Each WorkflowNode variant",
+        "when": "The icon() result is compared to node_metadata() icon",
+        "then": "Icons match exactly for all 24 variants"
+      },
+      {
+        "name": "invariant_roundtrip_serialization_preserves_data",
+        "given": "A WorkflowNode with arbitrary valid config",
+        "when": "The node is serialized to JSON then deserialized back",
+        "then": [
+          "Resulting WorkflowNode equals original",
+          "No data loss or transformation",
+          "Works for all 24 variants"
+        ]
+      },
+      {
+        "name": "invariant_display_trait_outputs_kebab_case",
+        "given": "Any WorkflowNode variant",
+        "when": "The Display trait is used to format the variant",
+        "then": "Output matches the kebab-case node_type string (e.g., 'http-handler')"
+      },
+      {
+        "name": "invariant_from_str_is_inverse_of_display",
+        "given": "Any valid kebab-case node_type string",
+        "when": "The string is parsed to WorkflowNode then displayed back",
+        "then": "The output string equals the input string"
+      },
+      {
+        "name": "invariant_serde_tag_is_type",
+        "given": "A WorkflowNode serialized to JSON",
+        "when": "The JSON is examined",
+        "then": "The type discriminator field is named 'type' not 'node_type' or 'kind'"
+      },
+      {
+        "name": "invariant_config_structs_have_required_fields",
+        "given": "All typed config structs for each variant",
+        "when": "Structs are examined for required vs optional fields",
+        "then": "Required fields match SCOUT config_fields_by_node_type analysis"
+      }
+    ],
+    "migration_tests": [
+      {
+        "name": "given_legacy_node_json_when_migrating_then_produces_workflow_node",
+        "given": "JSON representing old Node struct with node_type: String and config: Value",
+        "when": "The JSON is migrated to new format with WorkflowNode",
+        "then": [
+          "node_type string becomes WorkflowNode variant",
+          "config Value is parsed into typed config struct",
+          "All config fields are preserved",
+          "Runtime fields (status, executing, etc.) go to NodeRuntimeState"
+        ]
+      },
+      {
+        "name": "given_localstorage_workflow_when_loading_then_succeeds",
+        "given": "A localStorage workflow saved with old Node format",
+        "when": "The workflow is loaded and migrated",
+        "then": [
+          "Loading succeeds without error",
+          "All nodes are present",
+          "All connections are preserved",
+          "No data loss"
+        ]
+      },
+      {
+        "name": "given_migrated_workflow_when_saving_then_format_is_compatible",
+        "given": "A workflow that was migrated from old format",
+        "when": "The workflow is saved back to localStorage",
+        "then": [
+          "New format is used",
+          "JSON is valid",
+          "Can be loaded again successfully"
+        ]
+      },
+      {
+        "name": "given_new_workflow_when_saving_then_can_load_in_older_version",
+        "given": "A workflow created with new WorkflowNode format",
+        "when": "The workflow JSON is examined for backward compatibility",
+        "then": [
+          "JSON structure is similar enough for migration",
+          "Type field is present and recognizable",
+          "Config fields are at expected paths"
+        ]
+      }
+    ],
+    "flow_extender_integration_tests": [
+      {
+        "name": "given_workflow_node_variant_when_checking_is_entry_point_then_returns_correct_bool",
+        "given": "A WorkflowNode variant",
+        "when": "Checking if variant is an entry point (for flow_extender logic)",
+        "then": [
+          "HttpHandler, KafkaHandler, CronTrigger, WorkflowSubmit return true",
+          "All other variants return false"
+        ]
+      },
+      {
+        "name": "given_workflow_node_variant_when_checking_needs_durable_step_name_then_returns_correct_bool",
+        "given": "A WorkflowNode variant",
+        "when": "Checking if variant needs durableStepName config",
+        "then": [
+          "Run, ServiceCall, ObjectCall, WorkflowCall, SendMessage return true",
+          "Entry and other variants return false"
+        ]
+      },
+      {
+        "name": "given_workflow_node_variant_when_checking_needs_timeout_guard_then_returns_correct_bool",
+        "given": "A WorkflowNode variant",
+        "when": "Checking if variant can have timeout guard applied",
+        "then": "Returns correct bool based on variant semantics"
+      }
+    ]
+  },
+  "test_files_to_create": [
+    "src/graph/workflow_node_test.rs",
+    "src/graph/workflow_node_config_test.rs",
+    "src/graph/workflow_node_migrate_test.rs",
+    "src/graph/workflow_node_serde_test.rs"
+  ],
+  "hidden_atdd_tests": [
+    {
+      "name": "quality_gate_all_24_variants_exist",
+      "description": "Ensures WorkflowNode has exactly 24 variants, no more, no less",
+      "check": "count(WorkflowNode::variants) == 24"
+    },
+    {
+      "name": "quality_gate_variant_names_match_templates",
+      "description": "Each NODE_TEMPLATES node_type maps to a variant with matching PascalCase name",
+      "check": "for each (node_type, variant): to_pascal_case(node_type) == variant_name"
+    },
+    {
+      "name": "quality_gate_no_runtime_fields_in_config",
+      "description": "Config structs contain only schema fields, not runtime state",
+      "check": "no config struct has: status, executing, skipped, error, last_output, journal_index, retry_count, idempotency_key"
+    },
+    {
+      "name": "quality_gate_category_derivable",
+      "description": "category() method exists and returns correct NodeCategory for all variants",
+      "check": "forall variant: variant.category() matches NODE_TEMPLATES[variant].category"
+    },
+    {
+      "name": "quality_gate_icon_derivable",
+      "description": "icon() method exists and returns correct icon for all variants",
+      "check": "forall variant: variant.icon() matches node_metadata(variant).icon"
+    },
+    {
+      "name": "quality_gate_serde_tag_type",
+      "description": "Enum uses #[serde(tag = \"type\")] for JSON serialization",
+      "check": "serialized JSON has 'type' field, not 'node_type'"
+    },
+    {
+      "name": "quality_gate_roundtrip_no_data_loss",
+      "description": "Serialize then deserialize returns identical value for all variants",
+      "check": "forall variant with config: deserialize(serialize(variant)) == variant"
+    },
+    {
+      "name": "quality_gate_try_from_str_implemented",
+      "description": "TryFrom<&str> is implemented for WorkflowNode",
+      "check": "WorkflowNode implements TryFrom<&str, Error = _>"
+    },
+    {
+      "name": "quality_gate_display_implemented",
+      "description": "Display trait outputs kebab-case node_type string",
+      "check": "format!(\"{}\", variant) == to_kebab_case(variant_name)"
+    },
+    {
+      "name": "quality_gate_localstorage_compatible",
+      "description": "New format can be loaded from localStorage with migration",
+      "check": "load_workflow_from_localstorage() succeeds with old format data"
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "contract-spec",
+      "path": ".orchestrator/runs/oya-ui-rework/bd-39q/contract-spec.md"
+    },
+    {
+      "type": "martin-fowler-tests",
+      "path": ".orchestrator/runs/oya-ui-rework/bd-39q/martin-fowler-tests.md"
+    }
+  ],
+  "timestamp_utc": "2026-02-22T14:30:00Z"
+}

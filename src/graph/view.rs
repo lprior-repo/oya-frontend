@@ -36,3 +36,44 @@ impl Workflow {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::Workflow;
+
+    #[test]
+    fn given_zoom_delta_when_zooming_then_viewport_values_change() {
+        let mut workflow = Workflow::new();
+        let before = workflow.viewport.clone();
+
+        workflow.zoom(0.8, 100.0, 80.0);
+
+        assert_ne!(workflow.viewport.zoom, before.zoom);
+        assert_ne!(workflow.viewport.x, before.x);
+        assert_ne!(workflow.viewport.y, before.y);
+    }
+
+    #[test]
+    fn given_nodes_when_fitting_view_then_zoom_updates_from_default() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("start", 0.0, 0.0);
+        let _ = workflow.add_node("next", 300.0, 200.0);
+
+        workflow.fit_view(1200.0, 800.0, 48.0);
+
+        assert!(workflow.viewport.zoom > 0.0);
+        assert_ne!(workflow.viewport.zoom, 1.0);
+    }
+
+    #[test]
+    fn given_empty_workflow_when_fitting_view_then_viewport_stays_unchanged() {
+        let mut workflow = Workflow::new();
+        let before = workflow.viewport.clone();
+
+        workflow.fit_view(1200.0, 800.0, 48.0);
+
+        assert_eq!(workflow.viewport.x, before.x);
+        assert_eq!(workflow.viewport.y, before.y);
+        assert_eq!(workflow.viewport.zoom, before.zoom);
+    }
+}

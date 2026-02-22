@@ -6,6 +6,34 @@ use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
+fn drag_mode_from_selection(selected_ids: Vec<NodeId>) -> Option<InteractionMode> {
+    if selected_ids.is_empty() {
+        None
+    } else {
+        Some(InteractionMode::Dragging {
+            node_ids: selected_ids,
+        })
+    }
+}
+
+fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> InteractionMode {
+    match mode {
+        InteractionMode::Marquee { start, .. } => InteractionMode::Marquee {
+            start: *start,
+            current: pos,
+        },
+        _ => mode.clone(),
+    }
+}
+
+fn cursor_class_for(mode: &InteractionMode, is_space_hand: bool) -> &'static str {
+    match mode {
+        InteractionMode::Panning => "cursor-grabbing",
+        InteractionMode::Idle if is_space_hand => "cursor-grab",
+        _ => "cursor-default",
+    }
+}
+
 /// Interaction mode state machine - ensures illegal states are unrepresentable.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum InteractionMode {
@@ -83,13 +111,9 @@ impl CanvasInteraction {
 
     /// Start dragging nodes
     pub fn start_drag(mut self, _node_id: NodeId, selected_ids: Vec<NodeId>) {
-        // Ensure we have at least one node to drag
-        if selected_ids.is_empty() {
-            return;
+        if let Some(next_mode) = drag_mode_from_selection(selected_ids) {
+            self.mode.set(next_mode);
         }
-        self.mode.set(InteractionMode::Dragging {
-            node_ids: selected_ids,
-        });
     }
 
     /// Start connecting from a handle
@@ -112,12 +136,7 @@ impl CanvasInteraction {
     /// Update marquee current position
     pub fn update_marquee(mut self, pos: (f32, f32)) {
         let mode = self.mode.read().clone();
-        if let InteractionMode::Marquee { start, .. } = mode {
-            self.mode.set(InteractionMode::Marquee {
-                start,
-                current: pos,
-            });
-        }
+        self.mode.set(update_marquee_mode(&mode, pos));
     }
 
     /// Update mouse position
@@ -206,11 +225,8 @@ impl CanvasInteraction {
 
     /// Get cursor CSS class based on current mode
     pub fn cursor_class(&self) -> &'static str {
-        match *self.mode.read() {
-            InteractionMode::Panning => "cursor-grabbing",
-            InteractionMode::Idle if *self.is_space_hand.read() => "cursor-grab",
-            _ => "cursor-default",
-        }
+        let mode = self.mode.read().clone();
+        cursor_class_for(&mode, *self.is_space_hand.read())
     }
 
     /// Get dragging node IDs if in dragging mode
@@ -260,5 +276,47 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
         temp_edge_to,
         hovered_handle,
         drag_anchor,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cursor_class_for, drag_mode_from_selection, update_marquee_mode, InteractionMode};
+    use oya_frontend::graph::NodeId;
+
+    #[test]
+    fn given_empty_selected_ids_when_starting_drag_then_mode_remains_unchanged() {
+        let next = drag_mode_from_selection(Vec::new());
+        assert_eq!(next, None);
+    }
+
+    #[test]
+    fn given_marquee_mode_when_updating_then_start_is_preserved_and_current_updates() {
+        let mode = InteractionMode::Marquee {
+            start: (1.0, 2.0),
+            current: (3.0, 4.0),
+        };
+
+        let next = update_marquee_mode(&mode, (9.0, 10.0));
+        assert_eq!(
+            next,
+            InteractionMode::Marquee {
+                start: (1.0, 2.0),
+                current: (9.0, 10.0)
+            }
+        );
+    }
+
+    #[test]
+    fn given_space_hand_enabled_and_idle_when_getting_cursor_class_then_cursor_grab_is_returned() {
+        let class = cursor_class_for(&InteractionMode::Idle, true);
+        assert_eq!(class, "cursor-grab");
+    }
+
+    #[test]
+    fn given_non_empty_selected_ids_when_starting_drag_then_dragging_mode_is_returned() {
+        let id = NodeId::new();
+        let next = drag_mode_from_selection(vec![id]);
+        assert_eq!(next, Some(InteractionMode::Dragging { node_ids: vec![id] }));
     }
 }

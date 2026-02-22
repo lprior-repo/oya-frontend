@@ -1,0 +1,23 @@
+{
+  "bead_id": "bd-1l5",
+  "phase": "SCOUT",
+  "agent_id": "scout-agent-001",
+  "findings": {
+    "connection_creation_flow": "UI interaction starts in main.rs:661-674 (onmouseup handler) which calls workflow.add_connection() via use_workflow_state.rs:108-123 hook. The hook performs self-connection check then delegates to connectivity.rs:6-35 add_connection() which performs: (1) self-connection check, (2) cycle detection via path_exists(), (3) duplicate connection check. If all pass, Connection is created with Uuid, source/target NodeId, and source_port/target_port (both hardcoded as 'main' in current implementation). Returns true on success, false on rejection.",
+    "existing_validation": [
+      "Self-connection rejection: source == target check in connectivity.rs:13-15 and use_workflow_state.rs:115-117",
+      "Cycle detection: path_exists(target, source) in connectivity.rs:16-18 using DFS traversal",
+      "Duplicate connection rejection: checks for existing connection with same source+target+ports in connectivity.rs:19-26"
+    ],
+    "node_type_info": "WorkflowNode enum has 24 variants with these type-related methods: (1) category() -> NodeCategory {Entry, Durable, State, Flow, Timing, Signal}, (2) is_entry_point() -> bool for HttpHandler/KafkaHandler/CronTrigger/WorkflowSubmit, (3) compatible_service_kinds() -> Vec<ServiceKind> with constraints (state nodes require VirtualObject/Workflow, promise nodes require Workflow only), (4) required_context_types() -> Vec<ContextType>. NO explicit input/output port type definitions exist. PortName is just a String wrapper with no type semantics.",
+    "type_system_options": [
+      "Option A - PortType Enum: Define PortType enum (Any, Json, Event, State, Signal, FlowControl) in graph/mod.rs. Add input_port_types() and output_port_types() methods to WorkflowNode. Check compatibility in add_connection(). Pros: Simple, explicit, easy to extend. Cons: May be too rigid for complex scenarios.",
+      "Option B - Category-based: Use existing NodeCategory for loose compatibility checks. Entry->Durable->State->Flow->Timing->Signal flow restrictions. Pros: Reuses existing types. Cons: Too coarse-grained, doesn't capture actual data types.",
+      "Option C - JSON Schema typing: Define schemas for each port type, validate at connection time. Pros: Very flexible, supports complex types. Cons: Complex implementation, performance overhead.",
+      "Option D - Implicit typing from configs: Infer types from node configuration (e.g., GetState outputs state type, HttpHandler outputs event type). Pros: No new type declarations needed. Cons: Ambiguous in many cases."
+    ],
+    "recommended_approach": "Implement Option A (PortType Enum) with warning-level enforcement. Steps: (1) Add PortType enum to src/graph/mod.rs with variants: Any, Event, State, Signal, FlowControl, Json. (2) Add input_port_types() -> Vec<(&'static str, PortType)> and output_port_types() -> Vec<(&'static str, PortType)> methods to WorkflowNode in workflow_node.rs. Map each node variant to its port types (e.g., HttpHandler outputs Event, GetState outputs State, Condition has FlowControl output). (3) Add type_compatible(source: PortType, target: PortType) -> bool function with Any matching everything, specific types must match. (4) Modify connectivity.rs add_connection() to return Result<bool, ConnectionError> with TypeMismatch variant. (5) Update use_workflow_state.rs to handle type errors and emit warnings (not blocking connections). (6) Add visual feedback in main.rs for type mismatches - show yellow dashed edge or tooltip. This approach provides type guidance without breaking existing workflows, matches the existing pattern of service_kinds/context_types validation, and can be made stricter later."
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T10:58:00Z"
+}

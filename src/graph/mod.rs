@@ -23,6 +23,7 @@ pub mod restate_types;
 pub mod validation;
 pub mod workflow_node;
 
+pub use connectivity::{ConnectionError, ConnectionResult};
 pub use execution_state::ExecutionState;
 pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
 
@@ -140,5 +141,38 @@ pub struct Workflow {
 impl Default for Workflow {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NodeCategory, NodeId, PortName};
+
+    #[test]
+    fn given_node_id_when_displayed_then_it_matches_inner_uuid() {
+        let id = NodeId::new();
+        assert_eq!(id.to_string(), id.0.to_string());
+    }
+
+    #[test]
+    fn given_default_node_id_when_created_then_it_is_not_nil() {
+        let id = NodeId::default();
+        assert_ne!(id.0, uuid::Uuid::nil());
+    }
+
+    #[test]
+    fn given_string_when_converted_to_port_name_then_value_is_preserved() {
+        let port = PortName::from("main");
+        assert_eq!(port.0, "main");
+    }
+
+    #[test]
+    fn given_node_categories_when_displayed_then_lowercase_labels_are_returned() {
+        assert_eq!(NodeCategory::Entry.to_string(), "entry");
+        assert_eq!(NodeCategory::Durable.to_string(), "durable");
+        assert_eq!(NodeCategory::State.to_string(), "state");
+        assert_eq!(NodeCategory::Flow.to_string(), "flow");
+        assert_eq!(NodeCategory::Timing.to_string(), "timing");
+        assert_eq!(NodeCategory::Signal.to_string(), "signal");
     }
 }

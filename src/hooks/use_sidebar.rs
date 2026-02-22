@@ -4,6 +4,14 @@
 
 use dioxus::prelude::*;
 
+fn pending_drop_after_pickup(node_type: &'static str) -> Option<String> {
+    Some(node_type.to_string())
+}
+
+const fn pending_drop_after_clear() -> Option<String> {
+    None
+}
+
 /// Sidebar state hook - manages sidebar search and drag-drop state.
 ///
 /// Follows functional reactive pattern with methods for state mutations.
@@ -37,12 +45,12 @@ impl SidebarState {
 
     /// Start dragging a node type from sidebar
     pub fn pickup_node(mut self, node_type: &'static str) {
-        self.pending_drop.set(Some(node_type.to_string()));
+        self.pending_drop.set(pending_drop_after_pickup(node_type));
     }
 
     /// Clear pending drop (after drop or cancel)
     pub fn clear_pending_drop(mut self) {
-        self.pending_drop.set(None);
+        self.pending_drop.set(pending_drop_after_clear());
     }
 
     /// Check if there's a pending drop
@@ -58,5 +66,20 @@ pub fn use_sidebar() -> SidebarState {
     SidebarState {
         search,
         pending_drop,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{pending_drop_after_clear, pending_drop_after_pickup};
+
+    #[test]
+    fn given_node_type_when_picking_up_then_pending_drop_is_set() {
+        assert_eq!(pending_drop_after_pickup("run"), Some("run".to_string()));
+    }
+
+    #[test]
+    fn given_pending_drop_when_clearing_then_pending_drop_is_none() {
+        assert_eq!(pending_drop_after_clear(), None);
     }
 }

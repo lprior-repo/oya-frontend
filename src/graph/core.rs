@@ -86,3 +86,79 @@ impl Workflow {
             .retain(|c| c.source != id && c.target != id);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::{NodeCategory, PortName};
+
+    #[test]
+    fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("run", 100.0, 100.0);
+        let id = workflow.add_node("run", 100.0, 100.0);
+
+        let added = workflow.nodes.iter().find(|node| node.id == id);
+        assert!(added.is_some_and(|node| (node.x, node.y) == (130.0, 130.0)));
+    }
+
+    #[test]
+    fn given_viewport_offset_and_zoom_when_adding_node_at_center_then_node_is_centered() {
+        let mut workflow = Workflow::new();
+        workflow.viewport = Viewport {
+            x: -200.0,
+            y: -100.0,
+            zoom: 2.0,
+        };
+
+        workflow.add_node_at_viewport_center("run");
+
+        let node = workflow.nodes.first();
+        assert!(node.is_some_and(|n| (n.x, n.y) == (300.0, 200.0)));
+    }
+
+    #[test]
+    fn given_removed_node_when_removing_then_incident_connections_are_removed() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("http-handler", 0.0, 0.0);
+        let b = workflow.add_node("run", 100.0, 0.0);
+        let c = workflow.add_node("run", 200.0, 0.0);
+        let main = PortName::from("main");
+
+        let _ = workflow.add_connection(a, b, &main, &main);
+        let _ = workflow.add_connection(b, c, &main, &main);
+
+        workflow.remove_node(b);
+
+        assert_eq!(workflow.nodes.len(), 2);
+        assert!(workflow
+            .connections
+            .iter()
+            .all(|conn| conn.source != b && conn.target != b));
+    }
+
+    #[test]
+    fn given_non_object_config_when_setting_status_then_config_is_replaced_with_status_object() {
+        let mut node = Node {
+            id: NodeId::new(),
+            name: "n".to_string(),
+            description: String::new(),
+            node_type: "run".to_string(),
+            category: NodeCategory::Durable,
+            icon: String::new(),
+            x: 0.0,
+            y: 0.0,
+            config: serde_json::Value::String("legacy".to_string()),
+            last_output: None,
+            selected: false,
+            executing: false,
+            skipped: false,
+            error: None,
+            execution_state: ExecutionState::default(),
+        };
+
+        Workflow::set_node_status(&mut node, "running");
+
+        assert_eq!(node.config, serde_json::json!({"status": "running"}));
+    }
+}

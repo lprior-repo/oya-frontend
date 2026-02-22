@@ -1,0 +1,367 @@
+{
+  "bead_id": "bd-1k0",
+  "phase": "ATDD",
+  "agent_id": "claude-rust-contract",
+  "test_scenarios": {
+    "happy_paths": [
+      {
+        "name": "given_service_kind_enum_when_serializing_then_uses_kebab_case",
+        "description": "ServiceKind variants serialize to kebab-case: 'service', 'virtual-object', 'workflow'",
+        "variants_to_test": ["Service", "VirtualObject", "Workflow"],
+        "expected_serialization": ["\"service\"", "\"virtual-object\"", "\"workflow\""]
+      },
+      {
+        "name": "given_context_type_enum_when_serializing_then_uses_kebab_case",
+        "description": "ContextType variants serialize to kebab-case",
+        "variants_to_test": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "expected_serialization": ["\"service\"", "\"object-exclusive\"", "\"object-shared\"", "\"workflow-exclusive\"", "\"workflow-shared\""]
+      },
+      {
+        "name": "given_entry_node_when_getting_compatible_service_kinds_then_returns_all_three",
+        "description": "Entry nodes (http-handler, kafka-handler, cron-trigger, workflow-submit) work in all Restate service kinds",
+        "nodes_to_test": ["HttpHandler", "KafkaHandler", "CronTrigger", "WorkflowSubmit"],
+        "expected_service_kinds": ["Service", "VirtualObject", "Workflow"],
+        "assertion": "returned_vec_contains_all_expected_kinds"
+      },
+      {
+        "name": "given_durable_node_when_getting_compatible_service_kinds_then_returns_all_three",
+        "description": "Durable call nodes work in all Restate service kinds",
+        "nodes_to_test": ["Run", "ServiceCall", "ObjectCall", "WorkflowCall", "SendMessage", "DelayedSend"],
+        "expected_service_kinds": ["Service", "VirtualObject", "Workflow"]
+      },
+      {
+        "name": "given_state_node_when_getting_compatible_service_kinds_then_returns_virtual_object_and_workflow",
+        "description": "State operations require stateful service kinds (VirtualObject or Workflow)",
+        "nodes_to_test": ["GetState", "SetState", "ClearState"],
+        "expected_service_kinds": ["VirtualObject", "Workflow"],
+        "forbidden_service_kinds": ["Service"]
+      },
+      {
+        "name": "given_flow_node_when_getting_compatible_service_kinds_then_returns_all_three",
+        "description": "Control flow nodes work in all Restate service kinds",
+        "nodes_to_test": ["Condition", "Switch", "Loop", "Parallel", "Compensate"],
+        "expected_service_kinds": ["Service", "VirtualObject", "Workflow"]
+      },
+      {
+        "name": "given_timing_node_when_getting_compatible_service_kinds_then_returns_all_three",
+        "description": "Timing nodes work in all Restate service kinds",
+        "nodes_to_test": ["Sleep", "Timeout"],
+        "expected_service_kinds": ["Service", "VirtualObject", "Workflow"]
+      },
+      {
+        "name": "given_durable_promise_node_when_getting_compatible_service_kinds_then_returns_workflow_only",
+        "description": "DurablePromise requires Workflow service kind (promise API is workflow-only)",
+        "nodes_to_test": ["DurablePromise"],
+        "expected_service_kinds": ["Workflow"],
+        "forbidden_service_kinds": ["Service", "VirtualObject"]
+      },
+      {
+        "name": "given_awakeable_node_when_getting_compatible_service_kinds_then_returns_workflow_only",
+        "description": "Awakeable requires Workflow service kind",
+        "nodes_to_test": ["Awakeable"],
+        "expected_service_kinds": ["Workflow"],
+        "forbidden_service_kinds": ["Service", "VirtualObject"]
+      },
+      {
+        "name": "given_resolve_promise_node_when_getting_compatible_service_kinds_then_returns_workflow_only",
+        "description": "ResolvePromise requires Workflow service kind",
+        "nodes_to_test": ["ResolvePromise"],
+        "expected_service_kinds": ["Workflow"],
+        "forbidden_service_kinds": ["Service", "VirtualObject"]
+      },
+      {
+        "name": "given_signal_handler_node_when_getting_compatible_service_kinds_then_returns_all_three",
+        "description": "SignalHandler works in all service kinds",
+        "nodes_to_test": ["SignalHandler"],
+        "expected_service_kinds": ["Service", "VirtualObject", "Workflow"]
+      },
+      {
+        "name": "given_state_node_when_getting_required_context_types_then_returns_exclusive_contexts",
+        "description": "State operations require exclusive (state-modifying) contexts",
+        "nodes_to_test": ["GetState", "SetState", "ClearState"],
+        "expected_context_types": ["ObjectExclusive", "WorkflowExclusive"],
+        "forbidden_context_types": ["Service", "ObjectShared", "WorkflowShared"]
+      },
+      {
+        "name": "given_promise_node_when_getting_required_context_types_then_returns_workflow_exclusive",
+        "description": "Promise operations require WorkflowExclusive context",
+        "nodes_to_test": ["DurablePromise", "ResolvePromise"],
+        "expected_context_types": ["WorkflowExclusive"],
+        "forbidden_context_types": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowShared"]
+      },
+      {
+        "name": "given_awakeable_node_when_getting_required_context_types_then_returns_workflow_exclusive",
+        "description": "Awakeable requires WorkflowExclusive context",
+        "nodes_to_test": ["Awakeable"],
+        "expected_context_types": ["WorkflowExclusive"]
+      },
+      {
+        "name": "given_entry_node_when_getting_required_context_types_then_returns_all_contexts",
+        "description": "Entry nodes can be entry points for any context type",
+        "nodes_to_test": ["HttpHandler", "KafkaHandler", "CronTrigger", "WorkflowSubmit"],
+        "expected_context_types": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"]
+      },
+      {
+        "name": "given_durable_node_when_getting_required_context_types_then_returns_all_contexts",
+        "description": "Durable execution nodes work in any context",
+        "nodes_to_test": ["Run", "ServiceCall", "ObjectCall", "WorkflowCall", "SendMessage", "DelayedSend"],
+        "expected_context_types": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"]
+      },
+      {
+        "name": "given_service_kind_when_parsing_from_str_then_succeeds",
+        "description": "ServiceKind FromStr implementation parses kebab-case strings",
+        "test_cases": [
+          {"input": "service", "expected": "ServiceKind::Service"},
+          {"input": "virtual-object", "expected": "ServiceKind::VirtualObject"},
+          {"input": "workflow", "expected": "ServiceKind::Workflow"}
+        ]
+      },
+      {
+        "name": "given_context_type_when_parsing_from_str_then_succeeds",
+        "description": "ContextType FromStr implementation parses kebab-case strings",
+        "test_cases": [
+          {"input": "service", "expected": "ContextType::Service"},
+          {"input": "object-exclusive", "expected": "ContextType::ObjectExclusive"},
+          {"input": "object-shared", "expected": "ContextType::ObjectShared"},
+          {"input": "workflow-exclusive", "expected": "ContextType::WorkflowExclusive"},
+          {"input": "workflow-shared", "expected": "ContextType::WorkflowShared"}
+        ]
+      },
+      {
+        "name": "given_service_kind_when_roundtrip_serialization_then_preserves_data",
+        "description": "ServiceKind survives JSON serialization/deserialization roundtrip",
+        "variants_to_test": ["Service", "VirtualObject", "Workflow"]
+      },
+      {
+        "name": "given_context_type_when_roundtrip_serialization_then_preserves_data",
+        "description": "ContextType survives JSON serialization/deserialization roundtrip",
+        "variants_to_test": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"]
+      }
+    ],
+    "error_paths": [
+      {
+        "name": "given_invalid_string_when_parsing_service_kind_then_returns_error",
+        "description": "Unknown strings return parse error",
+        "invalid_inputs": ["", "foo", "SERVICE", "VirtualObject", "workflow-exclusive", "service-kind"],
+        "expected_error_type": "ParseServiceKindError"
+      },
+      {
+        "name": "given_invalid_string_when_parsing_context_type_then_returns_error",
+        "description": "Unknown strings return parse error",
+        "invalid_inputs": ["", "bar", "SERVICE", "objectexclusive", "workflow", "unknown-context"],
+        "expected_error_type": "ParseContextTypeError"
+      },
+      {
+        "name": "given_json_with_unknown_service_kind_when_deserializing_then_returns_error",
+        "description": "JSON deserialization fails for unknown variant",
+        "json_input": "\"unknown-service-kind\"",
+        "expected_behavior": "returns_deserialization_error"
+      },
+      {
+        "name": "given_json_with_unknown_context_type_when_deserializing_then_returns_error",
+        "description": "JSON deserialization fails for unknown variant",
+        "json_input": "\"unknown-context-type\"",
+        "expected_behavior": "returns_deserialization_error"
+      }
+    ],
+    "edge_cases": [
+      {
+        "name": "given_all_service_kind_variants_when_counting_then_is_three",
+        "description": "ServiceKind has exactly 3 variants",
+        "expected_count": 3
+      },
+      {
+        "name": "given_all_context_type_variants_when_counting_then_is_five",
+        "description": "ContextType has exactly 5 variants",
+        "expected_count": 5
+      },
+      {
+        "name": "given_compatible_service_kinds_when_called_multiple_times_then_returns_same_result",
+        "description": "Method is deterministic - same input always produces same output",
+        "invariant": "idempotent_read_operation"
+      },
+      {
+        "name": "given_required_context_types_when_called_multiple_times_then_returns_same_result",
+        "description": "Method is deterministic - same input always produces same output",
+        "invariant": "idempotent_read_operation"
+      },
+      {
+        "name": "given_all_24_workflow_nodes_when_checking_compatible_service_kinds_then_none_returns_empty",
+        "description": "Every WorkflowNode variant returns at least one compatible service kind",
+        "assertion": "all_variants_return_non_empty_vec"
+      },
+      {
+        "name": "given_all_24_workflow_nodes_when_checking_required_context_types_then_none_returns_empty",
+        "description": "Every WorkflowNode variant returns at least one required context type",
+        "assertion": "all_variants_return_non_empty_vec"
+      }
+    ],
+    "contract_tests": [
+      {
+        "name": "given_service_kind_when_displaying_then_is_inverse_of_from_str",
+        "description": "Display implementation produces strings that FromStr can parse back",
+        "contract": "display_from_str_roundtrip"
+      },
+      {
+        "name": "given_context_type_when_displaying_then_is_inverse_of_from_str",
+        "description": "Display implementation produces strings that FromStr can parse back",
+        "contract": "display_from_str_roundtrip"
+      },
+      {
+        "name": "given_service_kind_hash_requirement_then_works_in_hashset",
+        "description": "ServiceKind derives Hash and works in HashSet/HashMap",
+        "contract": "hash_and_eq_consistency"
+      },
+      {
+        "name": "given_context_type_hash_requirement_then_works_in_hashset",
+        "description": "ContextType derives Hash and works in HashSet/HashMap",
+        "contract": "hash_and_eq_consistency"
+      },
+      {
+        "name": "given_service_kind_copy_requirement_then_is_copy",
+        "description": "ServiceKind is Copy for efficient passing",
+        "contract": "copy_trait_derived"
+      },
+      {
+        "name": "given_context_type_copy_requirement_then_is_copy",
+        "description": "ContextType is Copy for efficient passing",
+        "contract": "copy_trait_derived"
+      },
+      {
+        "name": "given_moved_service_kind_when_importing_in_flow_extender_then_compiles",
+        "description": "ServiceKind moved from flow_extender to graph module is re-exported or re-imported",
+        "contract": "module_reorganization_compiles"
+      },
+      {
+        "name": "given_existing_usage_of_restate_service_kind_when_renamed_then_uses_service_kind",
+        "description": "All existing RestateServiceKind usages in flow_extender compile with new name",
+        "contract": "backward_compatible_rename"
+      }
+    ]
+  },
+  "type_contracts": {
+    "ServiceKind": {
+      "location": "src/graph/restate_types.rs",
+      "derive_traits": ["Debug", "Clone", "Copy", "Serialize", "Deserialize", "PartialEq", "Eq", "Hash"],
+      "serde_config": "rename_all = \"kebab-case\"",
+      "variants": [
+        {"name": "Service", "description": "Stateless service - no persistent state, no keyed context"},
+        {"name": "VirtualObject", "description": "Stateful object with keyed identity - supports exclusive and shared handlers"},
+        {"name": "Workflow", "description": "Durable workflow with promises - supports exclusive main handler and shared signal handlers"}
+      ],
+      "required_impls": ["Display", "FromStr"]
+    },
+    "ContextType": {
+      "location": "src/graph/restate_types.rs",
+      "derive_traits": ["Debug", "Clone", "Copy", "Serialize", "Deserialize", "PartialEq", "Eq", "Hash"],
+      "serde_config": "rename_all = \"kebab-case\"",
+      "variants": [
+        {"name": "Service", "description": "Service context - stateless, no keyed identity"},
+        {"name": "ObjectExclusive", "description": "VirtualObject exclusive handler - can read/write state, single invocation per key"},
+        {"name": "ObjectShared", "description": "VirtualObject shared handler - can read state, concurrent invocations per key"},
+        {"name": "WorkflowExclusive", "description": "Workflow main handler - exclusive access, can use promises"},
+        {"name": "WorkflowShared", "description": "Workflow signal handler - concurrent, can interact with workflow"}
+      ],
+      "required_impls": ["Display", "FromStr"]
+    }
+  },
+  "method_contracts": {
+    "WorkflowNode::compatible_service_kinds": {
+      "signature": "pub const fn compatible_service_kinds(&self) -> &'static [ServiceKind]",
+      "preconditions": ["self is a valid WorkflowNode variant"],
+      "postconditions": ["returns non-empty slice", "slice is sorted by variant order"],
+      "return_values_by_variant": {
+        "HttpHandler": ["Service", "VirtualObject", "Workflow"],
+        "KafkaHandler": ["Service", "VirtualObject", "Workflow"],
+        "CronTrigger": ["Service", "VirtualObject", "Workflow"],
+        "WorkflowSubmit": ["Service", "VirtualObject", "Workflow"],
+        "Run": ["Service", "VirtualObject", "Workflow"],
+        "ServiceCall": ["Service", "VirtualObject", "Workflow"],
+        "ObjectCall": ["Service", "VirtualObject", "Workflow"],
+        "WorkflowCall": ["Service", "VirtualObject", "Workflow"],
+        "SendMessage": ["Service", "VirtualObject", "Workflow"],
+        "DelayedSend": ["Service", "VirtualObject", "Workflow"],
+        "GetState": ["VirtualObject", "Workflow"],
+        "SetState": ["VirtualObject", "Workflow"],
+        "ClearState": ["VirtualObject", "Workflow"],
+        "Condition": ["Service", "VirtualObject", "Workflow"],
+        "Switch": ["Service", "VirtualObject", "Workflow"],
+        "Loop": ["Service", "VirtualObject", "Workflow"],
+        "Parallel": ["Service", "VirtualObject", "Workflow"],
+        "Compensate": ["Service", "VirtualObject", "Workflow"],
+        "Sleep": ["Service", "VirtualObject", "Workflow"],
+        "Timeout": ["Service", "VirtualObject", "Workflow"],
+        "DurablePromise": ["Workflow"],
+        "Awakeable": ["Workflow"],
+        "ResolvePromise": ["Workflow"],
+        "SignalHandler": ["Service", "VirtualObject", "Workflow"]
+      }
+    },
+    "WorkflowNode::required_context_types": {
+      "signature": "pub const fn required_context_types(&self) -> &'static [ContextType]",
+      "preconditions": ["self is a valid WorkflowNode variant"],
+      "postconditions": ["returns non-empty slice", "slice is sorted by variant order"],
+      "return_values_by_variant": {
+        "HttpHandler": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "KafkaHandler": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "CronTrigger": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "WorkflowSubmit": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Run": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "ServiceCall": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "ObjectCall": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "WorkflowCall": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "SendMessage": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "DelayedSend": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "GetState": ["ObjectExclusive", "WorkflowExclusive"],
+        "SetState": ["ObjectExclusive", "WorkflowExclusive"],
+        "ClearState": ["ObjectExclusive", "WorkflowExclusive"],
+        "Condition": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Switch": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Loop": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Parallel": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Compensate": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Sleep": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "Timeout": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"],
+        "DurablePromise": ["WorkflowExclusive"],
+        "Awakeable": ["WorkflowExclusive"],
+        "ResolvePromise": ["WorkflowExclusive"],
+        "SignalHandler": ["Service", "ObjectExclusive", "ObjectShared", "WorkflowExclusive", "WorkflowShared"]
+      }
+    }
+  },
+  "test_files_to_create": [
+    "src/graph/restate_types.rs (with #[cfg(test)] mod tests inline)"
+  ],
+  "test_files_to_modify": [
+    "src/graph/workflow_node.rs (add tests for new methods in #[cfg(test)] mod tests)"
+  ],
+  "validation_rules": {
+    "service_kind_context_type_compatibility": {
+      "Service": ["Service"],
+      "VirtualObject": ["ObjectExclusive", "ObjectShared"],
+      "Workflow": ["WorkflowExclusive", "WorkflowShared"]
+    },
+    "node_placement_rules": [
+      {
+        "rule": "state_nodes_require_stateful_service",
+        "nodes": ["GetState", "SetState", "ClearState"],
+        "valid_service_kinds": ["VirtualObject", "Workflow"],
+        "invalid_service_kinds": ["Service"]
+      },
+      {
+        "rule": "promise_nodes_require_workflow",
+        "nodes": ["DurablePromise", "Awakeable", "ResolvePromise"],
+        "valid_service_kinds": ["Workflow"],
+        "invalid_service_kinds": ["Service", "VirtualObject"]
+      },
+      {
+        "rule": "entry_nodes_work_everywhere",
+        "nodes": ["HttpHandler", "KafkaHandler", "CronTrigger", "WorkflowSubmit"],
+        "valid_service_kinds": ["Service", "VirtualObject", "Workflow"],
+        "invalid_service_kinds": []
+      }
+    ]
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T10:30:00Z"
+}

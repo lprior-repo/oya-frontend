@@ -14,6 +14,9 @@ pub enum WorkflowError {
     #[error("Connection would create a cycle")]
     CycleDetected,
 
+    #[error("Connection already exists")]
+    DuplicateConnection,
+
     #[error("Invalid connection: {0}")]
     InvalidConnection(String),
 

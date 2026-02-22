@@ -197,3 +197,94 @@ impl DagLayout {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{DagLayout, LEFT_PADDING, TOP_PADDING};
+    use crate::graph::{Connection, PortName, Workflow};
+
+    #[test]
+    fn given_cycle_when_applying_layout_then_node_positions_remain_unchanged() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("run", 10.0, 20.0);
+        let b = workflow.add_node("run", 40.0, 50.0);
+        let before: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
+
+        workflow.connections.push(Connection {
+            id: uuid::Uuid::new_v4(),
+            source: a,
+            target: b,
+            source_port: PortName::from("main"),
+            target_port: PortName::from("main"),
+        });
+        workflow.connections.push(Connection {
+            id: uuid::Uuid::new_v4(),
+            source: b,
+            target: a,
+            source_port: PortName::from("main"),
+            target_port: PortName::from("main"),
+        });
+
+        DagLayout::default().apply(&mut workflow);
+
+        let after: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn given_disconnected_graph_when_applying_layout_then_nodes_have_distinct_x_positions() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("run", 0.0, 0.0);
+        let _ = workflow.add_node("run", 0.0, 0.0);
+        let _ = workflow.add_node("run", 0.0, 0.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let mut xs: Vec<f32> = workflow.nodes.iter().map(|n| n.x).collect();
+        xs.sort_by(f32::total_cmp);
+        xs.dedup_by(|a, b| (*a - *b).abs() < 0.001);
+        assert_eq!(xs.len(), 3);
+    }
+
+    #[test]
+    fn given_same_graph_when_applying_twice_then_positions_are_deterministic() {
+        let mut workflow = Workflow::new();
+        let n1 = workflow.add_node("http-handler", 0.0, 0.0);
+        let n2 = workflow.add_node("run", 0.0, 0.0);
+        let n3 = workflow.add_node("condition", 0.0, 0.0);
+        let main = PortName::from("main");
+        let _ = workflow.add_connection(n1, n2, &main, &main);
+        let _ = workflow.add_connection(n2, n3, &main, &main);
+
+        let layout = DagLayout::default();
+        layout.apply(&mut workflow);
+        let once: Vec<(String, f32, f32)> = workflow
+            .nodes
+            .iter()
+            .map(|n| (n.name.clone(), n.x, n.y))
+            .collect();
+
+        layout.apply(&mut workflow);
+        let twice: Vec<(String, f32, f32)> = workflow
+            .nodes
+            .iter()
+            .map(|n| (n.name.clone(), n.x, n.y))
+            .collect();
+
+        assert_eq!(once, twice);
+    }
+
+    #[test]
+    fn given_layout_result_when_normalized_then_minimum_coordinates_match_padding() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("run", -500.0, -400.0);
+        let _ = workflow.add_node("run", -350.0, -200.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let min_x = workflow.nodes.iter().map(|n| n.x).reduce(f32::min);
+        let min_y = workflow.nodes.iter().map(|n| n.y).reduce(f32::min);
+        assert!(min_x.is_some_and(|value| (value - LEFT_PADDING).abs() < 0.001));
+        assert!(min_y.is_some_and(|value| (value - TOP_PADDING).abs() < 0.001));
+    }
+}

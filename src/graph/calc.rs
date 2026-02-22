@@ -1,5 +1,12 @@
 #[must_use]
 pub fn calculate_zoom_delta(delta: f32, current_zoom: f32) -> f32 {
+    if !delta.is_finite() {
+        return current_zoom.clamp(0.1, 5.0);
+    }
+    if !current_zoom.is_finite() || current_zoom <= 0.0 {
+        return 1.0;
+    }
+
     let new_zoom = current_zoom * (1.0 + delta);
     new_zoom.clamp(0.1, 5.0)
 }
@@ -13,9 +20,29 @@ pub fn calculate_pan_offset(
     old_zoom: f32,
     new_zoom: f32,
 ) -> (f32, f32) {
+    if !viewport_x.is_finite()
+        || !viewport_y.is_finite()
+        || !center_x.is_finite()
+        || !center_y.is_finite()
+        || !old_zoom.is_finite()
+        || !new_zoom.is_finite()
+        || old_zoom <= 0.0
+    {
+        return (viewport_x, viewport_y);
+    }
+
     let factor = new_zoom / old_zoom;
+    if !factor.is_finite() {
+        return (viewport_x, viewport_y);
+    }
+
     let new_x = (center_x - viewport_x).mul_add(-factor, center_x);
     let new_y = (center_y - viewport_y).mul_add(-factor, center_y);
+
+    if !new_x.is_finite() || !new_y.is_finite() {
+        return (viewport_x, viewport_y);
+    }
+
     (new_x, new_y)
 }
 
@@ -27,6 +54,20 @@ pub fn calculate_fit_view(
     padding: f32,
 ) -> Option<(f32, f32, f32)> {
     if nodes.is_empty() {
+        return None;
+    }
+
+    if !viewport_width.is_finite()
+        || !viewport_height.is_finite()
+        || !padding.is_finite()
+        || viewport_width <= 0.0
+        || viewport_height <= 0.0
+        || padding < 0.0
+    {
+        return None;
+    }
+
+    if nodes.iter().any(|(x, y)| !x.is_finite() || !y.is_finite()) {
         return None;
     }
 
@@ -117,7 +158,9 @@ pub fn calculate_rect_size(rect: (f32, f32, f32, f32)) -> (f32, f32) {
 
 #[cfg(test)]
 mod tests {
-    use super::update_node_position;
+    use super::{
+        calculate_fit_view, calculate_pan_offset, calculate_zoom_delta, update_node_position,
+    };
 
     #[test]
     fn given_small_drag_delta_when_updating_node_position_then_position_moves_by_snap_grid() {
@@ -131,5 +174,40 @@ mod tests {
         let (x, y) = update_node_position(420.0, 240.0, 0.0, 0.0);
 
         assert_eq!((x, y), (420.0, 240.0));
+    }
+
+    #[test]
+    fn given_non_finite_zoom_inputs_when_calculating_zoom_delta_then_result_is_deterministic() {
+        assert_eq!(calculate_zoom_delta(f32::NAN, 1.2), 1.2);
+        assert_eq!(calculate_zoom_delta(0.2, f32::NAN), 1.0);
+    }
+
+    #[test]
+    fn given_invalid_pan_zoom_inputs_when_calculating_offset_then_viewport_is_unchanged() {
+        let result = calculate_pan_offset(10.0, 20.0, 200.0, 120.0, 0.0, 2.0);
+
+        assert_eq!(result, (10.0, 20.0));
+    }
+
+    #[test]
+    fn given_non_positive_viewport_when_calculating_fit_view_then_result_is_none() {
+        let nodes = [(10.0, 20.0), (40.0, 60.0)];
+
+        assert_eq!(calculate_fit_view(&nodes, 0.0, 500.0, 24.0), None);
+        assert_eq!(calculate_fit_view(&nodes, 800.0, -1.0, 24.0), None);
+    }
+
+    #[test]
+    fn given_negative_padding_when_calculating_fit_view_then_result_is_none() {
+        let nodes = [(10.0, 20.0), (40.0, 60.0)];
+
+        assert_eq!(calculate_fit_view(&nodes, 800.0, 600.0, -10.0), None);
+    }
+
+    #[test]
+    fn given_non_finite_nodes_when_calculating_fit_view_then_result_is_none() {
+        let nodes = [(10.0, 20.0), (f32::NAN, 60.0)];
+
+        assert_eq!(calculate_fit_view(&nodes, 800.0, 600.0, 24.0), None);
     }
 }

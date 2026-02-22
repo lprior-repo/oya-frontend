@@ -306,3 +306,67 @@ fn collect_paths(value: &Value, current_path: &str, prefix: &str, paths: &mut Ve
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{apply_suggestion, extract_paths, parse_trigger, Suggestion, Trigger};
+    use serde_json::json;
+
+    #[test]
+    fn given_node_prefix_when_parsing_trigger_then_node_prefix_phase_is_returned() {
+        let trigger = parse_trigger("hello $node[\"Use");
+        assert!(matches!(trigger, Some(Trigger::NodePrefix(prefix)) if prefix == "Use"));
+    }
+
+    #[test]
+    fn given_node_and_path_prefix_when_parsing_trigger_then_path_prefix_phase_is_returned() {
+        let trigger = parse_trigger("$node[\"User\"].json.em");
+        assert!(matches!(
+            trigger,
+            Some(Trigger::PathPrefix { node_name, path }) if node_name == "User" && path == "em"
+        ));
+    }
+
+    #[test]
+    fn given_node_suggestion_when_applying_then_incomplete_node_token_is_replaced() {
+        let suggestion = Suggestion::Node(super::NodeInfo {
+            name: "Fetcher".to_string(),
+            last_output: None,
+        });
+
+        let output = apply_suggestion("$node[\"Fet", &suggestion);
+        assert_eq!(output, "$node[\"Fetcher\"]");
+    }
+
+    #[test]
+    fn given_path_suggestion_when_applying_then_json_path_is_appended_after_node_token() {
+        let suggestion = Suggestion::Path("user.email".to_string());
+
+        let output = apply_suggestion("$node[\"Fetcher\"]", &suggestion);
+        assert_eq!(output, "$node[\"Fetcher\"].json.user.email");
+    }
+
+    #[test]
+    fn given_nested_object_and_array_when_extracting_paths_then_matching_paths_are_emitted() {
+        let value = json!({
+            "user": {
+                "email": "a@b.dev",
+                "phones": [
+                    {"kind": "home"}
+                ]
+            }
+        });
+
+        let suggestions = extract_paths(&value, "user");
+        let paths: Vec<String> = suggestions
+            .into_iter()
+            .filter_map(|s| match s {
+                Suggestion::Path(path) => Some(path),
+                Suggestion::Node(_) => None,
+            })
+            .collect();
+
+        assert!(paths.iter().any(|p| p == "user.email"));
+        assert!(paths.iter().any(|p| p == "user.phones[0].kind"));
+    }
+}

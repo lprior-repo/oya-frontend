@@ -97,6 +97,34 @@ pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
         .collect()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::filtered_templates;
+
+    #[test]
+    fn given_empty_query_when_filtering_templates_then_all_templates_are_returned() {
+        let templates = filtered_templates("");
+        assert_eq!(templates.len(), 14);
+    }
+
+    #[test]
+    fn given_case_insensitive_query_when_filtering_then_label_hint_and_type_are_matched() {
+        let by_label = filtered_templates("HTTP");
+        let by_hint = filtered_templates("durably");
+        let by_type = filtered_templates("kafka-handler");
+
+        assert!(by_label.iter().any(|t| t.node_type == "http-handler"));
+        assert!(by_hint.iter().any(|t| t.node_type == "sleep"));
+        assert!(by_type.iter().any(|t| t.node_type == "kafka-handler"));
+    }
+
+    #[test]
+    fn given_non_matching_query_when_filtering_templates_then_empty_vec_is_returned() {
+        let templates = filtered_templates("zz-no-match-zz");
+        assert!(templates.is_empty());
+    }
+}
+
 #[component]
 pub fn NodeCommandPalette(
     open: ReadSignal<bool>,

@@ -1,5 +1,5 @@
 use super::expressions::ExpressionContext;
-use super::{NodeId, RunRecord, Workflow};
+use super::{NodeCategory, NodeId, RunRecord, Workflow};
 
 impl Workflow {
     #[must_use]
@@ -29,12 +29,15 @@ impl Workflow {
 
     pub fn prepare_run(&mut self) {
         let mut queue = Vec::new();
+        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
         let mut in_degree: std::collections::HashMap<NodeId, usize> =
             self.nodes.iter().map(|n| (n.id, 0)).collect();
 
         self.connections.iter().for_each(|conn| {
-            if let Some(count) = in_degree.get_mut(&conn.target) {
-                *count += 1;
+            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
+                if let Some(count) = in_degree.get_mut(&conn.target) {
+                    *count += 1;
+                }
             }
         });
 
@@ -55,7 +58,9 @@ impl Workflow {
             queue.push(id);
             self.connections
                 .iter()
-                .filter(|c| c.source == id)
+                .filter(|c| {
+                    c.source == id && node_ids.contains(&c.source) && node_ids.contains(&c.target)
+                })
                 .for_each(|conn| {
                     if let Some(count) = in_degree.get_mut(&conn.target) {
                         *count -= 1;
@@ -75,6 +80,30 @@ impl Workflow {
             node.error = None;
             Self::set_node_status(node, "pending");
         });
+    }
+
+    fn collect_descendants(&self, start_ids: &[NodeId]) -> std::collections::HashSet<NodeId> {
+        let mut visited = std::collections::HashSet::new();
+        let mut stack: Vec<NodeId> = start_ids.to_vec();
+
+        while let Some(current) = stack.pop() {
+            if !visited.insert(current) {
+                continue;
+            }
+
+            for target in self
+                .connections
+                .iter()
+                .filter(|c| c.source == current)
+                .map(|c| c.target)
+            {
+                if !visited.contains(&target) {
+                    stack.push(target);
+                }
+            }
+        }
+
+        visited
     }
 
     async fn execute_node_type(
@@ -209,7 +238,9 @@ impl Workflow {
                     .map(|c| c.target)
                     .collect();
 
-                for target_id in &targets_to_skip {
+                let all_targets_to_skip = self.collect_descendants(&targets_to_skip);
+
+                for target_id in &all_targets_to_skip {
                     if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == *target_id) {
                         target_node.skipped = true;
                         Self::set_node_status(target_node, "skipped");
@@ -237,6 +268,24 @@ impl Workflow {
         self.prepare_run();
         let start_time = chrono::Utc::now();
         let mut results = std::collections::HashMap::new();
+
+        if self.nodes.is_empty()
+            || !self
+                .nodes
+                .iter()
+                .any(|node| node.category == NodeCategory::Entry)
+        {
+            self.history.push(RunRecord {
+                id: uuid::Uuid::new_v4(),
+                timestamp: start_time,
+                results,
+                success: false,
+            });
+            if self.history.len() > 10 {
+                let _ = self.history.remove(0);
+            }
+            return;
+        }
 
         while self.step().await {
             if let Some(id) = self
@@ -271,5 +320,112 @@ impl Workflow {
         if self.history.len() > 10 {
             let _ = self.history.remove(0);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::{Connection, PortName};
+    use serde_json::json;
+
+    #[test]
+    fn given_parallel_zero_indegree_nodes_when_preparing_run_then_order_is_deterministic_by_name() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("run", 0.0, 0.0);
+        let b = workflow.add_node("run", 0.0, 0.0);
+        let c = workflow.add_node("run", 0.0, 0.0);
+
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == a) {
+            node.name = "alpha".to_string();
+        }
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == b) {
+            node.name = "bravo".to_string();
+        }
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == c) {
+            node.name = "charlie".to_string();
+        }
+
+        workflow.prepare_run();
+
+        let names: Vec<String> = workflow
+            .execution_queue
+            .iter()
+            .filter_map(|id| workflow.nodes.iter().find(|n| n.id == *id))
+            .map(|n| n.name.clone())
+            .collect();
+        assert_eq!(names, vec!["charlie", "bravo", "alpha"]);
+    }
+
+    #[tokio::test]
+    async fn given_condition_true_when_running_then_false_branch_nodes_are_marked_skipped() {
+        let mut workflow = Workflow::new();
+        let trigger = workflow.add_node("http-handler", 0.0, 0.0);
+        let condition = workflow.add_node("condition", 0.0, 0.0);
+        let false_branch = workflow.add_node("run", 0.0, 0.0);
+        let main = PortName::from("main");
+
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == condition) {
+            node.config = json!({"condition": "true"});
+        }
+
+        let _ = workflow.add_connection(trigger, condition, &main, &main);
+        workflow.connections.push(Connection {
+            id: uuid::Uuid::new_v4(),
+            source: condition,
+            target: false_branch,
+            source_port: PortName::from("false"),
+            target_port: main,
+        });
+
+        workflow.run().await;
+
+        let false_node = workflow.nodes.iter().find(|n| n.id == false_branch);
+        assert!(false_node.is_some_and(|n| n.skipped));
+    }
+
+    #[test]
+    fn given_nested_expression_placeholders_when_resolving_then_all_levels_are_resolved() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("run", 0.0, 0.0);
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == source) {
+            node.name = "Fetcher".to_string();
+            node.last_output = Some(json!({"user": {"id": 7}}));
+        }
+
+        let config = json!({
+            "outer": {
+                "id": "{{ $node[\"Fetcher\"].json.user.id }}",
+                "arr": ["{{ $node[\"Fetcher\"].json.user.id }}"]
+            }
+        });
+
+        let resolved = workflow.resolve_expressions(&config);
+        assert_eq!(resolved["outer"]["id"], json!(7));
+        assert_eq!(resolved["outer"]["arr"][0], json!(7));
+    }
+
+    #[tokio::test]
+    async fn given_node_output_error_when_running_then_node_is_failed_and_run_is_unsuccessful() {
+        let mut workflow = Workflow::new();
+        let trigger = workflow.add_node("http-handler", 0.0, 0.0);
+        let request = workflow.add_node("http-request", 10.0, 10.0);
+        let main = PortName::from("main");
+        let _ = workflow.add_connection(trigger, request, &main, &main);
+
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == request) {
+            node.config = json!({"url": "http://127.0.0.1:0", "method": "GET"});
+        }
+
+        workflow.run().await;
+
+        let status = workflow
+            .nodes
+            .iter()
+            .find(|n| n.id == request)
+            .and_then(|n| n.config.get("status"))
+            .and_then(serde_json::Value::as_str);
+        assert_eq!(status, Some("failed"));
+        assert!(!workflow.history[0].success);
     }
 }

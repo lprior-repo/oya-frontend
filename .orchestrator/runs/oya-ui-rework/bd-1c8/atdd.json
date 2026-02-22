@@ -1,0 +1,51 @@
+{
+  "bead_id": "bd-1c8",
+  "phase": "atdd",
+  "timestamp": "2026-02-22T00:00:00Z",
+  "status": "complete",
+  "acceptance_criteria": [
+    {
+      "criterion": "ExecutionState enum has 6 variants: Idle, Waiting, Running, Succeeded, Failed, Skipped",
+      "test": "has_six_variants, variant_*_exists",
+      "status": "implemented"
+    },
+    {
+      "criterion": "Default trait returns Idle",
+      "test": "default_is_idle",
+      "status": "implemented"
+    },
+    {
+      "criterion": "Display trait outputs lowercase strings",
+      "test": "display_outputs_lowercase",
+      "status": "implemented"
+    },
+    {
+      "criterion": "Serde derives with rename_all = lowercase",
+      "test": "serialization_uses_lowercase, deserialization_accepts_lowercase",
+      "status": "implemented"
+    },
+    {
+      "criterion": "is_terminal() returns true for Succeeded, Failed, Skipped",
+      "test": "is_terminal_returns_true_for_terminal_states, is_terminal_returns_false_for_non_terminal_states",
+      "status": "implemented"
+    },
+    {
+      "criterion": "is_active() returns true for Running, Waiting",
+      "test": "is_active_returns_true_for_active_states, is_active_returns_false_for_inactive_states",
+      "status": "implemented"
+    },
+    {
+      "criterion": "Serialization roundtrip works for all variants",
+      "test": "serialization_roundtrip",
+      "status": "implemented"
+    },
+    {
+      "criterion": "State transitions are valid: Idle→Running, Running→Succeeded/Failed, Waiting→Running, Skipped",
+      "test": "transition_*_is_valid, skipped_is_external_transition",
+      "status": "implemented"
+    }
+  ],
+  "tests_written": 21,
+  "files_created": ["src/graph/execution_state.rs"],
+  "files_modified": ["src/graph/mod.rs", "src/graph/core.rs", "src/ui/app_bootstrap.rs", "src/ui/minimap.rs"]
+}

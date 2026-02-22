@@ -1,0 +1,39 @@
+{
+  "bead_id": "bd-bd6",
+  "title": "ui: Add keyboard navigation between nodes",
+  "status": "completed",
+  "implementation_summary": {
+    "tab_navigation": {
+      "description": "Tab moves to next downstream node, Shift+Tab moves upstream",
+      "implementation": "Added Tab key handler in main.rs onkeydown that finds connected nodes via workflow.downstream_nodes() and workflow.upstream_nodes()",
+      "files_modified": ["src/main.rs", "src/hooks/use_workflow_state.rs"]
+    },
+    "arrow_key_movement": {
+      "description": "Arrow keys move selected node by 20px grid",
+      "implementation": "Added arrowup/arrowdown/arrowleft/arrowright handlers that call workflow.move_node_by() with 20px delta",
+      "grid_size": "20px"
+    },
+    "enter_config": {
+      "description": "Enter opens inline config panel for selected node",
+      "implementation": "Added Enter key handler that calls panels.toggle_inline_panel(node_id)"
+    },
+    "focus_indicator": {
+      "description": "Selected nodes show ring-2 ring-blue-500/60 focus indicator",
+      "implementation": "Pre-existing selection styling in FlowNodeComponent provides visible focus indicator"
+    },
+    "initial_selection": {
+      "description": "If no node selected, Tab selects first node",
+      "implementation": "Added workflow.first_node_id() helper, used when Tab pressed with no selection"
+    }
+  },
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed (pre-existing unused imports warning in ui/mod.rs)"
+  },
+  "helper_methods_added": {
+    "WorkflowState::downstream_nodes": "Returns Vec<NodeId> of nodes connected FROM the given node",
+    "WorkflowState::upstream_nodes": "Returns Vec<NodeId> of nodes connected TO the given node",
+    "WorkflowState::move_node_by": "Moves a node by dx/dy delta",
+    "WorkflowState::first_node_id": "Returns first node ID or None"
+  }
+}

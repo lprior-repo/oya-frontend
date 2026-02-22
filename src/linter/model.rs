@@ -10,6 +10,12 @@ pub enum LintError {
     ParseError(#[from] serde_yaml::Error),
     #[error("Failed to parse JSON: {0}")]
     JsonError(#[from] serde_json::Error),
+    #[error("Unknown rule id: {rule_id}")]
+    UnknownRuleId { rule_id: String },
+    #[error("Invalid severity '{severity}' for rule {rule_id}")]
+    InvalidSeverity { rule_id: String, severity: String },
+    #[error("Missing required field '{field}' for rule {rule_id}")]
+    MissingRequiredField { rule_id: String, field: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

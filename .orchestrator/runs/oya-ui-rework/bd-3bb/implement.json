@@ -1,0 +1,36 @@
+{
+  "bead_id": "bd-3bb",
+  "phase": "implement",
+  "status": "completed",
+  "changes": [
+    {
+      "file": "src/ui/node.rs",
+      "description": "Updated status indicator section to use ExecutionState enum instead of config-based status strings",
+      "details": [
+        "Added ExecutionState import",
+        "Replaced status badge logic with match on node.execution_state",
+        "Idle: renders empty div (no badge)",
+        "Waiting: amber badge with clock icon",
+        "Running: blue badge with animated spinner (animate-spin class)",
+        "Succeeded: green/emerald badge with check-circle icon",
+        "Failed: red badge with x icon and error tooltip",
+        "Skipped: dimmed slate badge with x icon",
+        "Updated is_running check to use matches!(node.execution_state, ExecutionState::Running)"
+      ]
+    },
+    {
+      "file": "src/ui/icons/registry.rs",
+      "description": "Added icon mappings for execution state badges",
+      "details": [
+        "Added loader icon mapping",
+        "Added check-circle icon mapping",
+        "Added x icon mapping",
+        "Updated imports to include CheckCircleIcon, LoaderIcon, XIcon"
+      ]
+    }
+  ],
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed"
+  }
+}

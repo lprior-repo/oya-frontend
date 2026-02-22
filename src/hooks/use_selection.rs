@@ -5,6 +5,32 @@
 use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
+fn toggle_selection_ids(current: &[NodeId], id: NodeId) -> (Vec<NodeId>, Option<NodeId>) {
+    let mut next = current.to_vec();
+    if let Some(pos) = next.iter().position(|&item| item == id) {
+        next.remove(pos);
+    } else {
+        next.push(id);
+    }
+
+    let selected_id = if next.contains(&id) {
+        Some(id)
+    } else {
+        next.first().copied()
+    };
+
+    (next, selected_id)
+}
+
+fn add_unique_selection(current: &[NodeId], id: NodeId) -> Vec<NodeId> {
+    if current.contains(&id) {
+        return current.to_vec();
+    }
+    let mut next = current.to_vec();
+    next.push(id);
+    next
+}
+
 /// Selection state hook - manages which nodes are selected.
 ///
 /// Follows functional reactive pattern:
@@ -41,29 +67,15 @@ impl SelectionState {
     /// Toggle a node in the selection
     pub fn toggle(mut self, id: NodeId) {
         let ids = self.selected_ids.read().clone();
-        let mut new_ids = ids.clone();
-        if let Some(pos) = new_ids.iter().position(|&x| x == id) {
-            new_ids.remove(pos);
-            if new_ids.is_empty() {
-                self.selected_id.set(None);
-            } else {
-                self.selected_id.set(new_ids.first().copied());
-            }
-        } else {
-            new_ids.push(id);
-            self.selected_id.set(Some(id));
-        }
+        let (new_ids, selected_id) = toggle_selection_ids(&ids, id);
+        self.selected_id.set(selected_id);
         self.selected_ids.set(new_ids);
     }
 
     /// Add a node to selection without clearing
     pub fn add_to_selection(mut self, id: NodeId) {
         let ids = self.selected_ids.read().clone();
-        if !ids.contains(&id) {
-            let mut new_ids = ids;
-            new_ids.push(id);
-            self.selected_ids.set(new_ids);
-        }
+        self.selected_ids.set(add_unique_selection(&ids, id));
     }
 
     /// Set multiple selected nodes at once
@@ -130,5 +142,45 @@ pub fn use_selection() -> SelectionState {
         selected_id,
         selected_ids,
         pending_drag,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{add_unique_selection, toggle_selection_ids};
+    use oya_frontend::graph::NodeId;
+
+    #[test]
+    fn given_selected_node_when_toggling_existing_then_node_is_removed_and_primary_updates() {
+        let a = NodeId::new();
+        let b = NodeId::new();
+        let current = vec![a, b];
+
+        let (next, selected) = toggle_selection_ids(&current, a);
+
+        assert_eq!(next, vec![b]);
+        assert_eq!(selected, Some(b));
+    }
+
+    #[test]
+    fn given_duplicate_add_when_adding_to_selection_then_selection_remains_unique() {
+        let a = NodeId::new();
+        let current = vec![a];
+
+        let next = add_unique_selection(&current, a);
+
+        assert_eq!(next, vec![a]);
+    }
+
+    #[test]
+    fn given_missing_node_when_toggling_then_node_is_added_and_selected() {
+        let a = NodeId::new();
+        let b = NodeId::new();
+        let current = vec![a];
+
+        let (next, selected) = toggle_selection_ids(&current, b);
+
+        assert_eq!(next, vec![a, b]);
+        assert_eq!(selected, Some(b));
     }
 }

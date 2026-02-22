@@ -1,0 +1,107 @@
+{
+  "bead_id": "bd-1c8",
+  "phase": "SCOUT",
+  "agent_id": "claude-code-scout",
+  "findings": {
+    "current_node_fields": [
+      "id: NodeId",
+      "name: String",
+      "description: String",
+      "node_type: String",
+      "category: NodeCategory",
+      "icon: String",
+      "x: f32",
+      "y: f32",
+      "config: serde_json::Value",
+      "last_output: Option<serde_json::Value>",
+      "selected: bool",
+      "executing: bool",
+      "skipped: bool",
+      "error: Option<String>"
+    ],
+    "existing_execution_fields": [
+      "executing: bool - transient flag set during node execution",
+      "skipped: bool - marks nodes skipped by condition false branches",
+      "error: Option<String> - holds error message on failure",
+      "config.status: String - current status stored in config JSON ('pending', 'running', 'completed', 'failed', 'skipped')"
+    ],
+    "execution_flow": {
+      "description": "Workflow execution managed in src/graph/execution.rs",
+      "prepare_run": "Resets all nodes to 'pending', clears executing/skipped/error flags, builds topological execution_queue",
+      "step": "Processes next node in queue: sets executing=true, status='running', executes node_type logic, then sets final status",
+      "run": "Iterates through all steps, collects outputs, records RunRecord to history",
+      "node_types_handled": ["webhook", "schedule", "transform", "code", "http-request", "condition"],
+      "status_values_used": ["pending", "running", "completed", "failed", "skipped", "suspended", "retrying"]
+    },
+    "state_transitions": {
+      "Idle": ["Running", "Waiting"],
+      "Running": ["Succeeded", "Failed"],
+      "Waiting": ["Running"],
+      "Succeeded": [],
+      "Failed": [],
+      "Skipped": []
+    },
+    "observed_transitions": {
+      "pending": ["running", "skipped"],
+      "running": ["completed", "failed"],
+      "skipped": [],
+      "completed": [],
+      "failed": []
+    },
+    "integration_points": [
+      "src/graph/mod.rs - Add ExecutionState enum and execution_state field to Node struct",
+      "src/graph/core.rs - Update set_node_status() to use ExecutionState enum",
+      "src/graph/execution.rs - Update prepare_run() and step() to use ExecutionState variants",
+      "src/ui/node.rs - Update status indicator to read ExecutionState enum instead of config.status string",
+      "src/ui/minimap.rs - May need update to show execution state visually (currently shows category colors only)"
+    ],
+    "workflow_node_relationship": {
+      "note": "WorkflowNode enum (src/graph/workflow_node.rs) defines node TYPE configurations, not runtime state",
+      "variants": 24,
+      "categories": ["Entry", "Durable", "State", "Flow", "Timing", "Signal"],
+      "execution_state_is_separate": "ExecutionState will track runtime execution status, independent of WorkflowNode type"
+    },
+    "ui_status_rendering": {
+      "file": "src/ui/node.rs lines 104-145",
+      "current_implementation": "Reads node.config.status string and matches against hardcoded values",
+      "statuses_rendered": {
+        "running": "bg-indigo-500/15, text-indigo-400, loader icon, animated spin",
+        "suspended": "bg-pink-500/15, text-pink-400, pause icon",
+        "completed": "bg-emerald-500/15, text-emerald-400, check-circle icon",
+        "failed": "bg-red-500/15, text-red-400, alert-circle icon",
+        "retrying": "bg-amber-500/15, text-amber-400, refresh icon, animated spin"
+      }
+    },
+    "recommended_approach": {
+      "summary": "Add ExecutionState enum to replace ad-hoc status strings with type-safe state management",
+      "steps": [
+        "1. Create ExecutionState enum in src/graph/mod.rs with variants: Idle, Waiting, Running, Succeeded, Failed, Skipped",
+        "2. Add execution_state: ExecutionState field to Node struct (default: Idle)",
+        "3. Implement Serialize/Deserialize with serde(rename_all='lowercase') for JSON compatibility",
+        "4. Add Default trait impl returning Idle",
+        "5. Update set_node_status() in core.rs to accept ExecutionState instead of &str",
+        "6. Update execution.rs: prepare_run() sets all to Idle, step() uses Running/Succeeded/Failed/Skipped",
+        "7. Update ui/node.rs to match on ExecutionState enum instead of string comparison",
+        "8. Consider keeping executing/skipped/error fields for backwards compat or remove if redundant",
+        "9. Map existing status strings to new enum: pending->Idle, running->Running, completed->Succeeded, failed->Failed, skipped->Skipped, suspended->Waiting"
+      ],
+      "benefits": [
+        "Type safety - compiler catches invalid state transitions",
+        "Clear intent - explicit state machine vs string matching",
+        "Better IDE support - autocomplete for enum variants",
+        "Easier refactoring - rename enum variants safely",
+        "State transition validation - can add transition rules later"
+      ],
+      "backwards_compatibility": "Serialize to lowercase strings matching existing UI expectations (idle, waiting, running, succeeded, failed, skipped)"
+    },
+    "files_to_modify": [
+      "src/graph/mod.rs - Add ExecutionState enum, update Node struct",
+      "src/graph/core.rs - Update set_node_status() signature and implementation",
+      "src/graph/execution.rs - Use ExecutionState enum in prepare_run() and step()",
+      "src/ui/node.rs - Update status indicator rendering to use enum match"
+    ],
+    "files_created": []
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T12:00:00Z"
+}

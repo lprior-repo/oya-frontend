@@ -103,3 +103,18 @@ pub fn download_workflow_json(name: &str, workflow: &Workflow) {
     anchor.click();
     let _ = Url::revoke_object_url(&url);
 }
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::{canvas_origin, canvas_rect_size};
+
+    #[test]
+    fn given_non_wasm_target_when_reading_canvas_rect_size_then_none_is_returned() {
+        assert_eq!(canvas_rect_size(), None);
+    }
+
+    #[test]
+    fn given_non_wasm_target_when_reading_canvas_origin_then_none_is_returned() {
+        assert_eq!(canvas_origin(), None);
+    }
+}

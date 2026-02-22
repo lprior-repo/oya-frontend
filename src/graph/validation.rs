@@ -521,7 +521,6 @@ fn validate_connection_validity(workflow: &Workflow, issues: &mut Vec<Validation
 #[allow(clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
-    use crate::graph::Node;
 
     fn make_workflow() -> Workflow {
         Workflow::default()
@@ -659,6 +658,108 @@ mod tests {
                 .issues
                 .iter()
                 .any(|i| i.node_id == Some(node_id) && i.message.contains("schedule")));
+        }
+
+        #[test]
+        fn given_unknown_node_type_when_validating_then_error_for_node_is_emitted() {
+            let mut workflow = make_workflow();
+            let _ = add_entry_node(&mut workflow);
+            let node_id = workflow.add_node("unknown-node-type", 120.0, 0.0);
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Error
+                    && issue.node_id == Some(node_id)
+                    && issue.message.contains("Unknown node type")
+            }));
+        }
+
+        #[test]
+        fn given_delayed_send_zero_delay_when_validating_then_warning_is_emitted() {
+            let mut workflow = make_workflow();
+            let _ = add_entry_node(&mut workflow);
+            let node_id = workflow.add_node("delayed-send", 160.0, 0.0);
+            if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == node_id) {
+                node.config = serde_json::json!({
+                    "target": "queue-name",
+                    "delay_ms": 0
+                });
+            }
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Warning
+                    && issue.node_id == Some(node_id)
+                    && issue.message.contains("non-zero delay")
+            }));
+        }
+    }
+
+    mod orphan_validation {
+        use super::*;
+
+        #[test]
+        fn given_orphan_non_entry_node_when_validating_then_orphan_warning_is_emitted() {
+            let mut workflow = make_workflow();
+            let _ = add_entry_node(&mut workflow);
+            let orphan_id = add_non_entry_node(&mut workflow);
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Warning
+                    && issue.node_id == Some(orphan_id)
+                    && (issue.message.contains("not connected")
+                        || issue.message.contains("no incoming"))
+            }));
+        }
+    }
+
+    mod connection_validation {
+        use super::*;
+        use crate::graph::{Connection, PortName};
+        use uuid::Uuid;
+
+        #[test]
+        fn given_connection_with_missing_source_when_validating_then_source_error_is_reported() {
+            let mut workflow = make_workflow();
+            let target = add_entry_node(&mut workflow);
+            workflow.connections.push(Connection {
+                id: Uuid::new_v4(),
+                source: NodeId::new(),
+                target,
+                source_port: PortName("main".to_string()),
+                target_port: PortName("main".to_string()),
+            });
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Error
+                    && issue.message.contains("non-existent source")
+            }));
+        }
+
+        #[test]
+        fn given_connection_with_missing_target_when_validating_then_target_error_is_reported() {
+            let mut workflow = make_workflow();
+            let source = add_entry_node(&mut workflow);
+            workflow.connections.push(Connection {
+                id: Uuid::new_v4(),
+                source,
+                target: NodeId::new(),
+                source_port: PortName("main".to_string()),
+                target_port: PortName("main".to_string()),
+            });
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Error
+                    && issue.message.contains("non-existent target")
+            }));
         }
     }
 

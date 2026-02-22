@@ -130,3 +130,27 @@ pub(super) fn node_metadata(node_type: &str) -> (NodeCategory, String, String) {
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::node_metadata;
+    use crate::graph::NodeCategory;
+
+    #[test]
+    fn given_known_node_type_when_fetching_metadata_then_expected_values_are_returned() {
+        let (category, label, icon) = node_metadata("http-handler");
+
+        assert_eq!(category, NodeCategory::Entry);
+        assert_eq!(label, "HTTP Handler");
+        assert_eq!(icon, "globe");
+    }
+
+    #[test]
+    fn given_unknown_node_type_when_fetching_metadata_then_defaults_are_returned() {
+        let (category, label, icon) = node_metadata("totally-unknown");
+
+        assert_eq!(category, NodeCategory::Durable);
+        assert_eq!(label, "Unknown Node");
+        assert_eq!(icon, "help-circle");
+    }
+}

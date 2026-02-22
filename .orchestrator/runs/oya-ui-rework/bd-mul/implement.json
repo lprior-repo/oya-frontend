@@ -1,0 +1,50 @@
+{
+  "bead_id": "bd-mul",
+  "title": "ui: Add execution history timeline panel",
+  "status": "completed",
+  "phase": "implement",
+  "timestamp": "2026-02-22T00:00:00Z",
+  "implementation": {
+    "files_created": [
+      {
+        "path": "src/ui/execution_history_panel.rs",
+        "description": "Collapsible panel component showing execution history with timestamps, per-node results, and click-to-select functionality"
+      }
+    ],
+    "files_modified": [
+      {
+        "path": "src/ui/mod.rs",
+        "changes": ["Added execution_history_panel module", "Exported ExecutionHistoryPanel component"]
+      },
+      {
+        "path": "src/ui/icons/set_b.rs",
+        "changes": ["Added ClockIcon component", "Added CheckIcon component", "Added XCircleIcon component"]
+      },
+      {
+        "path": "src/ui/icons/mod.rs",
+        "changes": ["Exported ClockIcon, CheckIcon, XCircleIcon"]
+      },
+      {
+        "path": "src/main.rs",
+        "changes": ["Imported ExecutionHistoryPanel", "Added ExecutionHistoryPanel to layout between canvas and SelectedNodePanel", "Wired up node selection callback"]
+      }
+    ]
+  },
+  "features": {
+    "collapsible_panel": "Panel can be collapsed/expanded via header click",
+    "run_list": "Shows list of run records with timestamps (newest first)",
+    "expandable_runs": "Each run can be expanded to show per-node results",
+    "click_to_select": "Clicking on a node in history selects it in the canvas",
+    "status_indicators": "Shows success/failure status with color-coded badges",
+    "elapsed_time": "Shows relative time (just now, Xm ago, Xh ago, Xd ago)",
+    "empty_state": "Shows friendly message when no executions exist"
+  },
+  "data_model": {
+    "uses_existing": ["RunRecord", "Workflow.history"],
+    "history_limit": "Capped at 10 runs (existing behavior)"
+  },
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed"
+  }
+}
