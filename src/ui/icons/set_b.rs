@@ -267,3 +267,57 @@ pub fn MaximizeIcon(class: String) -> Element {
         }
     }
 }
+
+#[component]
+pub fn ClockIcon(class: String) -> Element {
+    rsx! {
+        svg {
+            xmlns: "http://www.w3.org/2000/svg",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            class: "{class}",
+            circle { cx: "12", cy: "12", r: "10" }
+            polyline { points: "12 6 12 12 16 14" }
+        }
+    }
+}
+
+#[component]
+pub fn CheckIcon(class: String) -> Element {
+    rsx! {
+        svg {
+            xmlns: "http://www.w3.org/2000/svg",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            class: "{class}",
+            polyline { points: "20 6 9 17 4 12" }
+        }
+    }
+}
+
+#[component]
+pub fn XCircleIcon(class: String) -> Element {
+    rsx! {
+        svg {
+            xmlns: "http://www.w3.org/2000/svg",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            class: "{class}",
+            circle { cx: "12", cy: "12", r: "10" }
+            path { d: "m15 9-6 6" }
+            path { d: "m9 9 6 6" }
+        }
+    }
+}

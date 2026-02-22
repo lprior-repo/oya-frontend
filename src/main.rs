@@ -5,8 +5,8 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::{
-    CanvasContextMenu, FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition, FlowToolbar,
-    NodeCommandPalette, NodeSidebar, SelectedNodePanel,
+    CanvasContextMenu, ExecutionHistoryPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
+    FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, SelectedNodePanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -921,6 +921,24 @@ fn App() -> Element {
                         viewport: workflow.viewport(),
                         canvas_width: 1280.0,
                         canvas_height: 760.0
+                    }
+                }
+
+                {
+                    let history_collapsed = use_signal(|| true);
+                    let history_signal = use_memo(move || workflow.workflow().read().history.clone());
+
+                    rsx! {
+                        div { class: "flex flex-col shrink-0 border-l border-slate-200",
+                            ExecutionHistoryPanel {
+                                history: history_signal,
+                                nodes_by_id,
+                                on_select_node: move |node_id| {
+                                    selection.select_single(node_id);
+                                },
+                                collapsed: history_collapsed,
+                            }
+                        }
                     }
                 }
 
