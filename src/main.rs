@@ -6,7 +6,8 @@
 
 use crate::ui::{
     CanvasContextMenu, ExecutionHistoryPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
-    FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, SelectedNodePanel,
+    FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
+    SelectedNodePanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -828,6 +829,11 @@ fn App() -> Element {
                                     .map(|n| n.id)
                                     .collect::<Vec<_>>()
                             })
+                        }
+
+                        ParallelGroupOverlay {
+                            nodes: nodes,
+                            connections: connections,
                         }
 
                         if !preview_edges.read().is_empty() {
