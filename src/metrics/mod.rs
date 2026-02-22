@@ -7,5 +7,6 @@ mod tests;
 
 pub use model::{
     CategoryStats, MetricsStore, MetricsSummary, QualityGateIteration, QualityGateSession,
-    ScenarioValidationMetrics, SessionStatus, SpecValidationMetrics,
+    ScenarioValidationMetrics, SessionStatus, SpecValidationMetrics, SuggestionDecision,
+    SuggestionDecisionMetrics,
 };

@@ -1,4 +1,4 @@
-use super::{MetricsStore, SpecValidationMetrics};
+use super::{MetricsStore, SpecValidationMetrics, SuggestionDecision, SuggestionDecisionMetrics};
 use chrono::Utc;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -32,6 +32,53 @@ fn test_spec_validation_metrics() -> anyhow::Result<()> {
 
     assert_eq!(deserialized.spec_id, metrics.spec_id);
     assert_eq!(deserialized.overall_score, metrics.overall_score);
+
+    Ok(())
+}
+
+#[test]
+fn test_suggestion_decision_metrics_roundtrip() -> anyhow::Result<()> {
+    let metrics = SuggestionDecisionMetrics {
+        timestamp: Utc::now(),
+        suggestion_key: "add-timeout-guard".to_string(),
+        decision: SuggestionDecision::Accepted,
+        source: "single-apply".to_string(),
+    };
+
+    let json = serde_json::to_string(&metrics)?;
+    let deserialized: SuggestionDecisionMetrics = serde_json::from_str(&json)?;
+
+    assert_eq!(deserialized.suggestion_key, metrics.suggestion_key);
+    assert_eq!(deserialized.decision, metrics.decision);
+
+    Ok(())
+}
+
+#[test]
+fn test_record_suggestion_decision_persists() -> anyhow::Result<()> {
+    let temp = tempfile::tempdir()?;
+    let store = MetricsStore::new(temp.path());
+    let metrics = SuggestionDecisionMetrics {
+        timestamp: Utc::now(),
+        suggestion_key: "add-compensation-branch".to_string(),
+        decision: SuggestionDecision::Rejected,
+        source: "bulk-clear".to_string(),
+    };
+
+    store
+        .record_suggestion_decision(metrics.clone())
+        .map_err(|err| anyhow::anyhow!(err.to_string()))?;
+
+    let data = store
+        .data
+        .read()
+        .map_err(|err| anyhow::anyhow!("failed to read lock: {err}"))?;
+    assert_eq!(data.suggestion_decisions.len(), 1);
+    assert_eq!(
+        data.suggestion_decisions[0].suggestion_key,
+        metrics.suggestion_key
+    );
+    assert_eq!(data.suggestion_decisions[0].decision, metrics.decision);
 
     Ok(())
 }

@@ -22,7 +22,11 @@ enum Tab {
 }
 
 #[component]
-pub fn NodeConfigEditor(node: Node, on_change: EventHandler<Value>) -> Element {
+pub fn NodeConfigEditor(
+    node: Node,
+    input_payloads: Vec<Value>,
+    on_change: EventHandler<Value>,
+) -> Element {
     let mut tab = use_signal(|| Tab::Config);
     let config = node.config.clone();
 
@@ -61,7 +65,28 @@ pub fn NodeConfigEditor(node: Node, on_change: EventHandler<Value>) -> Element {
                         ConfigTab { node: node.clone(), on_change: on_change }
                     },
                     Tab::Execution => rsx! {
-                        ExecutionTab { config: config }
+                        ExecutionTab {
+                            config: config.clone(),
+                            last_output: node.last_output.clone(),
+                            input_payloads,
+                            on_pin_sample: EventHandler::new({
+                                let config = config.clone();
+                                move |payload: Option<Value>| {
+                                    let mut new_config = config.clone();
+                                    if let Some(obj) = new_config.as_object_mut() {
+                                        match payload {
+                                            Some(value) => {
+                                                obj.insert("pinnedOutputSample".to_string(), value);
+                                            }
+                                            None => {
+                                                obj.remove("pinnedOutputSample");
+                                            }
+                                        }
+                                        on_change.call(new_config);
+                                    }
+                                }
+                            })
+                        }
                     },
                 }
             }

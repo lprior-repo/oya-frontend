@@ -29,6 +29,21 @@ pub struct ScenarioValidationMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SuggestionDecision {
+    Accepted,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SuggestionDecisionMetrics {
+    pub timestamp: DateTime<Utc>,
+    pub suggestion_key: String,
+    pub decision: SuggestionDecision,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CategoryStats {
     pub total: usize,
     pub passed: usize,
@@ -96,5 +111,6 @@ pub struct MetricsStore {
 pub(crate) struct MetricsData {
     pub(crate) spec_validations: Vec<SpecValidationMetrics>,
     pub(crate) scenario_validations: Vec<ScenarioValidationMetrics>,
+    pub(crate) suggestion_decisions: Vec<SuggestionDecisionMetrics>,
     pub(crate) sessions: Vec<QualityGateSession>,
 }

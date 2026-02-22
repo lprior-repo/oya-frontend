@@ -93,8 +93,8 @@ pub fn update_node_position(current_x: f32, current_y: f32, dx: f32, dy: f32) ->
         return (current_x, current_y);
     }
 
-    let new_x = (current_x + dx / 10.0).round() * 10.0;
-    let new_y = (current_y + dy / 10.0).round() * 10.0;
+    let new_x = ((current_x + dx) / 10.0).round() * 10.0;
+    let new_y = ((current_y + dy) / 10.0).round() * 10.0;
 
     // Additional safety: clamp to reasonable bounds
     let new_x = new_x.clamp(-100_000.0, 100_000.0);
@@ -113,4 +113,23 @@ pub const fn calculate_rect_center(rect: (f32, f32, f32, f32)) -> (f32, f32) {
 pub fn calculate_rect_size(rect: (f32, f32, f32, f32)) -> (f32, f32) {
     let (min_x, min_y, max_x, max_y) = rect;
     (max_x - min_x, max_y - min_y)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::update_node_position;
+
+    #[test]
+    fn given_small_drag_delta_when_updating_node_position_then_position_moves_by_snap_grid() {
+        let (x, y) = update_node_position(350.0, 170.0, 6.0, -4.0);
+
+        assert_eq!((x, y), (360.0, 170.0));
+    }
+
+    #[test]
+    fn given_zero_drag_delta_when_updating_node_position_then_position_stays_unchanged() {
+        let (x, y) = update_node_position(420.0, 240.0, 0.0, 0.0);
+
+        assert_eq!((x, y), (420.0, 240.0));
+    }
 }

@@ -1,7 +1,7 @@
 //! Unit tests for node drag behavior
 //!
 //! These tests verify the logic of node dragging without requiring a browser.
-//! The formula is: new_pos = (current + delta/10).round() * 10
+//! The formula is: new_pos = ((current + delta) / 10).round() * 10
 
 #[cfg(test)]
 mod tests {
@@ -9,11 +9,10 @@ mod tests {
 
     #[test]
     fn test_update_node_position_normal() {
-        // Normal drag: (100 + 10/10).round() * 10 = (101).round() * 10 = 1010
-        // (200 + 20/10).round() * 10 = (202).round() * 10 = 2020
+        // Normal drag snaps to nearest 10 after applying full delta.
         let (new_x, new_y) = update_node_position(100.0, 200.0, 10.0, 20.0);
-        assert_eq!(new_x, 1010.0);
-        assert_eq!(new_y, 2020.0);
+        assert_eq!(new_x, 110.0);
+        assert_eq!(new_y, 220.0);
     }
 
     #[test]
@@ -42,18 +41,18 @@ mod tests {
 
     #[test]
     fn test_update_node_position_zero_delta() {
-        // Zero delta: (100 + 0/10).round() * 10 = 1000
+        // Zero delta keeps position unchanged.
         let (new_x, new_y) = update_node_position(100.0, 200.0, 0.0, 0.0);
-        assert_eq!(new_x, 1000.0);
-        assert_eq!(new_y, 2000.0);
+        assert_eq!(new_x, 100.0);
+        assert_eq!(new_y, 200.0);
     }
 
     #[test]
     fn test_update_node_position_clamp_positive() {
         // Large positive position should be clamped to 100000
-        let (new_x, _new_y) = update_node_position(500000.0, 500000.0, 0.0, 0.0);
-        // (500000 + 0/10).round() * 10 = 5000000 but clamped to 100000
-        assert_eq!(_new_y, 100000.0);
+        let (new_x, new_y) = update_node_position(500000.0, 500000.0, 0.0, 0.0);
+        // ((500000 + 0) / 10).round() * 10 = 500000, then clamped.
+        assert_eq!(new_y, 100000.0);
         assert_eq!(new_x, 100000.0);
     }
 

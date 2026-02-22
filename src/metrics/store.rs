@@ -5,7 +5,7 @@ use std::path::Path;
 
 use super::model::{
     MetricsData, MetricsStore, QualityGateIteration, QualityGateSession, ScenarioValidationMetrics,
-    SessionStatus, SpecValidationMetrics,
+    SessionStatus, SpecValidationMetrics, SuggestionDecisionMetrics,
 };
 
 impl MetricsStore {
@@ -89,6 +89,24 @@ impl MetricsStore {
                 .write()
                 .map_err(|e| format!("Failed to acquire lock: {e}"))?;
             data.scenario_validations.push(metrics);
+        }
+        self.save_data()
+    }
+
+    /// Record extension suggestion acceptance/rejection metrics.
+    ///
+    /// # Errors
+    /// Returns an error if saving fails.
+    pub fn record_suggestion_decision(
+        &self,
+        metrics: SuggestionDecisionMetrics,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        {
+            let mut data = self
+                .data
+                .write()
+                .map_err(|e| format!("Failed to acquire lock: {e}"))?;
+            data.suggestion_decisions.push(metrics);
         }
         self.save_data()
     }

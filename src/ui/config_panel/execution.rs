@@ -3,13 +3,37 @@ use crate::ui::icons::icon_by_name;
 use dioxus::prelude::*;
 use serde_json::Value;
 
+const PINNED_OUTPUT_KEY: &str = "pinnedOutputSample";
+
+#[derive(Clone, Copy)]
+enum ExecutionEventKind {
+    Status,
+    Journal,
+    Retry,
+}
+
+#[derive(Clone)]
+struct ExecutionTimelineEvent {
+    kind: ExecutionEventKind,
+    label: String,
+    detail: String,
+}
+
 #[component]
-pub(super) fn ExecutionTab(config: Value) -> Element {
+pub(super) fn ExecutionTab(
+    config: Value,
+    last_output: Option<Value>,
+    input_payloads: Vec<Value>,
+    on_pin_sample: EventHandler<Option<Value>>,
+) -> Element {
     let status = get_str_val(&config, "status");
     let is_executed = !status.is_empty();
 
     let journal_idx = get_u64_val(&config, "journalIndex");
     let retry_count = get_u64_val(&config, "retryCount");
+    let timeline = build_execution_timeline(&status, journal_idx, retry_count);
+    let pinned_output = get_pinned_output(&config);
+    let output_payload = last_output.clone().or_else(|| pinned_output.clone());
 
     rsx! {
         div { class: "flex flex-col gap-4",
@@ -70,9 +94,263 @@ pub(super) fn ExecutionTab(config: Value) -> Element {
             }
 
             div { class: "h-px bg-slate-800" }
+
+            div { class: "flex flex-col gap-2",
+                div { class: "flex items-center justify-between",
+                    h4 { class: "text-[11px] font-semibold uppercase tracking-wide text-slate-300", "Input Payloads" }
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400", "{input_payloads.len()}" }
+                }
+                if input_payloads.is_empty() {
+                    p { class: "rounded-lg border border-dashed border-slate-700 bg-slate-800/50 px-3 py-2 text-[11px] text-slate-500", "No upstream payloads available yet." }
+                } else {
+                    div { class: "flex flex-col gap-2",
+                        for (index, payload) in input_payloads.iter().enumerate() {
+                            div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
+                                div { class: "mb-1 flex items-center justify-between",
+                                    span { class: "text-[10px] font-medium text-slate-300", "Input #{index + 1}" }
+                                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{payload_shape(payload)}" }
+                                }
+                                pre { class: "overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-4 text-slate-300", "{json_preview(payload, 10)}" }
+                            }
+                        }
+                    }
+                }
+            }
+
+            div { class: "h-px bg-slate-800" }
+
+            div { class: "flex flex-col gap-2",
+                div { class: "flex items-center justify-between",
+                    h4 { class: "text-[11px] font-semibold uppercase tracking-wide text-slate-300", "Output Payload" }
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400", "{output_origin_label(last_output.is_some(), pinned_output.is_some())}" }
+                }
+
+                if let Some(output) = output_payload.as_ref() {
+                    div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
+                        div { class: "mb-1 flex items-center justify-between",
+                            span { class: "text-[10px] font-medium text-slate-300", "Payload" }
+                            span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{payload_shape(output)}" }
+                        }
+                        pre { class: "overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-4 text-slate-300", "{json_preview(output, 14)}" }
+                    }
+                } else {
+                    p { class: "rounded-lg border border-dashed border-slate-700 bg-slate-800/50 px-3 py-2 text-[11px] text-slate-500", "Run the workflow to inspect output for this node." }
+                }
+
+                div { class: "flex items-center gap-2",
+                    button {
+                        class: "h-7 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-2.5 text-[10px] font-medium text-indigo-300 transition-colors hover:bg-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50",
+                        disabled: last_output.is_none(),
+                        onclick: move |_| {
+                            if let Some(output) = last_output.clone() {
+                                on_pin_sample.call(Some(output));
+                            }
+                        },
+                        "Pin latest output"
+                    }
+                    if pinned_output.is_some() {
+                        button {
+                            class: "h-7 rounded-md border border-slate-600 bg-slate-800/60 px-2.5 text-[10px] font-medium text-slate-300 transition-colors hover:bg-slate-700/60",
+                            onclick: move |_| on_pin_sample.call(None),
+                            "Unpin"
+                        }
+                    }
+                }
+            }
+
+            div { class: "h-px bg-slate-800" }
+
+            div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-3",
+                div { class: "mb-2 flex items-center justify-between",
+                    h4 { class: "text-[11px] font-semibold uppercase tracking-wide text-slate-300", "Execution Timeline" }
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400", "{timeline.len()}" }
+                }
+                if timeline.is_empty() {
+                    p { class: "text-[11px] text-slate-500", "No execution telemetry yet." }
+                } else {
+                    div { class: "flex flex-col gap-1.5",
+                        for event in timeline.iter() {
+                            {
+                                let (dot_class, pill_class) = execution_event_style(event.kind);
+                                rsx! {
+                                    div { class: "flex gap-2 rounded-md border border-slate-700 bg-slate-900/80 px-2 py-1.5",
+                                        div { class: "mt-[2px] h-2 w-2 rounded-full {dot_class}" }
+                                        div {
+                                            p { class: "text-[10px] font-medium text-slate-200", "{event.label}" }
+                                            p { class: "text-[10px] text-slate-400", "{event.detail}" }
+                                        }
+                                        span { class: "ml-auto inline-flex h-fit rounded px-1.5 py-0.5 text-[9px] font-medium {pill_class}", "{event_kind_label(event.kind)}" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             div { class: "rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-3",
                 p { class: "text-[11px] leading-relaxed text-slate-400", "Restate persists each step in a durable journal. On failure, execution replays from the journal, skipping already-completed steps. This ensures exactly-once semantics." }
             }
         }
+    }
+}
+
+fn build_execution_timeline(
+    status: &str,
+    journal_idx: Option<u64>,
+    retry_count: Option<u64>,
+) -> Vec<ExecutionTimelineEvent> {
+    let mut events = Vec::new();
+
+    if !status.is_empty() {
+        events.push(ExecutionTimelineEvent {
+            kind: ExecutionEventKind::Status,
+            label: "Invocation status updated".to_string(),
+            detail: status.to_string(),
+        });
+    }
+
+    if let Some(index) = journal_idx {
+        events.push(ExecutionTimelineEvent {
+            kind: ExecutionEventKind::Journal,
+            label: "Durable journal checkpoint".to_string(),
+            detail: format!("journal #{index}"),
+        });
+    }
+
+    if let Some(retry) = retry_count {
+        if retry > 0 {
+            events.push(ExecutionTimelineEvent {
+                kind: ExecutionEventKind::Retry,
+                label: "Retry attempts recorded".to_string(),
+                detail: format!("{retry} retries"),
+            });
+        }
+    }
+
+    events
+}
+
+const fn execution_event_style(kind: ExecutionEventKind) -> (&'static str, &'static str) {
+    match kind {
+        ExecutionEventKind::Status => ("bg-indigo-500", "bg-indigo-500/15 text-indigo-300"),
+        ExecutionEventKind::Journal => ("bg-emerald-500", "bg-emerald-500/15 text-emerald-300"),
+        ExecutionEventKind::Retry => ("bg-amber-500", "bg-amber-500/15 text-amber-300"),
+    }
+}
+
+const fn event_kind_label(kind: ExecutionEventKind) -> &'static str {
+    match kind {
+        ExecutionEventKind::Status => "Status",
+        ExecutionEventKind::Journal => "Journal",
+        ExecutionEventKind::Retry => "Retry",
+    }
+}
+
+fn get_pinned_output(config: &Value) -> Option<Value> {
+    config.get(PINNED_OUTPUT_KEY).cloned()
+}
+
+fn output_origin_label(has_live_output: bool, has_pinned_output: bool) -> &'static str {
+    if has_live_output {
+        "Live output"
+    } else if has_pinned_output {
+        "Pinned sample"
+    } else {
+        "No output"
+    }
+}
+
+fn payload_shape(payload: &Value) -> String {
+    match payload {
+        Value::Object(map) => format!("object ({})", map.len()),
+        Value::Array(arr) => format!("array ({})", arr.len()),
+        Value::String(text) => format!("string ({})", text.len()),
+        Value::Number(_) => "number".to_string(),
+        Value::Bool(_) => "boolean".to_string(),
+        Value::Null => "null".to_string(),
+    }
+}
+
+fn json_preview(payload: &Value, max_lines: usize) -> String {
+    let pretty = serde_json::to_string_pretty(payload).unwrap_or_else(|_| payload.to_string());
+    let lines: Vec<&str> = pretty.lines().collect();
+    if lines.len() <= max_lines {
+        return pretty;
+    }
+
+    let mut preview = lines[..max_lines].join("\n");
+    preview.push_str("\n... (truncated)");
+    preview
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        build_execution_timeline, get_pinned_output, json_preview, output_origin_label,
+        payload_shape, ExecutionEventKind,
+    };
+    use serde_json::json;
+
+    #[test]
+    fn timeline_includes_status_journal_and_retry_when_present() {
+        let timeline = build_execution_timeline("retrying", Some(7), Some(2));
+
+        assert_eq!(timeline.len(), 3);
+        assert!(matches!(timeline[0].kind, ExecutionEventKind::Status));
+        assert!(timeline[1].detail.contains("#7"));
+        assert!(matches!(timeline[2].kind, ExecutionEventKind::Retry));
+    }
+
+    #[test]
+    fn timeline_skips_retry_when_zero() {
+        let timeline = build_execution_timeline("running", Some(1), Some(0));
+
+        assert_eq!(timeline.len(), 2);
+        assert!(!timeline
+            .iter()
+            .any(|entry| matches!(entry.kind, ExecutionEventKind::Retry)));
+    }
+
+    #[test]
+    fn pinned_output_is_read_from_config() {
+        let config = json!({"pinnedOutputSample": {"ok": true}});
+        assert_eq!(get_pinned_output(&config), Some(json!({"ok": true})));
+    }
+
+    #[test]
+    fn output_origin_prefers_live_data() {
+        assert_eq!(output_origin_label(true, true), "Live output");
+        assert_eq!(output_origin_label(false, true), "Pinned sample");
+        assert_eq!(output_origin_label(false, false), "No output");
+    }
+
+    #[test]
+    fn payload_shape_reports_kind_and_size() {
+        assert_eq!(payload_shape(&json!({"a": 1, "b": 2})), "object (2)");
+        assert_eq!(payload_shape(&json!([1, 2, 3])), "array (3)");
+        assert_eq!(payload_shape(&json!("hello")), "string (5)");
+    }
+
+    #[test]
+    fn json_preview_truncates_large_payloads() {
+        let payload = json!({
+            "a": 1,
+            "b": 2,
+            "c": 3,
+            "d": 4,
+            "e": 5,
+            "f": 6,
+            "g": 7,
+            "h": 8,
+            "i": 9,
+            "j": 10,
+            "k": 11,
+            "l": 12,
+            "m": 13
+        });
+
+        let preview = json_preview(&payload, 6);
+        assert!(preview.contains("... (truncated)"));
     }
 }

@@ -12,6 +12,11 @@ tasks:
   test:
     command: "cargo test"
 
+  e2e:
+    command: "node_modules/.bin/playwright test"
+    options:
+      cache: false
+
   clippy:
     command: "cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic"
 
@@ -22,4 +27,4 @@ tasks:
     command: "dx build --platform web"
 
   ci:
-    command: "cargo check && cargo test && cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic"
+    command: "cargo check && cargo test && cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic && node_modules/.bin/playwright test"

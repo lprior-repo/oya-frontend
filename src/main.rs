@@ -10,6 +10,7 @@ use crate::ui::{
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
+use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
 use oya_frontend::graph::PortName;
 
 const DRAG_THRESHOLD_PX: f32 = 4.0;
@@ -148,6 +149,7 @@ fn App() -> Element {
     let can_undo = use_memo(move || workflow.can_undo());
     let can_redo = use_memo(move || workflow.can_redo());
     let viewport_state = workflow.viewport();
+    let mut extension_previews = use_signal(Vec::<ExtensionPatchPreview>::new);
 
     let vp = workflow.viewport();
     let vx = vp.read().x;
@@ -183,6 +185,90 @@ fn App() -> Element {
         }
     });
 
+    let preview_nodes = use_memo(move || {
+        extension_previews
+            .read()
+            .iter()
+            .enumerate()
+            .flat_map(|(patch_idx, patch)| {
+                patch.nodes.iter().map(move |node| {
+                    (
+                        format!("p{patch_idx}-{}", node.temp_id),
+                        node.node_type.clone(),
+                        node.x,
+                        node.y,
+                    )
+                })
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let preview_edges = use_memo(move || {
+        let existing_nodes = nodes_by_id.read().clone();
+        extension_previews
+            .read()
+            .iter()
+            .enumerate()
+            .flat_map(|(patch_idx, patch)| {
+                let existing_nodes = existing_nodes.clone();
+                let proposed_lookup = patch
+                    .nodes
+                    .iter()
+                    .map(|node| {
+                        (
+                            format!("p{patch_idx}-{}", node.temp_id),
+                            (node.x, node.y),
+                        )
+                    })
+                    .collect::<std::collections::HashMap<_, _>>();
+
+                patch
+                    .connections
+                    .iter()
+                    .enumerate()
+                    .filter_map(move |(edge_idx, edge)| {
+                        let source = match &edge.source {
+                            PreviewEndpoint::Existing(node_id) => existing_nodes
+                                .get(node_id)
+                                .map(|node| (node.x + 110.0, node.y + 68.0)),
+                            PreviewEndpoint::Proposed(temp_id) => proposed_lookup
+                                .get(&format!("p{patch_idx}-{temp_id}"))
+                                .copied()
+                                .map(|(x, y)| (x + 110.0, y + 68.0)),
+                        };
+                        let target = match &edge.target {
+                            PreviewEndpoint::Existing(node_id) => existing_nodes
+                                .get(node_id)
+                                .map(|node| (node.x + 110.0, node.y)),
+                            PreviewEndpoint::Proposed(temp_id) => proposed_lookup
+                                .get(&format!("p{patch_idx}-{temp_id}"))
+                                .copied()
+                                .map(|(x, y)| (x + 110.0, y)),
+                        };
+
+                        source.and_then(|(sx, sy)| {
+                            target.map(|(tx, ty)| {
+                                (
+                                    format!("p{patch_idx}-e{edge_idx}"),
+                                    format!(
+                                        "M {} {} C {} {}, {} {}, {} {}",
+                                        sx,
+                                        sy,
+                                        sx,
+                                        (sy + ty) / 2.0,
+                                        tx,
+                                        (sy + ty) / 2.0,
+                                        tx,
+                                        ty
+                                    ),
+                                )
+                            })
+                        })
+                    })
+            })
+            .collect::<Vec<_>>()
+    });
+
     rsx! {
         script { src: "https://cdn.tailwindcss.com" }
         document::Stylesheet { href: asset!("/assets/tailwind.css") }
@@ -207,8 +293,16 @@ fn App() -> Element {
                 on_fit_view: move |_| workflow.fit_view(1280.0, 760.0, 200.0),
                 on_layout: move |_| workflow.apply_layout(),
                 on_execute: move |_| workflow.run(),
-                on_undo: move |_| { workflow.undo(); selection.clear(); },
-                on_redo: move |_| { workflow.redo(); selection.clear(); },
+                on_undo: move |_| {
+                    workflow.undo();
+                    extension_previews.set(Vec::new());
+                    selection.clear();
+                },
+                on_redo: move |_| {
+                    workflow.redo();
+                    extension_previews.set(Vec::new());
+                    selection.clear();
+                },
                 on_save: move |_| {
                     #[cfg(target_arch = "wasm32")]
                     {
@@ -368,6 +462,7 @@ fn App() -> Element {
                         if key == "z" {
                             evt.prevent_default();
                             workflow.undo();
+                            extension_previews.set(Vec::new());
                             selection.clear();
                             return;
                         }
@@ -375,6 +470,7 @@ fn App() -> Element {
                         if key == "y" {
                             evt.prevent_default();
                             workflow.redo();
+                            extension_previews.set(Vec::new());
                             selection.clear();
                             return;
                         }
@@ -673,6 +769,33 @@ fn App() -> Element {
                             temp_edge: temp_edge
                         }
 
+                        if !preview_edges.read().is_empty() {
+                            svg {
+                                class: "absolute inset-0 overflow-visible pointer-events-none",
+                                style: "width: 100%; height: 100%; z-index: 0;",
+                                for (preview_edge_id, preview_path) in preview_edges.read().iter() {
+                                    path {
+                                        key: "{preview_edge_id}",
+                                        d: "{preview_path}",
+                                        fill: "none",
+                                        stroke: "rgba(99, 102, 241, 0.75)",
+                                        stroke_width: "2",
+                                        stroke_dasharray: "6 4"
+                                    }
+                                }
+                            }
+                        }
+
+                        for (preview_node_id, preview_node_type, preview_x, preview_y) in preview_nodes.read().iter() {
+                            div {
+                                key: "{preview_node_id}",
+                                class: "pointer-events-none absolute rounded-xl border border-indigo-300/70 bg-indigo-500/10 px-3 py-2",
+                                style: "left: {preview_x}px; top: {preview_y}px; width: 220px; z-index: 0;",
+                                div { class: "text-[11px] font-semibold text-indigo-700", "Preview" }
+                                div { class: "text-[10px] font-mono text-indigo-600", "{preview_node_type}" }
+                            }
+                        }
+
                         for node in nodes.read().iter().cloned() {
                             {
                                 let node_id = node.id;
@@ -810,6 +933,7 @@ fn App() -> Element {
                     workflow: workflow.workflow(),
                     undo_stack: workflow.undo_stack(),
                     redo_stack: workflow.redo_stack(),
+                    preview_patches: extension_previews,
                 }
             }
         }

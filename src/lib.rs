@@ -2,6 +2,7 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod feedback;
+pub mod flow_extender;
 pub mod graph;
 
 #[cfg(not(target_arch = "wasm32"))]
