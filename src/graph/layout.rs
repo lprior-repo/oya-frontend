@@ -113,42 +113,42 @@ impl DagLayout {
             }
         }
 
-        // 4. Coordinate assignment (Dagre-like layered layout)
-        let mut x_by_index: HashMap<NodeIndex, f32> = HashMap::new();
-        let mut max_layer_width = 0.0_f32;
+        // 4. Coordinate assignment (left-to-right layered layout)
+        let mut y_by_index: HashMap<NodeIndex, f32> = HashMap::new();
+        let mut max_layer_height = 0.0_f32;
 
         for (layer, nodes) in nodes_by_layer.iter().enumerate() {
-            let mut placed_x: Vec<f32> = Vec::new();
+            let mut placed_y: Vec<f32> = Vec::new();
 
             for node_idx in nodes {
                 let parent_positions = graph
                     .neighbors_directed(*node_idx, petgraph::Direction::Incoming)
-                    .filter_map(|parent| x_by_index.get(&parent).copied())
+                    .filter_map(|parent| y_by_index.get(&parent).copied())
                     .collect::<Vec<_>>();
 
-                let preferred_x = if parent_positions.is_empty() {
+                let preferred_y = if parent_positions.is_empty() {
                     0.0
                 } else {
                     parent_positions.iter().sum::<f32>() / (parent_positions.len() as f32)
                 };
 
-                let x = placed_x.last().map_or(preferred_x, |prev| {
-                    preferred_x.max(*prev + NODE_WIDTH + self.node_spacing)
+                let y = placed_y.last().map_or(preferred_y, |prev| {
+                    preferred_y.max(*prev + NODE_HEIGHT + self.node_spacing)
                 });
-                placed_x.push(x);
-                x_by_index.insert(*node_idx, x);
+                placed_y.push(y);
+                y_by_index.insert(*node_idx, y);
             }
 
-            if let (Some(first), Some(last)) = (placed_x.first(), placed_x.last()) {
-                let layer_width = (last - first + NODE_WIDTH).max(0.0);
-                max_layer_width = max_layer_width.max(layer_width);
+            if let (Some(first), Some(last)) = (placed_y.first(), placed_y.last()) {
+                let layer_height = (last - first + NODE_HEIGHT).max(0.0);
+                max_layer_height = max_layer_height.max(layer_height);
             }
 
-            let y = (layer as f32) * (NODE_HEIGHT + self.layer_spacing);
+            let x = (layer as f32) * (NODE_WIDTH + self.layer_spacing);
             for node_idx in nodes {
                 if let Some(node_id) = reverse_map.get(node_idx) {
                     if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == *node_id) {
-                        node.y = y;
+                        node.x = x;
                     }
                 }
             }
@@ -157,7 +157,7 @@ impl DagLayout {
         for nodes in &nodes_by_layer {
             let layer_positions = nodes
                 .iter()
-                .filter_map(|idx| x_by_index.get(idx).copied())
+                .filter_map(|idx| y_by_index.get(idx).copied())
                 .collect::<Vec<_>>();
             if layer_positions.is_empty() {
                 continue;
@@ -165,14 +165,14 @@ impl DagLayout {
 
             let first = layer_positions.first().map_or(0.0, |v| *v);
             let last = layer_positions.last().map_or(0.0, |v| *v);
-            let layer_width = (last - first + NODE_WIDTH).max(0.0);
-            let layer_offset = (max_layer_width - layer_width) / 2.0;
+            let layer_height = (last - first + NODE_HEIGHT).max(0.0);
+            let layer_offset = (max_layer_height - layer_height) / 2.0;
 
             for node_idx in nodes {
                 if let Some(node_id) = reverse_map.get(node_idx) {
                     if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == *node_id) {
-                        let x = x_by_index.get(node_idx).map_or(0.0, |value| *value);
-                        node.x = x + layer_offset;
+                        let y = y_by_index.get(node_idx).map_or(0.0, |value| *value);
+                        node.y = y + layer_offset;
                     }
                 }
             }
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn given_disconnected_graph_when_applying_layout_then_nodes_have_distinct_x_positions() {
+    fn given_disconnected_graph_when_applying_layout_then_nodes_have_distinct_y_positions() {
         let mut workflow = Workflow::new();
         let _ = workflow.add_node("run", 0.0, 0.0);
         let _ = workflow.add_node("run", 0.0, 0.0);
@@ -240,10 +240,10 @@ mod tests {
 
         DagLayout::default().apply(&mut workflow);
 
-        let mut xs: Vec<f32> = workflow.nodes.iter().map(|n| n.x).collect();
-        xs.sort_by(f32::total_cmp);
-        xs.dedup_by(|a, b| (*a - *b).abs() < 0.001);
-        assert_eq!(xs.len(), 3);
+        let mut ys: Vec<f32> = workflow.nodes.iter().map(|n| n.y).collect();
+        ys.sort_by(f32::total_cmp);
+        ys.dedup_by(|a, b| (*a - *b).abs() < 0.001);
+        assert_eq!(ys.len(), 3);
     }
 
     #[test]

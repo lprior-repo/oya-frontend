@@ -84,7 +84,7 @@ pub fn FlowNodeComponent(
                 },
 
                 div {
-                    class: "absolute -top-[5px] left-1/2 -translate-x-1/2 h-[10px] w-[10px] rounded-full border-2 border-slate-300 bg-white hover:bg-blue-500 hover:border-blue-500 hover:scale-125 transition-all duration-150 cursor-crosshair z-10",
+                    class: "absolute -left-[5px] top-1/2 -translate-y-1/2 h-[10px] w-[10px] rounded-full border-2 border-slate-300 bg-white hover:bg-blue-500 hover:border-blue-500 hover:scale-125 transition-all duration-150 cursor-ew-resize z-10",
                     onmousedown: move |e| {
                         e.stop_propagation();
                         on_handle_mouse_down.call((e, "target".to_string()));
@@ -167,7 +167,7 @@ pub fn FlowNodeComponent(
                 div { class: "h-[2px] rounded-b-lg {category_accent_bar}" }
 
                 div {
-                    class: "absolute -bottom-[5px] left-1/2 -translate-x-1/2 h-[10px] w-[10px] rounded-full border-2 border-slate-300 bg-white hover:bg-blue-500 hover:border-blue-500 hover:scale-125 transition-all duration-150 cursor-crosshair z-10",
+                    class: "absolute -right-[5px] top-1/2 -translate-y-1/2 h-[10px] w-[10px] rounded-full border-2 border-slate-300 bg-white hover:bg-blue-500 hover:border-blue-500 hover:scale-125 transition-all duration-150 cursor-ew-resize z-10",
                     onmousedown: move |e| {
                         e.stop_propagation();
                         on_handle_mouse_down.call((e, "source".to_string()));

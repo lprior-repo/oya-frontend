@@ -2,6 +2,25 @@ use super::expressions::ExpressionContext;
 use super::{NodeCategory, NodeId, RunRecord, Workflow};
 
 impl Workflow {
+    fn compare_execution_priority(&self, a: NodeId, b: NodeId) -> std::cmp::Ordering {
+        let node_a = self.nodes.iter().find(|node| node.id == a);
+        let node_b = self.nodes.iter().find(|node| node.id == b);
+
+        match (node_a, node_b) {
+            (Some(left), Some(right)) => left
+                .x
+                .partial_cmp(&right.x)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| {
+                    left.y
+                        .partial_cmp(&right.y)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .then_with(|| left.name.cmp(&right.name)),
+            _ => std::cmp::Ordering::Equal,
+        }
+    }
+
     #[must_use]
     pub fn resolve_expressions(&self, config: &serde_json::Value) -> serde_json::Value {
         let ctx = ExpressionContext::new(&self.nodes);
@@ -48,11 +67,7 @@ impl Workflow {
             .map(|n| n.id)
             .collect();
 
-        available.sort_by(|a, b| {
-            let name_a = self.nodes.iter().find(|n| n.id == *a).map(|n| &n.name);
-            let name_b = self.nodes.iter().find(|n| n.id == *b).map(|n| &n.name);
-            name_a.cmp(&name_b)
-        });
+        available.sort_by(|a, b| self.compare_execution_priority(*b, *a));
 
         while let Some(id) = available.pop() {
             queue.push(id);
@@ -66,6 +81,7 @@ impl Workflow {
                         *count -= 1;
                         if *count == 0 {
                             available.push(conn.target);
+                            available.sort_by(|a, b| self.compare_execution_priority(*b, *a));
                         }
                     }
                 });
@@ -338,12 +354,15 @@ mod tests {
 
         if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == a) {
             node.name = "alpha".to_string();
+            node.x = 500.0;
         }
         if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == b) {
             node.name = "bravo".to_string();
+            node.x = 300.0;
         }
         if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == c) {
             node.name = "charlie".to_string();
+            node.x = 100.0;
         }
 
         workflow.prepare_run();

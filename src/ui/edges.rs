@@ -27,15 +27,15 @@ struct DragState {
 
 fn get_source_point(node: &Node) -> Position {
     Position {
-        x: node.x + NODE_WIDTH / 2.0,
-        y: node.y + NODE_HEIGHT,
+        x: node.x + NODE_WIDTH,
+        y: node.y + NODE_HEIGHT / 2.0,
     }
 }
 
 fn get_target_point(node: &Node) -> Position {
     Position {
-        x: node.x + NODE_WIDTH / 2.0,
-        y: node.y,
+        x: node.x,
+        y: node.y + NODE_HEIGHT / 2.0,
     }
 }
 

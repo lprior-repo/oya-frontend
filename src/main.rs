@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::{
-    CanvasContextMenu, ExecutionHistoryPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
+    CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
     FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
     SelectedNodePanel, ValidationPanel,
 };
@@ -173,13 +173,13 @@ fn App() -> Element {
                 node.map(|n| {
                     let from_pos = if handle == "source" {
                         FlowPosition {
-                            x: n.x + 110.0,
-                            y: n.y + 68.0,
+                            x: n.x + 220.0,
+                            y: n.y + 34.0,
                         }
                     } else {
                         FlowPosition {
-                            x: n.x + 110.0,
-                            y: n.y,
+                            x: n.x,
+                            y: n.y + 34.0,
                         }
                     };
                     (from_pos, to_pos)
@@ -232,20 +232,20 @@ fn App() -> Element {
                         let source = match &edge.source {
                             PreviewEndpoint::Existing(node_id) => existing_nodes
                                 .get(node_id)
-                                .map(|node| (node.x + 110.0, node.y + 68.0)),
+                                .map(|node| (node.x + 220.0, node.y + 34.0)),
                             PreviewEndpoint::Proposed(temp_id) => proposed_lookup
                                 .get(&format!("p{patch_idx}-{temp_id}"))
                                 .copied()
-                                .map(|(x, y)| (x + 110.0, y + 68.0)),
+                                .map(|(x, y)| (x + 220.0, y + 34.0)),
                         };
                         let target = match &edge.target {
                             PreviewEndpoint::Existing(node_id) => existing_nodes
                                 .get(node_id)
-                                .map(|node| (node.x + 110.0, node.y)),
+                                .map(|node| (node.x, node.y + 34.0)),
                             PreviewEndpoint::Proposed(temp_id) => proposed_lookup
                                 .get(&format!("p{patch_idx}-{temp_id}"))
                                 .copied()
-                                .map(|(x, y)| (x + 110.0, y)),
+                                .map(|(x, y)| (x, y + 34.0)),
                         };
 
                         source.and_then(|(sx, sy)| {
@@ -256,10 +256,10 @@ fn App() -> Element {
                                         "M {} {} C {} {}, {} {}, {} {}",
                                         sx,
                                         sy,
-                                        sx,
-                                        f32::midpoint(sy, ty),
-                                        tx,
-                                        f32::midpoint(sy, ty),
+                                        f32::midpoint(sx, tx),
+                                        sy,
+                                        f32::midpoint(sx, tx),
+                                        ty,
                                         tx,
                                         ty
                                     ),
@@ -1026,8 +1026,10 @@ fn App() -> Element {
                 }
 
                 {
+                    let plan_collapsed = use_signal(|| false);
                     let history_collapsed = use_signal(|| true);
                     let history_signal = use_memo(move || workflow.workflow().read().history.clone());
+                    let workflow_signal = workflow.workflow();
 
                     rsx! {
                         div { class: "flex flex-col shrink-0 border-l border-slate-200",
@@ -1037,6 +1039,14 @@ fn App() -> Element {
                                 on_select_node: move |node_id| {
                                     selection.select_single(node_id);
                                 },
+                            }
+                            ExecutionPlanPanel {
+                                workflow: workflow_signal,
+                                nodes_by_id,
+                                on_select_node: move |node_id| {
+                                    selection.select_single(node_id);
+                                },
+                                collapsed: plan_collapsed,
                             }
                             ExecutionHistoryPanel {
                                 history: history_signal,

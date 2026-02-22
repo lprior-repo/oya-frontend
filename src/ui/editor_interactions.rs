@@ -55,20 +55,20 @@ pub fn snap_handle(
     )> = None;
 
     for node in nodes {
-        let handle_x = node.x + NODE_WIDTH / 2.0;
+        let handle_y = node.y + NODE_HEIGHT / 2.0;
         let candidates = [
             (
                 "target",
                 crate::ui::edges::Position {
-                    x: handle_x,
-                    y: node.y,
+                    x: node.x,
+                    y: handle_y,
                 },
             ),
             (
                 "source",
                 crate::ui::edges::Position {
-                    x: handle_x,
-                    y: node.y + NODE_HEIGHT,
+                    x: node.x + NODE_WIDTH,
+                    y: handle_y,
                 },
             ),
         ];
@@ -152,7 +152,7 @@ mod tests {
             zoom: 1.0,
         };
 
-        let snapped = snap_handle(&workflow.nodes, 210.0, 167.0, &viewport);
+        let snapped = snap_handle(&workflow.nodes, 318.0, 134.0, &viewport);
 
         assert!(snapped.is_some());
 
