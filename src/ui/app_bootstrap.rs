@@ -1,4 +1,4 @@
-use oya_frontend::graph::{Node, NodeCategory, NodeId, Viewport, Workflow};
+use oya_frontend::graph::{ExecutionState, Node, NodeCategory, NodeId, Viewport, Workflow};
 
 pub fn default_workflow() -> Workflow {
     Workflow {
@@ -18,6 +18,7 @@ pub fn default_workflow() -> Workflow {
                 executing: false,
                 skipped: false,
                 error: None,
+                execution_state: ExecutionState::default(),
             },
             Node {
                 id: NodeId::new(),
@@ -34,6 +35,7 @@ pub fn default_workflow() -> Workflow {
                 executing: false,
                 skipped: false,
                 error: None,
+                execution_state: ExecutionState::default(),
             },
             Node {
                 id: NodeId::new(),
@@ -50,6 +52,7 @@ pub fn default_workflow() -> Workflow {
                 executing: false,
                 skipped: false,
                 error: None,
+                execution_state: ExecutionState::default(),
             },
         ],
         connections: vec![],

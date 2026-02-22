@@ -13,6 +13,7 @@ pub mod calc;
 mod connectivity;
 mod core;
 mod execution;
+pub mod execution_state;
 mod metadata;
 mod view;
 
@@ -20,6 +21,8 @@ pub mod expressions;
 pub mod layout;
 pub mod restate_types;
 pub mod workflow_node;
+
+pub use execution_state::ExecutionState;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeId(pub Uuid);
@@ -93,6 +96,8 @@ pub struct Node {
     pub executing: bool,
     pub skipped: bool,
     pub error: Option<String>,
+    #[serde(default)]
+    pub execution_state: ExecutionState,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

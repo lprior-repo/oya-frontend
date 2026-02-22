@@ -239,7 +239,7 @@ pub fn FlowMinimap(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oya_frontend::graph::{NodeCategory, Viewport};
+    use oya_frontend::graph::{ExecutionState, NodeCategory, Viewport};
 
     fn make_node(x: f32, y: f32) -> Node {
         Node {
@@ -257,6 +257,7 @@ mod tests {
             executing: false,
             skipped: false,
             error: None,
+            execution_state: ExecutionState::default(),
         }
     }
 

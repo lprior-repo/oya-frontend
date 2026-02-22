@@ -1,4 +1,4 @@
-use super::{Node, NodeId, Viewport, Workflow};
+use super::{ExecutionState, Node, NodeId, Viewport, Workflow};
 use crate::graph::{calc, metadata::node_metadata};
 
 impl Workflow {
@@ -52,6 +52,7 @@ impl Workflow {
             executing: false,
             skipped: false,
             error: None,
+            execution_state: ExecutionState::default(),
         });
         id
     }
