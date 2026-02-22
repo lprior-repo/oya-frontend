@@ -270,8 +270,10 @@ fn App() -> Element {
         document::Stylesheet { href: asset!("/style.css") }
         style {
             "@keyframes dash {{ to {{ stroke-dashoffset: -16; }} }}"
+            "@keyframes flow {{ to {{ stroke-dashoffset: -16; }} }}"
             "@keyframes slide-in-right {{ from {{ transform: translateX(24px); opacity: 0; }} to {{ transform: translateX(0); opacity: 1; }} }}"
             ".animate-slide-in-right {{ animation: slide-in-right 0.22s ease-out; }}"
+            "@media (prefers-reduced-motion: reduce) {{ .edge-animated {{ animation: none !important; }} }}"
         }
 
         div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f4f6fb] text-slate-900 [font-family:'Geist',_'Inter',sans-serif] select-none",
@@ -761,7 +763,14 @@ fn App() -> Element {
                         FlowEdges {
                             edges: connections,
                             nodes: nodes,
-                            temp_edge: temp_edge
+                            temp_edge: temp_edge,
+                            running_node_ids: use_memo(move || {
+                                nodes.read()
+                                    .iter()
+                                    .filter(|n| matches!(n.execution_state, oya_frontend::graph::ExecutionState::Running))
+                                    .map(|n| n.id)
+                                    .collect::<Vec<_>>()
+                            })
                         }
 
                         if !preview_edges.read().is_empty() {

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, Node};
+use oya_frontend::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -138,6 +138,7 @@ pub fn FlowEdges(
     edges: ReadSignal<Vec<Connection>>,
     nodes: ReadSignal<Vec<Node>>,
     temp_edge: ReadSignal<Option<(Position, Position)>>,
+    running_node_ids: ReadSignal<Vec<NodeId>>,
 ) -> Element {
     let mut hovered_edge = use_signal(|| None::<String>);
     let mut bend_offsets = use_signal(HashMap::<String, f32>::new);
@@ -244,18 +245,22 @@ pub fn FlowEdges(
                             .and_then(|node| node.config.get("status"))
                             .and_then(serde_json::Value::as_str)
                             .map_or_else(|| "pending".to_string(), std::string::ToString::to_string);
+                        let target_is_running = running_node_ids
+                            .read()
+                            .contains(&edge.target);
                         let stroke_color = match source_status {
                             ref status if status == "running" => "rgba(37, 99, 235, 0.95)",
                             ref status if status == "completed" => "rgba(16, 185, 129, 0.85)",
                             ref status if status == "failed" => "rgba(244, 63, 94, 0.85)",
                             _ => "rgba(148, 163, 184, 0.9)",
                         };
-                        let marker = if source_status == "running" {
+                        let marker = if source_status == "running" || target_is_running {
                             "url(#arrowhead-active)"
                         } else {
                             "url(#arrowhead)"
                         };
-                        let dash = if source_status == "running" { "8 5" } else { "0" };
+                        let dash = if source_status == "running" || target_is_running { "6 4" } else { "0" };
+                        let animation_class = if target_is_running { "edge-animated" } else { "" };
 
                         rsx! {
                             g { key: "{edge_id}",
@@ -290,7 +295,8 @@ pub fn FlowEdges(
                                     stroke_width: "2",
                                     marker_end: "{marker}",
                                     stroke_dasharray: "{dash}",
-                                    class: "transition-all duration-150"
+                                    class: "transition-all duration-150 {animation_class}",
+                                    style: if target_is_running { Some("animation: flow 0.5s linear infinite") } else { None }
                                 }
                                 circle {
                                     cx: "{midpoint.x}",
