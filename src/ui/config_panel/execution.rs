@@ -1,9 +1,106 @@
 use super::{get_str_val, get_u64_val};
-use crate::ui::icons::icon_by_name;
+use crate::ui::icons::{icon_by_name, CopyIcon};
 use dioxus::prelude::*;
 use serde_json::Value;
+use wasm_bindgen::JsCast;
+use web_sys::window;
 
 const PINNED_OUTPUT_KEY: &str = "pinnedOutputSample";
+const DEFAULT_PREVIEW_LINES: usize = 10;
+
+fn copy_to_clipboard(text: &str) -> bool {
+    if let Some(window) = window() {
+        let navigator = window.navigator();
+        if let Ok(clipboard) =
+            js_sys::Reflect::get(&navigator, &js_sys::JsString::from("clipboard"))
+        {
+            if let Ok(write_text) =
+                js_sys::Reflect::get(&clipboard, &js_sys::JsString::from("writeText"))
+            {
+                if let Some(write_text_fn) = write_text.dyn_ref::<js_sys::Function>() {
+                    let _ = write_text_fn.call1(&clipboard, &js_sys::JsString::from(text));
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+#[component]
+fn CopyButton(text: String, compact: bool) -> Element {
+    let mut show_feedback = use_signal(|| false);
+
+    let btn_class = if compact {
+        "flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-200"
+    } else {
+        "flex h-6 items-center gap-1 rounded px-2 text-[10px] text-slate-400 transition-colors hover:bg-slate-700 hover:text-slate-200"
+    };
+
+    rsx! {
+        button {
+            class: "{btn_class}",
+            onclick: move |_| {
+                if copy_to_clipboard(&text) {
+                    show_feedback.set(true);
+                    let mut feedback = show_feedback;
+                    wasm_bindgen_futures::spawn_local(async move {
+                        gloo_timers::future::TimeoutFuture::new(1500).await;
+                        feedback.set(false);
+                    });
+                }
+            },
+            if *show_feedback.read() {
+                if compact {
+                    {icon_by_name("check", "h-3 w-3 text-emerald-400".to_string())}
+                } else {
+                    span { class: "text-emerald-400", "Copied!" }
+                }
+            } else {
+                CopyIcon { class: if compact { "h-3 w-3" } else { "h-3.5 w-3.5" } }
+                if !compact {
+                    span { "Copy" }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn PayloadPreview(payload: Value, label: String, shape: String, max_lines: usize) -> Element {
+    let mut expanded = use_signal(|| false);
+    let json_full = serde_json::to_string_pretty(&payload).unwrap_or_else(|_| payload.to_string());
+    let lines: Vec<&str> = json_full.lines().collect();
+    let display_text = if *expanded.read() {
+        json_full.clone()
+    } else {
+        json_preview(&payload, max_lines)
+    };
+
+    rsx! {
+        div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
+            div { class: "mb-1 flex items-center justify-between",
+                span { class: "text-[10px] font-medium text-slate-300", "{label}" }
+                div { class: "flex items-center gap-2",
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{shape}" }
+                    CopyButton { text: json_full.clone(), compact: true }
+                }
+            }
+            pre { class: "overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-relaxed text-slate-300", "{display_text}" }
+            if lines.len() > max_lines {
+                button {
+                    class: "mt-1.5 text-[9px] text-indigo-400 hover:text-indigo-300",
+                    onclick: move |_| expanded.toggle(),
+                    if *expanded.read() {
+                        "Show less"
+                    } else {
+                        "Show full payload ({lines.len()} lines)"
+                    }
+                }
+            }
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 enum ExecutionEventKind {
@@ -105,12 +202,11 @@ pub(super) fn ExecutionTab(
                 } else {
                     div { class: "flex flex-col gap-2",
                         for (index, payload) in input_payloads.iter().enumerate() {
-                            div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
-                                div { class: "mb-1 flex items-center justify-between",
-                                    span { class: "text-[10px] font-medium text-slate-300", "Input #{index + 1}" }
-                                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{payload_shape(payload)}" }
-                                }
-                                pre { class: "overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-4 text-slate-300", "{json_preview(payload, 10)}" }
+                            PayloadPreview {
+                                payload: payload.clone(),
+                                label: format!("Input #{}", index + 1),
+                                shape: payload_shape(payload),
+                                max_lines: DEFAULT_PREVIEW_LINES,
                             }
                         }
                     }
@@ -126,12 +222,11 @@ pub(super) fn ExecutionTab(
                 }
 
                 if let Some(output) = output_payload.as_ref() {
-                    div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
-                        div { class: "mb-1 flex items-center justify-between",
-                            span { class: "text-[10px] font-medium text-slate-300", "Payload" }
-                            span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{payload_shape(output)}" }
-                        }
-                        pre { class: "overflow-x-auto rounded bg-slate-950 p-2 font-mono text-[10px] leading-4 text-slate-300", "{json_preview(output, 14)}" }
+                    PayloadPreview {
+                        payload: output.clone(),
+                        label: "Payload".to_string(),
+                        shape: payload_shape(output),
+                        max_lines: 14,
                     }
                 } else {
                     p { class: "rounded-lg border border-dashed border-slate-700 bg-slate-800/50 px-3 py-2 text-[11px] text-slate-500", "Run the workflow to inspect output for this node." }
