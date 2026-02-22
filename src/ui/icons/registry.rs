@@ -4,8 +4,8 @@ use super::set_a::{
     ClockIcon, CodeIcon, DatabaseIcon, GitBranchIcon, GitForkIcon, GlobeIcon, MailIcon, MergeIcon,
     MessageSquareIcon, RepeatIcon, ShuffleIcon, SparklesIcon, WebhookIcon,
 };
-use super::set_b::{FileOutputIcon, SendIcon};
-use super::set_c::{ServerIcon, ZapIcon};
+use super::set_b::{CheckCircleIcon, FileOutputIcon, LoaderIcon, SendIcon};
+use super::set_c::{ServerIcon, XIcon, ZapIcon};
 
 pub fn icon_by_name(name: &str, class: String) -> Element {
     match name {
@@ -26,6 +26,9 @@ pub fn icon_by_name(name: &str, class: String) -> Element {
         "message-square" => rsx! { MessageSquareIcon { class } },
         "send" => rsx! { SendIcon { class } },
         "file-output" => rsx! { FileOutputIcon { class } },
+        "loader" => rsx! { LoaderIcon { class } },
+        "check-circle" => rsx! { CheckCircleIcon { class } },
+        "x" => rsx! { XIcon { class } },
         _ => rsx! {
             svg {
                 xmlns: "http://www.w3.org/2000/svg",

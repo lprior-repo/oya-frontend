@@ -1,6 +1,6 @@
 use crate::ui::icons::icon_by_name;
 use dioxus::prelude::*;
-use oya_frontend::graph::{Node, NodeCategory};
+use oya_frontend::graph::{ExecutionState, Node, NodeCategory};
 
 #[component]
 pub fn FlowNodeComponent(
@@ -42,12 +42,7 @@ pub fn FlowNodeComponent(
         NodeCategory::Signal => "bg-blue-500/40",
     };
 
-    let is_running = node.executing
-        || node
-            .config
-            .get("status")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(|status| status == "running");
+    let is_running = matches!(node.execution_state, ExecutionState::Running);
 
     let selected_classes = if selected {
         "ring-2 ring-blue-500/60 border-blue-500/40 shadow-xl shadow-blue-500/20"
@@ -101,46 +96,44 @@ pub fn FlowNodeComponent(
                 // Status indicator
                 div { class: "ml-auto shrink-0",
                     {
-                        if let Some(status) = node.config.get("status").and_then(|s| s.as_str()) {
-                            if status != "pending" {
-                                let tuple = match status {
-                                    "running" => ("bg-indigo-500/15", "text-indigo-400", "border-indigo-500/30", "loader", true),
-                                    "suspended" => ("bg-pink-500/15", "text-pink-400", "border-pink-500/30", "pause", false),
-                                    "completed" => ("bg-emerald-500/15", "text-emerald-400", "border-emerald-500/30", "check-circle", false),
-                                    "failed" => ("bg-red-500/15", "text-red-400", "border-red-500/30", "alert-circle", false),
-                                    "retrying" => ("bg-amber-500/15", "text-amber-400", "border-amber-500/30", "refresh", true),
-                                    _ => ("bg-slate-500/15", "text-slate-400", "border-slate-500/30", "help-circle", false),
-                                };
-                                let label = match status {
-                                    "running" => "Running",
-                                    "suspended" => "Suspended",
-                                    "completed" => "Done",
-                                    "failed" => "Failed",
-                                    "retrying" => "Retrying",
-                                    _ => status,
-                                };
-                                let bg_color = tuple.0;
-                                let text_color = tuple.1;
-                                let border_color = tuple.2;
-                                let icon_name = tuple.3;
-                                let is_spin = tuple.4;
-                                let icon_class = if is_spin { "h-2.5 w-2.5 animate-spin".to_string() } else { "h-2.5 w-2.5".to_string() };
-                                rsx! {
-                                    span {
-                                        class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none {bg_color} {text_color} {border_color}",
-                                        {icon_by_name(icon_name, icon_class)}
-                                        "{label}"
-                                    }
+                        match node.execution_state {
+                            ExecutionState::Idle => rsx! { div {} },
+                            ExecutionState::Waiting => rsx! {
+                                span {
+                                    class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-amber-500/15 text-amber-400 border-amber-500/30",
+                                    {icon_by_name("clock", "h-2.5 w-2.5".to_string())}
+                                    "Waiting"
                                 }
-                            } else if node.config.get("configured").and_then(serde_json::Value::as_bool) == Some(true) {
-                                rsx! { div { class: "h-1.5 w-1.5 rounded-full bg-emerald-500" } }
-                            } else {
-                                rsx! { div {} }
-                            }
-                        } else if node.config.get("configured").and_then(serde_json::Value::as_bool) == Some(true) {
-                            rsx! { div { class: "h-1.5 w-1.5 rounded-full bg-emerald-500" } }
-                        } else {
-                            rsx! { div {} }
+                            },
+                            ExecutionState::Running => rsx! {
+                                span {
+                                    class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-blue-500/15 text-blue-400 border-blue-500/30",
+                                    {icon_by_name("loader", "h-2.5 w-2.5 animate-spin".to_string())}
+                                    "Running"
+                                }
+                            },
+                            ExecutionState::Succeeded => rsx! {
+                                span {
+                                    class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                                    {icon_by_name("check-circle", "h-2.5 w-2.5".to_string())}
+                                    "Done"
+                                }
+                            },
+                            ExecutionState::Failed => rsx! {
+                                span {
+                                    class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-red-500/15 text-red-400 border-red-500/30",
+                                    title: "Execution failed",
+                                    {icon_by_name("x", "h-2.5 w-2.5".to_string())}
+                                    "Failed"
+                                }
+                            },
+                            ExecutionState::Skipped => rsx! {
+                                span {
+                                    class: "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-slate-500/15 text-slate-400 border-slate-500/30 opacity-60",
+                                    {icon_by_name("x", "h-2.5 w-2.5".to_string())}
+                                    "Skipped"
+                                }
+                            },
                         }
                     }
                 }
