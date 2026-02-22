@@ -113,6 +113,71 @@ impl ContextType {
     }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PortType {
+    #[default]
+    Any,
+    Event,
+    State,
+    Signal,
+    #[serde(rename = "flow-control")]
+    FlowControl,
+    Json,
+}
+
+impl fmt::Display for PortType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Any => "any",
+            Self::Event => "event",
+            Self::State => "state",
+            Self::Signal => "signal",
+            Self::FlowControl => "flow-control",
+            Self::Json => "json",
+        };
+        write!(f, "{s}")
+    }
+}
+
+impl FromStr for PortType {
+    type Err = ParsePortTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "any" => Ok(Self::Any),
+            "event" => Ok(Self::Event),
+            "state" => Ok(Self::State),
+            "signal" => Ok(Self::Signal),
+            "flow-control" | "flowcontrol" => Ok(Self::FlowControl),
+            "json" => Ok(Self::Json),
+            _ => Err(ParsePortTypeError(s.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsePortTypeError(pub String);
+
+impl std::fmt::Display for ParsePortTypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Invalid PortType: {}", self.0)
+    }
+}
+
+impl std::error::Error for ParsePortTypeError {}
+
+#[must_use]
+pub fn types_compatible(source: PortType, target: PortType) -> bool {
+    if matches!(source, PortType::Any) || matches!(target, PortType::Any) {
+        return true;
+    }
+    if matches!(source, PortType::Json) || matches!(target, PortType::Json) {
+        return true;
+    }
+    source == target
+}
+
 #[cfg(test)]
 #[allow(
     clippy::unwrap_used,
@@ -644,6 +709,265 @@ mod tests {
                     serde_json::from_str(&json).expect("Should deserialize");
                 assert_eq!(original, restored);
             }
+        }
+    }
+
+    mod port_type {
+        use super::*;
+
+        mod variants {
+            use super::*;
+
+            #[test]
+            fn port_type_has_any_variant() {
+                let _port = PortType::Any;
+            }
+
+            #[test]
+            fn port_type_has_event_variant() {
+                let _port = PortType::Event;
+            }
+
+            #[test]
+            fn port_type_has_state_variant() {
+                let _port = PortType::State;
+            }
+
+            #[test]
+            fn port_type_has_signal_variant() {
+                let _port = PortType::Signal;
+            }
+
+            #[test]
+            fn port_type_has_flow_control_variant() {
+                let _port = PortType::FlowControl;
+            }
+
+            #[test]
+            fn port_type_has_json_variant() {
+                let _port = PortType::Json;
+            }
+
+            #[test]
+            fn port_type_has_exactly_six_variants() {
+                let variants: Vec<PortType> = vec![
+                    PortType::Any,
+                    PortType::Event,
+                    PortType::State,
+                    PortType::Signal,
+                    PortType::FlowControl,
+                    PortType::Json,
+                ];
+                assert_eq!(variants.len(), 6);
+            }
+        }
+
+        mod derives {
+            use super::*;
+
+            #[test]
+            fn port_type_impls_copy() {
+                fn assert_copy<T: Copy>() {}
+                assert_copy::<PortType>();
+            }
+
+            #[test]
+            fn port_type_impls_clone() {
+                fn assert_clone<T: Clone>() {}
+                assert_clone::<PortType>();
+            }
+
+            #[test]
+            fn port_type_impls_debug() {
+                fn assert_debug<T: std::fmt::Debug>() {}
+                assert_debug::<PortType>();
+            }
+
+            #[test]
+            fn port_type_impls_partial_eq() {
+                fn assert_partial_eq<T: PartialEq>() {}
+                assert_partial_eq::<PortType>();
+            }
+
+            #[test]
+            fn port_type_impls_eq() {
+                fn assert_eq<T: Eq>() {}
+                assert_eq::<PortType>();
+            }
+
+            #[test]
+            fn port_type_impls_hash() {
+                fn assert_hash<T: std::hash::Hash>() {}
+                assert_hash::<PortType>();
+            }
+        }
+
+        mod default {
+            use super::*;
+
+            #[test]
+            fn port_type_defaults_to_any() {
+                assert_eq!(PortType::default(), PortType::Any);
+            }
+        }
+
+        mod display {
+            use super::*;
+
+            #[test]
+            fn any_displays_as_lowercase() {
+                assert_eq!(format!("{}", PortType::Any), "any");
+            }
+
+            #[test]
+            fn event_displays_as_lowercase() {
+                assert_eq!(format!("{}", PortType::Event), "event");
+            }
+
+            #[test]
+            fn state_displays_as_lowercase() {
+                assert_eq!(format!("{}", PortType::State), "state");
+            }
+
+            #[test]
+            fn signal_displays_as_lowercase() {
+                assert_eq!(format!("{}", PortType::Signal), "signal");
+            }
+
+            #[test]
+            fn flow_control_displays_as_kebab_case() {
+                assert_eq!(format!("{}", PortType::FlowControl), "flow-control");
+            }
+
+            #[test]
+            fn json_displays_as_lowercase() {
+                assert_eq!(format!("{}", PortType::Json), "json");
+            }
+        }
+
+        mod from_str {
+            use super::*;
+
+            #[test]
+            fn parses_any() {
+                let result: Result<PortType, _> = "any".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::Any);
+            }
+
+            #[test]
+            fn parses_event() {
+                let result: Result<PortType, _> = "event".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::Event);
+            }
+
+            #[test]
+            fn parses_state() {
+                let result: Result<PortType, _> = "state".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::State);
+            }
+
+            #[test]
+            fn parses_signal() {
+                let result: Result<PortType, _> = "signal".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::Signal);
+            }
+
+            #[test]
+            fn parses_flow_control_kebab() {
+                let result: Result<PortType, _> = "flow-control".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::FlowControl);
+            }
+
+            #[test]
+            fn parses_json() {
+                let result: Result<PortType, _> = "json".parse();
+                assert!(result.is_ok());
+                assert_eq!(result.unwrap(), PortType::Json);
+            }
+
+            #[test]
+            fn rejects_invalid_input() {
+                let result: Result<PortType, _> = "invalid".parse();
+                assert!(result.is_err());
+            }
+        }
+
+        mod serialization {
+            use super::*;
+
+            #[test]
+            fn serializes_any_as_lowercase() {
+                let json = serde_json::to_string(&PortType::Any).expect("Should serialize");
+                assert!(json.contains("any"));
+            }
+
+            #[test]
+            fn serializes_flow_control_as_lowercase() {
+                let json = serde_json::to_string(&PortType::FlowControl).expect("Should serialize");
+                assert!(json.contains("flow-control"));
+            }
+
+            #[test]
+            fn roundtrip_preserves_event() {
+                let original = PortType::Event;
+                let json = serde_json::to_string(&original).expect("Should serialize");
+                let restored: PortType = serde_json::from_str(&json).expect("Should deserialize");
+                assert_eq!(original, restored);
+            }
+        }
+    }
+
+    mod types_compatible_fn {
+        use super::*;
+
+        #[test]
+        fn any_source_is_compatible_with_any_target() {
+            assert!(types_compatible(PortType::Any, PortType::Event));
+            assert!(types_compatible(PortType::Any, PortType::State));
+            assert!(types_compatible(PortType::Any, PortType::Json));
+        }
+
+        #[test]
+        fn any_target_accepts_any_source() {
+            assert!(types_compatible(PortType::Event, PortType::Any));
+            assert!(types_compatible(PortType::State, PortType::Any));
+            assert!(types_compatible(PortType::Signal, PortType::Any));
+        }
+
+        #[test]
+        fn json_source_is_compatible_with_any_target() {
+            assert!(types_compatible(PortType::Json, PortType::Event));
+            assert!(types_compatible(PortType::Json, PortType::State));
+        }
+
+        #[test]
+        fn json_target_accepts_any_source() {
+            assert!(types_compatible(PortType::Event, PortType::Json));
+            assert!(types_compatible(PortType::State, PortType::Json));
+        }
+
+        #[test]
+        fn same_types_are_compatible() {
+            assert!(types_compatible(PortType::Event, PortType::Event));
+            assert!(types_compatible(PortType::State, PortType::State));
+            assert!(types_compatible(PortType::Signal, PortType::Signal));
+            assert!(types_compatible(
+                PortType::FlowControl,
+                PortType::FlowControl
+            ));
+        }
+
+        #[test]
+        fn different_specific_types_are_not_compatible() {
+            assert!(!types_compatible(PortType::Event, PortType::State));
+            assert!(!types_compatible(PortType::State, PortType::Signal));
+            assert!(!types_compatible(PortType::Signal, PortType::FlowControl));
+            assert!(!types_compatible(PortType::Event, PortType::FlowControl));
         }
     }
 }

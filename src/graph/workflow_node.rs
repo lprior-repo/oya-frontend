@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
-use super::restate_types::{ContextType, ServiceKind};
+use super::restate_types::{ContextType, PortType, ServiceKind};
 use super::NodeCategory;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -299,6 +299,31 @@ impl WorkflowNode {
                 ContextType::WorkflowExclusive,
                 ContextType::WorkflowShared,
             ],
+        }
+    }
+
+    #[must_use]
+    pub const fn input_port_type(&self) -> PortType {
+        match self {
+            Self::SignalHandler(_) => PortType::Signal,
+            _ => PortType::Any,
+        }
+    }
+
+    #[must_use]
+    pub const fn output_port_type(&self) -> PortType {
+        match self {
+            Self::HttpHandler(_) | Self::KafkaHandler(_) | Self::CronTrigger(_) => PortType::Event,
+            Self::Run(_) | Self::ServiceCall(_) | Self::ObjectCall(_) | Self::WorkflowCall(_) => {
+                PortType::Json
+            }
+            Self::GetState(_) => PortType::State,
+            Self::Condition(_) | Self::Switch(_) => PortType::FlowControl,
+            Self::DurablePromise(_)
+            | Self::Awakeable(_)
+            | Self::ResolvePromise(_)
+            | Self::SignalHandler(_) => PortType::Signal,
+            _ => PortType::Any,
         }
     }
 }
@@ -1211,6 +1236,108 @@ mod tests {
                     assert!(!kinds.contains(&ServiceKind::Service));
                     assert!(!kinds.contains(&ServiceKind::VirtualObject));
                 }
+            }
+        }
+    }
+
+    mod port_types {
+        use super::*;
+
+        mod input_port_type {
+            use super::*;
+
+            #[test]
+            fn http_handler_input_is_any() {
+                let node = WorkflowNode::HttpHandler(HttpHandlerConfig::default());
+                assert_eq!(node.input_port_type(), PortType::Any);
+            }
+
+            #[test]
+            fn signal_handler_input_is_signal() {
+                let node = WorkflowNode::SignalHandler(SignalHandlerConfig::default());
+                assert_eq!(node.input_port_type(), PortType::Signal);
+            }
+
+            #[test]
+            fn condition_input_is_any() {
+                let node = WorkflowNode::Condition(ConditionConfig::default());
+                assert_eq!(node.input_port_type(), PortType::Any);
+            }
+
+            #[test]
+            fn get_state_input_is_any() {
+                let node = WorkflowNode::GetState(GetStateConfig::default());
+                assert_eq!(node.input_port_type(), PortType::Any);
+            }
+        }
+
+        mod output_port_type {
+            use super::*;
+
+            #[test]
+            fn http_handler_output_is_event() {
+                let node = WorkflowNode::HttpHandler(HttpHandlerConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Event);
+            }
+
+            #[test]
+            fn kafka_handler_output_is_event() {
+                let node = WorkflowNode::KafkaHandler(KafkaHandlerConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Event);
+            }
+
+            #[test]
+            fn cron_trigger_output_is_event() {
+                let node = WorkflowNode::CronTrigger(CronTriggerConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Event);
+            }
+
+            #[test]
+            fn condition_output_is_flow_control() {
+                let node = WorkflowNode::Condition(ConditionConfig::default());
+                assert_eq!(node.output_port_type(), PortType::FlowControl);
+            }
+
+            #[test]
+            fn switch_output_is_flow_control() {
+                let node = WorkflowNode::Switch(SwitchConfig::default());
+                assert_eq!(node.output_port_type(), PortType::FlowControl);
+            }
+
+            #[test]
+            fn get_state_output_is_state() {
+                let node = WorkflowNode::GetState(GetStateConfig::default());
+                assert_eq!(node.output_port_type(), PortType::State);
+            }
+
+            #[test]
+            fn durable_promise_output_is_signal() {
+                let node = WorkflowNode::DurablePromise(DurablePromiseConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Signal);
+            }
+
+            #[test]
+            fn awakeable_output_is_signal() {
+                let node = WorkflowNode::Awakeable(AwakeableConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Signal);
+            }
+
+            #[test]
+            fn signal_handler_output_is_signal() {
+                let node = WorkflowNode::SignalHandler(SignalHandlerConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Signal);
+            }
+
+            #[test]
+            fn run_output_is_json() {
+                let node = WorkflowNode::Run(RunConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Json);
+            }
+
+            #[test]
+            fn service_call_output_is_json() {
+                let node = WorkflowNode::ServiceCall(ServiceCallConfig::default());
+                assert_eq!(node.output_port_type(), PortType::Json);
             }
         }
     }
