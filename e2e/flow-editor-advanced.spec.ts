@@ -58,3 +58,28 @@ test("adds multiple nodes and deletes one selected node", async ({ page }) => {
   await expect(page.locator("div[data-node-id]")).toHaveCount(beforeDelete - 1);
   await ensureStableShell(page, errors);
 });
+
+test("extend flow panel supports select, apply, and clear", async ({ page }) => {
+  const errors = attachPageErrorSink(page);
+  await runPromise(waitForEditorShell(page));
+
+  const node = await runPromise(addNodeFromSidebar(page));
+  await node.click();
+
+  const selectedPanel = page.locator("aside").filter({ hasText: "Extend Flow" }).first();
+  const selectAll = selectedPanel.getByRole("button", { name: "Select all", exact: true });
+  await expect(selectAll).toBeVisible();
+  await selectAll.click();
+
+  const applySelected = selectedPanel.getByRole("button", { name: /Apply Selected/ });
+  await expect(applySelected).toBeVisible();
+  await applySelected.click();
+
+  await expect(selectedPanel).toContainText(/Applied .* batch #/);
+
+  await selectAll.click();
+  await selectedPanel.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(selectedPanel.getByRole("button", { name: /Apply Selected/ })).toHaveCount(0);
+
+  await ensureStableShell(page, errors);
+});
