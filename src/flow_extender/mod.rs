@@ -762,7 +762,10 @@ fn plan_reliability_bundle(workflow: &Workflow) -> Option<RulePlan> {
     }
 
     let timeout = plan_missing_timeout_guard(workflow).map(|plan| ("timeout", plan));
-    let checkpoint = plan_missing_checkpoint(workflow).map(|plan| ("checkpoint", plan));
+    let checkpoint = key_is_compatible_with_workflow(workflow, ExtensionKey::AddDurableCheckpoint)
+        .then(|| plan_missing_checkpoint(workflow))
+        .flatten()
+        .map(|plan| ("checkpoint", plan));
     let compensation = plan_unbalanced_condition(workflow).map(|plan| ("compensation", plan));
 
     let parts = [timeout, checkpoint, compensation]
@@ -851,22 +854,14 @@ fn plan_unbalanced_condition(workflow: &Workflow) -> Option<RulePlan> {
 }
 
 fn plan_missing_signal_resolution(workflow: &Workflow) -> Option<RulePlan> {
-    let waits_for_external = workflow
-        .nodes
-        .iter()
-        .any(|node| node.node_type == "durable-promise");
     let has_resolver = workflow
         .nodes
         .iter()
         .any(|node| node.node_type == "resolve-promise");
 
-    let wait_node = workflow
-        .nodes
-        .iter()
-        .find(|node| node.node_type == "durable-promise")
-        .cloned()?;
+    let wait_node = first_node_by_type(workflow, |node| is_signal_wait_anchor(workflow, node))?;
 
-    (waits_for_external && !has_resolver).then(|| RulePlan {
+    (!has_resolver).then(|| RulePlan {
         rationale:
             "Workflow waits on external events but has no resolve step. Add resolve-promise to close the loop.".to_string(),
         patch: PatchPlan {
@@ -1053,10 +1048,11 @@ fn key_is_compatible_with_workflow(workflow: &Workflow, key: ExtensionKey) -> bo
 }
 
 fn infer_workflow_service_kinds(workflow: &Workflow) -> HashSet<RestateServiceKind> {
-    let has_promise_semantics = workflow
-        .nodes
-        .iter()
-        .any(|node| node.node_type == "durable-promise" || node.node_type == "resolve-promise");
+    let has_promise_semantics = workflow.nodes.iter().any(|node| {
+        node.node_type == "durable-promise"
+            || node.node_type == "resolve-promise"
+            || is_signal_wait_anchor(workflow, node)
+    });
     let has_state_semantics = workflow.nodes.iter().any(|node| {
         node.node_type == "get-state"
             || node.node_type == "set-state"
@@ -1299,7 +1295,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
             let waits = workflow
                 .nodes
                 .iter()
-                .filter(|node| node.node_type == "durable-promise")
+                .filter(|node| is_signal_wait_anchor(workflow, node))
                 .count() as f32;
             (0.74 + waits * 0.08).min(0.97)
         }
@@ -1476,6 +1472,18 @@ fn missing_condition_branch(workflow: &Workflow, node_id: NodeId) -> bool {
         .any(|connection| connection.source == node_id && connection.source_port.0 == "false");
 
     !(has_true && has_false)
+}
+
+fn is_signal_wait_anchor(workflow: &Workflow, node: &Node) -> bool {
+    if node.node_type == "durable-promise" {
+        return true;
+    }
+
+    node.node_type == "awakeable"
+        && workflow
+            .connections
+            .iter()
+            .any(|connection| connection.source == node.id && connection.source_port.0 == "out")
 }
 
 fn first_node_by_type<F>(workflow: &Workflow, predicate: F) -> Option<Node>

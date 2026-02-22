@@ -223,3 +223,92 @@ fn signal_resolution_contract() -> Result<()> {
     assert_eq!(after_order[1], durable_id);
     Ok(())
 }
+
+#[test]
+fn reliability_bundle_preview_contract_respects_service_semantics() -> Result<()> {
+    let mut workflow = Workflow::new();
+    let _ = workflow.add_node("run", 32.0, 32.0);
+
+    assert!(has_key(&workflow, "add-reliability-bundle"));
+
+    let preview = preview_extension(&workflow, "add-reliability-bundle")
+        .map_err(|err| anyhow!(err))?
+        .ok_or_else(|| anyhow!("bundle preview should exist"))?;
+
+    assert!(preview
+        .nodes
+        .iter()
+        .all(|node| node.node_type != "set-state"));
+    Ok(())
+}
+
+#[test]
+fn reliability_bundle_preview_apply_contract_match_in_service_context() -> Result<()> {
+    let mut workflow = Workflow::new();
+    let _ = workflow.add_node("run", 48.0, 48.0);
+
+    let preview = preview_extension(&workflow, "add-reliability-bundle")
+        .map_err(|err| anyhow!(err))?
+        .ok_or_else(|| anyhow!("bundle preview should exist"))?;
+    let preview_types = preview
+        .nodes
+        .iter()
+        .map(|node| node.node_type.clone())
+        .collect::<Vec<_>>();
+
+    let _ = apply_extension(&mut workflow, "add-reliability-bundle").map_err(|err| anyhow!(err))?;
+    let applied_types = workflow
+        .nodes
+        .iter()
+        .filter(|node| {
+            node.node_type == "timeout"
+                || node.node_type == "set-state"
+                || node.node_type == "compensate"
+        })
+        .map(|node| node.node_type.clone())
+        .collect::<Vec<_>>();
+
+    assert_eq!(applied_types, preview_types);
+    Ok(())
+}
+
+#[test]
+fn awakeable_signal_resolution_contract() -> Result<()> {
+    let mut workflow = Workflow::new();
+    let awakeable_id = workflow.add_node("awakeable", 120.0, 64.0);
+    let run_id = workflow.add_node("run", 360.0, 64.0);
+    let _ = workflow.add_connection(
+        awakeable_id,
+        run_id,
+        &PortName::from("out"),
+        &PortName::from("in"),
+    );
+
+    assert!(has_key(&workflow, "add-signal-resolution"));
+
+    let preview = preview_extension(&workflow, "add-signal-resolution")
+        .map_err(|err| anyhow!(err))?
+        .ok_or_else(|| anyhow!("awakeable signal-resolution preview should exist"))?;
+    assert_eq!(preview.nodes.len(), 1);
+    assert_eq!(preview.nodes[0].node_type, "resolve-promise");
+    assert!(preview
+        .connections
+        .iter()
+        .any(|connection| { connection.source_port == "out" && connection.target_port == "in" }));
+
+    let _ = apply_extension(&mut workflow, "add-signal-resolution").map_err(|err| anyhow!(err))?;
+
+    let resolve_id = workflow
+        .nodes
+        .iter()
+        .find(|node| node.node_type == "resolve-promise")
+        .map(|node| node.id)
+        .ok_or_else(|| anyhow!("resolve-promise node should exist"))?;
+    assert!(workflow.connections.iter().any(|connection| {
+        connection.source == awakeable_id
+            && connection.target == resolve_id
+            && connection.source_port.0 == "out"
+            && connection.target_port.0 == "in"
+    }));
+    Ok(())
+}
