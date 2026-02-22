@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use itertools::Itertools;
 use oya_frontend::flow_extender::{
     apply_extension, extension_presets, preview_extension, resolve_extension_preset,
     suggest_extensions, ExtensionPatchPreview, ExtensionPriority,
@@ -805,6 +806,7 @@ pub fn SelectedNodePanel(
 
 fn collect_previews(workflow: &Workflow, keys: &[String]) -> Vec<ExtensionPatchPreview> {
     keys.iter()
+        .unique()
         .filter_map(|key| preview_extension(workflow, key).ok().flatten())
         .collect::<Vec<_>>()
 }
@@ -998,10 +1000,11 @@ fn snapshot_by_id(
 #[cfg(test)]
 mod tests {
     use super::{
-        event_appearance, mode_label, push_timeline, remember_extension_snapshot, snapshot_by_id,
-        ExtensionApplyMode, ExtensionBatchSnapshot, ExtensionTimelineEvent,
+        collect_previews, event_appearance, mode_label, push_timeline, remember_extension_snapshot,
+        snapshot_by_id, ExtensionApplyMode, ExtensionBatchSnapshot, ExtensionTimelineEvent,
         ExtensionTimelineEventKind,
     };
+    use oya_frontend::flow_extender::preview_extension;
     use oya_frontend::graph::Workflow;
 
     #[test]
@@ -1066,5 +1069,38 @@ mod tests {
 
         assert!(maybe_snapshot.is_some());
         assert_eq!(mode_label(ExtensionApplyMode::Single), "single");
+    }
+
+    #[test]
+    fn collect_previews_deduplicates_duplicate_keys() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("run", 10.0, 10.0);
+        let keys = vec![
+            "add-timeout-guard".to_string(),
+            "add-timeout-guard".to_string(),
+        ];
+
+        let previews = collect_previews(&workflow, &keys);
+
+        assert_eq!(previews.len(), 1);
+    }
+
+    #[test]
+    fn collect_previews_ignores_unknown_keys_but_keeps_valid_previews() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("run", 10.0, 10.0);
+        let keys = vec![
+            "unknown-extension-key".to_string(),
+            "add-timeout-guard".to_string(),
+        ];
+
+        let previews = collect_previews(&workflow, &keys);
+        let expected = preview_extension(&workflow, "add-timeout-guard");
+
+        assert!(expected.is_ok());
+        let expected = expected.ok().flatten();
+        assert!(expected.is_some());
+        assert_eq!(previews.len(), 1);
+        assert_eq!(previews.first(), expected.as_ref());
     }
 }
