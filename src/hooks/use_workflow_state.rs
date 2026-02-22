@@ -198,6 +198,42 @@ impl WorkflowState {
             workflow_signal.set(workflow_result);
         });
     }
+
+    /// Find downstream nodes (nodes connected FROM the given node)
+    pub fn downstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
+        self.connections
+            .read()
+            .iter()
+            .filter(|c| c.source == node_id)
+            .map(|c| c.target)
+            .collect()
+    }
+
+    /// Find upstream nodes (nodes connected TO the given node)
+    pub fn upstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
+        self.connections
+            .read()
+            .iter()
+            .filter(|c| c.target == node_id)
+            .map(|c| c.source)
+            .collect()
+    }
+
+    /// Move a node by a delta amount (for keyboard navigation)
+    pub fn move_node_by(mut self, node_id: NodeId, dx: f32, dy: f32) {
+        if !dx.is_finite() || !dy.is_finite() {
+            return;
+        }
+        if let Some(node) = self.workflow.write().nodes.iter_mut().find(|n| n.id == node_id) {
+            node.x += dx;
+            node.y += dy;
+        }
+    }
+
+    /// Get the first node in the workflow (for initial selection)
+    pub fn first_node_id(&self) -> Option<NodeId> {
+        self.nodes.read().first().map(|n| n.id)
+    }
 }
 
 pub fn use_workflow_state() -> WorkflowState {

@@ -483,6 +483,62 @@ fn App() -> Element {
                                 let _ = workflow.remove_node(node_id);
                             }
                             selection.clear();
+                            return;
+                        }
+
+                        if key == "tab" {
+                            evt.prevent_default();
+                            let shift = evt.modifiers().shift();
+                            if let Some(current_id) = *selection.selected_id().read() {
+                                let next_id = if shift {
+                                    workflow.upstream_nodes(current_id).first().copied()
+                                } else {
+                                    workflow.downstream_nodes(current_id).first().copied()
+                                };
+                                if let Some(id) = next_id {
+                                    selection.select_single(id);
+                                }
+                            } else if let Some(first_id) = workflow.first_node_id() {
+                                selection.select_single(first_id);
+                            }
+                            return;
+                        }
+
+                        if key == "enter" {
+                            if let Some(node_id) = *selection.selected_id().read() {
+                                evt.prevent_default();
+                                panels.toggle_inline_panel(node_id);
+                            }
+                            return;
+                        }
+
+                        let arrow_delta = 20.0_f32;
+                        if key == "arrowup" {
+                            if let Some(node_id) = *selection.selected_id().read() {
+                                evt.prevent_default();
+                                workflow.move_node_by(node_id, 0.0, -arrow_delta);
+                            }
+                            return;
+                        }
+                        if key == "arrowdown" {
+                            if let Some(node_id) = *selection.selected_id().read() {
+                                evt.prevent_default();
+                                workflow.move_node_by(node_id, 0.0, arrow_delta);
+                            }
+                            return;
+                        }
+                        if key == "arrowleft" {
+                            if let Some(node_id) = *selection.selected_id().read() {
+                                evt.prevent_default();
+                                workflow.move_node_by(node_id, -arrow_delta, 0.0);
+                            }
+                            return;
+                        }
+                        if key == "arrowright" {
+                            if let Some(node_id) = *selection.selected_id().read() {
+                                evt.prevent_default();
+                                workflow.move_node_by(node_id, arrow_delta, 0.0);
+                            }
                         }
                     },
                     onkeyup: move |evt| {
