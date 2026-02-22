@@ -3,6 +3,7 @@
 #![deny(clippy::panic)]
 
 use dioxus::prelude::*;
+use oya_frontend::graph::NodeId;
 
 /// Context menu state
 #[derive(Clone, Debug, PartialEq, Store)]
@@ -32,6 +33,7 @@ pub struct UiPanels {
     palette_query: Signal<String>,
     context_menu: Store<ContextMenuState>,
     context_menu_state: Memo<ContextMenuState>,
+    inline_panel_node_id: Signal<Option<NodeId>>,
 }
 
 #[allow(dead_code)]
@@ -130,6 +132,7 @@ impl UiPanels {
         self.palette_open.set(false);
         self.settings_open.set(false);
         self.context_menu.set(ContextMenuState::default());
+        self.inline_panel_node_id.set(None);
     }
 
     /// Check if any panel is open
@@ -137,6 +140,34 @@ impl UiPanels {
         *self.settings_open.read()
             || *self.palette_open.read()
             || self.context_menu_state.read().open
+            || self.inline_panel_node_id.read().is_some()
+    }
+
+    // === Inline panel ===
+
+    pub fn inline_panel_node_id(&self) -> ReadSignal<Option<NodeId>> {
+        self.inline_panel_node_id.into()
+    }
+
+    pub fn open_inline_panel(mut self, node_id: NodeId) {
+        self.inline_panel_node_id.set(Some(node_id));
+    }
+
+    pub fn close_inline_panel(mut self) {
+        self.inline_panel_node_id.set(None);
+    }
+
+    pub fn toggle_inline_panel(mut self, node_id: NodeId) {
+        let current = *self.inline_panel_node_id.read();
+        if current == Some(node_id) {
+            self.inline_panel_node_id.set(None);
+        } else {
+            self.inline_panel_node_id.set(Some(node_id));
+        }
+    }
+
+    pub fn is_inline_panel_open(&self, node_id: NodeId) -> bool {
+        *self.inline_panel_node_id.read() == Some(node_id)
     }
 }
 
@@ -146,6 +177,7 @@ pub fn use_ui_panels() -> UiPanels {
     let palette_query = use_signal(String::new);
     let context_menu = use_store(ContextMenuState::default);
     let context_menu_state = use_memo(move || context_menu.cloned());
+    let inline_panel_node_id = use_signal(|| None);
 
     UiPanels {
         settings_open,
@@ -153,5 +185,6 @@ pub fn use_ui_panels() -> UiPanels {
         palette_query,
         context_menu,
         context_menu_state,
+        inline_panel_node_id,
     }
 }

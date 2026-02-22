@@ -712,6 +712,7 @@ fn App() -> Element {
                     },
                     onmousedown: move |evt| {
                         panels.close_context_menu();
+                        panels.close_inline_panel();
                         let trigger_button = evt.trigger_button();
                         if matches!(trigger_button, Some(MouseButton::Primary | MouseButton::Auxiliary)) {
                             evt.prevent_default();
@@ -801,110 +802,126 @@ fn App() -> Element {
                         }
 
                         for node in nodes.read().iter().cloned() {
-                            {
-                                let node_id = node.id;
-                                let is_selected = selection.is_selected(node_id);
-                                let workflow_clone = workflow;
-                                let selection_clone = selection;
-                                let canvas_clone = canvas;
+                             {
+                                 let node_id = node.id;
+                                 let is_selected = selection.is_selected(node_id);
+                                 let is_inline_open = panels.is_inline_panel_open(node_id);
+                                 let workflow_clone = workflow;
+                                 let selection_clone = selection;
+                                 let canvas_clone = canvas;
+                                 let panels_clone = panels;
 
-                                rsx! {
-                                    FlowNodeComponent {
-                                        key: "{node_id}",
-                                        node,
-                                        selected: is_selected,
-                                        on_mouse_down: move |evt: MouseEvent| {
-                                            if evt.trigger_button() != Some(MouseButton::Primary) {
-                                                return;
-                                            }
-                                            if *canvas_clone.is_space_hand().read() {
-                                                return;
-                                            }
-                                            evt.stop_propagation();
+                                 rsx! {
+                                     FlowNodeComponent {
+                                         key: "{node_id}",
+                                         node,
+                                         selected: is_selected,
+                                         inline_open: is_inline_open,
+                                         on_mouse_down: move |evt: MouseEvent| {
+                                             if evt.trigger_button() != Some(MouseButton::Primary) {
+                                                 return;
+                                             }
+                                             if *canvas_clone.is_space_hand().read() {
+                                                 return;
+                                             }
+                                             evt.stop_propagation();
 
-                                            let page = evt.page_coordinates();
-                                            let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                                                origin
-                                            } else {
-                                                let coordinates = evt.element_coordinates();
-                                                #[allow(clippy::cast_possible_truncation)]
-                                                let fallback_x = page.x as f32 - coordinates.x as f32;
-                                                #[allow(clippy::cast_possible_truncation)]
-                                                let fallback_y = page.y as f32 - coordinates.y as f32;
-                                                (fallback_x, fallback_y)
-                                            };
-                                            canvas_clone.set_origin(origin);
-                                            #[allow(clippy::cast_possible_truncation)]
-                                            let page_point = (page.x as f32, page.y as f32);
-                                            let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
-                                                return;
-                                            };
-                                            canvas_clone.update_mouse(mouse_pos);
+                                             let page = evt.page_coordinates();
+                                             let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
+                                                 origin
+                                             } else {
+                                                 let coordinates = evt.element_coordinates();
+                                                 #[allow(clippy::cast_possible_truncation)]
+                                                 let fallback_x = page.x as f32 - coordinates.x as f32;
+                                                 #[allow(clippy::cast_possible_truncation)]
+                                                 let fallback_y = page.y as f32 - coordinates.y as f32;
+                                                 (fallback_x, fallback_y)
+                                             };
+                                             canvas_clone.set_origin(origin);
+                                             #[allow(clippy::cast_possible_truncation)]
+                                             let page_point = (page.x as f32, page.y as f32);
+                                             let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
+                                                 return;
+                                             };
+                                             canvas_clone.update_mouse(mouse_pos);
 
-                                            let currently_selected = selection_clone.selected_ids().read().clone();
-                                            let drag_targets = if currently_selected.contains(&node_id) {
-                                                if currently_selected.is_empty() {
-                                                    vec![node_id]
-                                                } else {
-                                                    currently_selected
-                                                }
-                                            } else {
-                                                vec![node_id]
-                                            };
-                                            selection_clone.set_multiple(drag_targets.clone());
-                                            selection_clone.set_pending_drag(drag_targets);
-                                            canvas_clone.start_drag_anchor(mouse_pos);
-                                        },
-                                        on_click: move |_| {
-                                            selection_clone.select_single(node_id);
-                                        },
-                                        on_handle_mouse_down: move |args: (MouseEvent, String)| {
-                                            let (evt, handle_type) = args;
-                                            selection_clone.clear_pending_drag();
-                                            canvas_clone.clear_drag_anchor();
-                                            let page = evt.page_coordinates();
-                                            let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                                                origin
-                                            } else {
-                                                let coordinates = evt.element_coordinates();
-                                                #[allow(clippy::cast_possible_truncation)]
-                                                let fallback_x = page.x as f32 - coordinates.x as f32;
-                                                #[allow(clippy::cast_possible_truncation)]
-                                                let fallback_y = page.y as f32 - coordinates.y as f32;
-                                                (fallback_x, fallback_y)
-                                            };
-                                            canvas_clone.set_origin(origin);
-                                            #[allow(clippy::cast_possible_truncation)]
-                                            let page_point = (page.x as f32, page.y as f32);
-                                            let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
-                                                return;
-                                            };
-                                            canvas_clone.update_mouse(mouse_pos);
-                                            canvas_clone.start_connect(node_id, handle_type.clone());
-                                            selection_clone.select_single(node_id);
-                                            let current_vp = workflow_clone.viewport().read().clone();
-                                            #[allow(clippy::cast_possible_truncation)]
-                                            let page_point = (page.x as f32, page.y as f32);
-                                            if let Some((canvas_x, canvas_y)) =
-                                                crate::ui::interaction_guards::safe_canvas_from_viewport(
-                                                    page_point,
-                                                    origin,
-                                                    &current_vp,
-                                                )
-                                            {
-                                                canvas_clone.set_temp_edge(Some((
-                                                    FlowPosition { x: canvas_x, y: canvas_y },
-                                                    FlowPosition { x: canvas_x, y: canvas_y },
-                                                )));
-                                            }
-                                        },
-                                        on_handle_mouse_enter: move |handle_type| canvas_clone.set_hovered_handle(Some((node_id, handle_type))),
-                                        on_handle_mouse_leave: move |()| canvas_clone.set_hovered_handle(None)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                                             let currently_selected = selection_clone.selected_ids().read().clone();
+                                             let drag_targets = if currently_selected.contains(&node_id) {
+                                                 if currently_selected.is_empty() {
+                                                     vec![node_id]
+                                                 } else {
+                                                     currently_selected
+                                                 }
+                                             } else {
+                                                 vec![node_id]
+                                             };
+                                             selection_clone.set_multiple(drag_targets.clone());
+                                             selection_clone.set_pending_drag(drag_targets);
+                                             canvas_clone.start_drag_anchor(mouse_pos);
+                                         },
+                                         on_click: move |_| {
+                                             selection_clone.select_single(node_id);
+                                         },
+                                         on_double_click: move |_| {
+                                             panels_clone.toggle_inline_panel(node_id);
+                                         },
+                                         on_handle_mouse_down: move |args: (MouseEvent, String)| {
+                                             let (evt, handle_type) = args;
+                                             selection_clone.clear_pending_drag();
+                                             canvas_clone.clear_drag_anchor();
+                                             let page = evt.page_coordinates();
+                                             let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
+                                                 origin
+                                             } else {
+                                                 let coordinates = evt.element_coordinates();
+                                                 #[allow(clippy::cast_possible_truncation)]
+                                                 let fallback_x = page.x as f32 - coordinates.x as f32;
+                                                 #[allow(clippy::cast_possible_truncation)]
+                                                 let fallback_y = page.y as f32 - coordinates.y as f32;
+                                                 (fallback_x, fallback_y)
+                                             };
+                                             canvas_clone.set_origin(origin);
+                                             #[allow(clippy::cast_possible_truncation)]
+                                             let page_point = (page.x as f32, page.y as f32);
+                                             let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
+                                                 return;
+                                             };
+                                             canvas_clone.update_mouse(mouse_pos);
+                                             canvas_clone.start_connect(node_id, handle_type.clone());
+                                             selection_clone.select_single(node_id);
+                                             let current_vp = workflow_clone.viewport().read().clone();
+                                             #[allow(clippy::cast_possible_truncation)]
+                                             let page_point = (page.x as f32, page.y as f32);
+                                             if let Some((canvas_x, canvas_y)) =
+                                                 crate::ui::interaction_guards::safe_canvas_from_viewport(
+                                                     page_point,
+                                                     origin,
+                                                     &current_vp,
+                                                 )
+                                             {
+                                                 canvas_clone.set_temp_edge(Some((
+                                                     FlowPosition { x: canvas_x, y: canvas_y },
+                                                     FlowPosition { x: canvas_x, y: canvas_y },
+                                                 )));
+                                             }
+                                         },
+                                         on_handle_mouse_enter: move |handle_type| canvas_clone.set_hovered_handle(Some((node_id, handle_type))),
+                                         on_handle_mouse_leave: move |()| canvas_clone.set_hovered_handle(None),
+                                         on_inline_change: move |new_config| {
+                                             let mut binding = workflow_clone.workflow();
+                                             let mut wf = binding.write();
+                                             if let Some(n) = wf.nodes.iter_mut().find(|n| n.id == node_id) {
+                                                 n.config = new_config;
+                                             }
+                                         },
+                                         on_inline_close: move |()| {
+                                             panels_clone.close_inline_panel();
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
 
                     if let Some((start, end)) = canvas.marquee_rect() {
                         {
