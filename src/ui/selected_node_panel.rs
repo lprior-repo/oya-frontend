@@ -229,12 +229,16 @@ pub fn SelectedNodePanel(
                                                                         onclick: move |_| {
                                                                             match resolve_extension_preset(&workflow.read(), &preset_key_for_preview) {
                                                                                 Ok(resolved) => {
-                                                                                    if !resolved.conflicts.is_empty() {
+                                                                                    if resolved.conflicts.is_empty() {
+                                                                                        let count = resolved.ordered_keys.len();
+                                                                                        selected_extension_keys.set(resolved.ordered_keys.clone());
+                                                                                        extension_message.set(Some(format!(
+                                                                                            "Previewing preset '{preset_title_for_preview}' ({count} extension rules).",
+                                                                                        )));
+                                                                                    } else {
                                                                                         let conflict_count = resolved.conflicts.len();
                                                                                         let detail = format!(
-                                                                                            "Preset '{}' has {} conflict(s). Resolve conflicts before apply.",
-                                                                                            preset_title_for_preview,
-                                                                                            conflict_count,
+                                                                                            "Preset '{preset_title_for_preview}' has {conflict_count} conflict(s). Resolve conflicts before apply.",
                                                                                         );
                                                                                         let mut history = extension_timeline.read().clone();
                                                                                         push_timeline(
@@ -247,21 +251,12 @@ pub fn SelectedNodePanel(
                                                                                         extension_message.set(Some(detail));
                                                                                         selected_extension_keys.set(Vec::new());
                                                                                         preview_patches.set(Vec::new());
-                                                                                    } else {
-                                                                                        selected_extension_keys.set(resolved.ordered_keys.clone());
-                                                                                        extension_message.set(Some(format!(
-                                                                                            "Previewing preset '{}' ({} extension rules).",
-                                                                                            preset_title_for_preview,
-                                                                                            resolved.ordered_keys.len(),
-                                                                                        )));
                                                                                     }
                                                                                 }
                                                                                 Err(err) => {
-                                                                                    let detail = format!(
-                                                                                        "Failed preset preview '{}': {}",
-                                                                                        preset_key_for_preview,
-                                                                                        err,
-                                                                                    );
+                                                                                     let detail = format!(
+                                                                                         "Failed preset preview '{preset_key_for_preview}': {err}",
+                                                                                     );
                                                                                     let mut history = extension_timeline.read().clone();
                                                                                     push_timeline(
                                                                                         &mut history,
@@ -283,11 +278,9 @@ pub fn SelectedNodePanel(
                                                                             let resolved = match resolved {
                                                                                 Ok(value) => value,
                                                                                 Err(err) => {
-                                                                                    let detail = format!(
-                                                                                        "Failed preset apply '{}': {}",
-                                                                                        preset_key_for_apply,
-                                                                                        err,
-                                                                                    );
+                                                                                     let detail = format!(
+                                                                                         "Failed preset apply '{preset_key_for_apply}': {err}",
+                                                                                     );
                                                                                     let mut history = extension_timeline.read().clone();
                                                                                     push_timeline(
                                                                                         &mut history,
@@ -430,20 +423,20 @@ pub fn SelectedNodePanel(
                                                     let mut failures = Vec::new();
                                                     {
                                                         let mut wf = workflow.write();
-                                                        keys.iter().for_each(|key| {
-                                                            match apply_extension(&mut wf, key) {
-                                                                Ok(applied) => {
-                                                                    total_created += applied.created_nodes.len();
-                                                                    applied_count += 1;
-                                                                    record_suggestion_decision(
-                                                                        key,
-                                                                        true,
-                                                                        "bulk-apply",
-                                                                    );
-                                                                }
-                                                                Err(err) => failures.push(format!("{key}: {err}")),
-                                                            }
-                                                        });
+                                                        for key in &keys {
+                                                                             match apply_extension(&mut wf, key) {
+                                                                                 Ok(applied) => {
+                                                                                     total_created += applied.created_nodes.len();
+                                                                                     applied_count += 1;
+                                                                                     record_suggestion_decision(
+                                                                                         key,
+                                                                                         true,
+                                                                                         "bulk-apply",
+                                                                                     );
+                                                                                 }
+                                                                                 Err(err) => failures.push(format!("{key}: {err}")),
+                                                                             }
+                                                                         }
                                                     }
 
                                                     let mut snapshots = extension_snapshots.read().clone();
@@ -693,7 +686,7 @@ pub fn SelectedNodePanel(
                                             div { class: "flex flex-col gap-1.5",
                                                 for (idx, event) in extension_timeline.read().iter().enumerate() {
                                                     {
-                                                        let (dot_class, label_class, label) = event_appearance(&event.kind);
+                                                        let (dot_class, label_class, label) = event_appearance(event.kind);
                                                         let metadata = event.metadata.clone();
                                                         rsx! {
                                                             div {
@@ -920,7 +913,7 @@ fn push_timeline(
 }
 
 fn event_appearance(
-    kind: &ExtensionTimelineEventKind,
+    kind: ExtensionTimelineEventKind,
 ) -> (&'static str, &'static str, &'static str) {
     match kind {
         ExtensionTimelineEventKind::Snapshot => {
@@ -1031,7 +1024,7 @@ mod tests {
 
     #[test]
     fn failed_event_uses_error_style() {
-        let (dot, label_class, label) = event_appearance(&ExtensionTimelineEventKind::Failed);
+        let (dot, label_class, label) = event_appearance(ExtensionTimelineEventKind::Failed);
 
         assert_eq!(dot, "bg-red-500");
         assert!(label_class.contains("text-red-700"));

@@ -178,21 +178,11 @@ pub enum RestateCapability {
     PromiseResolution,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExtensionSemantics {
     pub compatible_service_kinds: Vec<RestateServiceKind>,
     pub requires: Vec<RestateCapability>,
     pub provides: Vec<RestateCapability>,
-}
-
-impl Default for ExtensionSemantics {
-    fn default() -> Self {
-        Self {
-            compatible_service_kinds: Vec::new(),
-            requires: Vec::new(),
-            provides: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

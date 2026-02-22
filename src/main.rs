@@ -40,10 +40,9 @@ impl Drop for GlobalMouseupListenerInner {
     fn drop(&mut self) {
         use wasm_bindgen::JsCast;
 
-        let _ = self.window.remove_event_listener_with_callback(
-            "mouseup",
-            self.callback.as_ref().unchecked_ref(),
-        );
+        let _ = self
+            .window
+            .remove_event_listener_with_callback("mouseup", self.callback.as_ref().unchecked_ref());
     }
 }
 
@@ -101,9 +100,8 @@ fn App() -> Element {
 
     #[cfg(target_arch = "wasm32")]
     {
-        let _global_mouseup_listener = use_hook(move || {
-            register_global_mouseup_listener(canvas, selection)
-        });
+        let _global_mouseup_listener =
+            use_hook(move || register_global_mouseup_listener(canvas, selection));
 
         use_effect(move || {
             use wasm_bindgen::{JsCast, JsValue};
@@ -113,8 +111,10 @@ fn App() -> Element {
                 return;
             };
 
-            if let Ok(tailwind) = js_sys::Reflect::get(win.as_ref(), &JsValue::from_str("tailwind")) {
-                if let Ok(refresh) = js_sys::Reflect::get(&tailwind, &JsValue::from_str("refresh")) {
+            if let Ok(tailwind) = js_sys::Reflect::get(win.as_ref(), &JsValue::from_str("tailwind"))
+            {
+                if let Ok(refresh) = js_sys::Reflect::get(&tailwind, &JsValue::from_str("refresh"))
+                {
                     if let Some(refresh_fn) = refresh.dyn_ref::<js_sys::Function>() {
                         let _ = refresh_fn.call0(&tailwind);
                     }
@@ -214,12 +214,7 @@ fn App() -> Element {
                 let proposed_lookup = patch
                     .nodes
                     .iter()
-                    .map(|node| {
-                        (
-                            format!("p{patch_idx}-{}", node.temp_id),
-                            (node.x, node.y),
-                        )
-                    })
+                    .map(|node| (format!("p{patch_idx}-{}", node.temp_id), (node.x, node.y)))
                     .collect::<std::collections::HashMap<_, _>>();
 
                 patch
@@ -255,9 +250,9 @@ fn App() -> Element {
                                         sx,
                                         sy,
                                         sx,
-                                        (sy + ty) / 2.0,
+                                        f32::midpoint(sy, ty),
                                         tx,
-                                        (sy + ty) / 2.0,
+                                        f32::midpoint(sy, ty),
                                         tx,
                                         ty
                                     ),
@@ -922,7 +917,10 @@ fn App() -> Element {
                     FlowMinimap {
                         nodes: nodes,
                         edges: connections,
-                        selected_node_id: selection.selected_id()
+                        selected_node_id: selection.selected_id(),
+                        viewport: workflow.viewport(),
+                        canvas_width: 1280.0,
+                        canvas_height: 760.0
                     }
                 }
 
