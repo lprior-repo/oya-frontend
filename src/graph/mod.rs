@@ -18,6 +18,7 @@ mod view;
 
 pub mod expressions;
 pub mod layout;
+pub mod workflow_node;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeId(pub Uuid);
