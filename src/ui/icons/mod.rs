@@ -8,9 +8,10 @@ mod set_c;
 
 pub use registry::icon_by_name;
 pub use set_b::{
-    BoxIcon, CheckCircleIcon, CheckIcon, ClockIcon, MaximizeIcon, PlayIcon, RedoIcon, SaveIcon,
-    SearchIcon, UndoIcon, XCircleIcon, ZoomInIcon, ZoomOutIcon,
+    AlertCircleIcon, BoxIcon, CheckCircleIcon, CheckIcon, ClockIcon, MaximizeIcon, PlayIcon,
+    RedoIcon, SaveIcon, SearchIcon, UndoIcon, XCircleIcon, ZoomInIcon, ZoomOutIcon,
 };
 pub use set_c::{
-    ChevronDownIcon, CopyIcon, HelpCircleIcon, LayersIcon, SettingsIcon, TrashIcon, XIcon,
+    AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, HelpCircleIcon, LayersIcon,
+    SettingsIcon, TrashIcon, XIcon,
 };

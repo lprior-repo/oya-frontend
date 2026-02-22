@@ -7,12 +7,12 @@
 use crate::ui::{
     CanvasContextMenu, ExecutionHistoryPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
     FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
-    SelectedNodePanel,
+    SelectedNodePanel, ValidationPanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
-use oya_frontend::graph::PortName;
+use oya_frontend::graph::{validate_workflow, PortName, ValidationResult};
 
 const DRAG_THRESHOLD_PX: f32 = 4.0;
 
@@ -151,6 +151,12 @@ fn App() -> Element {
     let can_redo = use_memo(move || workflow.can_redo());
     let viewport_state = workflow.viewport();
     let mut extension_previews = use_signal(Vec::<ExtensionPatchPreview>::new);
+    let mut validation_collapsed = use_signal(|| false);
+    let validation_result: Memo<ValidationResult> = use_memo(move || {
+        let binding = workflow.workflow();
+        let wf = binding.read();
+        validate_workflow(&wf)
+    });
 
     let vp = workflow.viewport();
     let vx = vp.read().x;
@@ -290,7 +296,14 @@ fn App() -> Element {
                 on_zoom_out: move |_| workflow.zoom(-0.12, 640.0, 400.0),
                 on_fit_view: move |_| workflow.fit_view(1280.0, 760.0, 200.0),
                 on_layout: move |_| workflow.apply_layout(),
-                on_execute: move |_| workflow.run(),
+                on_execute: move |_| {
+                    let result = validation_result.read();
+                    if result.has_errors() {
+                        validation_collapsed.set(false);
+                    } else {
+                        workflow.run();
+                    }
+                },
                 on_undo: move |_| {
                     workflow.undo();
                     extension_previews.set(Vec::new());
@@ -1018,6 +1031,13 @@ fn App() -> Element {
 
                     rsx! {
                         div { class: "flex flex-col shrink-0 border-l border-slate-200",
+                            ValidationPanel {
+                                validation_result: ReadSignal::from(validation_result),
+                                collapsed: validation_collapsed,
+                                on_select_node: move |node_id| {
+                                    selection.select_single(node_id);
+                                },
+                            }
                             ExecutionHistoryPanel {
                                 history: history_signal,
                                 nodes_by_id,

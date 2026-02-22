@@ -20,9 +20,11 @@ mod view;
 pub mod expressions;
 pub mod layout;
 pub mod restate_types;
+pub mod validation;
 pub mod workflow_node;
 
 pub use execution_state::ExecutionState;
+pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeId(pub Uuid);

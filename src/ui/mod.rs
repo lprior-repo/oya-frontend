@@ -16,6 +16,7 @@ pub mod parallel_group_overlay;
 pub mod selected_node_panel;
 pub mod sidebar;
 pub mod toolbar;
+pub mod validation_panel;
 
 pub use canvas_context_menu::CanvasContextMenu;
 pub use command_palette::NodeCommandPalette;
@@ -30,3 +31,4 @@ pub use parallel_group_overlay::ParallelGroupOverlay;
 pub use selected_node_panel::SelectedNodePanel;
 pub use sidebar::NodeSidebar;
 pub use toolbar::FlowToolbar;
+pub use validation_panel::ValidationPanel;

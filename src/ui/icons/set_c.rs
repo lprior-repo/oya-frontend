@@ -154,6 +154,42 @@ pub fn ChevronDownIcon(class: String) -> Element {
 }
 
 #[component]
+pub fn ChevronRightIcon(class: String) -> Element {
+    rsx! {
+        svg {
+            xmlns: "http://www.w3.org/2000/svg",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            class: "{class}",
+            path { d: "m9 18 6-6-6-6" }
+        }
+    }
+}
+
+#[component]
+pub fn AlertTriangleIcon(class: String) -> Element {
+    rsx! {
+        svg {
+            xmlns: "http://www.w3.org/2000/svg",
+            view_box: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            stroke_width: "2",
+            stroke_linecap: "round",
+            stroke_linejoin: "round",
+            class: "{class}",
+            path { d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" }
+            line { x1: "12", x2: "12", y1: "9", y2: "13" }
+            line { x1: "12", x2: "12.01", y1: "17", y2: "17" }
+        }
+    }
+}
+
+#[component]
 pub fn HelpCircleIcon(class: String) -> Element {
     rsx! {
         svg {
