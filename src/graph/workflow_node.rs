@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
+use super::restate_types::{ContextType, ServiceKind};
 use super::NodeCategory;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -263,6 +264,42 @@ impl WorkflowNode {
                 | Self::WorkflowCall(_)
                 | Self::SendMessage(_)
         )
+    }
+
+    #[must_use]
+    pub fn compatible_service_kinds(&self) -> Vec<ServiceKind> {
+        match self {
+            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) => {
+                vec![ServiceKind::VirtualObject, ServiceKind::Workflow]
+            }
+            Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
+                vec![ServiceKind::Workflow]
+            }
+            _ => vec![
+                ServiceKind::Service,
+                ServiceKind::VirtualObject,
+                ServiceKind::Workflow,
+            ],
+        }
+    }
+
+    #[must_use]
+    pub fn required_context_types(&self) -> Vec<ContextType> {
+        match self {
+            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) => {
+                vec![ContextType::ObjectExclusive, ContextType::WorkflowExclusive]
+            }
+            Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
+                vec![ContextType::WorkflowExclusive]
+            }
+            _ => vec![
+                ContextType::Service,
+                ContextType::ObjectExclusive,
+                ContextType::ObjectShared,
+                ContextType::WorkflowExclusive,
+                ContextType::WorkflowShared,
+            ],
+        }
     }
 }
 
@@ -756,6 +793,424 @@ mod tests {
                     !node.needs_durable_step_name(),
                     "{node:?} does not need durable step name"
                 );
+            }
+        }
+    }
+
+    mod restate_service_kinds {
+        use super::*;
+
+        mod compatible_service_kinds {
+            use super::*;
+
+            #[test]
+            fn http_handler_supports_all_service_kinds() {
+                let node = WorkflowNode::HttpHandler(HttpHandlerConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn kafka_handler_supports_all_service_kinds() {
+                let node = WorkflowNode::KafkaHandler(KafkaHandlerConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn cron_trigger_supports_all_service_kinds() {
+                let node = WorkflowNode::CronTrigger(CronTriggerConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn workflow_submit_supports_all_service_kinds() {
+                let node = WorkflowNode::WorkflowSubmit(WorkflowSubmitConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn get_state_supports_virtual_object_and_workflow_only() {
+                let node = WorkflowNode::GetState(GetStateConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn set_state_supports_virtual_object_and_workflow_only() {
+                let node = WorkflowNode::SetState(SetStateConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn clear_state_supports_virtual_object_and_workflow_only() {
+                let node = WorkflowNode::ClearState(ClearStateConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn durable_promise_supports_workflow_only() {
+                let node = WorkflowNode::DurablePromise(DurablePromiseConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(!kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn awakeable_supports_workflow_only() {
+                let node = WorkflowNode::Awakeable(AwakeableConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(!kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn resolve_promise_supports_workflow_only() {
+                let node = WorkflowNode::ResolvePromise(ResolvePromiseConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(!kinds.contains(&ServiceKind::Service));
+                assert!(!kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn run_supports_all_service_kinds() {
+                let node = WorkflowNode::Run(RunConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn service_call_supports_all_service_kinds() {
+                let node = WorkflowNode::ServiceCall(ServiceCallConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn object_call_supports_all_service_kinds() {
+                let node = WorkflowNode::ObjectCall(ObjectCallConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn workflow_call_supports_all_service_kinds() {
+                let node = WorkflowNode::WorkflowCall(WorkflowCallConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn condition_supports_all_service_kinds() {
+                let node = WorkflowNode::Condition(ConditionConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn switch_supports_all_service_kinds() {
+                let node = WorkflowNode::Switch(SwitchConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn loop_supports_all_service_kinds() {
+                let node = WorkflowNode::Loop(LoopConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn parallel_supports_all_service_kinds() {
+                let node = WorkflowNode::Parallel(ParallelConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn compensate_supports_all_service_kinds() {
+                let node = WorkflowNode::Compensate(CompensateConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn sleep_supports_all_service_kinds() {
+                let node = WorkflowNode::Sleep(SleepConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn timeout_supports_all_service_kinds() {
+                let node = WorkflowNode::Timeout(TimeoutConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn send_message_supports_all_service_kinds() {
+                let node = WorkflowNode::SendMessage(SendMessageConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn delayed_send_supports_all_service_kinds() {
+                let node = WorkflowNode::DelayedSend(DelayedSendConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+
+            #[test]
+            fn signal_handler_supports_all_service_kinds() {
+                let node = WorkflowNode::SignalHandler(SignalHandlerConfig::default());
+                let kinds = node.compatible_service_kinds();
+                assert!(kinds.contains(&ServiceKind::Service));
+                assert!(kinds.contains(&ServiceKind::VirtualObject));
+                assert!(kinds.contains(&ServiceKind::Workflow));
+            }
+        }
+
+        mod required_context_types {
+            use super::*;
+
+            #[test]
+            fn http_handler_returns_service_context() {
+                let node = WorkflowNode::HttpHandler(HttpHandlerConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+
+            #[test]
+            fn kafka_handler_returns_service_context() {
+                let node = WorkflowNode::KafkaHandler(KafkaHandlerConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+
+            #[test]
+            fn cron_trigger_returns_service_context() {
+                let node = WorkflowNode::CronTrigger(CronTriggerConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+
+            #[test]
+            fn workflow_submit_returns_service_context() {
+                let node = WorkflowNode::WorkflowSubmit(WorkflowSubmitConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+
+            #[test]
+            fn get_state_returns_object_and_workflow_contexts() {
+                let node = WorkflowNode::GetState(GetStateConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(
+                    ctx_types.contains(&ContextType::ObjectExclusive)
+                        || ctx_types.contains(&ContextType::ObjectShared)
+                        || ctx_types.contains(&ContextType::WorkflowExclusive)
+                        || ctx_types.contains(&ContextType::WorkflowShared)
+                );
+            }
+
+            #[test]
+            fn set_state_returns_object_and_workflow_contexts() {
+                let node = WorkflowNode::SetState(SetStateConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(
+                    ctx_types.contains(&ContextType::ObjectExclusive)
+                        || ctx_types.contains(&ContextType::WorkflowExclusive)
+                );
+            }
+
+            #[test]
+            fn clear_state_returns_object_and_workflow_contexts() {
+                let node = WorkflowNode::ClearState(ClearStateConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(
+                    ctx_types.contains(&ContextType::ObjectExclusive)
+                        || ctx_types.contains(&ContextType::WorkflowExclusive)
+                );
+            }
+
+            #[test]
+            fn durable_promise_returns_workflow_exclusive_context() {
+                let node = WorkflowNode::DurablePromise(DurablePromiseConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::WorkflowExclusive));
+            }
+
+            #[test]
+            fn awakeable_returns_workflow_exclusive_context() {
+                let node = WorkflowNode::Awakeable(AwakeableConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::WorkflowExclusive));
+            }
+
+            #[test]
+            fn resolve_promise_returns_workflow_context() {
+                let node = WorkflowNode::ResolvePromise(ResolvePromiseConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(
+                    ctx_types.contains(&ContextType::WorkflowExclusive)
+                        || ctx_types.contains(&ContextType::WorkflowShared)
+                );
+            }
+
+            #[test]
+            fn signal_handler_returns_service_context() {
+                let node = WorkflowNode::SignalHandler(SignalHandlerConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+
+            #[test]
+            fn run_returns_service_context() {
+                let node = WorkflowNode::Run(RunConfig::default());
+                let ctx_types = node.required_context_types();
+                assert!(ctx_types.contains(&ContextType::Service));
+            }
+        }
+
+        mod entry_nodes {
+            use super::*;
+
+            #[test]
+            fn all_entry_nodes_have_all_service_kinds() {
+                let entry_nodes: Vec<WorkflowNode> = vec![
+                    WorkflowNode::HttpHandler(HttpHandlerConfig::default()),
+                    WorkflowNode::KafkaHandler(KafkaHandlerConfig::default()),
+                    WorkflowNode::CronTrigger(CronTriggerConfig::default()),
+                    WorkflowNode::WorkflowSubmit(WorkflowSubmitConfig::default()),
+                ];
+
+                for node in entry_nodes {
+                    let kinds = node.compatible_service_kinds();
+                    assert_eq!(
+                        kinds.len(),
+                        3,
+                        "Entry node {node:?} should support all 3 service kinds"
+                    );
+                    assert!(kinds.contains(&ServiceKind::Service));
+                    assert!(kinds.contains(&ServiceKind::VirtualObject));
+                    assert!(kinds.contains(&ServiceKind::Workflow));
+                }
+            }
+        }
+
+        mod state_nodes {
+            use super::*;
+
+            #[test]
+            fn state_nodes_dont_support_service_kind() {
+                let state_nodes: Vec<WorkflowNode> = vec![
+                    WorkflowNode::GetState(GetStateConfig::default()),
+                    WorkflowNode::SetState(SetStateConfig::default()),
+                    WorkflowNode::ClearState(ClearStateConfig::default()),
+                ];
+
+                for node in state_nodes {
+                    let kinds = node.compatible_service_kinds();
+                    assert!(
+                        !kinds.contains(&ServiceKind::Service),
+                        "State node {node:?} should not support Service kind"
+                    );
+                }
+            }
+
+            #[test]
+            fn state_nodes_support_virtual_object_and_workflow() {
+                let state_nodes: Vec<WorkflowNode> = vec![
+                    WorkflowNode::GetState(GetStateConfig::default()),
+                    WorkflowNode::SetState(SetStateConfig::default()),
+                    WorkflowNode::ClearState(ClearStateConfig::default()),
+                ];
+
+                for node in state_nodes {
+                    let kinds = node.compatible_service_kinds();
+                    assert!(
+                        kinds.contains(&ServiceKind::VirtualObject),
+                        "State node {node:?} should support VirtualObject kind"
+                    );
+                    assert!(
+                        kinds.contains(&ServiceKind::Workflow),
+                        "State node {node:?} should support Workflow kind"
+                    );
+                }
+            }
+        }
+
+        mod promise_nodes {
+            use super::*;
+
+            #[test]
+            fn promise_nodes_only_support_workflow() {
+                let promise_nodes: Vec<WorkflowNode> = vec![
+                    WorkflowNode::DurablePromise(DurablePromiseConfig::default()),
+                    WorkflowNode::Awakeable(AwakeableConfig::default()),
+                ];
+
+                for node in promise_nodes {
+                    let kinds = node.compatible_service_kinds();
+                    assert_eq!(
+                        kinds.len(),
+                        1,
+                        "Promise node {node:?} should only support Workflow kind"
+                    );
+                    assert!(kinds.contains(&ServiceKind::Workflow));
+                    assert!(!kinds.contains(&ServiceKind::Service));
+                    assert!(!kinds.contains(&ServiceKind::VirtualObject));
+                }
             }
         }
     }

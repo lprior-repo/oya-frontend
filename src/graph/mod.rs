@@ -18,6 +18,7 @@ mod view;
 
 pub mod expressions;
 pub mod layout;
+pub mod restate_types;
 pub mod workflow_node;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
