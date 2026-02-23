@@ -13,6 +13,7 @@ pub mod calc;
 mod connectivity;
 mod core;
 mod execution;
+pub mod execution_record;
 pub mod execution_state;
 mod metadata;
 mod view;
@@ -24,6 +25,7 @@ pub mod validation;
 pub mod workflow_node;
 
 pub use connectivity::{ConnectionError, ConnectionResult};
+pub use execution_record::{ExecutionOverallStatus, ExecutionRecord, StepOutput, StepRecord};
 pub use execution_state::ExecutionState;
 pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
 
@@ -136,6 +138,8 @@ pub struct Workflow {
     pub execution_queue: Vec<NodeId>,
     pub current_step: usize,
     pub history: Vec<RunRecord>,
+    #[serde(default)]
+    pub execution_records: Vec<ExecutionRecord>,
 }
 
 impl Default for Workflow {

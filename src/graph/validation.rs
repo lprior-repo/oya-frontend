@@ -213,6 +213,7 @@ fn validate_required_config(workflow: &Workflow, issues: &mut Vec<ValidationIssu
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn validate_node_config(
     workflow_node: &WorkflowNode,
     node: &Node,

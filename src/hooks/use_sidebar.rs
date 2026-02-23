@@ -4,8 +4,8 @@
 
 use dioxus::prelude::*;
 
-fn pending_drop_after_pickup(node_type: &'static str) -> Option<String> {
-    Some(node_type.to_string())
+fn pending_drop_after_pickup(node_type: &'static str) -> String {
+    node_type.to_string()
 }
 
 const fn pending_drop_after_clear() -> Option<String> {
@@ -45,7 +45,8 @@ impl SidebarState {
 
     /// Start dragging a node type from sidebar
     pub fn pickup_node(mut self, node_type: &'static str) {
-        self.pending_drop.set(pending_drop_after_pickup(node_type));
+        self.pending_drop
+            .set(Some(pending_drop_after_pickup(node_type)));
     }
 
     /// Clear pending drop (after drop or cancel)
@@ -75,7 +76,7 @@ mod tests {
 
     #[test]
     fn given_node_type_when_picking_up_then_pending_drop_is_set() {
-        assert_eq!(pending_drop_after_pickup("run"), Some("run".to_string()));
+        assert_eq!(pending_drop_after_pickup("run"), "run".to_string());
     }
 
     #[test]

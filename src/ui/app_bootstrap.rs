@@ -64,6 +64,7 @@ pub fn default_workflow() -> Workflow {
         execution_queue: vec![],
         current_step: 0,
         history: vec![],
+        execution_records: vec![],
     }
 }
 

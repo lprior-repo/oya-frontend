@@ -103,18 +103,16 @@ fn build_plan_snapshot(workflow: &Workflow) -> PlanSnapshot {
         layers.push(current.clone());
         available.clear();
 
-        current.iter().for_each(|id| {
+        for id in &current {
             let _ = visited.insert(*id);
-            outgoing
-                .get(id)
-                .into_iter()
-                .flat_map(|targets| targets.iter())
-                .for_each(|target| {
+            if let Some(targets) = outgoing.get(id) {
+                for target in targets {
                     if let Some(count) = indegree.get_mut(target) {
                         *count = count.saturating_sub(1);
                     }
-                });
-        });
+                }
+            }
+        }
 
         let mut next_ready: Vec<NodeId> = indegree
             .iter()

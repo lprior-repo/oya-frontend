@@ -6,8 +6,8 @@
 
 use crate::ui::{
     CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
-    FlowPosition, FlowToolbar, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
-    SelectedNodePanel, ValidationPanel,
+    FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
+    PrototypePalette, RunStatusBar, SelectedNodePanel, ValidationPanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -157,6 +157,70 @@ fn App() -> Element {
         let wf = binding.read();
         validate_workflow(&wf)
     });
+
+    // RunStatusBar signals
+    let current_step = use_memo(move || workflow.workflow().read().current_step);
+    let total_steps = use_memo(move || workflow.workflow().read().execution_queue.len());
+    let current_step_name = use_memo(move || {
+        let binding = workflow.workflow();
+        let wf = binding.read();
+        let queue = &wf.execution_queue;
+        let step = wf.current_step;
+        queue.get(step)
+            .and_then(|id| wf.nodes.iter().find(|n| n.id == *id))
+            .map_or_else(String::new, |n| n.name.clone())
+    });
+    let overall_execution_status = use_memo(move || {
+        use oya_frontend::graph::ExecutionState;
+        let binding = workflow.workflow();
+        let wf = binding.read();
+        let nodes = &wf.nodes;
+        if nodes.iter().any(|n| n.execution_state == ExecutionState::Running) {
+            ExecutionState::Running
+        } else if nodes.iter().any(|n| n.execution_state == ExecutionState::Failed) {
+            ExecutionState::Failed
+        } else if nodes.iter().all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
+            && nodes.iter().any(|n| n.execution_state == ExecutionState::Succeeded)
+        {
+            ExecutionState::Succeeded
+        } else {
+            ExecutionState::Idle
+        }
+    });
+    let mut frozen_run_id: Signal<Option<uuid::Uuid>> = use_signal(|| None);
+    let is_frozen_mode = use_memo(move || frozen_run_id.read().is_some());
+    let frozen_run_id_str = use_memo(move || {
+        (*frozen_run_id.read()).map(|id| id.to_string()[..8].to_string())
+    });
+
+    // InspectorPanel signals
+    let selected_node = use_memo(move || {
+        let selected_id = *selection.selected_id().read();
+        selected_id.and_then(|id| {
+            workflow.nodes_by_id().read().get(&id).cloned()
+        })
+    });
+    let inspector_node = use_memo(move || selected_node.read().clone());
+    let inspector_input = use_memo(move || {
+        selected_node.read().as_ref().and_then(|n| n.config.as_object().cloned().map(serde_json::Value::Object))
+    });
+    let inspector_output = use_memo(move || {
+        selected_node.read().as_ref().and_then(|n| n.last_output.clone())
+    });
+    let inspector_error = use_memo(move || {
+        selected_node.read().as_ref().and_then(|n| n.error.clone())
+    });
+    let mut show_inspector = use_signal(|| false);
+
+    use_effect(move || {
+        let has_node = inspector_node.read().is_some();
+        if !has_node {
+            show_inspector.set(false);
+        }
+    });
+
+    // PrototypePalette signal
+    let mut prototype_open = use_signal(|| false);
 
     let vp = workflow.viewport();
     let vx = vp.read().x;
@@ -326,6 +390,16 @@ fn App() -> Element {
                 on_settings: move |_| panels.toggle_settings()
             }
 
+            RunStatusBar {
+                current_step: ReadSignal::from(current_step),
+                total_steps: ReadSignal::from(total_steps),
+                current_step_name: ReadSignal::from(current_step_name),
+                overall_status: ReadSignal::from(overall_execution_status),
+                is_frozen_mode: ReadSignal::from(is_frozen_mode),
+                frozen_run_id: ReadSignal::from(frozen_run_id_str),
+                on_exit_frozen: move |()| { frozen_run_id.set(None); }
+            }
+
             if *panels.settings_open().read() {
                 div { class: "absolute right-4 top-14 z-40 w-[280px] rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-2xl shadow-slate-950/70 backdrop-blur",
                     div { class: "mb-2 flex items-center justify-between",
@@ -355,6 +429,15 @@ fn App() -> Element {
                 on_pick: move |node_type| {
                     workflow.add_node_at_viewport_center(node_type);
                     panels.close_palette();
+                }
+            }
+
+            PrototypePalette {
+                open: ReadSignal::from(use_memo(move || *prototype_open.read())),
+                on_close: move |()| prototype_open.set(false),
+                on_add_node: move |node_type| {
+                    workflow.add_node_at_viewport_center(node_type);
+                    prototype_open.set(false);
                 }
             }
 
@@ -936,6 +1019,7 @@ fn App() -> Element {
                                          },
                                          on_click: move |_| {
                                              selection_clone.select_single(node_id);
+                                             show_inspector.set(true);
                                          },
                                          on_double_click: move |_| {
                                              panels_clone.toggle_inline_panel(node_id);
@@ -1029,6 +1113,7 @@ fn App() -> Element {
                     let plan_collapsed = use_signal(|| false);
                     let history_collapsed = use_signal(|| true);
                     let history_signal = use_memo(move || workflow.workflow().read().history.clone());
+                    let mut active_run_id: Signal<Option<uuid::Uuid>> = use_signal(|| None);
                     let workflow_signal = workflow.workflow();
 
                     rsx! {
@@ -1055,6 +1140,13 @@ fn App() -> Element {
                                     selection.select_single(node_id);
                                 },
                                 collapsed: history_collapsed,
+                                active_run_id: ReadSignal::from(active_run_id),
+                                on_run_select: move |id| {
+                                    let _ = active_run_id.try_write().map(|mut v| *v = Some(id));
+                                },
+                                on_exit_frozen: move |()| {
+                                    let _ = active_run_id.try_write().map(|mut v| *v = None);
+                                },
                             }
                         }
                     }
@@ -1068,6 +1160,21 @@ fn App() -> Element {
                     undo_stack: workflow.undo_stack(),
                     redo_stack: workflow.redo_stack(),
                     preview_patches: extension_previews,
+                }
+            }
+
+            if *show_inspector.read() {
+                InspectorPanel {
+                    node: ReadSignal::from(inspector_node),
+                    step_input: ReadSignal::from(inspector_input),
+                    step_output: ReadSignal::from(inspector_output),
+                    step_error: ReadSignal::from(inspector_error),
+                    step_stack_trace: ReadSignal::from(use_memo(move || None::<String>)),
+                    step_start_time: ReadSignal::from(use_memo(move || None::<String>)),
+                    step_end_time: ReadSignal::from(use_memo(move || None::<String>)),
+                    step_duration_ms: ReadSignal::from(use_memo(move || None::<i64>)),
+                    step_attempt: ReadSignal::from(use_memo(move || 1u32)),
+                    on_close: move |()| { show_inspector.set(false); }
                 }
             }
         }

@@ -26,6 +26,7 @@ impl Workflow {
             execution_queue: Vec::new(),
             current_step: 0,
             history: Vec::new(),
+            execution_records: Vec::new(),
         }
     }
 
