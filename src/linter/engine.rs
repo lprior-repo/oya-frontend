@@ -140,8 +140,8 @@ impl SpecLinter {
                         })
                         .sum::<usize>(),
                     "SPEC-003" => {
-                        if let Some(contract) = &spec.specification.api_contract {
-                            if let Some(endpoints) = &contract.endpoints {
+                        spec.specification.api_contract.as_ref().map_or(0, |contract| {
+                            contract.endpoints.as_ref().map_or(0, |endpoints| {
                                 endpoints
                                     .iter()
                                     .filter(|endpoint| endpoint.authentication.is_none())
@@ -151,20 +151,16 @@ impl SpecLinter {
                                             rule_name: rule.name.clone(),
                                             severity: rule.severity.clone(),
                                             message: format!(
-                                            "Endpoint {} {} missing authentication specification",
-                                            endpoint.method, endpoint.path
-                                        ),
+                                                "Endpoint {} {} missing authentication specification",
+                                                endpoint.method, endpoint.path
+                                            ),
                                             line: None,
                                         });
                                         1
                                     })
                                     .sum::<usize>()
-                            } else {
-                                0
-                            }
-                        } else {
-                            0
-                        }
+                            })
+                        })
                     }
                     _ => 0,
                 };
@@ -226,9 +222,9 @@ impl SpecLinter {
             })
             .collect();
 
-        warnings.iter().for_each(|issue| {
+        for issue in &warnings {
             report.warnings.push(issue.clone());
-        });
+        }
 
         let score = if warnings.is_empty() { 100 } else { 88 };
         report.categories.insert(
@@ -254,7 +250,7 @@ impl SpecLinter {
                     })
                     .collect();
 
-                user_endpoints.iter().for_each(|endpoint| {
+                for endpoint in &user_endpoints {
                     let has_enumeration_check = spec.specification.behaviors.iter().any(|b| {
                         b.edge_cases.as_ref().is_some_and(|ec| {
                             ec.iter().any(|e| {
@@ -278,7 +274,7 @@ impl SpecLinter {
                             line: None,
                         });
                     }
-                });
+                }
             }
         }
 

@@ -377,6 +377,10 @@ pub fn suggest_extensions_with_analysis(workflow: &Workflow) -> Vec<ExtensionSug
     )
 }
 
+/// Preview the extension patch for a given workflow and extension key.
+///
+/// # Errors
+/// Returns an error if the extension key is invalid.
 pub fn preview_extension(
     workflow: &Workflow,
     key: &str,
@@ -387,6 +391,10 @@ pub fn preview_extension(
         .map(|plan| preview_from_patch(key.to_string(), &plan.patch)))
 }
 
+/// Apply an extension to a workflow.
+///
+/// # Errors
+/// Returns an error if the extension key is invalid.
 pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExtension, String> {
     let parsed_key = ExtensionKey::from_str(key)?;
     if parsed_key == ExtensionKey::AddReliabilityBundle {
@@ -410,6 +418,10 @@ pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExte
     })
 }
 
+/// Detect conflicts between multiple extension keys.
+///
+/// # Errors
+/// Returns an error if any extension key is invalid.
 pub fn detect_extension_conflicts(
     workflow: &Workflow,
     keys: &[String],
@@ -482,6 +494,10 @@ pub fn detect_extension_conflicts(
     Ok(conflicts)
 }
 
+/// Build a dependency graph for extension keys.
+///
+/// # Errors
+/// Returns an error if any extension key is invalid.
 pub fn extension_dependency_graph(keys: &[String]) -> Result<ExtensionDependencyGraph, String> {
     let parsed_keys = parse_unique_keys(keys)?;
     let edges = parsed_keys
@@ -513,6 +529,10 @@ pub fn extension_dependency_graph(keys: &[String]) -> Result<ExtensionDependency
     })
 }
 
+/// Generate a compound extension plan for a workflow.
+///
+/// # Errors
+/// Returns an error if any extension key is invalid.
 pub fn generate_compound_plan(
     workflow: &Workflow,
     keys: &[String],
@@ -528,20 +548,20 @@ pub fn generate_compound_plan(
     let mut simulation = workflow.clone();
     let mut steps = Vec::new();
 
+    #[allow(clippy::similar_names)]
     for key in &ordered {
         let key_str = key.as_str();
         if let Some(preview) = preview_extension(&simulation, key_str)? {
-            let analysis = analyses
-                .get(key_str)
-                .cloned()
-                .unwrap_or_else(|| fallback_analysis(key_str, &simulation, key));
+            let analysis_opt = analyses.get(key_str).cloned();
+            let analysis_val =
+                analysis_opt.unwrap_or_else(|| fallback_analysis(key_str, &simulation, *key));
             let _ = apply_extension(&mut simulation, key_str)?;
             steps.push(CompoundPlanStep {
                 key: key_str.to_string(),
-                confidence_score: analysis.score,
-                rationale_class: analysis.rationale_class,
-                fingerprint: analysis.fingerprint,
-                semantics: analysis.semantics,
+                confidence_score: analysis_val.score,
+                rationale_class: analysis_val.rationale_class,
+                fingerprint: analysis_val.fingerprint,
+                semantics: analysis_val.semantics,
                 preview,
             });
         }
@@ -578,6 +598,10 @@ pub fn extension_presets() -> Vec<ExtensionPreset> {
     .collect()
 }
 
+/// Resolve an extension preset to its ordered keys.
+///
+/// # Errors
+/// Returns an error if the preset key or any extension key is invalid.
 pub fn resolve_extension_preset(
     workflow: &Workflow,
     preset_key: &str,
@@ -1215,28 +1239,29 @@ fn sort_keys(keys: &mut [ExtensionKey]) {
     });
 }
 
-fn priority_rank(key: ExtensionKey) -> u8 {
+const fn priority_rank(key: ExtensionKey) -> u8 {
     match key {
-        ExtensionKey::AddEntryTrigger => 0,
-        ExtensionKey::AddReliabilityBundle => 0,
-        ExtensionKey::AddTimeoutGuard => 0,
-        ExtensionKey::AddDurableCheckpoint => 1,
-        ExtensionKey::AddCompensationBranch => 1,
-        ExtensionKey::AddSignalResolution => 1,
+        ExtensionKey::AddEntryTrigger
+        | ExtensionKey::AddReliabilityBundle
+        | ExtensionKey::AddTimeoutGuard => 0,
+        ExtensionKey::AddDurableCheckpoint
+        | ExtensionKey::AddCompensationBranch
+        | ExtensionKey::AddSignalResolution => 1,
     }
 }
 
-fn extension_dependencies(key: ExtensionKey) -> &'static [ExtensionKey] {
+const fn extension_dependencies(key: ExtensionKey) -> &'static [ExtensionKey] {
     match key {
         ExtensionKey::AddEntryTrigger => &[],
-        ExtensionKey::AddReliabilityBundle => &[ExtensionKey::AddEntryTrigger],
-        ExtensionKey::AddTimeoutGuard => &[ExtensionKey::AddEntryTrigger],
+        ExtensionKey::AddReliabilityBundle
+        | ExtensionKey::AddTimeoutGuard
+        | ExtensionKey::AddCompensationBranch
+        | ExtensionKey::AddSignalResolution => &[ExtensionKey::AddEntryTrigger],
         ExtensionKey::AddDurableCheckpoint => &[ExtensionKey::AddTimeoutGuard],
-        ExtensionKey::AddCompensationBranch => &[ExtensionKey::AddEntryTrigger],
-        ExtensionKey::AddSignalResolution => &[ExtensionKey::AddEntryTrigger],
     }
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
     match key {
         ExtensionKey::AddEntryTrigger => {
@@ -1262,7 +1287,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
             if missing == 0.0 {
                 0.0
             } else {
-                (0.78 + missing * 0.06).min(0.97)
+                (0.78 + missing.mul_add(0.06, 0.0)).min(0.97)
             }
         }
         ExtensionKey::AddTimeoutGuard => {
@@ -1271,7 +1296,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                 .iter()
                 .filter(|node| node.category == NodeCategory::Durable)
                 .count() as f32;
-            (0.75 + durable_count * 0.08).min(0.97)
+            (0.75 + durable_count.mul_add(0.08, 0.0)).min(0.97)
         }
         ExtensionKey::AddDurableCheckpoint => {
             let durable_count = workflow
@@ -1279,7 +1304,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                 .iter()
                 .filter(|node| node.category == NodeCategory::Durable)
                 .count() as f32;
-            (0.70 + durable_count * 0.07).min(0.95)
+            (0.70 + durable_count.mul_add(0.07, 0.0)).min(0.95)
         }
         ExtensionKey::AddCompensationBranch => {
             let missing = workflow
@@ -1289,7 +1314,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                     node.node_type == "condition" && missing_condition_branch(workflow, node.id)
                 })
                 .count() as f32;
-            (0.72 + missing * 0.09).min(0.96)
+            (0.72 + missing.mul_add(0.09, 0.0)).min(0.96)
         }
         ExtensionKey::AddSignalResolution => {
             let waits = workflow
@@ -1297,12 +1322,12 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                 .iter()
                 .filter(|node| is_signal_wait_anchor(workflow, node))
                 .count() as f32;
-            (0.74 + waits * 0.08).min(0.97)
+            (0.74 + waits.mul_add(0.08, 0.0)).min(0.97)
         }
     }
 }
 
-fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
+const fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
     match key {
         ExtensionKey::AddEntryTrigger => RationaleClass::StructuralCoverage,
         ExtensionKey::AddReliabilityBundle => RationaleClass::ReliabilityBundle,
@@ -1313,7 +1338,7 @@ fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
     }
 }
 
-fn reliability_bundle_members() -> &'static [ExtensionKey] {
+const fn reliability_bundle_members() -> &'static [ExtensionKey] {
     &[
         ExtensionKey::AddTimeoutGuard,
         ExtensionKey::AddDurableCheckpoint,
@@ -1371,21 +1396,21 @@ fn is_side_effecting_durable(node: &Node) -> bool {
 fn fallback_analysis(
     key: &str,
     workflow: &Workflow,
-    parsed_key: &ExtensionKey,
+    parsed_key: ExtensionKey,
 ) -> ExtensionSuggestionAnalysis {
-    let fingerprint = plan_for_key(workflow, *parsed_key)
-        .map(|plan| extension_fingerprint(*parsed_key, &plan.patch))
+    let fingerprint = plan_for_key(workflow, parsed_key)
+        .map(|plan| extension_fingerprint(parsed_key, &plan.patch))
         .unwrap_or_default();
     ExtensionSuggestionAnalysis {
         key: key.to_string(),
-        score: confidence_score_for(*parsed_key, workflow),
-        rationale_class: rationale_class_for(*parsed_key),
+        score: confidence_score_for(parsed_key, workflow),
+        rationale_class: rationale_class_for(parsed_key),
         fingerprint,
-        dependencies: extension_dependencies(*parsed_key)
+        dependencies: extension_dependencies(parsed_key)
             .iter()
             .map(|dependency| dependency.as_str().to_string())
             .collect(),
-        semantics: extension_semantics(*parsed_key),
+        semantics: extension_semantics(parsed_key),
     }
 }
 

@@ -117,14 +117,14 @@ impl FeedbackGenerator {
     #[must_use]
     pub fn generate(&self, request: &FeedbackRequest) -> AgentFeedback {
         let key = Self::category_to_key(request.failure_category);
-        let template = match self.templates.get(&key) {
-            Some(value) => value.clone(),
-            None => FeedbackTemplate {
+        let template = self.templates.get(&key).map_or_else(
+            || FeedbackTemplate {
                 title: "Implementation Issue".to_string(),
                 description: request.failure_context.clone(),
                 hints: vec!["Review the spec for more details".to_string()],
             },
-        };
+            Clone::clone,
+        );
 
         let priority = Self::determine_priority(request.failure_category);
 
