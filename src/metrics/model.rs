@@ -108,9 +108,9 @@ pub struct MetricsStore {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub(crate) struct MetricsData {
-    pub(crate) spec_validations: Vec<SpecValidationMetrics>,
-    pub(crate) scenario_validations: Vec<ScenarioValidationMetrics>,
-    pub(crate) suggestion_decisions: Vec<SuggestionDecisionMetrics>,
-    pub(crate) sessions: Vec<QualityGateSession>,
+pub struct MetricsData {
+    pub spec_validations: Vec<SpecValidationMetrics>,
+    pub scenario_validations: Vec<ScenarioValidationMetrics>,
+    pub suggestion_decisions: Vec<SuggestionDecisionMetrics>,
+    pub sessions: Vec<QualityGateSession>,
 }

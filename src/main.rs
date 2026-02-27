@@ -5,9 +5,9 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::{
-    CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap, FlowNodeComponent,
-    FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar, ParallelGroupOverlay,
-    PrototypePalette, RunStatusBar, SelectedNodePanel, ValidationPanel,
+    CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap,
+    FlowNodeComponent, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar,
+    ParallelGroupOverlay, PrototypePalette, RunStatusBar, SelectedNodePanel, ValidationPanel,
 };
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
@@ -166,7 +166,8 @@ fn App() -> Element {
         let wf = binding.read();
         let queue = &wf.execution_queue;
         let step = wf.current_step;
-        queue.get(step)
+        queue
+            .get(step)
             .and_then(|id| wf.nodes.iter().find(|n| n.id == *id))
             .map_or_else(String::new, |n| n.name.clone())
     });
@@ -175,12 +176,22 @@ fn App() -> Element {
         let binding = workflow.workflow();
         let wf = binding.read();
         let nodes = &wf.nodes;
-        if nodes.iter().any(|n| n.execution_state == ExecutionState::Running) {
+        if nodes
+            .iter()
+            .any(|n| n.execution_state == ExecutionState::Running)
+        {
             ExecutionState::Running
-        } else if nodes.iter().any(|n| n.execution_state == ExecutionState::Failed) {
+        } else if nodes
+            .iter()
+            .any(|n| n.execution_state == ExecutionState::Failed)
+        {
             ExecutionState::Failed
-        } else if nodes.iter().all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
-            && nodes.iter().any(|n| n.execution_state == ExecutionState::Succeeded)
+        } else if nodes
+            .iter()
+            .all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
+            && nodes
+                .iter()
+                .any(|n| n.execution_state == ExecutionState::Succeeded)
         {
             ExecutionState::Succeeded
         } else {
@@ -189,27 +200,29 @@ fn App() -> Element {
     });
     let mut frozen_run_id: Signal<Option<uuid::Uuid>> = use_signal(|| None);
     let is_frozen_mode = use_memo(move || frozen_run_id.read().is_some());
-    let frozen_run_id_str = use_memo(move || {
-        (*frozen_run_id.read()).map(|id| id.to_string()[..8].to_string())
-    });
+    let frozen_run_id_str =
+        use_memo(move || (*frozen_run_id.read()).map(|id| id.to_string()[..8].to_string()));
 
     // InspectorPanel signals
     let selected_node = use_memo(move || {
         let selected_id = *selection.selected_id().read();
-        selected_id.and_then(|id| {
-            workflow.nodes_by_id().read().get(&id).cloned()
-        })
+        selected_id.and_then(|id| workflow.nodes_by_id().read().get(&id).cloned())
     });
     let inspector_node = use_memo(move || selected_node.read().clone());
     let inspector_input = use_memo(move || {
-        selected_node.read().as_ref().and_then(|n| n.config.as_object().cloned().map(serde_json::Value::Object))
+        selected_node
+            .read()
+            .as_ref()
+            .and_then(|n| n.config.as_object().cloned().map(serde_json::Value::Object))
     });
     let inspector_output = use_memo(move || {
-        selected_node.read().as_ref().and_then(|n| n.last_output.clone())
+        selected_node
+            .read()
+            .as_ref()
+            .and_then(|n| n.last_output.clone())
     });
-    let inspector_error = use_memo(move || {
-        selected_node.read().as_ref().and_then(|n| n.error.clone())
-    });
+    let inspector_error =
+        use_memo(move || selected_node.read().as_ref().and_then(|n| n.error.clone()));
     let mut show_inspector = use_signal(|| false);
 
     use_effect(move || {

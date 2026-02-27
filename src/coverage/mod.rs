@@ -134,6 +134,7 @@ impl CoverageAnalyzer {
         Ok(specs)
     }
 
+    #[allow(clippy::unused_self)]
     fn collect_yaml_files(&self, root: &Path) -> Result<Vec<PathBuf>, CoverageError> {
         let mut files = Vec::new();
         if !root.exists() {
@@ -183,16 +184,16 @@ impl CoverageAnalyzer {
             .to_lowercase()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn analyze_spec(&self, spec_path: &Path) -> Result<Option<SpecCoverage>, CoverageError> {
-        let spec_path_buf = spec_path.to_path_buf();
         let spec_content =
             fs::read_to_string(spec_path).map_err(|source| CoverageError::ReadFile {
-                path: spec_path_buf.clone(),
+                path: spec_path.to_path_buf(),
                 source,
             })?;
         let yaml: Value =
             serde_yaml::from_str(&spec_content).map_err(|source| CoverageError::MalformedYaml {
-                path: spec_path_buf.clone(),
+                path: spec_path.to_path_buf(),
                 source,
             })?;
 
@@ -206,7 +207,7 @@ impl CoverageAnalyzer {
             .and_then(|value| value.get("id"))
             .and_then(serde_yaml::Value::as_str)
             .ok_or_else(|| CoverageError::InvalidSpecShape {
-                path: spec_path_buf.clone(),
+                path: spec_path.to_path_buf(),
                 detail: "missing specification.identity.id".to_string(),
             })?
             .trim()
@@ -214,7 +215,7 @@ impl CoverageAnalyzer {
 
         if spec_id.is_empty() {
             return Err(CoverageError::InvalidSpecShape {
-                path: spec_path_buf.clone(),
+                path: spec_path.to_path_buf(),
                 detail: "specification.identity.id must be a non-empty string".to_string(),
             });
         }
@@ -229,7 +230,7 @@ impl CoverageAnalyzer {
             .get("behaviors")
             .and_then(serde_yaml::Value::as_sequence)
             .ok_or_else(|| CoverageError::InvalidSpecShape {
-                path: spec_path_buf.clone(),
+                path: spec_path.to_path_buf(),
                 detail: "specification.behaviors must be an array".to_string(),
             })?;
 
@@ -238,7 +239,7 @@ impl CoverageAnalyzer {
                 behavior
                     .as_mapping()
                     .ok_or_else(|| CoverageError::InvalidSpecShape {
-                        path: spec_path_buf.clone(),
+                        path: spec_path.to_path_buf(),
                         detail: "each behavior must be an object".to_string(),
                     })?;
 
@@ -248,14 +249,14 @@ impl CoverageAnalyzer {
                 .map(str::trim)
                 .filter(|id| !id.is_empty())
                 .ok_or_else(|| CoverageError::InvalidSpecShape {
-                    path: spec_path_buf.clone(),
+                    path: spec_path.to_path_buf(),
                     detail: "each behavior must include a non-empty string id".to_string(),
                 })?
                 .to_string();
 
             if !behavior_ids.insert(behavior_id.clone()) {
                 return Err(CoverageError::DuplicateBehaviorId {
-                    path: spec_path_buf.clone(),
+                    path: spec_path.to_path_buf(),
                     id: behavior_id,
                 });
             }
@@ -265,7 +266,7 @@ impl CoverageAnalyzer {
             {
                 let edge_cases = edge_cases_value.as_sequence().ok_or_else(|| {
                     CoverageError::InvalidSpecShape {
-                        path: spec_path_buf.clone(),
+                        path: spec_path.to_path_buf(),
                         detail: "behavior.edge_cases must be an array when provided".to_string(),
                     }
                 })?;
@@ -275,7 +276,7 @@ impl CoverageAnalyzer {
                         edge_case
                             .as_mapping()
                             .ok_or_else(|| CoverageError::InvalidSpecShape {
-                                path: spec_path_buf.clone(),
+                                path: spec_path.to_path_buf(),
                                 detail: "each edge case must be an object".to_string(),
                             })?;
 
@@ -285,14 +286,14 @@ impl CoverageAnalyzer {
                         .map(str::trim)
                         .filter(|id| !id.is_empty())
                         .ok_or_else(|| CoverageError::InvalidSpecShape {
-                            path: spec_path_buf.clone(),
+                            path: spec_path.to_path_buf(),
                             detail: "each edge case must include a non-empty string id".to_string(),
                         })?
                         .to_string();
 
                     if !edge_case_ids.insert(edge_case_id.clone()) {
                         return Err(CoverageError::DuplicateEdgeCaseId {
-                            path: spec_path_buf.clone(),
+                            path: spec_path.to_path_buf(),
                             id: edge_case_id,
                         });
                     }
