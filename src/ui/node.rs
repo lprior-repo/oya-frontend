@@ -135,14 +135,14 @@ pub fn FlowNodeComponent(
     let exec_border = node_border_class(exec_state);
 
     let selected_classes = if selected {
-        "ring-2 ring-blue-500/60 border-blue-500/40 shadow-xl shadow-blue-500/20"
+        "ring-2 ring-cyan-500/55 border-cyan-500/40 shadow-xl shadow-cyan-500/20"
     } else {
         "hover:border-slate-300"
     };
 
     // Running nodes retain the subtle outer glow even when not selected.
     let running_glow = if matches!(exec_state, ExecutionState::Running) {
-        "shadow-[0_0_0_2px_rgba(59,130,246,0.18)]"
+        "shadow-[0_0_0_2px_rgba(6,182,212,0.2)]"
     } else {
         ""
     };
@@ -166,7 +166,7 @@ pub fn FlowNodeComponent(
             style: "left: {node.x}px; top: {node.y}px; z-index: {z_index};",
 
             div {
-                class: "group relative rounded-xl border bg-white transition-shadow duration-150 cursor-grab active:cursor-grabbing {category_border} {exec_border} {selected_classes} {running_glow}",
+                class: "group relative rounded-xl border bg-gradient-to-b from-white to-slate-50/70 transition-all duration-150 cursor-grab active:cursor-grabbing {category_border} {exec_border} {selected_classes} {running_glow}",
                 style: "width: 220px;",
                 onmousedown: move |e| {
                     on_mouse_down.call(e);
@@ -191,8 +191,13 @@ pub fn FlowNodeComponent(
                 }
 
                 // ── Header row ───────────────────────────────────────────
+                div {
+                    class: "absolute inset-x-0 top-0 h-[1px] rounded-t-xl opacity-70",
+                    style: "background: linear-gradient(90deg, rgba(14,165,233,0.55), rgba(45,212,191,0.45), rgba(251,191,36,0.45));"
+                }
+
                 div { class: "flex items-center gap-3 px-3.5 py-3",
-                    div { class: "flex h-8 w-8 shrink-0 items-center justify-center rounded-md {category_icon_bg}",
+                    div { class: "flex h-8 w-8 shrink-0 items-center justify-center rounded-md {category_icon_bg} shadow-sm",
                         {icon_by_name(&icon, "h-4 w-4".to_string())}
                     }
 
@@ -253,6 +258,13 @@ pub fn FlowNodeComponent(
                                 },
                             }
                         }
+                    }
+                }
+
+                div { class: "-mt-1 flex items-center gap-1.5 px-3.5 pb-2 text-[9px] uppercase tracking-wide text-slate-400",
+                    span { class: "rounded bg-white px-1.5 py-px", "{category}" }
+                    if inline_open {
+                        span { class: "rounded border border-cyan-200 bg-cyan-50 px-1.5 py-px text-cyan-700", "Editing" }
                     }
                 }
 

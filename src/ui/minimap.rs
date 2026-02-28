@@ -145,6 +145,9 @@ pub fn FlowMinimap(
     viewport: ReadSignal<Viewport>,
     canvas_width: f32,
     canvas_height: f32,
+    on_zoom_in: EventHandler<MouseEvent>,
+    on_zoom_out: EventHandler<MouseEvent>,
+    on_fit_view: EventHandler<MouseEvent>,
 ) -> Element {
     let node_list = nodes.read().clone();
     let edge_list = edges.read().clone();
@@ -163,17 +166,48 @@ pub fn FlowMinimap(
         "{} {} {} {}",
         bounds.min_x, bounds.min_y, bounds.width, bounds.height
     );
+    let node_total = node_list.len();
+    let edge_total = edge_list.len();
 
     // ── render ────────────────────────────────────────────────────────────
     rsx! {
         div {
-            class: "pointer-events-none absolute bottom-4 right-4 h-[110px] w-[160px] \
-                    overflow-hidden rounded-lg border border-slate-700 bg-slate-900/90 \
+            class: "pointer-events-none absolute bottom-4 right-4 h-[138px] w-[220px] \
+                    overflow-hidden rounded-xl border border-slate-700/80 bg-gradient-to-br \
+                    from-slate-950/95 via-slate-900/95 to-cyan-950/60 \
                     shadow-2xl shadow-slate-950/70 backdrop-blur-sm",
+
+            div {
+                class: "absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900/85 px-2 py-1 text-[10px]",
+                span { class: "font-semibold uppercase tracking-wide text-slate-300", "Map" }
+                span { class: "rounded border border-cyan-800/70 bg-cyan-900/40 px-1.5 py-px text-cyan-200", "{node_total} nodes" }
+                span { class: "rounded border border-slate-700 px-1.5 py-px text-slate-300", "{edge_total} links" }
+            }
+
+            div { class: "pointer-events-auto absolute right-2 top-2 z-10 flex items-center gap-1",
+                button {
+                    class: "flex h-5 min-w-5 items-center justify-center rounded border border-slate-700 bg-slate-900/90 px-1 text-[10px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/60 hover:text-cyan-200",
+                    title: "Zoom out",
+                    onclick: move |evt| on_zoom_out.call(evt),
+                    "-"
+                }
+                button {
+                    class: "flex h-5 min-w-5 items-center justify-center rounded border border-slate-700 bg-slate-900/90 px-1 text-[10px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/60 hover:text-cyan-200",
+                    title: "Zoom in",
+                    onclick: move |evt| on_zoom_in.call(evt),
+                    "+"
+                }
+                button {
+                    class: "flex h-5 items-center justify-center rounded border border-slate-700 bg-slate-900/90 px-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-200 transition-colors hover:border-cyan-500/60 hover:text-cyan-200",
+                    title: "Fit view",
+                    onclick: move |evt| on_fit_view.call(evt),
+                    "Fit"
+                }
+            }
 
             svg {
                 view_box: "{viewbox}",
-                class: "h-full w-full",
+                class: "h-full w-full pt-7",
                 xmlns: "http://www.w3.org/2000/svg",
 
                 // ── Edges ───────────────────────────────────────────────
@@ -187,7 +221,7 @@ pub fn FlowMinimap(
                                     y1: "{src.y + NODE_H}",
                                     x2: "{tgt.x + NODE_W / 2.0}",
                                     y2: "{tgt.y}",
-                                    stroke: "rgba(100,116,139,0.50)",
+                                    stroke: "rgba(148,163,184,0.42)",
                                     stroke_width: "4",
                                 }
                             },
@@ -225,8 +259,8 @@ pub fn FlowMinimap(
                     y: "{vp_rect.y}",
                     width: "{vp_rect.width}",
                     height: "{vp_rect.height}",
-                    fill: "rgba(255,255,255,0.04)",
-                    stroke: "rgba(148,163,184,0.50)",
+                    fill: "rgba(34,211,238,0.05)",
+                    stroke: "rgba(125,211,252,0.58)",
                     stroke_width: "6",
                     rx: "4",
                 }

@@ -162,13 +162,13 @@ fn calculate_parallel_offset(target_id: &NodeId, targets: &[Node], node_height: 
 }
 
 fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<ParallelGroup> {
-    let mut source_targets: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
+    let mut source_targets: HashMap<NodeId, std::collections::HashSet<NodeId>> = HashMap::new();
 
     for connection in connections {
         source_targets
             .entry(connection.source)
             .or_default()
-            .push(connection.target);
+            .insert(connection.target);
     }
 
     let node_by_id: HashMap<_, _> = nodes.iter().map(|node| (node.id, node.clone())).collect();
@@ -183,7 +183,8 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
             let source_node = node_by_id.get(&source_id).cloned();
 
             let mut target_nodes: Vec<Node> = target_ids
-                .into_iter()
+                .iter()
+                .copied()
                 .filter_map(|id| node_by_id.get(&id).cloned())
                 .collect();
 
@@ -305,8 +306,8 @@ mod tests {
         assert_eq!(group.target_nodes[1].id, sorted_ids[1]);
         assert_eq!(group.bounds.x, 292.0);
         assert_eq!(group.bounds.y, 92.0);
-        assert_eq!(group.bounds.width, 16.0);
-        assert_eq!(group.bounds.height, 116.0);
+        assert_eq!(group.bounds.width, 236.0);
+        assert_eq!(group.bounds.height, 184.0);
     }
 
     #[test]
@@ -486,8 +487,18 @@ mod tests {
 
         let spacing = NODE_HEIGHT / 2.5;
 
-        assert_eq!(offset_a, -spacing / 2.0);
-        assert_eq!(offset_b, spacing / 2.0);
+        let mut sorted_ids = [target_a_id, target_b_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let expected_a = if target_a_id == sorted_ids[0] {
+            -spacing / 2.0
+        } else {
+            spacing / 2.0
+        };
+        let expected_b = -expected_a;
+
+        assert_eq!(offset_a, expected_a);
+        assert_eq!(offset_b, expected_b);
     }
 
     #[test]
@@ -508,9 +519,22 @@ mod tests {
 
         let spacing = NODE_HEIGHT / 2.5;
 
-        assert_eq!(offset_a, -spacing);
-        assert_eq!(offset_b, 0.0);
-        assert_eq!(offset_c, spacing);
+        let mut sorted_ids = [target_a_id, target_b_id, target_c_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let expected_for = |id: NodeId| {
+            if id == sorted_ids[0] {
+                -spacing
+            } else if id == sorted_ids[1] {
+                0.0
+            } else {
+                spacing
+            }
+        };
+
+        assert_eq!(offset_a, expected_for(target_a_id));
+        assert_eq!(offset_b, expected_for(target_b_id));
+        assert_eq!(offset_c, expected_for(target_c_id));
     }
 
     #[test]
@@ -534,10 +558,25 @@ mod tests {
 
         let spacing = NODE_HEIGHT / 2.5;
 
-        assert_eq!(offset_a, -spacing * 1.5);
-        assert_eq!(offset_b, -spacing / 2.0);
-        assert_eq!(offset_c, spacing / 2.0);
-        assert_eq!(offset_d, spacing * 1.5);
+        let mut sorted_ids = [target_a_id, target_b_id, target_c_id, target_d_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let expected_for = |id: NodeId| {
+            if id == sorted_ids[0] {
+                -spacing * 1.5
+            } else if id == sorted_ids[1] {
+                -spacing / 2.0
+            } else if id == sorted_ids[2] {
+                spacing / 2.0
+            } else {
+                spacing * 1.5
+            }
+        };
+
+        assert_eq!(offset_a, expected_for(target_a_id));
+        assert_eq!(offset_b, expected_for(target_b_id));
+        assert_eq!(offset_c, expected_for(target_c_id));
+        assert_eq!(offset_d, expected_for(target_d_id));
     }
 
     #[test]
@@ -584,10 +623,22 @@ mod tests {
 
         // Offsets are determined by sorted ID order, not y-position
         let spacing = NODE_HEIGHT / 2.5;
+        let mut sorted_ids = [target_a_id, target_b_id, target_c_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
 
-        assert_eq!(offset_a, -spacing); // First in sorted order
-        assert_eq!(offset_b, 0.0); // Middle in sorted order
-        assert_eq!(offset_c, spacing); // Last in sorted order
+        let expected_for = |id: NodeId| {
+            if id == sorted_ids[0] {
+                -spacing
+            } else if id == sorted_ids[1] {
+                0.0
+            } else {
+                spacing
+            }
+        };
+
+        assert_eq!(offset_a, expected_for(target_a_id));
+        assert_eq!(offset_b, expected_for(target_b_id));
+        assert_eq!(offset_c, expected_for(target_c_id));
     }
 
     // ==================== resolve_edge_anchors_with_parallel Tests ====================
@@ -634,16 +685,23 @@ mod tests {
         let anchor_b = anchor_b.unwrap();
 
         let spacing = NODE_HEIGHT / 2.5;
-        let expected_offset_a = -spacing / 2.0;
-        let expected_offset_b = spacing / 2.0;
+        let mut sorted_ids = [target_a_id, target_b_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let expected_offset_a = if target_a_id == sorted_ids[0] {
+            -spacing / 2.0
+        } else {
+            spacing / 2.0
+        };
+        let expected_offset_b = -expected_offset_a;
 
         assert_eq!(anchor_a.from.x, 320.0); // source.x + NODE_WIDTH
         assert_eq!(anchor_a.from.y, 134.0); // source.y + NODE_HEIGHT / 2
-        assert_eq!(anchor_a.to.y, 100.0 + expected_offset_a);
+        assert_eq!(anchor_a.to.y, 134.0 + expected_offset_a);
 
         assert_eq!(anchor_b.from.x, 320.0);
         assert_eq!(anchor_b.from.y, 134.0);
-        assert_eq!(anchor_b.to.y, 200.0 + expected_offset_b);
+        assert_eq!(anchor_b.to.y, 234.0 + expected_offset_b);
     }
 
     #[test]
@@ -712,14 +770,22 @@ mod tests {
         let anchor_c = anchors.get(&conn_c.id.to_string()).copied();
 
         let spacing = NODE_HEIGHT / 2.5;
-        let expected_offset = spacing / 2.0;
+        let mut sorted_ids = [target_a_id, target_b_id];
+        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+
+        let expected_offset_a = if target_a_id == sorted_ids[0] {
+            -spacing / 2.0
+        } else {
+            spacing / 2.0
+        };
+        let expected_offset_b = -expected_offset_a;
 
         // Parallel edges have offsets
-        assert_eq!(anchor_a.unwrap().to.y, 100.0 - expected_offset);
-        assert_eq!(anchor_b.unwrap().to.y, 200.0 + expected_offset);
+        assert_eq!(anchor_a.unwrap().to.y, 134.0 + expected_offset_a);
+        assert_eq!(anchor_b.unwrap().to.y, 234.0 + expected_offset_b);
 
         // Non-parallel edge has no offset
-        assert_eq!(anchor_c.unwrap().to.y, 300.0);
+        assert_eq!(anchor_c.unwrap().to.y, 334.0);
     }
 
     // ==================== Rect Tests ====================
@@ -853,6 +919,15 @@ pub fn FlowEdges(
                 drag_state.set(None);
             },
             defs {
+                linearGradient {
+                    id: "edge-running-gradient",
+                    x1: "0%",
+                    y1: "0%",
+                    x2: "100%",
+                    y2: "0%",
+                    stop { offset: "0%", stop_color: "rgba(14,165,233,0.95)" }
+                    stop { offset: "100%", stop_color: "rgba(45,212,191,0.95)" }
+                }
                 marker {
                     id: "arrowhead",
                     marker_width: "10",
@@ -874,7 +949,7 @@ pub fn FlowEdges(
                     orient: "auto",
                     path {
                         d: "M 0 0 L 10 4 L 0 8 z",
-                        class: "fill-indigo-500"
+                        class: "fill-cyan-500"
                     }
                 }
             }
@@ -882,9 +957,9 @@ pub fn FlowEdges(
           for group in parallel_groups.read().iter() {
                 {
                     let (color, border_color) = if group.target_nodes.len() > 2 {
-                        ("rgba(244, 63, 94, 0.15)", "rgba(244, 63, 94, 0.3)")
+                        ("rgba(251, 146, 60, 0.14)", "rgba(245, 158, 11, 0.4)")
                     } else {
-                        ("rgba(99, 102, 241, 0.1)", "rgba(99, 102, 241, 0.3)")
+                        ("rgba(20, 184, 166, 0.10)", "rgba(13, 148, 136, 0.35)")
                     };
                     let badge_count = if group.target_nodes.len() > 1 {
                         Some(group.target_nodes.len())
@@ -908,12 +983,25 @@ pub fn FlowEdges(
                             stroke_width: "1.5"
                         }
                         {badge_count.map(|count| rsx! {
-                            div {
-                                class: "bg-slate-800 text-slate-200 text-xs font-medium px-2 py-1 rounded border border-slate-600 shadow-lg",
-                                style: "position: absolute; left: {0}px; top: {1}px; z-index: 10;",
-                                "{badge_left}",
-                                "{badge_top}",
-                                "{count} branches"
+                            g {
+                                rect {
+                                    x: "{badge_left}",
+                                    y: "{badge_top}",
+                                    width: "86",
+                                    height: "18",
+                                    rx: "6",
+                                    fill: "rgba(15,23,42,0.92)",
+                                    stroke: "rgba(71,85,105,0.8)",
+                                    stroke_width: "1"
+                                }
+                                text {
+                                    x: "{badge_left + 8.0}",
+                                    y: "{badge_top + 12.5}",
+                                    fill: "rgba(226,232,240,0.95)",
+                                    font_size: "10",
+                                    font_weight: "600",
+                                    "{count} branches"
+                                }
                             }
                         })}
                     }
@@ -951,7 +1039,7 @@ pub fn FlowEdges(
                             .read()
                             .contains(&edge.target);
                         let stroke_color = match source_status {
-                            ref status if status == "running" => "rgba(37, 99, 235, 0.95)",
+                            ref status if status == "running" => "url(#edge-running-gradient)",
                             ref status if status == "completed" => "rgba(16, 185, 129, 0.85)",
                             ref status if status == "failed" => "rgba(244, 63, 94, 0.85)",
                             _ => "rgba(148, 163, 184, 0.9)",
@@ -989,6 +1077,14 @@ pub fn FlowEdges(
                                             }
                                         }
                                     }
+                                }
+                                path {
+                                    d: "{path}",
+                                    fill: "none",
+                                    stroke: "rgba(14,116,144,0.18)",
+                                    stroke_width: "6",
+                                    opacity: if target_is_running { "1" } else { "0" },
+                                    class: "transition-opacity duration-150",
                                 }
                                 path {
                                     d: "{path}",

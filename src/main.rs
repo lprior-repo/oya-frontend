@@ -343,11 +343,14 @@ fn App() -> Element {
             "@keyframes dash {{ to {{ stroke-dashoffset: -16; }} }}"
             "@keyframes flow {{ to {{ stroke-dashoffset: -16; }} }}"
             "@keyframes slide-in-right {{ from {{ transform: translateX(24px); opacity: 0; }} to {{ transform: translateX(0); opacity: 1; }} }}"
+            "@keyframes canvas-shimmer {{ 0% {{ background-position: 0px 0px; }} 100% {{ background-position: 56px 56px; }} }}"
             ".animate-slide-in-right {{ animation: slide-in-right 0.22s ease-out; }}"
+            ".canvas-grid-animated {{ animation: canvas-shimmer 24s linear infinite; }}"
             "@media (prefers-reduced-motion: reduce) {{ .edge-animated {{ animation: none !important; }} }}"
+            "@media (prefers-reduced-motion: reduce) {{ .canvas-grid-animated {{ animation: none !important; }} }}"
         }
 
-        div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f4f6fb] text-slate-900 [font-family:'Geist',_'Inter',sans-serif] select-none",
+        div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f2f7fa] text-slate-900 [font-family:'Geist',_'Manrope',sans-serif] select-none",
             FlowToolbar {
                 workflow_name: workflow.workflow_name(),
                 on_workflow_name_change: move |value| workflow.workflow_name().set(value),
@@ -474,7 +477,7 @@ fn App() -> Element {
                 }
 
                 main {
-                    class: "relative flex-1 overflow-hidden bg-[#f8fafc] {canvas.cursor_class()}",
+                    class: "relative flex-1 overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-sky-100/40 {canvas.cursor_class()}",
                     tabindex: "0",
                     onmouseenter: move |evt| {
                         let page = evt.page_coordinates();
@@ -908,7 +911,12 @@ fn App() -> Element {
 
                     div {
                         class: "absolute inset-0 pointer-events-none",
-                        style: "background-image: radial-gradient(circle, rgba(148, 163, 184, 0.5) 1px, transparent 1px); background-size: calc(22px * {vz}) calc(22px * {vz}); background-position: {vx}px {vy}px;"
+                        style: "background-image: radial-gradient(circle, rgba(100, 116, 139, 0.33) 1px, transparent 1px); background-size: calc(22px * {vz}) calc(22px * {vz}); background-position: {vx}px {vy}px;"
+                    }
+
+                    div {
+                        class: "canvas-grid-animated absolute inset-0 pointer-events-none opacity-35",
+                        style: "background-image: linear-gradient(120deg, rgba(14, 165, 233, 0.08), transparent 45%, rgba(20, 184, 166, 0.08)); background-size: 56px 56px;"
                     }
 
                     div {
@@ -1105,7 +1113,19 @@ fn App() -> Element {
                         selected_node_id: selection.selected_id(),
                         viewport: workflow.viewport(),
                         canvas_width: 1280.0,
-                        canvas_height: 760.0
+                        canvas_height: 760.0,
+                        on_zoom_in: move |evt: MouseEvent| {
+                            evt.stop_propagation();
+                            workflow.zoom(0.12, 640.0, 400.0);
+                        },
+                        on_zoom_out: move |evt: MouseEvent| {
+                            evt.stop_propagation();
+                            workflow.zoom(-0.12, 640.0, 400.0);
+                        },
+                        on_fit_view: move |evt: MouseEvent| {
+                            evt.stop_propagation();
+                            workflow.fit_view(1280.0, 760.0, 200.0);
+                        }
                     }
                 }
 
