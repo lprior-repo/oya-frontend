@@ -152,10 +152,10 @@ impl WorkflowState {
         target_port: &PortName,
     ) -> WorkflowResult<()> {
         self.save_undo_point();
-        let result = self
-            .workflow
-            .write()
-            .add_connection_checked(source, target, source_port, target_port);
+        let result =
+            self.workflow
+                .write()
+                .add_connection_checked(source, target, source_port, target_port);
 
         match result {
             Ok(ConnectionResult::Created | ConnectionResult::CreatedWithTypeWarning(_)) => Ok(()),
@@ -267,7 +267,13 @@ impl WorkflowState {
         if !dx.is_finite() || !dy.is_finite() {
             return;
         }
-        if let Some(node) = self.workflow.write().nodes.iter_mut().find(|n| n.id == node_id) {
+        if let Some(node) = self
+            .workflow
+            .write()
+            .nodes
+            .iter_mut()
+            .find(|n| n.id == node_id)
+        {
             node.x += dx;
             node.y += dy;
         }

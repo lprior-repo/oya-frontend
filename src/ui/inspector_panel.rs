@@ -151,6 +151,8 @@ pub fn InspectorPanel(
     step_duration_ms: ReadSignal<Option<i64>>,
     /// Which retry attempt this is (1-based; 1 = first attempt).
     step_attempt: ReadSignal<u32>,
+    /// Horizontal offset from the right edge in pixels.
+    right_offset_px: i32,
     /// Emitted when the user clicks the close (×) button.
     on_close: EventHandler<()>,
 ) -> Element {
@@ -227,7 +229,8 @@ pub fn InspectorPanel(
         style { "{SLIDE_STYLE}" }
 
         aside {
-            class: "animate-slide-in-right fixed right-0 top-0 z-30 flex h-full w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl",
+            class: "animate-slide-in-right fixed top-0 z-30 flex h-full w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl",
+            style: "right: {right_offset_px}px;",
 
             // ── Header ─────────────────────────────────────────────────────
             div { class: "shrink-0 border-b border-slate-200 px-4 py-3",
