@@ -24,11 +24,11 @@ fn restate_semantic_tags_contract() -> Result<()> {
     assert!(analysis
         .semantics
         .compatible_service_kinds
-        .contains(&RestateServiceKind::Service));
+        .contains(&RestateServiceKind::Handler));
     assert!(analysis
         .semantics
         .compatible_service_kinds
-        .contains(&RestateServiceKind::VirtualObject));
+        .contains(&RestateServiceKind::Actor));
     assert!(analysis
         .semantics
         .compatible_service_kinds

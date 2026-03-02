@@ -12,19 +12,16 @@ use std::str::FromStr;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "kebab-case")]
 pub enum ServiceKind {
-    Service,
-    VirtualObject,
+    Handler,
     Workflow,
+    Actor,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "kebab-case")]
 pub enum ContextType {
-    Service,
-    ObjectExclusive,
-    ObjectShared,
-    WorkflowExclusive,
-    WorkflowShared,
+    Synchronous,
+    Asynchronous,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,9 +49,9 @@ impl std::error::Error for ParseContextTypeError {}
 impl fmt::Display for ServiceKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Service => write!(f, "Service"),
-            Self::VirtualObject => write!(f, "VirtualObject"),
+            Self::Handler => write!(f, "Handler"),
             Self::Workflow => write!(f, "Workflow"),
+            Self::Actor => write!(f, "Actor"),
         }
     }
 }
@@ -65,9 +62,9 @@ impl FromStr for ServiceKind {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let lower = s.to_lowercase();
         match lower.as_str() {
-            "service" => Ok(Self::Service),
-            "virtual-object" | "virtualobject" => Ok(Self::VirtualObject),
+            "handler" => Ok(Self::Handler),
             "workflow" => Ok(Self::Workflow),
+            "actor" => Ok(Self::Actor),
             _ => Err(ParseServiceKindError(s.to_string())),
         }
     }
@@ -76,11 +73,8 @@ impl FromStr for ServiceKind {
 impl fmt::Display for ContextType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Service => write!(f, "Service"),
-            Self::ObjectExclusive => write!(f, "ObjectExclusive"),
-            Self::ObjectShared => write!(f, "ObjectShared"),
-            Self::WorkflowExclusive => write!(f, "WorkflowExclusive"),
-            Self::WorkflowShared => write!(f, "WorkflowShared"),
+            Self::Synchronous => write!(f, "Synchronous"),
+            Self::Asynchronous => write!(f, "Asynchronous"),
         }
     }
 }
@@ -91,11 +85,8 @@ impl FromStr for ContextType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let lower = s.to_lowercase();
         match lower.as_str() {
-            "service" => Ok(Self::Service),
-            "object-exclusive" | "objectexclusive" => Ok(Self::ObjectExclusive),
-            "object-shared" | "objectshared" => Ok(Self::ObjectShared),
-            "workflow-exclusive" | "workflowexclusive" => Ok(Self::WorkflowExclusive),
-            "workflow-shared" | "workflowshared" => Ok(Self::WorkflowShared),
+            "synchronous" | "sync" => Ok(Self::Synchronous),
+            "asynchronous" | "async" => Ok(Self::Asynchronous),
             _ => Err(ParseContextTypeError(s.to_string())),
         }
     }
@@ -103,13 +94,13 @@ impl FromStr for ContextType {
 
 impl ContextType {
     #[must_use]
-    pub const fn is_exclusive(&self) -> bool {
-        matches!(self, Self::ObjectExclusive | Self::WorkflowExclusive)
+    pub const fn is_synchronous(&self) -> bool {
+        matches!(self, Self::Synchronous)
     }
 
     #[must_use]
-    pub const fn is_shared(&self) -> bool {
-        matches!(self, Self::ObjectShared | Self::WorkflowShared)
+    pub const fn is_asynchronous(&self) -> bool {
+        matches!(self, Self::Asynchronous)
     }
 }
 
@@ -196,12 +187,12 @@ mod tests {
 
             #[test]
             fn service_kind_has_service_variant() {
-                let _kind = ServiceKind::Service;
+                let _kind = ServiceKind::Handler;
             }
 
             #[test]
             fn service_kind_has_virtual_object_variant() {
-                let _kind = ServiceKind::VirtualObject;
+                let _kind = ServiceKind::Actor;
             }
 
             #[test]
@@ -212,8 +203,8 @@ mod tests {
             #[test]
             fn service_kind_has_exactly_three_variants() {
                 let variants: Vec<ServiceKind> = vec![
-                    ServiceKind::Service,
-                    ServiceKind::VirtualObject,
+                    ServiceKind::Handler,
+                    ServiceKind::Actor,
                     ServiceKind::Workflow,
                 ];
                 assert_eq!(variants.len(), 3);
@@ -261,7 +252,7 @@ mod tests {
 
             #[test]
             fn service_kind_clones_correctly() {
-                let original = ServiceKind::VirtualObject;
+                let original = ServiceKind::Actor;
                 let cloned = original.clone();
                 assert_eq!(original, cloned);
             }
@@ -275,8 +266,8 @@ mod tests {
 
             #[test]
             fn service_kind_equality_works() {
-                assert_eq!(ServiceKind::Service, ServiceKind::Service);
-                assert_ne!(ServiceKind::Service, ServiceKind::VirtualObject);
+                assert_eq!(ServiceKind::Handler, ServiceKind::Handler);
+                assert_ne!(ServiceKind::Handler, ServiceKind::Actor);
             }
         }
 
@@ -284,17 +275,17 @@ mod tests {
             use super::*;
 
             #[test]
-            fn service_variant_displays_as_capitalized() {
-                let kind = ServiceKind::Service;
+            fn handler_variant_displays_as_capitalized() {
+                let kind = ServiceKind::Handler;
                 let display = format!("{kind}");
-                assert_eq!(display, "Service");
+                assert_eq!(display, "Handler");
             }
 
             #[test]
-            fn virtual_object_variant_displays_as_capitalized() {
-                let kind = ServiceKind::VirtualObject;
+            fn actor_variant_displays_as_capitalized() {
+                let kind = ServiceKind::Actor;
                 let display = format!("{kind}");
-                assert_eq!(display, "VirtualObject");
+                assert_eq!(display, "Actor");
             }
 
             #[test]
@@ -309,31 +300,31 @@ mod tests {
             use super::*;
 
             #[test]
-            fn parses_service_lowercase() {
-                let result: Result<ServiceKind, _> = "service".parse();
+            fn parses_handler_lowercase() {
+                let result: Result<ServiceKind, _> = "handler".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ServiceKind::Service);
+                assert_eq!(result.unwrap(), ServiceKind::Handler);
             }
 
             #[test]
-            fn parses_service_uppercase() {
-                let result: Result<ServiceKind, _> = "Service".parse();
+            fn parses_handler_uppercase() {
+                let result: Result<ServiceKind, _> = "Handler".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ServiceKind::Service);
+                assert_eq!(result.unwrap(), ServiceKind::Handler);
             }
 
             #[test]
-            fn parses_virtual_object_lowercase() {
-                let result: Result<ServiceKind, _> = "virtual-object".parse();
+            fn parses_actor_lowercase() {
+                let result: Result<ServiceKind, _> = "actor".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ServiceKind::VirtualObject);
+                assert_eq!(result.unwrap(), ServiceKind::Actor);
             }
 
             #[test]
-            fn parses_virtual_object_uppercase() {
-                let result: Result<ServiceKind, _> = "VirtualObject".parse();
+            fn parses_actor_uppercase() {
+                let result: Result<ServiceKind, _> = "Actor".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ServiceKind::VirtualObject);
+                assert_eq!(result.unwrap(), ServiceKind::Actor);
             }
 
             #[test]
@@ -367,17 +358,17 @@ mod tests {
             use super::*;
 
             #[test]
-            fn serializes_service_as_kebab_case() {
-                let kind = ServiceKind::Service;
+            fn serializes_handler_as_kebab_case() {
+                let kind = ServiceKind::Handler;
                 let json = serde_json::to_string(&kind).expect("Should serialize");
-                assert!(json.contains("service"));
+                assert!(json.contains("handler"));
             }
 
             #[test]
-            fn serializes_virtual_object_as_kebab_case() {
-                let kind = ServiceKind::VirtualObject;
+            fn serializes_actor_as_kebab_case() {
+                let kind = ServiceKind::Actor;
                 let json = serde_json::to_string(&kind).expect("Should serialize");
-                assert!(json.contains("virtual-object"));
+                assert!(json.contains("actor"));
             }
 
             #[test]
@@ -388,8 +379,8 @@ mod tests {
             }
 
             #[test]
-            fn roundtrip_preserves_service() {
-                let original = ServiceKind::Service;
+            fn roundtrip_preserves_handler() {
+                let original = ServiceKind::Handler;
                 let json = serde_json::to_string(&original).expect("Should serialize");
                 let restored: ServiceKind =
                     serde_json::from_str(&json).expect("Should deserialize");
@@ -397,8 +388,8 @@ mod tests {
             }
 
             #[test]
-            fn roundtrip_preserves_virtual_object() {
-                let original = ServiceKind::VirtualObject;
+            fn roundtrip_preserves_actor() {
+                let original = ServiceKind::Actor;
                 let json = serde_json::to_string(&original).expect("Should serialize");
                 let restored: ServiceKind =
                     serde_json::from_str(&json).expect("Should deserialize");
@@ -423,40 +414,22 @@ mod tests {
             use super::*;
 
             #[test]
-            fn context_type_has_service_variant() {
-                let _ctx = ContextType::Service;
+            fn context_type_has_synchronous_variant() {
+                let _ctx = ContextType::Synchronous;
             }
 
             #[test]
-            fn context_type_has_object_exclusive_variant() {
-                let _ctx = ContextType::ObjectExclusive;
+            fn context_type_has_asynchronous_variant() {
+                let _ctx = ContextType::Asynchronous;
             }
 
             #[test]
-            fn context_type_has_object_shared_variant() {
-                let _ctx = ContextType::ObjectShared;
-            }
-
-            #[test]
-            fn context_type_has_workflow_exclusive_variant() {
-                let _ctx = ContextType::WorkflowExclusive;
-            }
-
-            #[test]
-            fn context_type_has_workflow_shared_variant() {
-                let _ctx = ContextType::WorkflowShared;
-            }
-
-            #[test]
-            fn context_type_has_exactly_five_variants() {
+            fn context_type_has_exactly_two_variants() {
                 let variants: Vec<ContextType> = vec![
-                    ContextType::Service,
-                    ContextType::ObjectExclusive,
-                    ContextType::ObjectShared,
-                    ContextType::WorkflowExclusive,
-                    ContextType::WorkflowShared,
+                    ContextType::Synchronous,
+                    ContextType::Asynchronous,
                 ];
-                assert_eq!(variants.len(), 5);
+                assert_eq!(variants.len(), 2);
             }
         }
 
@@ -501,22 +474,22 @@ mod tests {
 
             #[test]
             fn context_type_clones_correctly() {
-                let original = ContextType::ObjectExclusive;
+                let original = ContextType::Asynchronous;
                 let cloned = original.clone();
                 assert_eq!(original, cloned);
             }
 
             #[test]
             fn context_type_copies_correctly() {
-                let original = ContextType::WorkflowShared;
+                let original = ContextType::Synchronous;
                 let copied: ContextType = original;
                 assert_eq!(original, copied);
             }
 
             #[test]
             fn context_type_equality_works() {
-                assert_eq!(ContextType::Service, ContextType::Service);
-                assert_ne!(ContextType::Service, ContextType::ObjectExclusive);
+                assert_eq!(ContextType::Synchronous, ContextType::Synchronous);
+                assert_ne!(ContextType::Synchronous, ContextType::Asynchronous);
             }
         }
 
@@ -524,38 +497,17 @@ mod tests {
             use super::*;
 
             #[test]
-            fn service_variant_displays_as_capitalized() {
-                let ctx = ContextType::Service;
+            fn synchronous_variant_displays_as_capitalized() {
+                let ctx = ContextType::Synchronous;
                 let display = format!("{ctx}");
-                assert_eq!(display, "Service");
+                assert_eq!(display, "Synchronous");
             }
 
             #[test]
-            fn object_exclusive_variant_displays_as_capitalized() {
-                let ctx = ContextType::ObjectExclusive;
+            fn asynchronous_variant_displays_as_capitalized() {
+                let ctx = ContextType::Asynchronous;
                 let display = format!("{ctx}");
-                assert_eq!(display, "ObjectExclusive");
-            }
-
-            #[test]
-            fn object_shared_variant_displays_as_capitalized() {
-                let ctx = ContextType::ObjectShared;
-                let display = format!("{ctx}");
-                assert_eq!(display, "ObjectShared");
-            }
-
-            #[test]
-            fn workflow_exclusive_variant_displays_as_capitalized() {
-                let ctx = ContextType::WorkflowExclusive;
-                let display = format!("{ctx}");
-                assert_eq!(display, "WorkflowExclusive");
-            }
-
-            #[test]
-            fn workflow_shared_variant_displays_as_capitalized() {
-                let ctx = ContextType::WorkflowShared;
-                let display = format!("{ctx}");
-                assert_eq!(display, "WorkflowShared");
+                assert_eq!(display, "Asynchronous");
             }
         }
 
@@ -563,38 +515,31 @@ mod tests {
             use super::*;
 
             #[test]
-            fn parses_service() {
-                let result: Result<ContextType, _> = "service".parse();
+            fn parses_synchronous() {
+                let result: Result<ContextType, _> = "synchronous".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ContextType::Service);
+                assert_eq!(result.unwrap(), ContextType::Synchronous);
             }
 
             #[test]
-            fn parses_object_exclusive_kebab() {
-                let result: Result<ContextType, _> = "object-exclusive".parse();
+            fn parses_sync_abbreviation() {
+                let result: Result<ContextType, _> = "sync".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ContextType::ObjectExclusive);
+                assert_eq!(result.unwrap(), ContextType::Synchronous);
             }
 
             #[test]
-            fn parses_object_shared_kebab() {
-                let result: Result<ContextType, _> = "object-shared".parse();
+            fn parses_asynchronous() {
+                let result: Result<ContextType, _> = "asynchronous".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ContextType::ObjectShared);
+                assert_eq!(result.unwrap(), ContextType::Asynchronous);
             }
 
             #[test]
-            fn parses_workflow_exclusive_kebab() {
-                let result: Result<ContextType, _> = "workflow-exclusive".parse();
+            fn parses_async_abbreviation() {
+                let result: Result<ContextType, _> = "async".parse();
                 assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ContextType::WorkflowExclusive);
-            }
-
-            #[test]
-            fn parses_workflow_shared_kebab() {
-                let result: Result<ContextType, _> = "workflow-shared".parse();
-                assert!(result.is_ok());
-                assert_eq!(result.unwrap(), ContextType::WorkflowShared);
+                assert_eq!(result.unwrap(), ContextType::Asynchronous);
             }
 
             #[test]
@@ -610,61 +555,31 @@ mod tests {
             }
         }
 
-        mod is_exclusive {
+        mod is_synchronous {
             use super::*;
 
             #[test]
-            fn service_is_not_exclusive() {
-                assert!(!ContextType::Service.is_exclusive());
+            fn synchronous_is_synchronous() {
+                assert!(ContextType::Synchronous.is_synchronous());
             }
 
             #[test]
-            fn object_exclusive_is_exclusive() {
-                assert!(ContextType::ObjectExclusive.is_exclusive());
-            }
-
-            #[test]
-            fn object_shared_is_not_exclusive() {
-                assert!(!ContextType::ObjectShared.is_exclusive());
-            }
-
-            #[test]
-            fn workflow_exclusive_is_exclusive() {
-                assert!(ContextType::WorkflowExclusive.is_exclusive());
-            }
-
-            #[test]
-            fn workflow_shared_is_not_exclusive() {
-                assert!(!ContextType::WorkflowShared.is_exclusive());
+            fn asynchronous_is_not_synchronous() {
+                assert!(!ContextType::Asynchronous.is_synchronous());
             }
         }
 
-        mod is_shared {
+        mod is_asynchronous {
             use super::*;
 
             #[test]
-            fn service_is_not_shared() {
-                assert!(!ContextType::Service.is_shared());
+            fn asynchronous_is_asynchronous() {
+                assert!(ContextType::Asynchronous.is_asynchronous());
             }
 
             #[test]
-            fn object_exclusive_is_not_shared() {
-                assert!(!ContextType::ObjectExclusive.is_shared());
-            }
-
-            #[test]
-            fn object_shared_is_shared() {
-                assert!(ContextType::ObjectShared.is_shared());
-            }
-
-            #[test]
-            fn workflow_exclusive_is_not_shared() {
-                assert!(!ContextType::WorkflowExclusive.is_shared());
-            }
-
-            #[test]
-            fn workflow_shared_is_shared() {
-                assert!(ContextType::WorkflowShared.is_shared());
+            fn synchronous_is_not_asynchronous() {
+                assert!(!ContextType::Synchronous.is_asynchronous());
             }
         }
 
@@ -672,29 +587,22 @@ mod tests {
             use super::*;
 
             #[test]
-            fn serializes_service_as_kebab_case() {
-                let ctx = ContextType::Service;
+            fn serializes_synchronous_as_kebab_case() {
+                let ctx = ContextType::Synchronous;
                 let json = serde_json::to_string(&ctx).expect("Should serialize");
-                assert!(json.contains("service"));
+                assert!(json.contains("synchronous"));
             }
 
             #[test]
-            fn serializes_object_exclusive_as_kebab_case() {
-                let ctx = ContextType::ObjectExclusive;
+            fn serializes_asynchronous_as_kebab_case() {
+                let ctx = ContextType::Asynchronous;
                 let json = serde_json::to_string(&ctx).expect("Should serialize");
-                assert!(json.contains("object-exclusive"));
+                assert!(json.contains("asynchronous"));
             }
 
             #[test]
-            fn serializes_object_shared_as_kebab_case() {
-                let ctx = ContextType::ObjectShared;
-                let json = serde_json::to_string(&ctx).expect("Should serialize");
-                assert!(json.contains("object-shared"));
-            }
-
-            #[test]
-            fn roundtrip_preserves_service() {
-                let original = ContextType::Service;
+            fn roundtrip_preserves_synchronous() {
+                let original = ContextType::Synchronous;
                 let json = serde_json::to_string(&original).expect("Should serialize");
                 let restored: ContextType =
                     serde_json::from_str(&json).expect("Should deserialize");
@@ -702,8 +610,8 @@ mod tests {
             }
 
             #[test]
-            fn roundtrip_preserves_object_exclusive() {
-                let original = ContextType::ObjectExclusive;
+            fn roundtrip_preserves_asynchronous() {
+                let original = ContextType::Asynchronous;
                 let json = serde_json::to_string(&original).expect("Should serialize");
                 let restored: ContextType =
                     serde_json::from_str(&json).expect("Should deserialize");
