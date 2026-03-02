@@ -159,13 +159,7 @@ pub enum RationaleClass {
     AsyncCoordination,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "kebab-case")]
-pub enum RestateServiceKind {
-    Service,
-    VirtualObject,
-    Workflow,
-}
+pub use crate::graph::restate_types::ServiceKind as RestateServiceKind;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "kebab-case")]
@@ -1063,17 +1057,17 @@ fn infer_workflow_service_kinds(workflow: &Workflow) -> HashSet<RestateServiceKi
         HashSet::from([RestateServiceKind::Workflow])
     } else if has_state_semantics {
         HashSet::from([
-            RestateServiceKind::VirtualObject,
+            RestateServiceKind::Actor,
             RestateServiceKind::Workflow,
         ])
     } else if workflow.nodes.is_empty() {
         HashSet::from([
-            RestateServiceKind::Service,
-            RestateServiceKind::VirtualObject,
+            RestateServiceKind::Handler,
+            RestateServiceKind::Actor,
             RestateServiceKind::Workflow,
         ])
     } else {
-        HashSet::from([RestateServiceKind::Service])
+        HashSet::from([RestateServiceKind::Handler])
     }
 }
 
@@ -1093,8 +1087,8 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
     match key {
         ExtensionKey::AddEntryTrigger => ExtensionSemantics {
             compatible_service_kinds: vec![
-                RestateServiceKind::Service,
-                RestateServiceKind::VirtualObject,
+                RestateServiceKind::Handler,
+                RestateServiceKind::Actor,
                 RestateServiceKind::Workflow,
             ],
             requires: vec![],
@@ -1102,8 +1096,8 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
         },
         ExtensionKey::AddReliabilityBundle => ExtensionSemantics {
             compatible_service_kinds: vec![
-                RestateServiceKind::Service,
-                RestateServiceKind::VirtualObject,
+                RestateServiceKind::Handler,
+                RestateServiceKind::Actor,
                 RestateServiceKind::Workflow,
             ],
             requires: vec![RestateCapability::DurableExecution],
@@ -1111,8 +1105,8 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
         },
         ExtensionKey::AddTimeoutGuard => ExtensionSemantics {
             compatible_service_kinds: vec![
-                RestateServiceKind::Service,
-                RestateServiceKind::VirtualObject,
+                RestateServiceKind::Handler,
+                RestateServiceKind::Actor,
                 RestateServiceKind::Workflow,
             ],
             requires: vec![RestateCapability::DurableExecution],
@@ -1120,7 +1114,7 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
         },
         ExtensionKey::AddDurableCheckpoint => ExtensionSemantics {
             compatible_service_kinds: vec![
-                RestateServiceKind::VirtualObject,
+                RestateServiceKind::Actor,
                 RestateServiceKind::Workflow,
             ],
             requires: vec![RestateCapability::DurableExecution],
@@ -1128,8 +1122,8 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
         },
         ExtensionKey::AddCompensationBranch => ExtensionSemantics {
             compatible_service_kinds: vec![
-                RestateServiceKind::Service,
-                RestateServiceKind::VirtualObject,
+                RestateServiceKind::Handler,
+                RestateServiceKind::Actor,
                 RestateServiceKind::Workflow,
             ],
             requires: vec![RestateCapability::DurableExecution],
@@ -1621,7 +1615,7 @@ mod tests {
         assert!(entry
             .semantics
             .compatible_service_kinds
-            .contains(&RestateServiceKind::Service));
+            .contains(&RestateServiceKind::Handler));
         assert!(entry
             .semantics
             .provides
