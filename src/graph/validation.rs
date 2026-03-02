@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use super::{Node, NodeCategory, NodeId, Workflow};
+use crate::graph::restate_types::{types_compatible, PortType};
 use crate::graph::workflow_node::WorkflowNode;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -118,6 +119,7 @@ pub fn validate_workflow(workflow: &Workflow) -> ValidationResult {
     validate_orphan_nodes(workflow, &mut issues);
     validate_required_config(workflow, &mut issues);
     validate_connection_validity(workflow, &mut issues);
+    validate_connection_types(workflow, &mut issues);
 
     ValidationResult { issues }
 }
@@ -511,6 +513,58 @@ fn validate_connection_validity(workflow: &Workflow, issues: &mut Vec<Validation
     }
 }
 
+fn validate_connection_types(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
+    for conn in &workflow.connections {
+        let source_node = match workflow.nodes.iter().find(|n| n.id == conn.source) {
+            Some(n) => n,
+            None => continue,
+        };
+        let target_node = match workflow.nodes.iter().find(|n| n.id == conn.target) {
+            Some(n) => n,
+            None => continue,
+        };
+
+        let source_type = get_output_port_type(source_node);
+        let target_type = get_input_port_type(target_node);
+
+        match (source_type, target_type) {
+            (Some(src), Some(tgt)) => {
+                if !types_compatible(src, tgt) {
+                    issues.push(ValidationIssue::error_for_node(
+                        format!(
+                            "Incompatible connection: output port type '{}' cannot connect to input port type '{}'",
+                            src, tgt
+                        ),
+                        conn.source,
+                    ));
+                }
+            }
+            (None, _) => {
+                issues.push(ValidationIssue::error_for_node(
+                    format!("Unknown node type for source: {}", source_node.node_type),
+                    conn.source,
+                ));
+            }
+            (_, None) => {
+                issues.push(ValidationIssue::error_for_node(
+                    format!("Unknown node type for target: {}", target_node.node_type),
+                    conn.target,
+                ));
+            }
+        }
+    }
+}
+
+fn get_output_port_type(node: &Node) -> Option<PortType> {
+    let workflow_node: WorkflowNode = node.node_type.parse().ok()?;
+    Some(workflow_node.output_port_type())
+}
+
+fn get_input_port_type(node: &Node) -> Option<PortType> {
+    let workflow_node: WorkflowNode = node.node_type.parse().ok()?;
+    Some(workflow_node.input_port_type())
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::panic)]
 mod tests {
@@ -753,6 +807,77 @@ mod tests {
             assert!(result.issues.iter().any(|issue| {
                 issue.severity == ValidationSeverity::Error
                     && issue.message.contains("non-existent target")
+            }));
+        }
+    }
+
+    mod connection_type_validation {
+        use super::*;
+        use crate::graph::{Connection, PortName};
+        use uuid::Uuid;
+
+        #[test]
+        fn given_incompatible_connection_types_when_validating_then_type_error_is_reported() {
+            let mut workflow = make_workflow();
+            let source = add_entry_node(&mut workflow);
+            let target = workflow.add_node("signal-handler", 100.0, 0.0);
+            workflow.connections.push(Connection {
+                id: Uuid::new_v4(),
+                source,
+                target,
+                source_port: PortName("main".to_string()),
+                target_port: PortName("main".to_string()),
+            });
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Error
+                    && issue.message.contains("Incompatible connection")
+            }));
+        }
+
+        #[test]
+        fn given_compatible_connection_types_when_validating_then_no_type_error() {
+            let mut workflow = make_workflow();
+            let source = add_entry_node(&mut workflow);
+            let target = workflow.add_node("run", 100.0, 0.0);
+            workflow.connections.push(Connection {
+                id: Uuid::new_v4(),
+                source,
+                target,
+                source_port: PortName("main".to_string()),
+                target_port: PortName("main".to_string()),
+            });
+
+            let result = validate_workflow(&workflow);
+
+            assert!(!result
+                .issues
+                .iter()
+                .any(|issue| issue.message.contains("Incompatible connection")));
+        }
+
+        #[test]
+        fn given_flow_control_to_signal_when_validating_then_type_error_is_reported() {
+            let mut workflow = make_workflow();
+            let source = workflow.add_node("condition", 0.0, 0.0);
+            let target = workflow.add_node("signal-handler", 100.0, 0.0);
+            workflow.connections.push(Connection {
+                id: Uuid::new_v4(),
+                source,
+                target,
+                source_port: PortName("main".to_string()),
+                target_port: PortName("main".to_string()),
+            });
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Error
+                    && issue.message.contains("Incompatible connection")
+                    && issue.message.contains("flow-control")
+                    && issue.message.contains("signal")
             }));
         }
     }
