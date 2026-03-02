@@ -187,14 +187,10 @@ fn App() -> Element {
             .any(|n| n.execution_state == ExecutionState::Failed)
         {
             ExecutionState::Failed
-        } else if nodes
-            .iter()
-            .all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
-            && nodes
-                .iter()
-                .any(|n| n.execution_state == ExecutionState::Succeeded)
+        } else if nodes.iter().all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
+            && nodes.iter().any(|n| n.execution_state == ExecutionState::Completed)
         {
-            ExecutionState::Succeeded
+            ExecutionState::Completed
         } else {
             ExecutionState::Idle
         }

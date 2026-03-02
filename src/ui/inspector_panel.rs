@@ -26,11 +26,11 @@ pub enum InspectorTab {
 #[must_use]
 pub const fn status_badge_class(state: ExecutionState) -> &'static str {
     match state {
-        ExecutionState::Idle | ExecutionState::Waiting => {
+        ExecutionState::Idle | ExecutionState::Queued => {
             "bg-slate-100 text-slate-600 border-slate-200"
         }
         ExecutionState::Running => "bg-blue-100 text-blue-700 border-blue-200",
-        ExecutionState::Succeeded => "bg-green-100 text-green-700 border-green-200",
+        ExecutionState::Completed => "bg-green-100 text-green-700 border-green-200",
         ExecutionState::Failed => "bg-red-100 text-red-700 border-red-200",
         ExecutionState::Skipped => "bg-slate-100 text-slate-500 border-slate-200",
     }
@@ -384,8 +384,8 @@ mod tests {
     }
 
     #[test]
-    fn given_waiting_state_when_getting_badge_class_then_returns_slate() {
-        let class = status_badge_class(ExecutionState::Waiting);
+    fn given_queued_state_when_getting_badge_class_then_returns_slate() {
+        let class = status_badge_class(ExecutionState::Queued);
         assert!(
             class.contains("slate"),
             "expected slate class, got: {class}"
@@ -399,8 +399,8 @@ mod tests {
     }
 
     #[test]
-    fn given_succeeded_state_when_getting_badge_class_then_returns_green() {
-        let class = status_badge_class(ExecutionState::Succeeded);
+    fn given_completed_state_when_getting_badge_class_then_returns_green() {
+        let class = status_badge_class(ExecutionState::Completed);
         assert!(
             class.contains("green"),
             "expected green class, got: {class}"

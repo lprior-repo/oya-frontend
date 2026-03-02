@@ -20,9 +20,9 @@ use serde_json::Value;
 #[must_use]
 pub const fn node_border_class(state: ExecutionState) -> &'static str {
     match state {
-        ExecutionState::Idle | ExecutionState::Waiting | ExecutionState::Skipped => "",
+        ExecutionState::Idle | ExecutionState::Queued | ExecutionState::Skipped => "",
         ExecutionState::Running => "border-l-4 border-blue-500 ring-1 ring-blue-300",
-        ExecutionState::Succeeded => "border-l-4 border-green-500 ring-1 ring-green-200",
+        ExecutionState::Completed => "border-l-4 border-green-500 ring-1 ring-green-200",
         ExecutionState::Failed => {
             "border-l-4 border-red-500 ring-1 ring-red-300 shadow-red-500/20 shadow-lg"
         }
@@ -34,13 +34,13 @@ pub const fn node_border_class(state: ExecutionState) -> &'static str {
 pub const fn status_badge_class(state: ExecutionState) -> &'static str {
     match state {
         ExecutionState::Idle => "",
-        ExecutionState::Waiting => {
+        ExecutionState::Queued => {
             "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-amber-500/15 text-amber-400 border-amber-500/30"
         }
         ExecutionState::Running => {
             "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-blue-500/15 text-blue-400 border-blue-500/30"
         }
-        ExecutionState::Succeeded => {
+        ExecutionState::Completed => {
             "inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium leading-none bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
         }
         ExecutionState::Failed => {
@@ -57,9 +57,9 @@ pub const fn status_badge_class(state: ExecutionState) -> &'static str {
 pub const fn status_badge_label(state: ExecutionState) -> &'static str {
     match state {
         ExecutionState::Idle => "",
-        ExecutionState::Waiting => "Waiting",
+        ExecutionState::Queued => "Waiting",
         ExecutionState::Running => "Running",
-        ExecutionState::Succeeded => "Done",
+        ExecutionState::Completed => "Done",
         ExecutionState::Failed => "Failed",
         ExecutionState::Skipped => "Skipped",
     }
@@ -156,7 +156,7 @@ pub fn FlowNodeComponent(
     let has_execution_data = node.last_output.is_some()
         || matches!(
             exec_state,
-            ExecutionState::Succeeded | ExecutionState::Failed
+            ExecutionState::Completed | ExecutionState::Failed
         );
 
     rsx! {
@@ -211,11 +211,11 @@ pub fn FlowNodeComponent(
                         {
                             match exec_state {
                                 ExecutionState::Idle => rsx! { div {} },
-                                ExecutionState::Waiting => rsx! {
+                                ExecutionState::Queued => rsx! {
                                     span {
-                                        class: "{status_badge_class(ExecutionState::Waiting)}",
+                                        class: "{status_badge_class(ExecutionState::Queued)}",
                                         {icon_by_name("clock", "h-2.5 w-2.5".to_string())}
-                                        "{status_badge_label(ExecutionState::Waiting)}"
+                                        "{status_badge_label(ExecutionState::Queued)}"
                                     }
                                 },
                                 ExecutionState::Running => rsx! {
@@ -234,11 +234,11 @@ pub fn FlowNodeComponent(
                                         "{status_badge_label(ExecutionState::Running)}"
                                     }
                                 },
-                                ExecutionState::Succeeded => rsx! {
+                                ExecutionState::Completed => rsx! {
                                     span {
-                                        class: "{status_badge_class(ExecutionState::Succeeded)}",
+                                        class: "{status_badge_class(ExecutionState::Completed)}",
                                         {icon_by_name("check-circle", "h-2.5 w-2.5".to_string())}
-                                        "{status_badge_label(ExecutionState::Succeeded)}"
+                                        "{status_badge_label(ExecutionState::Completed)}"
                                     }
                                 },
                                 ExecutionState::Failed => rsx! {
@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn given_waiting_state_when_border_class_queried_then_empty() {
-        assert_eq!(node_border_class(ExecutionState::Waiting), "");
+        assert_eq!(node_border_class(ExecutionState::Queued), "");
     }
 
     #[test]
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn given_succeeded_state_when_border_class_queried_then_contains_green() {
-        let class = node_border_class(ExecutionState::Succeeded);
+        let class = node_border_class(ExecutionState::Completed);
         assert!(class.contains("border-green-500"), "got: {class}");
         assert!(class.contains("ring-green-200"), "got: {class}");
     }
@@ -398,7 +398,7 @@ mod tests {
 
     #[test]
     fn given_succeeded_state_when_badge_class_queried_then_contains_emerald() {
-        let class = status_badge_class(ExecutionState::Succeeded);
+        let class = status_badge_class(ExecutionState::Completed);
         assert!(class.contains("emerald"), "got: {class}");
     }
 
@@ -410,7 +410,7 @@ mod tests {
 
     #[test]
     fn given_waiting_state_when_badge_class_queried_then_contains_amber() {
-        let class = status_badge_class(ExecutionState::Waiting);
+        let class = status_badge_class(ExecutionState::Queued);
         assert!(class.contains("amber"), "got: {class}");
     }
 
@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     fn given_succeeded_state_when_label_queried_then_done() {
-        assert_eq!(status_badge_label(ExecutionState::Succeeded), "Done");
+        assert_eq!(status_badge_label(ExecutionState::Completed), "Done");
     }
 
     #[test]
@@ -445,7 +445,7 @@ mod tests {
 
     #[test]
     fn given_waiting_state_when_label_queried_then_waiting() {
-        assert_eq!(status_badge_label(ExecutionState::Waiting), "Waiting");
+        assert_eq!(status_badge_label(ExecutionState::Queued), "Waiting");
     }
 
     #[test]

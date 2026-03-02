@@ -144,8 +144,8 @@ fn compute_aggregate_status(branch_nodes: &[Node]) -> AggregateStatus {
 
     for node in branch_nodes {
         match node.execution_state {
-            ExecutionState::Running | ExecutionState::Waiting => has_running = true,
-            ExecutionState::Succeeded => has_succeeded = true,
+            ExecutionState::Running | ExecutionState::Queued => has_running = true,
+            ExecutionState::Completed => has_succeeded = true,
             ExecutionState::Failed => has_failed = true,
             ExecutionState::Idle | ExecutionState::Skipped => has_pending = true,
         }
@@ -354,7 +354,7 @@ mod tests {
             make_node(Uuid::new_v4(), "run", 100.0, 100.0),
         ];
         for node in &mut nodes {
-            node.execution_state = ExecutionState::Succeeded;
+            node.execution_state = ExecutionState::Completed;
         }
 
         let status = compute_aggregate_status(&nodes);
@@ -375,7 +375,7 @@ mod tests {
     #[test]
     fn given_waiting_branch_when_computing_status_then_returns_running() {
         let mut nodes = vec![make_node(Uuid::nil(), "service-call", 0.0, 0.0)];
-        nodes[0].execution_state = ExecutionState::Waiting;
+        nodes[0].execution_state = ExecutionState::Queued;
 
         let status = compute_aggregate_status(&nodes);
 

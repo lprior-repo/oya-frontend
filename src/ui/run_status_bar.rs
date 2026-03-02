@@ -15,8 +15,8 @@ pub const fn bar_bg_class(status: ExecutionState, frozen: bool) -> &'static str 
         return "bg-amber-50 border-b border-amber-200";
     }
     match status {
-        ExecutionState::Running | ExecutionState::Waiting => "bg-blue-50 border-b border-blue-200",
-        ExecutionState::Succeeded => "bg-green-50 border-b border-green-200",
+        ExecutionState::Running | ExecutionState::Queued => "bg-blue-50 border-b border-blue-200",
+        ExecutionState::Completed => "bg-green-50 border-b border-green-200",
         ExecutionState::Failed => "bg-red-50 border-b border-red-200",
         ExecutionState::Idle | ExecutionState::Skipped => "bg-slate-50 border-b border-slate-200",
     }
@@ -26,10 +26,10 @@ pub const fn bar_bg_class(status: ExecutionState, frozen: bool) -> &'static str 
 #[must_use]
 pub fn status_text(status: ExecutionState, step: usize, total: usize, name: &str) -> String {
     match status {
-        ExecutionState::Running | ExecutionState::Waiting => {
+        ExecutionState::Running | ExecutionState::Queued => {
             format!("Running step {step} of {total} \u{2014} {name}")
         }
-        ExecutionState::Succeeded => format!("Completed {total} steps"),
+        ExecutionState::Completed => format!("Completed {total} steps"),
         ExecutionState::Failed => format!("Failed at step {step} \u{2014} {name}"),
         ExecutionState::Idle | ExecutionState::Skipped => "Ready".to_string(),
     }
@@ -75,7 +75,7 @@ pub fn RunStatusBar(
                 }
             } else {
                 match status {
-                    ExecutionState::Running | ExecutionState::Waiting => {
+                    ExecutionState::Running | ExecutionState::Queued => {
                         rsx! {
                             span { class: "mr-2 inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse" }
                             span { class: "text-blue-700 font-medium",
@@ -83,7 +83,7 @@ pub fn RunStatusBar(
                             }
                         }
                     }
-                    ExecutionState::Succeeded => {
+                    ExecutionState::Completed => {
                         rsx! {
                             span { class: "mr-2 text-green-600 font-bold", "\u{2713}" }
                             span { class: "text-green-700 font-medium",
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn given_waiting_status_not_frozen_when_bg_class_then_blue() {
         assert_eq!(
-            bar_bg_class(ExecutionState::Waiting, false),
+            bar_bg_class(ExecutionState::Queued, false),
             "bg-blue-50 border-b border-blue-200"
         );
     }
@@ -146,7 +146,7 @@ mod tests {
     #[test]
     fn given_succeeded_status_not_frozen_when_bg_class_then_green() {
         assert_eq!(
-            bar_bg_class(ExecutionState::Succeeded, false),
+            bar_bg_class(ExecutionState::Completed, false),
             "bg-green-50 border-b border-green-200"
         );
     }
@@ -172,10 +172,10 @@ mod tests {
         for status in [
             ExecutionState::Idle,
             ExecutionState::Running,
-            ExecutionState::Succeeded,
+            ExecutionState::Completed,
             ExecutionState::Failed,
             ExecutionState::Skipped,
-            ExecutionState::Waiting,
+            ExecutionState::Queued,
         ] {
             assert_eq!(
                 bar_bg_class(status, true),
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn given_waiting_when_status_text_then_running_format() {
         assert_eq!(
-            status_text(ExecutionState::Waiting, 1, 3, "init"),
+            status_text(ExecutionState::Queued, 1, 3, "init"),
             "Running step 1 of 3 \u{2014} init"
         );
     }
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn given_succeeded_when_status_text_then_completed_format() {
         assert_eq!(
-            status_text(ExecutionState::Succeeded, 5, 5, "done"),
+            status_text(ExecutionState::Completed, 5, 5, "done"),
             "Completed 5 steps"
         );
     }

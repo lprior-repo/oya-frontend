@@ -172,7 +172,7 @@ pub fn from_run_record(record: &super::RunRecord) -> ExecutionRecord {
                         step_name: String::new(),
                         step_type: String::new(),
                         status: if record.success {
-                            ExecutionState::Succeeded
+                            ExecutionState::Completed
                         } else {
                             ExecutionState::Failed
                         },
@@ -203,7 +203,7 @@ mod tests {
         StepRecord {
             step_name: "test-step".to_string(),
             step_type: "run".to_string(),
-            status: ExecutionState::Succeeded,
+            status: ExecutionState::Completed,
             start_time: start.map(utc),
             end_time: end.map(utc),
             attempt: 1,
