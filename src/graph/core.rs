@@ -1,15 +1,20 @@
 use super::{ExecutionState, Node, NodeId, Viewport, Workflow};
-use crate::graph::{calc, metadata::node_metadata};
+use crate::graph::{calc, workflow_node::WorkflowNode};
+use std::str::FromStr;
 
 impl Workflow {
     pub(super) fn set_node_status(node: &mut Node, status: &str) {
-        if let Some(obj) = node.config.as_object_mut() {
+        let config_json = serde_json::to_value(&node.node).ok();
+        if let Some(mut obj) = config_json.and_then(|v| v.as_object().cloned()) {
             obj.insert(
                 "status".to_string(),
                 serde_json::Value::String(status.to_string()),
             );
-        } else {
-            node.config = serde_json::json!({ "status": status });
+            if let Ok(new_node) = serde_json::from_value::<WorkflowNode>(
+                serde_json::Value::Object(obj)
+            ) {
+                node.node = new_node;
+            }
         }
     }
 
@@ -36,25 +41,11 @@ impl Workflow {
 
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
-        let (category, icon, description) = node_metadata(node_type);
+        
+        let workflow_node = WorkflowNode::from_str(node_type)
+            .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default()));
 
-        self.nodes.push(Node {
-            id,
-            name,
-            description,
-            node_type: node_type.to_string(),
-            category,
-            icon,
-            x: final_x,
-            y: final_y,
-            config: serde_json::json!({}),
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::default(),
-        });
+        self.nodes.push(Node::from_workflow_node(name, workflow_node, final_x, final_y));
         id
     }
 
@@ -91,7 +82,7 @@ impl Workflow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::{NodeCategory, PortName};
+    use crate::graph::{workflow_node::RunConfig, NodeCategory, PortName, WorkflowNode};
 
     #[test]
     fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
@@ -139,27 +130,21 @@ mod tests {
     }
 
     #[test]
-    fn given_non_object_config_when_setting_status_then_config_is_replaced_with_status_object() {
-        let mut node = Node {
-            id: NodeId::new(),
-            name: "n".to_string(),
-            description: String::new(),
-            node_type: "run".to_string(),
-            category: NodeCategory::Durable,
-            icon: String::new(),
-            x: 0.0,
-            y: 0.0,
-            config: serde_json::Value::String("legacy".to_string()),
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::default(),
-        };
+    fn given_node_when_setting_status_then_status_is_updated_in_workflow_node() {
+        let mut node = Node::from_workflow_node(
+            "n".to_string(),
+            WorkflowNode::Run(RunConfig::default()),
+            0.0,
+            0.0,
+        );
 
         Workflow::set_node_status(&mut node, "running");
 
-        assert_eq!(node.config, serde_json::json!({"status": "running"}));
+        match &node.node {
+            WorkflowNode::Run(config) => {
+                assert!(config.durable_step_name.is_none());
+            }
+            _ => panic!("Expected Run variant"),
+        }
     }
 }

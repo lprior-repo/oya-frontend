@@ -5,6 +5,7 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
+use crate::graph::workflow_node::WorkflowNode;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
@@ -60,7 +61,7 @@ impl<S: Into<String>> From<S> for PortName {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum NodeCategory {
     Entry,
@@ -89,20 +90,71 @@ impl fmt::Display for NodeCategory {
 pub struct Node {
     pub id: NodeId,
     pub name: String,
-    pub description: String,
-    pub node_type: String,
+    #[serde(skip)]
+    pub node: WorkflowNode,
     pub category: NodeCategory,
     pub icon: String,
     pub x: f32,
     pub y: f32,
-    pub config: serde_json::Value,
     pub last_output: Option<serde_json::Value>,
     pub selected: bool,
     pub executing: bool,
     pub skipped: bool,
     pub error: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip)]
     pub execution_state: ExecutionState,
+    #[serde(default, skip)]
+    pub metadata: serde_json::Value,
+    #[serde(default, skip)]
+    pub execution_data: serde_json::Value,
+    #[serde(default)]
+    pub node_type: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub config: serde_json::Value,
+}
+
+impl Node {
+    pub fn from_workflow_node(name: String, node: WorkflowNode, x: f32, y: f32) -> Self {
+        let category = node.category();
+        let icon = node.icon().to_string();
+        let node_type = node.to_string();
+        let description = node.description().to_string();
+        let config = serde_json::to_value(&node).unwrap_or_default();
+        
+        Self {
+            id: NodeId::new(),
+            name,
+            node,
+            category,
+            icon,
+            x,
+            y,
+            last_output: None,
+            selected: false,
+            executing: false,
+            skipped: false,
+            error: None,
+            execution_state: ExecutionState::default(),
+            metadata: Default::default(),
+            execution_data: Default::default(),
+            node_type,
+            description,
+            config,
+        }
+    }
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self::from_workflow_node(
+            String::new(),
+            WorkflowNode::default(),
+            0.0,
+            0.0,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

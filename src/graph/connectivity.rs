@@ -121,17 +121,13 @@ impl Workflow {
     fn get_node_output_port_type(
         node: &super::Node,
     ) -> Option<crate::graph::restate_types::PortType> {
-        let workflow_node: crate::graph::workflow_node::WorkflowNode =
-            node.node_type.parse().ok()?;
-        Some(workflow_node.output_port_type())
+        Some(node.node.output_port_type())
     }
 
     fn get_node_input_port_type(
         node: &super::Node,
     ) -> Option<crate::graph::restate_types::PortType> {
-        let workflow_node: crate::graph::workflow_node::WorkflowNode =
-            node.node_type.parse().ok()?;
-        Some(workflow_node.input_port_type())
+        Some(node.node.input_port_type())
     }
 
     fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {

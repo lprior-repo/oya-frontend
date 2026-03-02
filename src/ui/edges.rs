@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, Node, NodeId};
+use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -245,23 +246,12 @@ mod tests {
     // ==================== Test Data Builders ====================
 
     fn build_node(id: NodeId, x: f32, y: f32) -> Node {
-        Node {
-            id,
-            name: format!("Node {}", id),
-            description: String::new(),
-            node_type: "task".to_string(),
-            category: oya_frontend::graph::NodeCategory::Durable,
-            icon: "fa fa-cog".to_string(),
+        Node::from_workflow_node(
+            format!("Node {}", id),
+            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
             x,
             y,
-            config: serde_json::Value::Object(serde_json::Map::new()),
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::Idle,
-        }
+        )
     }
 
     fn build_connection(id: Uuid, source: NodeId, target: NodeId) -> Connection {

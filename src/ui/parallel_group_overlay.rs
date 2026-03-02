@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
+use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 const NODE_WIDTH: f32 = 220.0;
 const NODE_HEIGHT: f32 = 68.0;
@@ -60,7 +62,7 @@ pub struct BoundingBox {
 fn find_parallel_nodes(nodes: &[Node]) -> Vec<NodeId> {
     nodes
         .iter()
-        .filter(|node| node.node_type == "parallel")
+        .filter(|node| matches!(node.node, WorkflowNode::Parallel(_)))
         .map(|node| node.id)
         .collect()
 }
@@ -77,7 +79,7 @@ fn find_branch_nodes(
         .filter(|conn| conn.source == parallel_node_id)
         .filter_map(|conn| {
             let target_node = node_by_id.get(&conn.target)?;
-            let is_valid_branch = target_node.node_type != "parallel";
+            let is_valid_branch = !matches!(target_node.node, WorkflowNode::Parallel(_));
             is_valid_branch.then_some(conn.target)
         })
         .collect();
@@ -265,26 +267,15 @@ pub fn ParallelGroupOverlay(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use oya_frontend::graph::workflow_node::WorkflowNode;
     use uuid::Uuid;
 
     fn make_node(id: Uuid, node_type: &str, x: f32, y: f32) -> Node {
-        Node {
-            id: NodeId(id),
-            name: format!("{node_type} node"),
-            description: String::new(),
-            node_type: node_type.to_string(),
-            category: oya_frontend::graph::NodeCategory::Flow,
-            icon: "layers".to_string(),
-            x,
-            y,
-            config: serde_json::json!({}),
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::Idle,
-        }
+        let wfn = WorkflowNode::from_str(node_type)
+            .unwrap_or_else(|_| WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()));
+        let mut node = Node::from_workflow_node(format!("{node_type} node"), wfn, x, y);
+        node.id = NodeId(id);
+        node
     }
 
     fn make_connection(source: Uuid, target: Uuid) -> Connection {

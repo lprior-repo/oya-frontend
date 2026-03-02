@@ -201,15 +201,8 @@ fn validate_orphan_nodes(workflow: &Workflow, issues: &mut Vec<ValidationIssue>)
 
 fn validate_required_config(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
     for node in &workflow.nodes {
-        let Ok(workflow_node) = node.node_type.parse::<WorkflowNode>() else {
-            issues.push(ValidationIssue::error_for_node(
-                format!("Unknown node type: {}", node.node_type),
-                node.id,
-            ));
-            continue;
-        };
-
-        validate_node_config(&workflow_node, node, issues);
+        let workflow_node = &node.node;
+        validate_node_config(workflow_node, node, issues);
     }
 }
 

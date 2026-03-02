@@ -269,17 +269,17 @@ pub fn FlowNodeComponent(
                 }
 
                 // ── Config hint row ──────────────────────────────────────
-                if node.config.get("journalIndex").is_some() || node.config.get("retryCount").and_then(serde_json::Value::as_u64) > Some(0) {
+                if node.execution_data.get("journalIndex").is_some() || node.execution_data.get("retryCount").and_then(serde_json::Value::as_u64) > Some(0) {
                     div { class: "flex items-center gap-2 px-3 pb-2 text-[9px] font-mono text-slate-500",
-                        if let Some(idx) = node.config.get("journalIndex").and_then(serde_json::Value::as_u64) {
+                        if let Some(idx) = node.execution_data.get("journalIndex").and_then(serde_json::Value::as_u64) {
                             span { class: "rounded bg-slate-100 px-1 py-px", "journal #{idx}" }
                         }
-                        if let Some(retries) = node.config.get("retryCount").and_then(serde_json::Value::as_u64) {
+                        if let Some(retries) = node.execution_data.get("retryCount").and_then(serde_json::Value::as_u64) {
                             if retries > 0 {
                                 span { class: "rounded bg-red-500/10 text-red-400/70 px-1 py-px", "{retries} retries" }
                             }
                         }
-                        if let Some(key) = node.config.get("idempotencyKey").and_then(|i| i.as_str()) {
+                        if let Some(key) = node.execution_data.get("idempotencyKey").and_then(|i| i.as_str()) {
                             span { class: "rounded bg-slate-100 px-1 py-px truncate max-w-[80px]", title: "{key}", "key: {key}" }
                         }
                     }

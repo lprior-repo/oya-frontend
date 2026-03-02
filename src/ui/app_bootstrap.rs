@@ -1,59 +1,35 @@
 use oya_frontend::graph::{ExecutionState, Node, NodeCategory, NodeId, Viewport, Workflow};
+use oya_frontend::graph::workflow_node::{WorkflowNode, HttpHandlerConfig, RunConfig, ConditionConfig};
 
 pub fn default_workflow() -> Workflow {
     Workflow {
         nodes: vec![
-            Node {
-                id: NodeId::new(),
-                name: "HTTP Handler".to_string(),
-                description: "POST /SignupWorkflow/{userId}/run".to_string(),
-                node_type: "http-handler".to_string(),
-                category: NodeCategory::Entry,
-                icon: "globe".to_string(),
-                x: 350.0,
-                y: 40.0,
-                config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 0}),
-                last_output: None,
-                selected: false,
-                executing: false,
-                skipped: false,
-                error: None,
-                execution_state: ExecutionState::default(),
-            },
-            Node {
-                id: NodeId::new(),
-                name: "Durable Step".to_string(),
-                description: "Create user in database".to_string(),
-                node_type: "run".to_string(),
-                category: NodeCategory::Durable,
-                icon: "shield".to_string(),
-                x: 350.0,
-                y: 170.0,
-                config: serde_json::json!({"configured": true, "status": "completed", "durableStepName": "create-user", "journalIndex": 1}),
-                last_output: None,
-                selected: false,
-                executing: false,
-                skipped: false,
-                error: None,
-                execution_state: ExecutionState::default(),
-            },
-            Node {
-                id: NodeId::new(),
-                name: "If / Else".to_string(),
-                description: "Check if user creation succeeded".to_string(),
-                node_type: "condition".to_string(),
-                category: NodeCategory::Flow,
-                icon: "git-branch".to_string(),
-                x: 350.0,
-                y: 300.0,
-                config: serde_json::json!({"configured": true, "status": "completed", "journalIndex": 2}),
-                last_output: None,
-                selected: false,
-                executing: false,
-                skipped: false,
-                error: None,
-                execution_state: ExecutionState::default(),
-            },
+            Node::from_workflow_node(
+                "HTTP Handler".to_string(),
+                WorkflowNode::HttpHandler(HttpHandlerConfig {
+                    path: Some("/SignupWorkflow/{userId}/run".to_string()),
+                    method: Some("POST".to_string()),
+                }),
+                350.0,
+                40.0,
+            ),
+            Node::from_workflow_node(
+                "Durable Step".to_string(),
+                WorkflowNode::Run(RunConfig {
+                    durable_step_name: Some("create-user".to_string()),
+                    code: None,
+                }),
+                350.0,
+                170.0,
+            ),
+            Node::from_workflow_node(
+                "If / Else".to_string(),
+                WorkflowNode::Condition(ConditionConfig {
+                    expression: Some("Check if user creation succeeded".to_string()),
+                }),
+                350.0,
+                300.0,
+            ),
         ],
         connections: vec![],
         viewport: Viewport {

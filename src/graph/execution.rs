@@ -124,28 +124,24 @@ impl Workflow {
 
     async fn execute_node_type(
         &self,
-        node_type: &str,
+        node: &crate::graph::workflow_node::WorkflowNode,
         resolved_config: &serde_json::Value,
         parent_outputs: &[serde_json::Value],
     ) -> serde_json::Value {
-        match node_type {
-            "webhook" | "schedule" => serde_json::json!({
+        let node_type_str = node.to_string();
+        match node_type_str.as_str() {
+            "http-handler" | "kafka-handler" | "cron-trigger" => serde_json::json!({
                 "timestamp": chrono::Utc::now().to_rfc3339(),
-                "source": node_type
+                "source": node_type_str
             }),
-            "transform" => serde_json::json!({
-                "transformed": true,
-                "data": parent_outputs,
-                "config": resolved_config
-            }),
-            "code" => resolved_config
+            "run" => resolved_config
                 .get("mapping")
                 .cloned()
                 .map_or_else(|| serde_json::json!({}), std::convert::identity),
-            "http-request" => self.execute_http_request(resolved_config).await,
+            "service-call" | "object-call" | "workflow-call" => self.execute_service_call(node, resolved_config).await,
             "condition" => {
                 let condition = resolved_config
-                    .get("condition")
+                    .get("expression")
                     .and_then(serde_json::Value::as_str)
                     .map_or("false", |s| s);
                 let result = condition == "true" || (!condition.is_empty() && condition != "false");
@@ -158,6 +154,14 @@ impl Workflow {
                 "config": resolved_config
             }),
         }
+    }
+
+    async fn execute_service_call(
+        &self,
+        _node: &crate::graph::workflow_node::WorkflowNode,
+        _resolved_config: &serde_json::Value,
+    ) -> serde_json::Value {
+        serde_json::json!({ "executed": true })
     }
 
     async fn execute_http_request(&self, config: &serde_json::Value) -> serde_json::Value {
@@ -235,12 +239,13 @@ impl Workflow {
             .collect();
 
         if let Some(node) = self.nodes.iter().find(|n| n.id == node_id).cloned() {
-            let resolved_config = self.resolve_expressions(&node.config);
+            let node_config_json = serde_json::to_value(&node.node).unwrap_or_default();
+            let resolved_config = self.resolve_expressions(&node_config_json);
             let output = self
-                .execute_node_type(&node.node_type, &resolved_config, &parent_outputs)
+                .execute_node_type(&node.node, &resolved_config, &parent_outputs)
                 .await;
 
-            if node.node_type == "condition" {
+            if matches!(node.node, crate::graph::workflow_node::WorkflowNode::Condition(_)) {
                 let result = output
                     .get("result")
                     .and_then(serde_json::Value::as_bool)
@@ -321,7 +326,8 @@ impl Workflow {
                 return false;
             }
 
-            node.config
+            let node_config_json = serde_json::to_value(&node.node).unwrap_or_default();
+            node_config_json
                 .get("status")
                 .and_then(serde_json::Value::as_str)
                 .is_some_and(|status| status == "completed" || status == "skipped")

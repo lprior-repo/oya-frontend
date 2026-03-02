@@ -41,6 +41,12 @@ pub enum WorkflowNode {
     SignalHandler(SignalHandlerConfig),
 }
 
+impl Default for WorkflowNode {
+    fn default() -> Self {
+        Self::Run(RunConfig::default())
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct HttpHandlerConfig {
     pub path: Option<String>,
@@ -311,6 +317,36 @@ impl WorkflowNode {
     }
 
     #[must_use]
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::HttpHandler(_) => "HTTP Handler",
+            Self::KafkaHandler(_) => "Kafka Consumer",
+            Self::CronTrigger(_) => "Cron Trigger",
+            Self::WorkflowSubmit(_) => "Workflow Submit",
+            Self::Run(_) => "Durable Step",
+            Self::ServiceCall(_) => "Service Call",
+            Self::ObjectCall(_) => "Object Call",
+            Self::WorkflowCall(_) => "Workflow Call",
+            Self::SendMessage(_) => "Send Message",
+            Self::DelayedSend(_) => "Delayed Message",
+            Self::GetState(_) => "Get State",
+            Self::SetState(_) => "Set State",
+            Self::ClearState(_) => "Clear State",
+            Self::Condition(_) => "If / Else",
+            Self::Switch(_) => "Switch",
+            Self::Loop(_) => "Loop / Iterate",
+            Self::Parallel(_) => "Parallel",
+            Self::Compensate(_) => "Compensate",
+            Self::Sleep(_) => "Sleep / Timer",
+            Self::Timeout(_) => "Timeout",
+            Self::DurablePromise(_) => "Durable Promise",
+            Self::Awakeable(_) => "Awakeable",
+            Self::ResolvePromise(_) => "Resolve Promise",
+            Self::SignalHandler(_) => "Signal Handler",
+        }
+    }
+
+    #[must_use]
     pub const fn output_port_type(&self) -> PortType {
         match self {
             Self::HttpHandler(_) | Self::KafkaHandler(_) | Self::CronTrigger(_) => PortType::Event,
@@ -325,6 +361,19 @@ impl WorkflowNode {
             | Self::SignalHandler(_) => PortType::Signal,
             _ => PortType::Any,
         }
+    }
+
+    #[must_use]
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap_or_default()
+    }
+
+    pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {
+    }
+
+    #[must_use]
+    pub fn get_metadata(&self) -> serde_json::Value {
+        serde_json::Value::Null
     }
 }
 

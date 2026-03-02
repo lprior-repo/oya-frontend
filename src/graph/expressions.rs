@@ -105,27 +105,14 @@ impl<'a> ExpressionContext<'a> {
 #[cfg(test)]
 mod tests {
     use super::ExpressionContext;
-    use crate::graph::{ExecutionState, Node, NodeCategory, NodeId};
+    use crate::graph::Node;
     use serde_json::json;
 
     fn node_with_output(name: &str, output: serde_json::Value) -> Node {
-        Node {
-            id: NodeId::new(),
-            name: name.to_string(),
-            description: String::new(),
-            node_type: "test".to_string(),
-            category: NodeCategory::Flow,
-            icon: String::new(),
-            x: 0.0,
-            y: 0.0,
-            config: json!({}),
-            last_output: Some(output),
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::Idle,
-        }
+        let mut node = Node::default();
+        node.name = name.to_string();
+        node.last_output = Some(output);
+        node
     }
 
     #[test]

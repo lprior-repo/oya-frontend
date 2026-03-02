@@ -1,4 +1,5 @@
 use crate::graph::{Node, NodeCategory, NodeId, PortName, Workflow};
+use crate::graph::workflow_node::WorkflowNode;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
@@ -733,7 +734,7 @@ fn plan_missing_timeout_guard(workflow: &Workflow) -> Option<RulePlan> {
     let has_timeout = workflow
         .nodes
         .iter()
-        .any(|node| node.node_type == "timeout");
+        .any(|node| matches!(node.node, WorkflowNode::Timeout(_)));
     let anchor = first_node_by_type(workflow, |node| node.category == NodeCategory::Durable)?;
 
     (has_durable && !has_timeout).then(|| RulePlan {
@@ -804,7 +805,7 @@ fn plan_missing_checkpoint(workflow: &Workflow) -> Option<RulePlan> {
     let has_state_write = workflow
         .nodes
         .iter()
-        .any(|node| node.node_type == "set-state");
+        .any(|node| matches!(node.node, WorkflowNode::SetState(_)));
     let anchor = first_node_by_type(workflow, |node| node.category == NodeCategory::Durable)?;
 
     (has_durable && !has_state_write).then(|| RulePlan {
@@ -831,7 +832,7 @@ fn plan_unbalanced_condition(workflow: &Workflow) -> Option<RulePlan> {
     let condition_node = workflow
         .nodes
         .iter()
-        .find(|node| node.node_type == "condition" && missing_condition_branch(workflow, node.id))
+        .find(|node| matches!(node.node, WorkflowNode::Condition(_)) && missing_condition_branch(workflow, node.id))
         .cloned()?;
 
     Some(RulePlan {
@@ -857,7 +858,7 @@ fn plan_missing_signal_resolution(workflow: &Workflow) -> Option<RulePlan> {
     let has_resolver = workflow
         .nodes
         .iter()
-        .any(|node| node.node_type == "resolve-promise");
+        .any(|node| matches!(node.node, WorkflowNode::ResolvePromise(_)));
 
     let wait_node = first_node_by_type(workflow, |node| is_signal_wait_anchor(workflow, node))?;
 
@@ -951,25 +952,18 @@ fn annotate_extension_nodes(
                 "restate_semantics".to_string(),
                 serde_json::to_value(extension_semantics(key)).unwrap_or(serde_json::Value::Null),
             );
-            if let Some(config) = node.config.as_object_mut() {
-                config.insert(
-                    "flow_extender".to_string(),
-                    serde_json::Value::Object(metadata),
-                );
-            } else {
-                node.config = serde_json::json!({ "flow_extender": metadata });
-            }
+            node.metadata = serde_json::json!({ "flow_extender": metadata });
         }
     }
 }
 
 fn has_extension_fingerprint(workflow: &Workflow, fingerprint: &str) -> bool {
     workflow.nodes.iter().any(|node| {
-        node.config
+        node.metadata
             .as_object()
-            .and_then(|config| config.get("flow_extender"))
+            .and_then(|meta| meta.get("flow_extender"))
             .and_then(serde_json::Value::as_object)
-            .and_then(|meta| meta.get("fingerprint"))
+            .and_then(|ext| ext.get("fingerprint"))
             .and_then(serde_json::Value::as_str)
             .is_some_and(|value| value == fingerprint)
     })
@@ -1049,14 +1043,11 @@ fn key_is_compatible_with_workflow(workflow: &Workflow, key: ExtensionKey) -> bo
 
 fn infer_workflow_service_kinds(workflow: &Workflow) -> HashSet<RestateServiceKind> {
     let has_promise_semantics = workflow.nodes.iter().any(|node| {
-        node.node_type == "durable-promise"
-            || node.node_type == "resolve-promise"
+        matches!(node.node, WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_))
             || is_signal_wait_anchor(workflow, node)
     });
     let has_state_semantics = workflow.nodes.iter().any(|node| {
-        node.node_type == "get-state"
-            || node.node_type == "set-state"
-            || node.node_type == "clear-state"
+        matches!(node.node, WorkflowNode::GetState(_) | WorkflowNode::SetState(_) | WorkflowNode::ClearState(_))
     });
 
     if has_promise_semantics {
@@ -1286,7 +1277,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                 .nodes
                 .iter()
                 .filter(|node| {
-                    node.node_type == "condition" && missing_condition_branch(workflow, node.id)
+                    matches!(node.node, WorkflowNode::Condition(_)) && missing_condition_branch(workflow, node.id)
                 })
                 .count() as f32;
             (0.72 + missing * 0.09).min(0.96)
@@ -1363,8 +1354,13 @@ fn hide_isolated_reliability_analysis(
 
 fn is_side_effecting_durable(node: &Node) -> bool {
     matches!(
-        node.node_type.as_str(),
-        "run" | "service-call" | "object-call" | "workflow-call" | "send-message" | "delayed-send"
+        node.node,
+        WorkflowNode::Run(_)
+            | WorkflowNode::ServiceCall(_)
+            | WorkflowNode::ObjectCall(_)
+            | WorkflowNode::WorkflowCall(_)
+            | WorkflowNode::SendMessage(_)
+            | WorkflowNode::DelayedSend(_)
     )
 }
 
@@ -1475,11 +1471,11 @@ fn missing_condition_branch(workflow: &Workflow, node_id: NodeId) -> bool {
 }
 
 fn is_signal_wait_anchor(workflow: &Workflow, node: &Node) -> bool {
-    if node.node_type == "durable-promise" {
+    if matches!(node.node, WorkflowNode::DurablePromise(_)) {
         return true;
     }
 
-    node.node_type == "awakeable"
+    matches!(node.node, WorkflowNode::Awakeable(_))
         && workflow
             .connections
             .iter()
@@ -1534,7 +1530,7 @@ mod tests {
         assert!(workflow
             .nodes
             .iter()
-            .any(|node| node.node_type == "http-handler"));
+            .any(|node| matches!(node.node, WorkflowNode::HttpHandler(_))));
     }
 
     #[test]
@@ -1706,18 +1702,18 @@ mod tests {
         let timeout = workflow
             .nodes
             .iter()
-            .find(|node| node.node_type == "timeout");
+            .find(|node| matches!(node.node, WorkflowNode::Timeout(_)));
         assert!(timeout.is_some());
         let timeout = match timeout {
             Some(value) => value,
             None => return,
         };
         let fingerprint = timeout
-            .config
+            .metadata
             .as_object()
-            .and_then(|config| config.get("flow_extender"))
+            .and_then(|meta| meta.get("flow_extender"))
             .and_then(serde_json::Value::as_object)
-            .and_then(|meta| meta.get("fingerprint"))
+            .and_then(|ext| ext.get("fingerprint"))
             .and_then(serde_json::Value::as_str);
         assert!(fingerprint.is_some());
     }
@@ -1905,15 +1901,15 @@ mod tests {
         assert!(workflow
             .nodes
             .iter()
-            .any(|node| node.node_type == "http-handler"));
+            .any(|node| matches!(node.node, WorkflowNode::HttpHandler(_))));
         assert!(workflow
             .nodes
             .iter()
-            .any(|node| node.node_type == "timeout"));
+            .any(|node| matches!(node.node, WorkflowNode::Timeout(_))));
         assert!(workflow
             .nodes
             .iter()
-            .any(|node| node.node_type == "set-state"));
+            .any(|node| matches!(node.node, WorkflowNode::SetState(_))));
     }
 
     #[test]

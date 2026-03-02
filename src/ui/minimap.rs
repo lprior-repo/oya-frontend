@@ -273,26 +273,15 @@ pub fn FlowMinimap(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use oya_frontend::graph::{ExecutionState, NodeCategory, Viewport};
+    use oya_frontend::graph::workflow_node::WorkflowNode;
 
     fn make_node(x: f32, y: f32) -> Node {
-        Node {
-            id: NodeId::new(),
-            name: String::new(),
-            description: String::new(),
-            node_type: "run".into(),
-            category: NodeCategory::Durable,
-            icon: "shield".into(),
+        Node::from_workflow_node(
+            String::new(),
+            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
             x,
             y,
-            config: serde_json::Value::Null,
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::default(),
-        }
+        )
     }
 
     #[test]
