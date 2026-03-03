@@ -16,6 +16,8 @@ pub mod linter;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod metrics;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod restate_client;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod scenario_runner;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -27,6 +29,8 @@ pub use feedback::{sanitize_results, FeedbackSanitizer};
 pub use graph::{Connection, Node, Viewport, Workflow};
 #[cfg(not(target_arch = "wasm32"))]
 pub use linter::{LintReport, SpecLinter};
+#[cfg(not(target_arch = "wasm32"))]
+pub use restate_client::{RestateClient, RestateClientConfig, ClientError};
 #[cfg(not(target_arch = "wasm32"))]
 pub use metrics::{MetricsStore, MetricsSummary};
 #[cfg(not(target_arch = "wasm32"))]
