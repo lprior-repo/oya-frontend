@@ -4,7 +4,6 @@
 pub mod feedback;
 pub mod flow_extender;
 pub mod graph;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod restate_client;
 pub mod restate_sync;
 #[cfg(not(target_arch = "wasm32"))]
@@ -34,7 +33,6 @@ pub use graph::{Connection, Node, Viewport, Workflow};
 pub use linter::{LintReport, SpecLinter};
 #[cfg(not(target_arch = "wasm32"))]
 pub use metrics::{MetricsStore, MetricsSummary};
-#[cfg(not(target_arch = "wasm32"))]
 pub use restate_client::{RestateClient, RestateClientConfig, ClientError};
 pub use restate_sync::{InvocationEvent, InvocationPoller, PollResult, PollerError};
 #[cfg(not(target_arch = "wasm32"))]
