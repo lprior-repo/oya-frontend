@@ -1497,13 +1497,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::{
         apply_extension, detect_extension_conflicts, extension_dependency_graph, extension_presets,
         generate_compound_plan, preview_extension, resolve_extension_preset, suggest_extensions,
         suggest_extensions_with_analysis, ConflictKind, ExtensionKey, PreviewEndpoint,
-        RationaleClass, RestateCapability, RestateServiceKind,
+        RationaleClass, RestateCapability, RestateServiceKind, WorkflowNode,
     };
-    use crate::graph::workflow_node::WorkflowNode;
     use crate::graph::Workflow;
     use std::collections::HashSet;
 

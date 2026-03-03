@@ -106,9 +106,9 @@ impl InvocationPoller {
     pub async fn poll(&mut self) -> Result<PollResult, PollerError> {
         let invocations = self
             .client
-            .get_invocations()
+            .list_invocations(true)
             .await
-            .map_err(|e| PollerError::RequestError(e))?;
+            .map_err(|e| PollerError::RequestError(e.to_string()))?;
 
         let events = Vec::new();
 
