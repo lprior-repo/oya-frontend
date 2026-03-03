@@ -28,7 +28,7 @@ pub use agent_feedback::{AgentFeedback, FeedbackGenerator};
 pub use coverage::{CoverageAnalyzer, CoverageReport};
 #[cfg(not(target_arch = "wasm32"))]
 pub use feedback::{sanitize_results, FeedbackSanitizer};
-pub use graph::{Connection, Node, Viewport, Workflow};
+pub use graph::{Connection, KeyedState, Node, RestateClient, RestateClientError, Viewport, Workflow};
 #[cfg(not(target_arch = "wasm32"))]
 pub use linter::{LintReport, SpecLinter};
 #[cfg(not(target_arch = "wasm32"))]

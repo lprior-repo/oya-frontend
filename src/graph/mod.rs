@@ -13,17 +13,20 @@ use uuid::Uuid;
 pub mod calc;
 mod connectivity;
 mod core;
-mod execution;
+pub mod execution;
 pub mod execution_record;
 pub mod execution_state;
 mod metadata;
-mod view;
+pub mod view;
 
+pub mod client;
 pub mod expressions;
 pub mod layout;
 pub mod restate_types;
 pub mod validation;
 pub mod workflow_node;
+
+pub use client::{KeyedState, RestateClient, RestateClientError};
 
 pub use connectivity::{ConnectionError, ConnectionResult};
 pub use execution_record::{ExecutionOverallStatus, ExecutionRecord, StepOutput, StepRecord};
