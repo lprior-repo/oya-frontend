@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
+use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -271,8 +271,9 @@ mod tests {
     use uuid::Uuid;
 
     fn make_node(id: Uuid, node_type: &str, x: f32, y: f32) -> Node {
-        let wfn = WorkflowNode::from_str(node_type)
-            .unwrap_or_else(|_| WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()));
+        let wfn = WorkflowNode::from_str(node_type).unwrap_or_else(|_| {
+            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default())
+        });
         let mut node = Node::from_workflow_node(format!("{node_type} node"), wfn, x, y);
         node.id = NodeId(id);
         node
@@ -385,7 +386,7 @@ mod tests {
     #[test]
     fn given_mixed_succeeded_and_failed_when_computing_status_then_returns_partial_failure() {
         let mut node1 = make_node(Uuid::nil(), "service-call", 0.0, 0.0);
-        node1.execution_state = ExecutionState::Succeeded;
+        node1.execution_state = ExecutionState::Completed;
         let mut node2 = make_node(Uuid::new_v4(), "run", 100.0, 100.0);
         node2.execution_state = ExecutionState::Failed;
 

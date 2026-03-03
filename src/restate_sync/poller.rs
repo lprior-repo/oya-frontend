@@ -1,0 +1,401 @@
+use crate::restate_client::RestateClient;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::Duration;
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn sleep_ms(ms: u32) {
+    tokio::time::sleep(Duration::from_millis(ms as u64)).await;
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn sleep_ms(_ms: u32) {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum InvocationEvent {
+    New {
+        invocation_id: String,
+    },
+    Completed {
+        invocation_id: String,
+        result: Option<String>,
+    },
+    Failed {
+        invocation_id: String,
+        error: String,
+    },
+    StatusChanged {
+        invocation_id: String,
+        old_status: InvocationStatus,
+        new_status: InvocationStatus,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum InvocationStatus {
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Suspended,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PollResult {
+    pub events: Vec<InvocationEvent>,
+    pub timestamp: i64,
+}
+
+impl PollResult {
+    pub fn new(events: Vec<InvocationEvent>) -> Self {
+        let timestamp = chrono::Utc::now().timestamp();
+        Self { events, timestamp }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+pub struct InvocationPoller {
+    client: Arc<RestateClient>,
+    poll_interval_ms: u32,
+    last_known_ids: std::collections::HashSet<String>,
+}
+
+impl InvocationPoller {
+    pub fn new(client: Arc<RestateClient>) -> Self {
+        Self {
+            client,
+            poll_interval_ms: 5000,
+            last_known_ids: std::collections::HashSet::new(),
+        }
+    }
+
+    pub fn with_interval(client: Arc<RestateClient>, poll_interval_ms: u32) -> Self {
+        Self {
+            client,
+            poll_interval_ms,
+            last_known_ids: std::collections::HashSet::new(),
+        }
+    }
+
+    pub async fn start_polling<F>(mut self, mut callback: F) -> Result<(), PollerError>
+    where
+        F: FnMut(PollResult) + Send + Sync,
+    {
+        loop {
+            sleep_ms(self.poll_interval_ms).await;
+
+            match self.poll().await {
+                Ok(result) => {
+                    if !result.events.is_empty() {
+                        callback(result);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Polling error: {:?}", e);
+                }
+            }
+        }
+    }
+
+    pub async fn poll(&mut self) -> Result<PollResult, PollerError> {
+        let invocations = self
+            .client
+            .list_invocations(true)
+            .await
+            .map_err(|e| PollerError::RequestError(e.to_string()))?;
+
+        let events = Vec::new();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            use wasm_bindgen::JsCast;
+
+            if let Some(invocations_array) = invocations.dyn_ref::<js_sys::Array>() {
+                for inv in invocations_array.iter() {
+                    if let Some(inv_obj) = inv.dyn_ref::<js_sys::Object>() {
+                        let id = js_sys::Reflect::get(&inv_obj, &"invocationId".into())
+                            .ok()
+                            .and_then(|v| v.as_string())
+                            .unwrap_or_default();
+
+                        let status_val = js_sys::Reflect::get(&inv_obj, &"status".into())
+                            .ok()
+                            .and_then(|v| v.as_string())
+                            .map(|s| match s.as_str() {
+                                "completed" => InvocationStatus::Completed,
+                                "failed" => InvocationStatus::Failed,
+                                "running" => InvocationStatus::Running,
+                                "suspended" => InvocationStatus::Suspended,
+                                _ => InvocationStatus::Pending,
+                            })
+                            .unwrap_or(InvocationStatus::Pending);
+
+                        if !self.last_known_ids.contains(&id) {
+                            events.push(InvocationEvent::New {
+                                invocation_id: id.clone(),
+                            });
+                        } else {
+                            let old_status = InvocationStatus::Pending;
+                            if old_status != status_val {
+                                events.push(InvocationEvent::StatusChanged {
+                                    invocation_id: id.clone(),
+                                    old_status,
+                                    new_status: status_val.clone(),
+                                });
+
+                                if status_val == InvocationStatus::Completed {
+                                    events.push(InvocationEvent::Completed {
+                                        invocation_id: id,
+                                        result: None,
+                                    });
+                                } else if status_val == InvocationStatus::Failed {
+                                    events.push(InvocationEvent::Failed {
+                                        invocation_id: id,
+                                        error: "Invocation failed".to_string(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = invocations;
+        }
+
+        let current_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+        self.last_known_ids = current_ids;
+
+        Ok(PollResult::new(events))
+    }
+
+    pub fn client(&self) -> &Arc<RestateClient> {
+        &self.client
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PollerError {
+    #[error("Request error: {0}")]
+    RequestError(String),
+    #[error("Parse error: {0}")]
+    ParseError(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_invocation_event_serialization() {
+        let event = InvocationEvent::New {
+            invocation_id: "test-123".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("new"));
+        assert!(json.contains("test-123"));
+        assert!(json.contains("invocation_id"));
+    }
+
+    #[test]
+    fn test_invocation_status_equality() {
+        assert_eq!(InvocationStatus::Pending, InvocationStatus::Pending);
+        assert_eq!(InvocationStatus::Completed, InvocationStatus::Completed);
+        assert_ne!(InvocationStatus::Pending, InvocationStatus::Completed);
+    }
+
+    #[test]
+    fn test_poll_result_empty() {
+        let result = PollResult::empty();
+        assert!(result.events.is_empty());
+        assert!(result.timestamp > 0);
+    }
+
+    #[test]
+    fn test_poll_result_with_events() {
+        let events = vec![
+            InvocationEvent::New {
+                invocation_id: "inv-1".to_string(),
+            },
+            InvocationEvent::Completed {
+                invocation_id: "inv-2".to_string(),
+                result: Some("success".to_string()),
+            },
+        ];
+        let result = PollResult::new(events);
+        assert_eq!(result.events.len(), 2);
+        assert!(result.timestamp > 0);
+    }
+
+    #[test]
+    fn test_invocation_event_completed_with_result() {
+        let event = InvocationEvent::Completed {
+            invocation_id: "inv-123".to_string(),
+            result: Some("output data".to_string()),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("completed"));
+        assert!(json.contains("inv-123"));
+        assert!(json.contains("output data"));
+    }
+
+    #[test]
+    fn test_invocation_event_failed_with_error() {
+        let event = InvocationEvent::Failed {
+            invocation_id: "inv-456".to_string(),
+            error: "Something went wrong".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("failed"));
+        assert!(json.contains("inv-456"));
+        assert!(json.contains("Something went wrong"));
+    }
+
+    #[test]
+    fn test_invocation_event_status_changed() {
+        let event = InvocationEvent::StatusChanged {
+            invocation_id: "inv-789".to_string(),
+            old_status: InvocationStatus::Running,
+            new_status: InvocationStatus::Completed,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("statusChanged"));
+        assert!(json.contains("inv-789"));
+    }
+
+    #[test]
+    fn test_all_invocation_statuses() {
+        let statuses = vec![
+            InvocationStatus::Pending,
+            InvocationStatus::Running,
+            InvocationStatus::Completed,
+            InvocationStatus::Failed,
+            InvocationStatus::Suspended,
+        ];
+
+        for status in &statuses {
+            let json = serde_json::to_string(status).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_poll_result_timestamp_consistency() {
+        let before = chrono::Utc::now().timestamp();
+        let result = PollResult::empty();
+        let after = chrono::Utc::now().timestamp();
+
+        assert!(result.timestamp >= before);
+        assert!(result.timestamp <= after);
+    }
+
+    #[test]
+    fn test_poll_result_deserialization() {
+        let json = r#"{"events":[{"new":{"invocation_id":"test-id"}}],"timestamp":1234567890}"#;
+        let result: PollResult = serde_json::from_str(json).unwrap();
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.timestamp, 1234567890);
+    }
+
+    #[test]
+    fn test_poller_error_display() {
+        let err = PollerError::RequestError("connection timeout".to_string());
+        assert_eq!(err.to_string(), "Request error: connection timeout");
+
+        let err = PollerError::ParseError("invalid json".to_string());
+        assert_eq!(err.to_string(), "Parse error: invalid json");
+    }
+
+    #[test]
+    fn test_invocation_event_clone() {
+        let event = InvocationEvent::New {
+            invocation_id: "test".to_string(),
+        };
+        let cloned = event.clone();
+        assert_eq!(event, cloned);
+    }
+
+    #[test]
+    fn test_invocation_status_clone() {
+        let status = InvocationStatus::Running;
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
+    }
+
+    #[test]
+    fn test_empty_invocation_id_edge_case() {
+        let event = InvocationEvent::New {
+            invocation_id: "".to_string(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("invocation_id"));
+    }
+
+    #[test]
+    fn test_large_error_message() {
+        let long_error = "x".repeat(10000);
+        let event = InvocationEvent::Failed {
+            invocation_id: "inv-1".to_string(),
+            error: long_error.clone(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        let parsed: InvocationEvent = serde_json::from_str(&json).unwrap();
+        if let InvocationEvent::Failed { error, .. } = parsed {
+            assert_eq!(error.len(), 10000);
+        } else {
+            panic!("Expected Failed event");
+        }
+    }
+
+    #[test]
+    fn test_multiple_status_changes_serialization() {
+        let events = vec![
+            InvocationEvent::StatusChanged {
+                invocation_id: "inv-1".to_string(),
+                old_status: InvocationStatus::Pending,
+                new_status: InvocationStatus::Running,
+            },
+            InvocationEvent::StatusChanged {
+                invocation_id: "inv-1".to_string(),
+                old_status: InvocationStatus::Running,
+                new_status: InvocationStatus::Completed,
+            },
+        ];
+        let result = PollResult::new(events);
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("statusChanged"));
+    }
+
+    #[test]
+    fn test_poll_result_timestamp_type() {
+        let result = PollResult::empty();
+        assert!(result.timestamp.is_positive());
+    }
+
+    #[test]
+    fn test_invocation_status_suspended() {
+        let status = InvocationStatus::Suspended;
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(json.contains("suspended"));
+    }
+
+    #[test]
+    fn test_hashset_behavior() {
+        use std::collections::HashSet;
+
+        let mut ids: HashSet<String> = HashSet::new();
+        assert!(ids.insert("inv-1".to_string()));
+        assert!(!ids.insert("inv-1".to_string()));
+        assert!(ids.contains("inv-1"));
+        assert!(!ids.contains("inv-2"));
+    }
+}

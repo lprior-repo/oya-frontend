@@ -298,10 +298,7 @@ impl WorkflowNode {
             Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
                 vec![ContextType::Synchronous]
             }
-            _ => vec![
-                ContextType::Synchronous,
-                ContextType::Asynchronous,
-            ],
+            _ => vec![ContextType::Synchronous, ContextType::Asynchronous],
         }
     }
 
@@ -365,8 +362,7 @@ impl WorkflowNode {
         serde_json::to_value(self).unwrap_or_default()
     }
 
-    pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {
-    }
+    pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {}
 
     #[must_use]
     pub fn get_metadata(&self) -> serde_json::Value {

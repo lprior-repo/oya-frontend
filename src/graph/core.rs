@@ -10,9 +10,9 @@ impl Workflow {
                 "status".to_string(),
                 serde_json::Value::String(status.to_string()),
             );
-            if let Ok(new_node) = serde_json::from_value::<WorkflowNode>(
-                serde_json::Value::Object(obj)
-            ) {
+            if let Ok(new_node) =
+                serde_json::from_value::<WorkflowNode>(serde_json::Value::Object(obj))
+            {
                 node.node = new_node;
             }
         }
@@ -41,11 +41,17 @@ impl Workflow {
 
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
-        
-        let workflow_node = WorkflowNode::from_str(node_type)
-            .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default()));
 
-        self.nodes.push(Node::from_workflow_node(name, workflow_node, final_x, final_y));
+        let workflow_node = WorkflowNode::from_str(node_type).unwrap_or_else(|_| {
+            WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default())
+        });
+
+        self.nodes.push(Node::from_workflow_node(
+            name,
+            workflow_node,
+            final_x,
+            final_y,
+        ));
         id
     }
 
