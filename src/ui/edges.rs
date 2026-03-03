@@ -238,6 +238,7 @@ mod tests {
         ParallelGroup, Rect,
     };
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName};
+    use oya_frontend::graph::workflow_node::WorkflowNode;
     use uuid::Uuid;
 
     // Constants for test data builders

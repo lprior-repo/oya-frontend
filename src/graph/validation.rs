@@ -137,7 +137,11 @@ fn validate_entry_points(workflow: &Workflow, issues: &mut Vec<ValidationIssue>)
 }
 
 fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
-    if workflow.nodes.is_empty() || workflow.connections.is_empty() {
+    if workflow.nodes.is_empty() {
+        return;
+    }
+
+    if workflow.connections.is_empty() {
         return;
     }
 

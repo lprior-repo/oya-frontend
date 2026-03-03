@@ -1,3 +1,4 @@
+pub mod restate_ui_mod;
 pub mod app_bootstrap;
 pub mod app_io;
 pub mod canvas_context_menu;
