@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
+use oya_frontend::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -237,6 +237,7 @@ mod tests {
         calculate_parallel_offset, find_parallel_branches, resolve_edge_anchors_with_parallel,
         ParallelGroup, Rect,
     };
+    use oya_frontend::graph::workflow_node::WorkflowNode;
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName};
     use uuid::Uuid;
 
