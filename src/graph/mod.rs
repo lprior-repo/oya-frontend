@@ -122,7 +122,7 @@ impl Node {
         let node_type = node.to_string();
         let description = node.description().to_string();
         let config = serde_json::to_value(&node).unwrap_or_default();
-        
+
         Self {
             id: NodeId::new(),
             name,
@@ -148,12 +148,7 @@ impl Node {
 
 impl Default for Node {
     fn default() -> Self {
-        Self::from_workflow_node(
-            String::new(),
-            WorkflowNode::default(),
-            0.0,
-            0.0,
-        )
+        Self::from_workflow_node(String::new(), WorkflowNode::default(), 0.0, 0.0)
     }
 }
 
@@ -180,6 +175,8 @@ pub struct RunRecord {
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub results: std::collections::HashMap<NodeId, serde_json::Value>,
     pub success: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restate_invocation_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
