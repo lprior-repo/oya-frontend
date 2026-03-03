@@ -10,11 +10,30 @@
 //! Displays journal entries with expandable input/output details
 
 use dioxus::prelude::*;
-use crate::restate_client::types::JournalEntry;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct JournalEntryInfo {
+    pub index: u32,
+    #[serde(rename = "entryType")]
+    pub entry_type: String,
+    pub name: Option<String>,
+    pub completed: bool,
+    #[serde(rename = "invokedTarget")]
+    pub invoked_target: Option<String>,
+    #[serde(rename = "invokedId")]
+    pub invoked_id: Option<String>,
+    #[serde(rename = "promiseName")]
+    pub promise_name: Option<String>,
+    #[serde(rename = "sleepWakeupAt")]
+    pub sleep_wakeup_at: Option<i64>,
+    #[serde(rename = "entryJson")]
+    pub entry_json: Option<String>,
+}
 
 #[derive(Props, Clone, PartialEq)]
 pub struct RestateJournalViewerProps {
-    pub journal: Vec<JournalEntry>,
+    pub journal: Vec<JournalEntryInfo>,
 }
 
 #[component]

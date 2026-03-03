@@ -28,12 +28,14 @@ pub use agent_feedback::{AgentFeedback, FeedbackGenerator};
 pub use coverage::{CoverageAnalyzer, CoverageReport};
 #[cfg(not(target_arch = "wasm32"))]
 pub use feedback::{sanitize_results, FeedbackSanitizer};
-pub use graph::{Connection, KeyedState, Node, RestateClient, RestateClientError, Viewport, Workflow};
+pub use graph::{Connection, KeyedState, Node, Viewport, Workflow};
+#[allow(unused_imports)]
+pub use graph::RestateClient as GraphRestateClient;
+pub use graph::RestateClientError;
 #[cfg(not(target_arch = "wasm32"))]
 pub use linter::{LintReport, SpecLinter};
 #[cfg(not(target_arch = "wasm32"))]
 pub use metrics::{MetricsStore, MetricsSummary};
 pub use restate_client::{RestateClient, RestateClientConfig, ClientError};
-pub use restate_sync::{InvocationEvent, InvocationPoller, PollResult, PollerError};
 #[cfg(not(target_arch = "wasm32"))]
 pub use scenario_runner::{ScenarioRunner, ValidationReport};
