@@ -5,7 +5,6 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use crate::graph::workflow_node::WorkflowNode;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
@@ -26,6 +25,7 @@ pub mod validation;
 pub mod workflow_node;
 
 pub use connectivity::{ConnectionError, ConnectionResult};
+pub use workflow_node::{RunConfig, WorkflowNode};
 pub use execution_record::{ExecutionOverallStatus, ExecutionRecord, StepOutput, StepRecord};
 pub use execution_state::ExecutionState;
 pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
