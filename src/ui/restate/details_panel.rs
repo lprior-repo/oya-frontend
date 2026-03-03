@@ -39,6 +39,7 @@ pub struct JournalEntryInfo {
 }
 
 #[derive(Props, Clone, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct RestateInvocationDetailsProps {
     pub invocation: InvocationInfo,
     pub journal: Vec<JournalEntryInfo>,

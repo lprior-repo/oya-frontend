@@ -138,9 +138,7 @@ impl Workflow {
                 .get("mapping")
                 .cloned()
                 .map_or_else(|| serde_json::json!({}), std::convert::identity),
-            "service-call" | "object-call" | "workflow-call" => {
-                self.execute_service_call(node, resolved_config).await
-            }
+            "service-call" | "object-call" | "workflow-call" => self.execute_service_call(node, resolved_config).await,
             "condition" => {
                 let condition = resolved_config
                     .get("expression")
@@ -247,10 +245,7 @@ impl Workflow {
                 .execute_node_type(&node.node, &resolved_config, &parent_outputs)
                 .await;
 
-            if matches!(
-                node.node,
-                crate::graph::workflow_node::WorkflowNode::Condition(_)
-            ) {
+            if matches!(node.node, crate::graph::workflow_node::WorkflowNode::Condition(_)) {
                 let result = output
                     .get("result")
                     .and_then(serde_json::Value::as_bool)

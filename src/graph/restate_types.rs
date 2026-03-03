@@ -425,8 +425,10 @@ mod tests {
 
             #[test]
             fn context_type_has_exactly_two_variants() {
-                let variants: Vec<ContextType> =
-                    vec![ContextType::Synchronous, ContextType::Asynchronous];
+                let variants: Vec<ContextType> = vec![
+                    ContextType::Synchronous,
+                    ContextType::Asynchronous,
+                ];
                 assert_eq!(variants.len(), 2);
             }
         }

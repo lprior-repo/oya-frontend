@@ -12,20 +12,17 @@ use uuid::Uuid;
 pub mod calc;
 mod connectivity;
 mod core;
-pub mod execution;
+mod execution;
 pub mod execution_record;
 pub mod execution_state;
 mod metadata;
-pub mod view;
+mod view;
 
-pub mod client;
 pub mod expressions;
 pub mod layout;
 pub mod restate_types;
 pub mod validation;
 pub mod workflow_node;
-
-pub use client::{KeyedState, RestateClient, RestateClientError};
 
 pub use connectivity::{ConnectionError, ConnectionResult};
 pub use workflow_node::{RunConfig, WorkflowNode};
@@ -125,7 +122,7 @@ impl Node {
         let node_type = node.to_string();
         let description = node.description().to_string();
         let config = serde_json::to_value(&node).unwrap_or_default();
-
+        
         Self {
             id: NodeId::new(),
             name,
@@ -151,7 +148,12 @@ impl Node {
 
 impl Default for Node {
     fn default() -> Self {
-        Self::from_workflow_node(String::new(), WorkflowNode::default(), 0.0, 0.0)
+        Self::from_workflow_node(
+            String::new(),
+            WorkflowNode::default(),
+            0.0,
+            0.0,
+        )
     }
 }
 

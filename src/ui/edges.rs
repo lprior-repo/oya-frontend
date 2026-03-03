@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::workflow_node::WorkflowNode;
 use oya_frontend::graph::{Connection, Node, NodeId};
+use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -235,9 +235,8 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, resolve_edge_anchors_with_parallel,
-        ParallelGroup, Rect, WorkflowNode,
+        ParallelGroup, Rect,
     };
-    use oya_frontend::graph::workflow_node::WorkflowNode;
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName};
     use uuid::Uuid;
 

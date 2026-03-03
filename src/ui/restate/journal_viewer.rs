@@ -38,7 +38,7 @@ pub struct RestateJournalViewerProps {
 
 #[component]
 pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
-    let expanded = use_signal(|| std::collections::HashSet::<u32>::new);
+    let expanded = use_signal(std::collections::HashSet::<u32>::new);
 
     let toggle = |index: u32| {
         let mut set = expanded.read().clone();
