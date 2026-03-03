@@ -7,6 +7,8 @@ pub mod graph;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod restate_client;
 pub mod restate_sync;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ui;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod agent_feedback;
