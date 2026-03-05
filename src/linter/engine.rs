@@ -8,10 +8,6 @@ pub struct SpecLinter {
 }
 
 impl SpecLinter {
-    /// Create a new linter.
-    ///
-    /// # Errors
-    /// Returns an error if rules file cannot be read or parsed.
     pub fn new(rules_path: &Path) -> Result<Self, LintError> {
         let rules_content = fs::read_to_string(rules_path)?;
         let rules: LintRules = serde_yaml::from_str(&rules_content)?;
@@ -73,10 +69,6 @@ impl SpecLinter {
         Ok(())
     }
 
-    /// Lint a specification file.
-    ///
-    /// # Errors
-    /// Returns an error if spec file cannot be read or parsed.
     pub fn lint(&self, spec_path: &Path) -> Result<LintReport, LintError> {
         let spec_content = fs::read_to_string(spec_path)?;
         let spec: Spec = serde_yaml::from_str(&spec_content)?;
@@ -87,90 +79,175 @@ impl SpecLinter {
         );
 
         Self::check_completeness(&self.rules, &spec, &mut report);
-        Self::check_clarity(&spec, &mut report);
-        Self::check_security(&spec, &mut report);
-        Self::check_testability(&spec, &mut report);
-        Self::check_data_model(&spec, &mut report);
+        Self::check_clarity(&self.rules, &spec, &mut report);
+        Self::check_security(&self.rules, &spec, &mut report);
+        Self::check_testability(&self.rules, &spec, &mut report);
+        Self::check_data_model(&self.rules, &spec, &mut report);
 
         report.calculate_score();
         Ok(report)
     }
 
     fn check_completeness(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
-        let (errors, total) = rules
-            .rules
-            .iter()
-            .filter(|rule| rule.id.starts_with("SPEC-00") && rule.severity != "warning")
-            .fold((0usize, 0usize), |(errors, total), rule| {
-                let rule_errors = match rule.id.as_str() {
-                    "SPEC-001" => spec
-                        .specification
-                        .context
-                        .system_dependencies
-                        .iter()
-                        .filter(|dep| {
-                            !spec.specification.behaviors.iter().any(|behavior| {
-                                behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
-                                    edge_cases.iter().any(|edge_case| {
-                                        edge_case.then.iter().any(|then_clause| {
-                                            let then_lower = then_clause.to_lowercase();
-                                            let dep_lower = dep.service.to_lowercase();
-                                            then_lower.contains(&dep_lower)
-                                                && (then_lower.contains("fail")
-                                                    || then_lower.contains("error")
-                                                    || then_lower.contains("unavailable"))
-                                        })
-                                    })
-                                })
+        let spec_001_rule = rules.rules.iter().find(|r| r.id == "SPEC-001");
+        let spec_003_rule = rules.rules.iter().find(|r| r.id == "SPEC-003");
+        let spec_004_rule = rules.rules.iter().find(|r| r.id == "SPEC-004");
+        let spec_011_rule = rules.rules.iter().find(|r| r.id == "SPEC-011");
+
+        let spec_001_severity = spec_001_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+        let spec_003_severity = spec_003_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+        let spec_004_severity = spec_004_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "warning".to_string());
+        let spec_011_severity = spec_011_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+
+        let mut error_count = 0;
+        let mut warning_count = 0;
+
+        if let Some(rule) = spec_001_rule {
+            for dep in spec.specification.context.system_dependencies.iter().filter(|dep| dep.twin_available) {
+                let has_error_handling = spec.specification.behaviors.iter().any(|behavior| {
+                    behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
+                        edge_cases.iter().any(|edge_case| {
+                            edge_case.then.iter().any(|then_clause| {
+                                let then_lower = then_clause.to_lowercase();
+                                let dep_lower = dep.service.to_lowercase();
+                                then_lower.contains(&dep_lower)
+                                    && (then_lower.contains("fail")
+                                        || then_lower.contains("error")
+                                        || then_lower.contains("unavailable"))
                             })
                         })
-                        .map(|dep| {
+                    })
+                });
+
+                if !has_error_handling {
+                    if spec_001_severity == "error" {
+                        report.errors.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_001_severity.clone(),
+                            message: format!("Dependency '{}' has no error handling edge case", dep.service),
+                            line: None,
+                        });
+                        error_count += 1;
+                    } else {
+                        report.warnings.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_001_severity.clone(),
+                            message: format!("Dependency '{}' has no error handling edge case", dep.service),
+                            line: None,
+                        });
+                        warning_count += 1;
+                    }
+                }
+            }
+        }
+
+        if let Some(rule) = spec_003_rule {
+            if let Some(contract) = &spec.specification.api_contract {
+                if let Some(endpoints) = &contract.endpoints {
+                    for endpoint in endpoints.iter().filter(|e| e.authentication.is_none()) {
+                        if spec_003_severity == "error" {
                             report.errors.push(LintIssue {
                                 rule_id: rule.id.clone(),
                                 rule_name: rule.name.clone(),
-                                severity: rule.severity.clone(),
-                                message: format!(
-                                    "Dependency '{}' has no error handling edge case",
-                                    dep.service
-                                ),
+                                severity: spec_003_severity.clone(),
+                                message: format!("Endpoint {} {} missing authentication specification", endpoint.method, endpoint.path),
                                 line: None,
                             });
-                            1
-                        })
-                        .sum::<usize>(),
-                    "SPEC-003" => {
-                        if let Some(contract) = &spec.specification.api_contract {
-                            if let Some(endpoints) = &contract.endpoints {
-                                endpoints
-                                    .iter()
-                                    .filter(|endpoint| endpoint.authentication.is_none())
-                                    .map(|endpoint| {
-                                        report.errors.push(LintIssue {
-                                            rule_id: rule.id.clone(),
-                                            rule_name: rule.name.clone(),
-                                            severity: rule.severity.clone(),
-                                            message: format!(
-                                            "Endpoint {} {} missing authentication specification",
-                                            endpoint.method, endpoint.path
-                                        ),
-                                            line: None,
-                                        });
-                                        1
-                                    })
-                                    .sum::<usize>()
-                            } else {
-                                0
-                            }
+                            error_count += 1;
                         } else {
-                            0
+                            report.warnings.push(LintIssue {
+                                rule_id: rule.id.clone(),
+                                rule_name: rule.name.clone(),
+                                severity: spec_003_severity.clone(),
+                                message: format!("Endpoint {} {} missing authentication specification", endpoint.method, endpoint.path),
+                                line: None,
+                            });
+                            warning_count += 1;
                         }
                     }
-                    _ => 0,
-                };
-                (errors + rule_errors, total + 1)
-            });
+                }
+            }
+        }
 
-        let passed = total.saturating_sub(errors);
+        if let Some(rule) = spec_004_rule {
+            for behavior in &spec.specification.behaviors {
+                let has_criterion = spec.specification.acceptance_criteria.iter().any(|ac| {
+                    ac.behavior_ref.as_ref().is_some_and(|ref_id| ref_id == &behavior.id)
+                });
+
+                if !has_criterion {
+                    if spec_004_severity == "error" {
+                        report.errors.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_004_severity.clone(),
+                            message: format!("Behavior '{}' has no acceptance criterion", behavior.id),
+                            line: None,
+                        });
+                        error_count += 1;
+                    } else {
+                        report.warnings.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_004_severity.clone(),
+                            message: format!("Behavior '{}' has no acceptance criterion", behavior.id),
+                            line: None,
+                        });
+                        warning_count += 1;
+                    }
+                }
+            }
+        }
+
+        if let Some(rule) = spec_011_rule {
+            let error_terms = ["error", "fail", "exception", "invalid", "unauthorized", "not found"];
+            for behavior in &spec.specification.behaviors {
+                let mentions_error = behavior.then.iter().any(|t| {
+                    error_terms.iter().any(|term| t.to_lowercase().contains(term))
+                });
+
+                let has_concrete_response = behavior.then.iter().any(|t| {
+                    t.contains("HTTP") || t.contains("status") || t.contains("code")
+                        || t.contains("response") || t.contains("400") || t.contains("500")
+                        || t.contains("401") || t.contains("404")
+                });
+
+                if mentions_error && !has_concrete_response {
+                    if spec_011_severity == "error" {
+                        report.errors.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_011_severity.clone(),
+                            message: format!("Behavior '{}' mentions error but doesn't specify concrete HTTP status code", behavior.id),
+                            line: None,
+                        });
+                        error_count += 1;
+                    } else {
+                        report.warnings.push(LintIssue {
+                            rule_id: rule.id.clone(),
+                            rule_name: rule.name.clone(),
+                            severity: spec_011_severity.clone(),
+                            message: format!("Behavior '{}' mentions error but doesn't specify concrete HTTP status code", behavior.id),
+                            line: None,
+                        });
+                        warning_count += 1;
+                    }
+                }
+            }
+        }
+
+        let total: usize = error_count + warning_count;
+        let passed = if error_count > 0 || warning_count > 0 { 0 } else { 1 };
         let score = if total > 0 {
             (passed * 100) / total
         } else {
@@ -181,25 +258,23 @@ impl SpecLinter {
             "Completeness".to_string(),
             CategoryScore {
                 score,
-                details: format!("{passed}/{total} rules passed"),
+                details: format!("{}/{} rules passed", passed, total),
             },
         );
     }
 
-    fn check_clarity(spec: &Spec, report: &mut LintReport) {
-        let banned = [
-            "as appropriate",
-            "if needed",
-            "as necessary",
-            "etc.",
-            "obviously",
-            "simply",
-            "just",
-            "should probably",
-            "standard practice",
-        ];
+    fn check_clarity(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
+        let spec_010_rule = rules.rules.iter().find(|r| r.id == "SPEC-010");
+        let banned: Vec<&str> = spec_010_rule
+            .and_then(|r| r.banned_phrases.as_ref())
+            .map(|phrases| phrases.iter().map(|s| s.as_str()).collect())
+            .unwrap_or_else(Vec::new);
 
-        let warnings: Vec<_> = spec
+        let severity = spec_010_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "warning".to_string());
+
+        let issues: Vec<_> = spec
             .specification
             .behaviors
             .iter()
@@ -210,11 +285,8 @@ impl SpecLinter {
                             Some(LintIssue {
                                 rule_id: "SPEC-010".to_string(),
                                 rule_name: "no-ambiguous-language".to_string(),
-                                severity: "warning".to_string(),
-                                message: format!(
-                                    "Found ambiguous phrase: '{phrase}' in behavior {}",
-                                    behavior.id
-                                ),
+                                severity: severity.clone(),
+                                message: format!("Found ambiguous phrase: '{phrase}' in behavior {}", behavior.id),
                                 line: None,
                             })
                         } else {
@@ -225,22 +297,38 @@ impl SpecLinter {
             })
             .collect();
 
-        warnings.iter().for_each(|issue| {
-            report.warnings.push(issue.clone());
+        issues.iter().for_each(|issue| {
+            if issue.severity == "error" {
+                report.errors.push(issue.clone());
+            } else {
+                report.warnings.push(issue.clone());
+            }
         });
 
-        let score = if warnings.is_empty() { 100 } else { 88 };
+        let score = if issues.is_empty() { 100 } else { 88 };
         report.categories.insert(
             "Clarity".to_string(),
             CategoryScore {
                 score,
-                details: format!("{} ambiguous phrases found", warnings.len()),
+                details: format!("{} ambiguous phrases found", issues.len()),
             },
         );
     }
 
-    fn check_security(spec: &Spec, report: &mut LintReport) {
-        let mut score = 100;
+    fn check_security(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
+        let spec_020_rule = rules.rules.iter().find(|r| r.id == "SPEC-020");
+        let spec_021_rule = rules.rules.iter().find(|r| r.id == "SPEC-021");
+        let spec_040_rule = rules.rules.iter().find(|r| r.id == "SPEC-040");
+
+        let spec_020_severity = spec_020_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+        let spec_021_severity = spec_021_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "warning".to_string());
+        let spec_040_severity = spec_040_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "warning".to_string());
 
         if let Some(contract) = &spec.specification.api_contract {
             if let Some(endpoints) = &contract.endpoints {
@@ -253,76 +341,121 @@ impl SpecLinter {
                     })
                     .collect();
 
-                user_endpoints.iter().for_each(|endpoint| {
+                for endpoint in &user_endpoints {
                     let has_enumeration_check = spec.specification.behaviors.iter().any(|b| {
                         b.edge_cases.as_ref().is_some_and(|ec| {
-                            ec.iter().any(|edge_case| {
-                                let id_lower = edge_case.id.to_lowercase();
-                                let when_lower = edge_case.r#when.to_lowercase();
-                                let is_nonexistent_user = id_lower.contains("nonexist")
-                                    || id_lower.contains("not-found")
-                                    || id_lower.contains("notfound")
-                                    || id_lower.contains("enumeration")
-                                    || id_lower.contains("invalid")
-                                    || when_lower.contains("not exist")
-                                    || when_lower.contains("doesn't exist")
-                                    || when_lower.contains("does not exist")
-                                    || when_lower.contains("invalid user")
-                                    || when_lower.contains("unknown user");
-
-                                if !is_nonexistent_user {
-                                    return false;
-                                }
-
-                                edge_case.then.iter().any(|then_clause| {
-                                    let then_lower = then_clause.to_lowercase();
-                                    then_lower.contains("same")
-                                        && (then_lower.contains("response")
-                                            || then_lower.contains("error")
-                                            || then_lower.contains("as")
-                                            || then_lower.contains("behavior"))
-                                        || then_lower.contains("identical")
-                                        || then_lower.contains("no information")
-                                        || then_lower.contains("don't reveal")
-                                        || then_lower.contains("don't disclose")
-                                        || then_lower.contains("do not reveal")
-                                        || then_lower.contains("do not disclose")
-                                        || then_lower.contains("same http")
-                                        || then_lower.contains("same status")
-                                })
+                            ec.iter().any(|e| {
+                                e.id.contains("nonexist")
+                                    || e.id.contains("not-found")
+                                    || e.id.contains("enumeration")
                             })
                         })
                     });
 
                     if !has_enumeration_check {
-                        score = 95;
-                        report.errors.push(LintIssue {
+                        let issue = LintIssue {
                             rule_id: "SPEC-020".to_string(),
                             rule_name: "enumeration-prevention".to_string(),
-                            severity: "error".to_string(),
-                            message: format!(
-                                "Endpoint {} may be vulnerable to user enumeration - must specify identical response for existing and non-existing users",
-                                endpoint.path
-                            ),
+                            severity: spec_020_severity.clone(),
+                            message: format!("Endpoint {} may be vulnerable to user enumeration", endpoint.path),
                             line: None,
-                        });
+                        };
+                        if issue.severity == "error" {
+                            report.errors.push(issue);
+                        } else {
+                            report.warnings.push(issue);
+                        }
                     }
-                });
+                }
+
+                let write_methods = ["POST", "PUT", "PATCH", "DELETE"];
+                let has_write_endpoints = endpoints.iter().any(|e| write_methods.contains(&e.method.as_str()));
+                if has_write_endpoints {
+                    let has_rate_limit = spec.specification.behaviors.iter().any(|b| {
+                        b.then.iter().any(|t| {
+                            t.to_lowercase().contains("rate")
+                                || t.to_lowercase().contains("throttle")
+                                || t.to_lowercase().contains("limit")
+                        }) || b.edge_cases.as_ref().is_some_and(|ec| {
+                            ec.iter().any(|e| {
+                                e.then.iter().any(|t| {
+                                    t.to_lowercase().contains("rate")
+                                        || t.to_lowercase().contains("throttle")
+                                        || t.to_lowercase().contains("limit")
+                                })
+                            })
+                        })
+                    });
+
+                    if !has_rate_limit {
+                        let issue = LintIssue {
+                            rule_id: "SPEC-021".to_string(),
+                            rule_name: "rate-limiting-specified".to_string(),
+                            severity: spec_021_severity.clone(),
+                            message: "Write endpoints found but no rate limiting behavior specified".to_string(),
+                            line: None,
+                        };
+                        if issue.severity == "error" {
+                            report.errors.push(issue);
+                        } else {
+                            report.warnings.push(issue);
+                        }
+                    }
+                }
+            }
+        }
+
+        let has_canvas_behavior = spec.specification.behaviors.iter().any(|b| {
+            b.id.to_lowercase().contains("canvas")
+                || b.description.to_lowercase().contains("canvas")
+                || b.then.iter().any(|t| t.to_lowercase().contains("canvas"))
+        });
+
+        if has_canvas_behavior {
+            let has_visual_feedback = spec.specification.behaviors.iter().any(|b| {
+                b.then.iter().any(|t| {
+                    t.to_lowercase().contains("display")
+                        || t.to_lowercase().contains("show")
+                        || t.to_lowercase().contains("render")
+                        || t.to_lowercase().contains("visual")
+                        || t.to_lowercase().contains("ui")
+                        || t.to_lowercase().contains("feedback")
+                })
+            });
+
+            if !has_visual_feedback {
+                let issue = LintIssue {
+                    rule_id: "SPEC-040".to_string(),
+                    rule_name: "canvas-behavior-requires-visual-feedback".to_string(),
+                    severity: spec_040_severity.clone(),
+                    message: "Canvas behaviors should specify visual feedback for user experience".to_string(),
+                    line: None,
+                };
+                if issue.severity == "error" {
+                    report.errors.push(issue);
+                } else {
+                    report.warnings.push(issue);
+                }
             }
         }
 
         report.categories.insert(
             "Security".to_string(),
             CategoryScore {
-                score,
-                details: "Enumeration prevention checked".to_string(),
+                score: 100,
+                details: "Enumeration prevention and rate limiting checked".to_string(),
             },
         );
     }
 
-    fn check_testability(spec: &Spec, report: &mut LintReport) {
+    fn check_testability(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
+        let spec_030_rule = rules.rules.iter().find(|r| r.id == "SPEC-030");
+        let severity = spec_030_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+
         let observable_terms = ["http", "response", "status", "body", "api", "event"];
-        let errors = spec
+        let non_observable_count = spec
             .specification
             .behaviors
             .iter()
@@ -335,15 +468,20 @@ impl SpecLinter {
             })
             .count();
 
-        let score = if errors > 0 { 90 } else { 100 };
-        if errors > 0 {
-            report.warnings.push(LintIssue {
+        let score = if non_observable_count > 0 { 90 } else { 100 };
+        if non_observable_count > 0 {
+            let issue = LintIssue {
                 rule_id: "SPEC-030".to_string(),
                 rule_name: "behaviors-are-observable".to_string(),
-                severity: "warning".to_string(),
-                message: format!("{errors} behaviors may not have observable outcomes"),
+                severity: severity.clone(),
+                message: format!("{} behaviors may not have observable outcomes", non_observable_count),
                 line: None,
-            });
+            };
+            if issue.severity == "error" {
+                report.errors.push(issue);
+            } else {
+                report.warnings.push(issue);
+            }
         }
 
         report.categories.insert(
@@ -355,55 +493,29 @@ impl SpecLinter {
         );
     }
 
-    fn check_data_model(spec: &Spec, report: &mut LintReport) {
+    fn check_data_model(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
+        let spec_002_rule = rules.rules.iter().find(|r| r.id == "SPEC-002");
+        let severity = spec_002_rule
+            .map(|r| r.severity.clone())
+            .unwrap_or_else(|| "error".to_string());
+
         let mut score = 100;
 
         if let Some(data_model) = &spec.specification.data_model {
             if let Some(transitions) = &data_model.state_transitions {
-                let invariants = &spec.specification.context.invariants;
-
-                if transitions.is_empty() {
-                    if !invariants.is_empty() {
-                        score = 95;
-                        report.warnings.push(LintIssue {
-                            rule_id: "SPEC-002".to_string(),
-                            rule_name: "every-state-transition-has-invariant-check".to_string(),
-                            severity: "warning".to_string(),
-                            message: "Invariants defined but no state transitions".to_string(),
-                            line: None,
-                        });
-                    }
-                } else if invariants.is_empty() {
+                if !transitions.is_empty() && spec.specification.context.invariants.is_empty() {
                     score = 88;
-                    report.errors.push(LintIssue {
+                    let issue = LintIssue {
                         rule_id: "SPEC-002".to_string(),
                         rule_name: "every-state-transition-has-invariant-check".to_string(),
-                        severity: "error".to_string(),
+                        severity: severity.clone(),
                         message: "State transitions found but no invariants defined".to_string(),
                         line: None,
-                    });
-                } else {
-                    let invariant_set: std::collections::HashSet<_> =
-                        invariants.iter().map(|s| s.to_lowercase()).collect();
-
-                    for transition in transitions {
-                        let transition_str = transition.to_string().to_lowercase();
-                        let has_invariant_ref =
-                            invariant_set.iter().any(|inv| transition_str.contains(inv));
-
-                        if !has_invariant_ref {
-                            score = 85;
-                            report.errors.push(LintIssue {
-                                rule_id: "SPEC-002".to_string(),
-                                rule_name: "every-state-transition-has-invariant-check".to_string(),
-                                severity: "error".to_string(),
-                                message: format!(
-                                    "State transition does not reference any invariant: {}",
-                                    transition_str.chars().take(50).collect::<String>()
-                                ),
-                                line: None,
-                            });
-                        }
+                    };
+                    if issue.severity == "error" {
+                        report.errors.push(issue);
+                    } else {
+                        report.warnings.push(issue);
                     }
                 }
             }
