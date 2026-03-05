@@ -456,7 +456,8 @@ mod tests {
         
         state.cancel_interaction();
         
-        assert!(!state.is_space_hand().read());
+        let is_hand = *state.is_space_hand().read();
+        assert!(!is_hand);
     }
 
     #[test]

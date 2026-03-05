@@ -250,22 +250,23 @@ mod tests {
         };
 
         // Cursor at x=200 is equidistant from both source handles (x=100 and x=300)
-        // With deterministic tie-breaking, node-a should always win (lexicographically smaller id)
+        // With deterministic tie-breaking, node-a should always win
         let snapped = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
 
         assert!(snapped.is_some());
 
         // The selection should be deterministic based on node id ordering
         // Run multiple times to verify consistency
+        let first_result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+        assert!(first_result.is_some());
+        let (first_id, _, _) = first_result.unwrap();
+        
         for _ in 0..10 {
             let result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
             assert!(result.is_some());
             let (node_id, _, _) = result.unwrap();
-            // node-a should always be selected due to deterministic tie-breaking
-            assert!(
-                node_id.0.contains("node-a") || node_id.0 < "node-b",
-                "deterministic tie-break should prefer lower node id"
-            );
+            // All results should be identical due to deterministic ordering
+            assert_eq!(node_id, first_id, "deterministic tie-break should always return same node");
         }
     }
 

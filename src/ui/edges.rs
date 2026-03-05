@@ -234,12 +234,21 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
     input.clamp(-BEND_CLAMP, BEND_CLAMP)
 }
 
+#[inline]
+fn normalize_bend_delta(page_delta: f32, zoom: f32) -> f32 {
+    if !zoom.is_finite() || zoom <= 0.0 {
+        return 0.0;
+    }
+    page_delta / zoom
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
-        resolve_edge_anchors_with_parallel, ParallelGroup, Rect,
+        resolve_edge_anchors_with_parallel, ParallelGroup,
     };
+    use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox};
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
 
@@ -300,17 +309,17 @@ mod tests {
         assert_eq!(groups.len(), 1);
         let group = &groups[0];
 
-        assert!(group.source_node.is_some());
-        assert_eq!(group.target_nodes.len(), 2);
+        assert_eq!(group.parallel_node_id, source_id);
+        assert_eq!(group.branch_node_ids.len(), 2);
         // Target nodes are sorted by ID lexicographically
         let mut sorted_ids = [target_a_id, target_b_id];
         sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
-        assert_eq!(group.target_nodes[0].id, sorted_ids[0]);
-        assert_eq!(group.target_nodes[1].id, sorted_ids[1]);
-        assert_eq!(group.bounds.x, 292.0);
-        assert_eq!(group.bounds.y, 92.0);
-        assert_eq!(group.bounds.width, 236.0);
-        assert_eq!(group.bounds.height, 184.0);
+        assert_eq!(group.branch_node_ids[0], sorted_ids[0]);
+        assert_eq!(group.branch_node_ids[1], sorted_ids[1]);
+        assert_eq!(group.bounding_box.x, 292.0);
+        assert_eq!(group.bounding_box.y, 92.0);
+        assert_eq!(group.bounding_box.width, 236.0);
+        assert_eq!(group.bounding_box.height, 184.0);
     }
 
     #[test]
@@ -335,7 +344,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 3);
+        assert_eq!(groups[0].branch_node_ids.len(), 3);
     }
 
     #[test]
@@ -358,7 +367,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 5);
+        assert_eq!(groups[0].branch_node_ids.len(), 5);
     }
 
     #[test]
@@ -470,7 +479,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 2);
+        assert_eq!(groups[0].branch_node_ids.len(), 2);
     }
 
     // ==================== calculate_parallel_offset Tests ====================
@@ -667,7 +676,7 @@ mod tests {
         let group = ParallelGroup {
             parallel_node_id: source_id,
             branch_node_ids: vec![target_a_id, target_b_id],
-            bounding_box: Rect {
+            bounding_box: BoundingBox {
                 x: 292.0,
                 y: 92.0,
                 width: 16.0,
@@ -759,7 +768,7 @@ mod tests {
         let group = ParallelGroup {
             parallel_node_id: source_id,
             branch_node_ids: vec![target_a_id, target_b_id],
-            bounding_box: Rect {
+            bounding_box: BoundingBox {
                 x: 292.0,
                 y: 92.0,
                 width: 16.0,
@@ -795,11 +804,11 @@ mod tests {
         assert_eq!(anchor_c.unwrap().to.y, 334.0);
     }
 
-    // ==================== Rect Tests ====================
+    // ==================== BoundingBox Tests ====================
 
     #[test]
     fn given_rect_when_created_then_has_correct_values() {
-        let rect = Rect {
+        let rect = BoundingBox {
             x: 10.0,
             y: 20.0,
             width: 100.0,
@@ -900,8 +909,8 @@ mod tests {
         assert_eq!(groups.len(), 1);
         let group = &groups[0];
 
-        assert!(group.source_node.is_some());
-        assert_eq!(group.target_nodes.len(), 2);
+        assert_eq!(group.parallel_node_id, source_id);
+        assert_eq!(group.branch_node_ids.len(), 2);
     }
 
     #[test]
@@ -1024,7 +1033,7 @@ mod tests {
         let group_a = ParallelGroup {
             parallel_node_id: source_a_id,
             branch_node_ids: vec![shared_target_id],
-            bounding_box: Rect {
+            bounding_box: BoundingBox {
                 x: 292.0,
                 y: 192.0,
                 width: 236.0,
@@ -1036,7 +1045,7 @@ mod tests {
         let group_b = ParallelGroup {
             parallel_node_id: source_b_id,
             branch_node_ids: vec![shared_target_id],
-            bounding_box: Rect {
+            bounding_box: BoundingBox {
                 x: 292.0,
                 y: 392.0,
                 width: 236.0,
