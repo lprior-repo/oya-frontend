@@ -475,7 +475,7 @@ fn given_non_observable_then_clause_when_linting_then_spec_030_warning_is_report
 }
 
 #[test]
-fn given_state_transitions_without_invariants_when_linting_then_spec_002_warning_is_reported(
+fn given_state_transitions_without_invariants_when_linting_then_spec_002_error_is_reported(
 ) -> anyhow::Result<()> {
     let rules_file = create_test_rules()?;
     let spec_file = create_spec_with_state_transitions_no_invariants()?;
@@ -484,8 +484,346 @@ fn given_state_transitions_without_invariants_when_linting_then_spec_002_warning
     let report = linter.lint(spec_file.path())?;
 
     assert!(report
-        .warnings
+        .errors
         .iter()
         .any(|issue| issue.rule_id == "SPEC-002"));
+    Ok(())
+}
+
+fn create_spec_with_dependency_no_twin_available() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-001-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies:
+      - service: EmailService
+        purpose: send emails
+        twin_available: false
+    invariants: []
+  behaviors:
+    - id: behavior-1
+      description: "Main behavior"
+      then:
+        - "System processes request"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+fn create_spec_with_dependency_with_twin() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-001-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies:
+      - service: EmailService
+        purpose: send emails
+        twin_available: true
+    invariants: []
+  behaviors:
+    - id: behavior-1
+      description: "Main behavior"
+      edge_cases:
+        - id: ec-email-fail
+          when: "EmailService fails"
+          then:
+            - "EmailService returns error"
+      then:
+        - "System processes request"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+fn create_spec_with_transition_missing_invariant_ref() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-002-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants:
+      - "balance cannot be negative"
+  behaviors:
+    - id: behavior-1
+      description: "Simple"
+      then:
+        - "HTTP response is returned"
+  data_model:
+    state_transitions:
+      - from: draft
+        to: active
+        description: "Activates the entity"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+fn create_spec_with_transition_with_invariant_ref() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-002-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants:
+      - "balance cannot be negative"
+  behaviors:
+    - id: behavior-1
+      description: "Simple"
+      then:
+        - "HTTP response is returned"
+  data_model:
+    state_transitions:
+      - from: draft
+        to: active
+        validates:
+          - "balance cannot be negative"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+fn create_spec_with_enumeration_proper_response() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-020-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: behavior-login
+      description: "Login with email"
+      edge_cases:
+        - id: ec-nonexistent-user
+          when: "User does not exist"
+          then:
+            - "Return same response as existing user"
+      then:
+        - "System processes login"
+  api_contract:
+    endpoints:
+      - method: POST
+        path: /users/email/login
+        authentication: bearer
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+fn create_spec_with_enumeration_no_response_equivalence() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-020-test
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: behavior-login
+      description: "Login with email"
+      edge_cases:
+        - id: ec-user-not-found
+          when: "User does not exist"
+          then:
+            - "Return 404 error"
+      then:
+        - "System processes login"
+  api_contract:
+    endpoints:
+      - method: POST
+        path: /users/email/login
+        authentication: bearer
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_dependency_without_twin_when_linting_then_spec_001_error_is_reported() -> anyhow::Result<()>
+{
+    let rules_file = create_rules_for_completeness_underflow()?;
+    let spec_file = create_spec_with_dependency_no_twin_available()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-001" && error.message.contains("EmailService")));
+    Ok(())
+}
+
+#[test]
+fn given_dependency_with_twin_and_error_handling_when_linting_then_no_spec_001_error(
+) -> anyhow::Result<()> {
+    let rules_file = create_rules_for_completeness_underflow()?;
+    let spec_file = create_spec_with_dependency_with_twin()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(!report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-001"));
+    Ok(())
+}
+
+#[test]
+fn given_transition_without_invariant_reference_when_linting_then_spec_002_error_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_transition_missing_invariant_ref()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-002"));
+    Ok(())
+}
+
+#[test]
+fn given_transition_with_invariant_reference_when_linting_then_no_spec_002_error(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_transition_with_invariant_ref()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(!report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-002"));
+    Ok(())
+}
+
+#[test]
+fn given_enumeration_edge_case_with_same_response_when_linting_then_no_spec_020_error(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_enumeration_proper_response()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(!report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-020"));
+    Ok(())
+}
+
+#[test]
+fn given_enumeration_edge_case_without_response_equivalence_when_linting_then_spec_020_error_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_enumeration_no_response_equivalence()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|error| error.rule_id == "SPEC-020"));
     Ok(())
 }
