@@ -15,13 +15,42 @@ rules:
     severity: error
     description: "Test rule"
     banned_phrases: []
+  - id: SPEC-002
+    name: every-state-transition-has-invariant-check
+    severity: warning
+    description: "State transitions need invariants"
+  - id: SPEC-004
+    name: every-behavior-has-acceptance-criterion
+    severity: warning
+    description: "Behaviors need acceptance criteria"
   - id: SPEC-010
     name: no-ambiguous-language
     severity: warning
     description: "Test ambiguous language"
     banned_phrases:
+      - "should probably"
       - "obviously"
       - "simply"
+  - id: SPEC-011
+    name: concrete-error-responses
+    severity: error
+    description: "Error responses need HTTP codes"
+  - id: SPEC-020
+    name: enumeration-prevention
+    severity: error
+    description: "Enumeration prevention"
+  - id: SPEC-021
+    name: rate-limiting-specified
+    severity: warning
+    description: "Rate limiting required"
+  - id: SPEC-030
+    name: behaviors-are-observable
+    severity: warning
+    description: "Behaviors must be observable"
+  - id: SPEC-040
+    name: canvas-behavior-requires-visual-feedback
+    severity: warning
+    description: "Canvas needs visual feedback"
 "#
     )?;
     Ok(file)
@@ -51,9 +80,10 @@ specification:
     - id: test-behavior
       description: "Test"
       then:
-        - "Test action"
+        - "HTTP response returned"
   acceptance_criteria:
     - id: ac-01
+      behavior_ref: test-behavior
       criterion: "Test criterion"
 "#
     )?;
@@ -72,6 +102,14 @@ rules:
     severity: error
     description: "Dependency failure edges"
     banned_phrases: []
+  - id: SPEC-004
+    name: every-behavior-has-acceptance-criterion
+    severity: warning
+    description: "Behaviors need acceptance"
+  - id: SPEC-011
+    name: concrete-error-responses
+    severity: warning
+    description: "Error responses"
 "#
     )?;
     Ok(file)
@@ -92,6 +130,14 @@ rules:
     name: explicit-auth
     severity: error
     description: "API endpoints need authentication"
+  - id: SPEC-004
+    name: every-behavior-has-acceptance-criterion
+    severity: warning
+    description: "Behaviors need acceptance"
+  - id: SPEC-011
+    name: concrete-error-responses
+    severity: warning
+    description: "Error responses"
 "#
     )?;
     Ok(file)
@@ -136,6 +182,7 @@ specification:
         - "System processes request"
   acceptance_criteria:
     - id: ac-01
+      behavior_ref: behavior-1
       criterion: "Test criterion"
 "#
     )?;
@@ -344,7 +391,7 @@ fn given_multiple_dependency_failures_when_checking_completeness_then_score_satu
     let linter = SpecLinter::new(rules_file.path())?;
     let report = linter.lint(spec_file.path())?;
 
-    assert_eq!(report.errors.len(), 2);
+    assert_eq!(report.errors.len(), 3);
     let completeness = report.categories.get("Completeness");
     assert!(completeness.is_some_and(|score| score.score == 0));
     Ok(())
@@ -487,5 +534,267 @@ fn given_state_transitions_without_invariants_when_linting_then_spec_002_warning
         .warnings
         .iter()
         .any(|issue| issue.rule_id == "SPEC-002"));
+    Ok(())
+}
+
+fn create_spec_with_behavior_missing_acceptance_criterion() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-004
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: behavior-1
+      description: "Has criterion"
+      then:
+        - "HTTP response is returned"
+    - id: behavior-2
+      description: "Missing criterion"
+      then:
+        - "System processes"
+  acceptance_criteria:
+    - id: ac-01
+      behavior_ref: behavior-1
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_behavior_without_acceptance_criterion_when_linting_then_spec_004_warning_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_behavior_missing_acceptance_criterion()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .warnings
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-004"));
+    Ok(())
+}
+
+fn create_spec_with_concrete_error_responses() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-011
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: behavior-1
+      description: "Error without concrete code"
+      then:
+        - "System returns error"
+    - id: behavior-2
+      description: "Error with concrete code"
+      then:
+        - "Returns HTTP 400 Bad Request"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_error_without_concrete_http_status_when_linting_then_spec_011_error_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_concrete_error_responses()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-011"));
+    Ok(())
+}
+
+fn create_spec_with_write_endpoint_no_rate_limit() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-021
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: behavior-1
+      description: "Create user"
+      then:
+        - "User is created"
+  api_contract:
+    endpoints:
+      - method: POST
+        path: /users
+        authentication: bearer
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_write_endpoint_without_rate_limit_when_linting_then_spec_021_warning_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_write_endpoint_no_rate_limit()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .warnings
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-021"));
+    Ok(())
+}
+
+fn create_spec_with_canvas_behavior_no_feedback() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+specification:
+  identity:
+    id: spec-040
+    version: 1.0.0
+    status: draft
+    author: test
+    created: "2026-01-01T00:00:00Z"
+  intent:
+    problem_statement: "Test problem"
+    success_criteria:
+      - "Test criteria"
+  context:
+    system_dependencies: []
+    invariants: []
+  behaviors:
+    - id: draw-canvas
+      description: "Draw on canvas"
+      then:
+        - "Canvas is drawn"
+  acceptance_criteria:
+    - id: ac-01
+      criterion: "Test criterion"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_canvas_behavior_without_visual_feedback_when_linting_then_spec_040_warning_is_reported(
+) -> anyhow::Result<()> {
+    let rules_file = create_test_rules()?;
+    let spec_file = create_spec_with_canvas_behavior_no_feedback()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .warnings
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-040"));
+    Ok(())
+}
+
+fn create_rules_with_error_severity() -> anyhow::Result<NamedTempFile> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "{}",
+        r#"
+rules:
+  - id: SPEC-002
+    name: every-state-transition-has-invariant-check
+    severity: error
+    description: "State transitions must have invariants"
+  - id: SPEC-030
+    name: behaviors-are-observable
+    severity: error
+    description: "Behaviors must be observable"
+"#
+    )?;
+    Ok(file)
+}
+
+#[test]
+fn given_spec_002_with_error_severity_when_linting_then_issue_is_reported_as_error(
+) -> anyhow::Result<()> {
+    let rules_file = create_rules_with_error_severity()?;
+    let spec_file = create_spec_with_state_transitions_no_invariants()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-002" && issue.severity == "error"));
+    Ok(())
+}
+
+#[test]
+fn given_spec_030_with_error_severity_when_linting_then_issue_is_reported_as_error(
+) -> anyhow::Result<()> {
+    let rules_file = create_rules_with_error_severity()?;
+    let spec_file = create_spec_with_non_observable_then_clause()?;
+
+    let linter = SpecLinter::new(rules_file.path())?;
+    let report = linter.lint(spec_file.path())?;
+
+    assert!(report
+        .errors
+        .iter()
+        .any(|issue| issue.rule_id == "SPEC-030" && issue.severity == "error"));
     Ok(())
 }
