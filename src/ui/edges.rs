@@ -4,7 +4,7 @@ use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 
 use crate::ui::editor_interactions::{NODE_WIDTH, NODE_HEIGHT};
-use crate::ui::parallel_group_overlay::{BoundingBox, ParallelGroup};
+use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox, ParallelGroup};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
@@ -114,14 +114,14 @@ fn resolve_edge_anchors_with_parallel(
             let group = parallel_groups
                 .iter()
                 .find(|g| {
-                    g.source_node
-                        .as_ref()
-                        .is_some_and(|src| src.id == edge.source)
-                        && g.target_nodes.iter().any(|n| n.id == edge.target)
+                    g.parallel_node_id == edge.source
+                        && g.branch_node_ids.contains(&edge.target)
                 });
 
             let adjusted_to = group.map_or(to, |g| {
-                let offset = calculate_parallel_offset(&edge.target, &g.target_nodes, NODE_HEIGHT);
+                let offset = calculate_parallel_offset(&edge.target, &g.branch_node_ids.iter().map(|id| {
+                    node_by_id.get(id).cloned().unwrap_or_else(|| Node::default())
+                }).collect::<Vec<_>>(), NODE_HEIGHT);
                 Position {
                     x: to.x,
                     y: to.y + offset,
@@ -217,9 +217,11 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
             };
 
             Some(ParallelGroup {
-                source_node,
-                target_nodes,
-                bounds,
+                parallel_node_id: source_id,
+                branch_node_ids: target_ids.into_iter().collect(),
+                bounding_box: bounds,
+                branch_count: target_nodes.len(),
+                aggregate_status: AggregateStatus::Pending,
             })
         })
         .collect()
@@ -663,14 +665,16 @@ mod tests {
         // Create parallel group
         let source_node = build_node(source_id, 100.0, 100.0);
         let group = ParallelGroup {
-            source_node: Some(source_node),
-            target_nodes: vec![target_a.clone(), target_b.clone()],
-            bounds: Rect {
+            parallel_node_id: source_id,
+            branch_node_ids: vec![target_a_id, target_b_id],
+            bounding_box: Rect {
                 x: 292.0,
                 y: 92.0,
                 width: 16.0,
                 height: 116.0,
             },
+            branch_count: 2,
+            aggregate_status: AggregateStatus::Pending,
         };
         let groups = vec![group];
 
@@ -753,14 +757,16 @@ mod tests {
         // Only target_a and target_b are in parallel group
         let source_node = build_node(source_id, 100.0, 100.0);
         let group = ParallelGroup {
-            source_node: Some(source_node),
-            target_nodes: vec![target_a, target_b],
-            bounds: Rect {
+            parallel_node_id: source_id,
+            branch_node_ids: vec![target_a_id, target_b_id],
+            bounding_box: Rect {
                 x: 292.0,
                 y: 92.0,
                 width: 16.0,
                 height: 116.0,
             },
+            branch_count: 2,
+            aggregate_status: AggregateStatus::Pending,
         };
         let groups = vec![group];
 
@@ -1016,24 +1022,28 @@ mod tests {
 
         // Create parallel groups for each source (each has single target)
         let group_a = ParallelGroup {
-            source_node: Some(source_a),
-            target_nodes: vec![shared_target.clone()],
-            bounds: Rect {
+            parallel_node_id: source_a_id,
+            branch_node_ids: vec![shared_target_id],
+            bounding_box: Rect {
                 x: 292.0,
                 y: 192.0,
                 width: 236.0,
                 height: 84.0,
             },
+            branch_count: 1,
+            aggregate_status: AggregateStatus::Pending,
         };
         let group_b = ParallelGroup {
-            source_node: Some(source_b),
-            target_nodes: vec![shared_target.clone()],
-            bounds: Rect {
+            parallel_node_id: source_b_id,
+            branch_node_ids: vec![shared_target_id],
+            bounding_box: Rect {
                 x: 292.0,
                 y: 392.0,
                 width: 236.0,
                 height: 84.0,
             },
+            branch_count: 1,
+            aggregate_status: AggregateStatus::Pending,
         };
         let groups = vec![group_a, group_b];
 
@@ -1171,27 +1181,27 @@ pub fn FlowEdges(
 
           for group in parallel_groups.read().iter() {
                 {
-                    let (color, border_color) = if group.target_nodes.len() > 2 {
+                    let (color, border_color) = if group.branch_node_ids.len() > 2 {
                         ("rgba(251, 146, 60, 0.14)", "rgba(245, 158, 11, 0.4)")
                     } else {
                         ("rgba(20, 184, 166, 0.10)", "rgba(13, 148, 136, 0.35)")
                     };
-                    let badge_count = if group.target_nodes.len() > 1 {
-                        Some(group.target_nodes.len())
+                    let badge_count = if group.branch_node_ids.len() > 1 {
+                        Some(group.branch_node_ids.len())
                     } else {
                         None
                     };
-                    let key = format!("parallel-group-{}-{}", group.bounds.x, group.bounds.y);
+                    let key = format!("parallel-group-{}-{}", group.bounding_box.x, group.bounding_box.y);
 
-                    let badge_left = group.bounds.x + group.bounds.width + 8.0;
-                    let badge_top = group.bounds.y - 24.0;
+                    let badge_left = group.bounding_box.x + group.bounding_box.width + 8.0;
+                    let badge_top = group.bounding_box.y - 24.0;
                     rsx! {
                         rect {
                             key: "{key}",
-                            x: "{group.bounds.x}",
-                            y: "{group.bounds.y}",
-                            width: "{group.bounds.width}",
-                            height: "{group.bounds.height}",
+                            x: "{group.bounding_box.x}",
+                            y: "{group.bounding_box.y}",
+                            width: "{group.bounding_box.width}",
+                            height: "{group.bounding_box.height}",
                             rx: "8",
                             fill: "{color}",
                             stroke: "{border_color}",

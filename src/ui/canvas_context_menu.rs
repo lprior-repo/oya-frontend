@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use web_sys::window;
 
 /// Menu dimensions (width: 224px = w-56, estimated height ~180px)
 const MENU_WIDTH: f32 = 224.0;
@@ -48,8 +49,14 @@ pub fn CanvasContextMenu(
     }
 
     // Use window dimensions for viewport-safe clamping
-    let viewport_width = window().inner_width().unwrap_or(1920.0) as f32;
-    let viewport_height = window().inner_height().unwrap_or(1080.0) as f32;
+    let viewport_width = window()
+        .and_then(|w| w.inner_width().ok())
+        .and_then(|v| v.as_f64())
+        .unwrap_or(1920.0) as f32;
+    let viewport_height = window()
+        .and_then(|w| w.inner_height().ok())
+        .and_then(|v| v.as_f64())
+        .unwrap_or(1080.0) as f32;
     let menu_style = generate_menu_style(*x.read(), *y.read(), viewport_width, viewport_height);
 
     rsx! {

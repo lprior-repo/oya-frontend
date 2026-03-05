@@ -407,8 +407,15 @@ impl RestateClient {
             .position(|column| column == name)
             .ok_or_else(|| format!("missing column '{name}'"))?;
 
-        row.get(index)
-            .ok_or_else(|| format!("missing value for column '{name}'"))
+        let value = row
+            .get(index)
+            .ok_or_else(|| format!("missing value for column '{name}'"))?;
+
+        if value.is_null() {
+            Err(format!("column '{name}' is NULL but required"))
+        } else {
+            Ok(value)
+        }
     }
 
     fn optional_value<'a>(

@@ -116,7 +116,11 @@ impl SqlQueries {
     }
 
     /// Get oldest stuck invocations using an absolute cutoff timestamp in epoch ms.
+    /// Panics if cutoff_epoch_ms is negative.
     pub fn stuck_invocations(cutoff_epoch_ms: i64) -> String {
+        if cutoff_epoch_ms < 0 {
+            panic!("cutoff_epoch_ms must be non-negative, got {}", cutoff_epoch_ms);
+        }
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {} ORDER BY modified_at, created_at",
             cutoff_epoch_ms

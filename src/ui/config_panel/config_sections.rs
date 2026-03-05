@@ -55,13 +55,13 @@ pub(super) fn EntryConfig(
                     }
                 }
             }
-            "clock" => rsx! {
+            WorkflowNode::CronTrigger(_) => rsx! {
                 FieldInput { input_cls: input_cls, label: "Schedule", value: get_str_val(&config, "schedule"), on_change: move |value: String| update_str.call(("schedule".to_string(), value)) }
             },
-            "kafka" => rsx! {
+            WorkflowNode::KafkaHandler(_) => rsx! {
                 FieldInput { input_cls: input_cls, label: "Kafka Topic", value: get_str_val(&config, "topic"), on_change: move |value: String| update_str.call(("topic".to_string(), value)) }
             },
-            "play" | "play-circle" => rsx! {
+            WorkflowNode::WorkflowSubmit(_) => rsx! {
                 FieldInput { input_cls: input_cls, label: "Workflow Name", value: get_str_val(&config, "workflow_name"), on_change: move |value: String| update_str.call(("workflow_name".to_string(), value)) }
             },
             _ => rsx! {},

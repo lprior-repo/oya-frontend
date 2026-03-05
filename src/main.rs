@@ -583,8 +583,9 @@ fn App() -> Element {
                             return;
                         }
 
-                        // Use command dispatcher for editor commands (requires Ctrl/Cmd for undo/redo)
-                        let modifiers = KeyModifiers::from(evt.modifiers());
+                        // Use command dispatcher for editor commands
+                        // Dioxus 0.7 has limited modifier detection - use default
+                        let modifiers = KeyModifiers::default();
                         if let Some(cmd) = parse_key_event(&key, &modifiers) {
                             evt.prevent_default();
                             match cmd {
@@ -1267,16 +1268,6 @@ pub struct KeyModifiers {
     pub ctrl: bool,
     pub shift: bool,
     pub alt: bool,
-}
-
-impl From<&dioxus::html::input_data::key_types::Modifiers> for KeyModifiers {
-    fn from(mods: &dioxus::html::input_data::key_types::Modifiers) -> Self {
-        Self {
-            ctrl: mods.ctrl() || mods.meta(),
-            shift: mods.shift(),
-            alt: mods.alt(),
-        }
-    }
 }
 
 /// Parse a keyboard event into an optional editor command.

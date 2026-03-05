@@ -204,7 +204,7 @@ pub fn NodeCommandPalette(
                         class: "h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-[13px] text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30",
                         oninput: move |evt| on_query_change.call(evt.value()),
                         onkeydown: move |evt| {
-                            if is_escape_key(evt.key()) {
+                            if is_escape_key(&evt.key().to_string()) {
                                 evt.prevent_default();
                                 on_close.call(());
                             }
