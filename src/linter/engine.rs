@@ -108,7 +108,6 @@ impl SpecLinter {
                         .context
                         .system_dependencies
                         .iter()
-                        .filter(|dep| dep.twin_available)
                         .filter(|dep| {
                             !spec.specification.behaviors.iter().any(|behavior| {
                                 behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
@@ -257,10 +256,40 @@ impl SpecLinter {
                 user_endpoints.iter().for_each(|endpoint| {
                     let has_enumeration_check = spec.specification.behaviors.iter().any(|b| {
                         b.edge_cases.as_ref().is_some_and(|ec| {
-                            ec.iter().any(|e| {
-                                e.id.contains("nonexist")
-                                    || e.id.contains("not-found")
-                                    || e.id.contains("enumeration")
+                            ec.iter().any(|edge_case| {
+                                let id_lower = edge_case.id.to_lowercase();
+                                let when_lower = edge_case.r#when.to_lowercase();
+                                let is_nonexistent_user = id_lower.contains("nonexist")
+                                    || id_lower.contains("not-found")
+                                    || id_lower.contains("notfound")
+                                    || id_lower.contains("enumeration")
+                                    || id_lower.contains("invalid")
+                                    || when_lower.contains("not exist")
+                                    || when_lower.contains("doesn't exist")
+                                    || when_lower.contains("does not exist")
+                                    || when_lower.contains("invalid user")
+                                    || when_lower.contains("unknown user");
+
+                                if !is_nonexistent_user {
+                                    return false;
+                                }
+
+                                edge_case.then.iter().any(|then_clause| {
+                                    let then_lower = then_clause.to_lowercase();
+                                    then_lower.contains("same")
+                                        && (then_lower.contains("response")
+                                            || then_lower.contains("error")
+                                            || then_lower.contains("as")
+                                            || then_lower.contains("behavior"))
+                                        || then_lower.contains("identical")
+                                        || then_lower.contains("no information")
+                                        || then_lower.contains("don't reveal")
+                                        || then_lower.contains("don't disclose")
+                                        || then_lower.contains("do not reveal")
+                                        || then_lower.contains("do not disclose")
+                                        || then_lower.contains("same http")
+                                        || then_lower.contains("same status")
+                                })
                             })
                         })
                     });
@@ -272,7 +301,7 @@ impl SpecLinter {
                             rule_name: "enumeration-prevention".to_string(),
                             severity: "error".to_string(),
                             message: format!(
-                                "Endpoint {} may be vulnerable to user enumeration",
+                                "Endpoint {} may be vulnerable to user enumeration - must specify identical response for existing and non-existing users",
                                 endpoint.path
                             ),
                             line: None,
@@ -331,15 +360,51 @@ impl SpecLinter {
 
         if let Some(data_model) = &spec.specification.data_model {
             if let Some(transitions) = &data_model.state_transitions {
-                if !transitions.is_empty() && spec.specification.context.invariants.is_empty() {
+                let invariants = &spec.specification.context.invariants;
+
+                if transitions.is_empty() {
+                    if !invariants.is_empty() {
+                        score = 95;
+                        report.warnings.push(LintIssue {
+                            rule_id: "SPEC-002".to_string(),
+                            rule_name: "every-state-transition-has-invariant-check".to_string(),
+                            severity: "warning".to_string(),
+                            message: "Invariants defined but no state transitions".to_string(),
+                            line: None,
+                        });
+                    }
+                } else if invariants.is_empty() {
                     score = 88;
-                    report.warnings.push(LintIssue {
+                    report.errors.push(LintIssue {
                         rule_id: "SPEC-002".to_string(),
                         rule_name: "every-state-transition-has-invariant-check".to_string(),
-                        severity: "warning".to_string(),
+                        severity: "error".to_string(),
                         message: "State transitions found but no invariants defined".to_string(),
                         line: None,
                     });
+                } else {
+                    let invariant_set: std::collections::HashSet<_> =
+                        invariants.iter().map(|s| s.to_lowercase()).collect();
+
+                    for transition in transitions {
+                        let transition_str = transition.to_string().to_lowercase();
+                        let has_invariant_ref =
+                            invariant_set.iter().any(|inv| transition_str.contains(inv));
+
+                        if !has_invariant_ref {
+                            score = 85;
+                            report.errors.push(LintIssue {
+                                rule_id: "SPEC-002".to_string(),
+                                rule_name: "every-state-transition-has-invariant-check".to_string(),
+                                severity: "error".to_string(),
+                                message: format!(
+                                    "State transition does not reference any invariant: {}",
+                                    transition_str.chars().take(50).collect::<String>()
+                                ),
+                                line: None,
+                            });
+                        }
+                    }
                 }
             }
         }
