@@ -1,38 +1,8 @@
 use crate::ui::workflow_nodes::schema::{HttpMethod, HttpTriggerConfig};
 use dioxus::prelude::*;
 
-#[derive(Clone)]
-pub struct HttpTriggerNode {
-    pub config: Signal<HttpTriggerConfig>,
-}
-
-impl HttpTriggerNode {
-    pub fn new() -> Self {
-        Self {
-            config: use_signal(|| HttpTriggerConfig {
-                handler_name: String::new(),
-                method: HttpMethod::POST,
-            }),
-        }
-    }
-
-    pub fn from_config(config: HttpTriggerConfig) -> Self {
-        Self {
-            config: use_signal(|| config),
-        }
-    }
-}
-
-impl Default for HttpTriggerNode {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[component]
 pub fn HttpTriggerForm(config: Signal<HttpTriggerConfig>) -> Element {
-    let method_options = ["GET", "POST", "PUT", "DELETE", "PATCH"];
-
     rsx! {
         div {
             class: "space-y-4",
@@ -51,20 +21,20 @@ pub fn HttpTriggerForm(config: Signal<HttpTriggerConfig>) -> Element {
                 class: "form-field",
                 label {
                     class: "block text-sm font-medium text-gray-700 mb-1",
-                    "Handler Name"
+                    "Path"
                 }
                 input {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    placeholder: "e.g., process_order",
-                    value: "{config.read().handler_name}",
+                    placeholder: "/orders/{order_id}",
+                    value: "{config.read().path}",
                     oninput: move |e| {
-                        config.write().handler_name = e.value().clone();
+                        config.write().path = e.value().clone();
                     }
                 }
                 p {
                     class: "text-xs text-gray-500 mt-1",
-                    "What your users call to start this workflow"
+                    "The HTTP route that starts this workflow"
                 }
             }
 

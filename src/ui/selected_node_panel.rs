@@ -11,14 +11,13 @@ use crate::ui::NodeConfigEditor;
 
 #[component]
 pub fn SelectedNodePanel(
-    selected_node_id: Signal<Option<NodeId>>,
-    selected_node_ids: Signal<Vec<NodeId>>,
+    selection: crate::hooks::use_selection::SelectionState,
     nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
-    workflow: Signal<Workflow>,
-    undo_stack: Signal<Vec<Workflow>>,
-    redo_stack: Signal<Vec<Workflow>>,
+    workflow_state: crate::hooks::use_workflow_state::WorkflowState,
     preview_patches: Signal<Vec<ExtensionPatchPreview>>,
 ) -> Element {
+    let selected_node_id = selection.selected_id();
+    let mut workflow = workflow_state.workflow();
     let mut selected_extension_keys = use_signal(Vec::<String>::new);
     let mut extension_message = use_signal(|| None::<String>);
     let mut extension_timeline = use_signal(Vec::<ExtensionTimelineEvent>::new);
@@ -58,8 +57,7 @@ pub fn SelectedNodePanel(
                         button {
                             class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900",
                             onclick: move |_| {
-                                selected_node_id.set(None);
-                                selected_node_ids.set(Vec::new());
+                                selection.clear();
                             },
                             crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
                         }
@@ -108,7 +106,7 @@ pub fn SelectedNodePanel(
                                 on_change: move |new_config| {
                                     let mut wf = workflow.write();
                                     if let Some(node) = wf.nodes.iter_mut().find(|node| node.id == node_id) {
-                                        node.config = new_config;
+                                        node.apply_config_update(&new_config);
                                     }
                                 }
                             }
@@ -120,8 +118,8 @@ pub fn SelectedNodePanel(
                             let suggestions_for_all = suggestions.clone();
                             let suggestions_for_high = suggestions.clone();
                             let selected_count = selected_extension_keys.read().len();
-                            let can_undo = !undo_stack.read().is_empty();
-                            let can_redo = !redo_stack.read().is_empty();
+                            let can_undo = workflow_state.can_undo();
+                            let can_redo = workflow_state.can_redo();
                             rsx! {
                                 div { class: "mt-5 border-t border-slate-200 pt-4",
                                     div { class: "mb-3 flex items-center justify-between",
@@ -157,10 +155,7 @@ pub fn SelectedNodePanel(
                                             class: "h-7 rounded-md border border-slate-300 bg-white px-2.5 text-[10px] font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45",
                                             disabled: !can_undo,
                                             onclick: move |_| {
-                                                if let Some(previous) = undo_stack.write().pop() {
-                                                    let current = workflow.read().clone();
-                                                    redo_stack.write().push(current);
-                                                    workflow.set(previous);
+                                                if workflow_state.undo() {
                                                     let mut history = extension_timeline.read().clone();
                                                     push_timeline(
                                                         &mut history,
@@ -178,10 +173,7 @@ pub fn SelectedNodePanel(
                                             class: "h-7 rounded-md border border-slate-300 bg-white px-2.5 text-[10px] font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45",
                                             disabled: !can_redo,
                                             onclick: move |_| {
-                                                if let Some(next) = redo_stack.write().pop() {
-                                                    let current = workflow.read().clone();
-                                                    undo_stack.write().push(current);
-                                                    workflow.set(next);
+                                                if workflow_state.redo() {
                                                     let mut history = extension_timeline.read().clone();
                                                     push_timeline(
                                                         &mut history,
@@ -314,7 +306,7 @@ pub fn SelectedNodePanel(
                                                                             }
 
                                                                             let workflow_before = workflow.read().clone();
-                                                                            push_undo_point(workflow, undo_stack, redo_stack);
+                                                                            workflow_state.save_undo_point();
 
                                                                             let mut total_created = 0usize;
                                                                             let mut applied_count = 0usize;
@@ -417,7 +409,7 @@ pub fn SelectedNodePanel(
                                                     }
 
                                                     let workflow_before = workflow.read().clone();
-                                                    push_undo_point(workflow, undo_stack, redo_stack);
+                                                    workflow_state.save_undo_point();
 
                                                     let mut total_created = 0usize;
                                                     let mut applied_count = 0usize;
@@ -592,7 +584,7 @@ pub fn SelectedNodePanel(
                                                                     onclick: move |event| {
                                                                         event.stop_propagation();
                                                                         let workflow_before = workflow.read().clone();
-                                                                        push_undo_point(workflow, undo_stack, redo_stack);
+                                                                        workflow_state.save_undo_point();
 
                                                                         let result = {
                                                                             let mut wf = workflow.write();
@@ -717,7 +709,7 @@ pub fn SelectedNodePanel(
                                                                                         &extension_snapshots.read(),
                                                                                         meta.snapshot_id,
                                                                                     ) {
-                                                                                        push_undo_point(workflow, undo_stack, redo_stack);
+                                                                                        workflow_state.save_undo_point();
                                                                                         workflow.set(snapshot.workflow_before.clone());
                                                                                         let detail = format!(
                                                                                             "Rolled back to snapshot #{} from batch #{} ({} keys, {} node(s)).",
@@ -763,7 +755,7 @@ pub fn SelectedNodePanel(
                         button {
                             class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-300 text-[12px] text-slate-700 transition-colors hover:bg-slate-100",
                             onclick: move |_| {
-                                push_undo_point(workflow, undo_stack, redo_stack);
+                                workflow_state.save_undo_point();
 
                                 let maybe_clone = workflow
                                     .read()
@@ -777,8 +769,7 @@ pub fn SelectedNodePanel(
                                     clone.y += 40.0;
                                     let cloned_id = clone.id;
                                     workflow.write().nodes.push(clone);
-                                    selected_node_id.set(Some(cloned_id));
-                                    selected_node_ids.set(vec![cloned_id]);
+                                    selection.select_single(cloned_id);
                                 }
                             },
                             crate::ui::icons::CopyIcon { class: "h-3.5 w-3.5" }
@@ -787,10 +778,9 @@ pub fn SelectedNodePanel(
                         button {
                             class: "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-red-500/30 text-[12px] text-red-400 transition-colors hover:bg-red-500/10",
                             onclick: move |_| {
-                                push_undo_point(workflow, undo_stack, redo_stack);
+                                workflow_state.save_undo_point();
                                 workflow.write().remove_node(node_id);
-                                selected_node_id.set(None);
-                                selected_node_ids.set(Vec::new());
+                                selection.clear();
                             },
                             crate::ui::icons::TrashIcon { class: "h-3.5 w-3.5" }
                             "Delete"
@@ -944,18 +934,6 @@ fn mode_label(mode: ExtensionApplyMode) -> &'static str {
         ExtensionApplyMode::Single => "single",
         ExtensionApplyMode::Bulk => "bulk",
     }
-}
-
-fn push_undo_point(
-    workflow: Signal<Workflow>,
-    mut undo_stack: Signal<Vec<Workflow>>,
-    mut redo_stack: Signal<Vec<Workflow>>,
-) {
-    undo_stack.write().push(workflow.read().clone());
-    if undo_stack.read().len() > 60 {
-        let _ = undo_stack.write().remove(0);
-    }
-    redo_stack.write().clear();
 }
 
 fn remember_extension_snapshot(

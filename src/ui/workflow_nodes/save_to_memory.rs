@@ -2,21 +2,50 @@ use crate::ui::workflow_nodes::schema::SaveToMemoryConfig;
 use dioxus::prelude::*;
 
 fn json_to_display(value: &serde_json::Value) -> String {
-    if let Ok(value) = serde_json::to_string_pretty(value) {
-        value
-    } else {
-        String::new()
+    serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |value| value)
+}
+
+fn parse_json_draft(input: &str) -> Result<serde_json::Value, String> {
+    serde_json::from_str(input).map_err(|error| format!("Invalid JSON: {error}"))
+}
+
+#[derive(Clone)]
+pub struct SaveToMemoryNode {
+    pub config: Signal<SaveToMemoryConfig>,
+}
+
+impl SaveToMemoryNode {
+    pub fn new() -> Self {
+        Self {
+            config: use_signal(|| SaveToMemoryConfig {
+                key: String::new(),
+                value: serde_json::Value::Null,
+            }),
+        }
+    }
+
+    pub fn from_config(config: SaveToMemoryConfig) -> Self {
+        Self {
+            config: use_signal(|| config),
+        }
+    }
+}
+
+impl Default for SaveToMemoryNode {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[component]
 pub fn SaveToMemoryForm(config: Signal<SaveToMemoryConfig>) -> Element {
-    let pretty_value = json_to_display(&*config.read().value);
+    let initial_draft = json_to_display(&config.read().value);
+    let draft = use_signal(move || initial_draft);
+    let parse_error = use_signal(|| None::<String>);
 
     rsx! {
         div {
             class: "space-y-4",
-
             div {
                 class: "bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4",
                 p {
@@ -26,59 +55,62 @@ pub fn SaveToMemoryForm(config: Signal<SaveToMemoryConfig>) -> Element {
                     " - Store a value you can use later."
                 }
             }
-
             div {
                 class: "form-field",
-                label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
-                    "What name should this have?"
-                }
+                label { class: "block text-sm font-medium text-gray-700 mb-1", "What name should this have?" }
                 input {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500",
                     placeholder: "e.g., order_total, user_email, approval_status",
                     value: "{config.read().key}",
-                    oninput: move |e| {
-                        config.write().key = e.value().clone();
-                    }
+                    oninput: move |e| config.write().key = e.value().clone(),
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Use this name to load the data later"
-                }
+                p { class: "text-xs text-gray-500 mt-1", "Use this name to load the data later" }
             }
-
             div {
                 class: "form-field",
-                label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
-                    "What to save (JSON)"
-                }
+                label { class: "block text-sm font-medium text-gray-700 mb-1", "What to save (JSON)" }
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
-                    value: "{pretty_value}",
+                    value: "{draft.read()}",
                     oninput: move |e| {
-                        if let Ok(v) = serde_json::from_str(&e.value()) {
-                            config.write().value = v;
+                        let next_value = e.value().clone();
+                        draft.set(next_value.clone());
+                        match parse_json_draft(next_value.as_str()) {
+                            Ok(value) => {
+                                parse_error.set(None);
+                                config.write().value = value;
+                            }
+                            Err(error_text) => parse_error.set(Some(error_text)),
                         }
                     },
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Invalid JSON is ignored to preserve last valid value"
+                if let Some(error_text) = parse_error.read().as_ref() {
+                    p { class: "text-xs text-red-600 mt-1", "{error_text}" }
                 }
             }
-
             div {
                 class: "bg-gray-50 p-3 rounded-lg",
-                p {
-                    class: "text-sm text-gray-600",
-                    "💡 This is like saving a variable. The data persists until you overwrite it or the workflow ends."
-                }
+                p { class: "text-sm text-gray-600", "💡 This is like saving a variable. The data persists until you overwrite it or the workflow ends." }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_json_draft;
+
+    #[test]
+    fn parse_json_draft_accepts_valid_json() {
+        assert!(parse_json_draft(r#"{"ok":true}"#).is_ok());
+    }
+
+    #[test]
+    fn parse_json_draft_rejects_invalid_json() {
+        assert!(parse_json_draft("{not-json}").is_err());
     }
 }
 
@@ -87,25 +119,11 @@ pub fn SaveToMemoryNodeCard() -> Element {
     rsx! {
         div {
             class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
-
-            div {
-                class: "w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center",
-                span {
-                    class: "text-xl",
-                    "💾"
-                }
-            },
-
+            div { class: "w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center", span { class: "text-xl", "💾" } },
             div {
                 class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "Save to Memory"
-                }
-                p {
-                    class: "text-sm text-gray-500",
-                    "Store a value for later"
-                }
+                h3 { class: "font-medium text-gray-900", "Save to Memory" }
+                p { class: "text-sm text-gray-500", "Store a value for later" }
             }
         }
     }

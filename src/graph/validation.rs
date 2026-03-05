@@ -167,13 +167,10 @@ fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIssue>)
 
     for node in &workflow.nodes {
         if !reachable.contains(&node.id) && node.category != NodeCategory::Entry {
-            let has_incoming = workflow.connections.iter().any(|c| c.target == node.id);
-            if !has_incoming {
-                issues.push(ValidationIssue::warning_for_node(
-                    format!("Node '{}' is not reachable from any entry point", node.name),
-                    node.id,
-                ));
-            }
+            issues.push(ValidationIssue::warning_for_node(
+                format!("Node '{}' is not reachable from any entry point", node.name),
+                node.id,
+            ));
         }
     }
 }
@@ -203,8 +200,45 @@ fn validate_orphan_nodes(workflow: &Workflow, issues: &mut Vec<ValidationIssue>)
 
 fn validate_required_config(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
     for node in &workflow.nodes {
-        let workflow_node = &node.node;
-        validate_node_config(workflow_node, node, issues);
+        match workflow_node_from_persisted(node) {
+            Ok(workflow_node) => validate_node_config(&workflow_node, node, issues),
+            Err(unknown_node_type) => issues.push(ValidationIssue::error_for_node(
+                format!("Unknown node type: {unknown_node_type}"),
+                node.id,
+            )),
+        }
+    }
+}
+
+fn workflow_node_from_persisted(node: &Node) -> Result<WorkflowNode, String> {
+    let mut config_object = node.config.as_object().cloned().unwrap_or_default();
+    let config_type = config_object
+        .get("type")
+        .and_then(serde_json::Value::as_str)
+        .map(std::string::ToString::to_string)
+        .unwrap_or_default();
+
+    let resolved_type = if node.node_type.is_empty() {
+        config_type
+    } else {
+        node.node_type.clone()
+    };
+
+    if resolved_type.is_empty() {
+        return Err("<missing-node-type>".to_string());
+    }
+
+    config_object.insert(
+        "type".to_string(),
+        serde_json::Value::String(resolved_type.clone()),
+    );
+
+    match serde_json::from_value::<WorkflowNode>(serde_json::Value::Object(config_object)) {
+        Ok(workflow_node) => Ok(workflow_node),
+        Err(_) => match resolved_type.parse::<WorkflowNode>() {
+            Ok(workflow_node) => Ok(workflow_node),
+            Err(_) => Err(resolved_type),
+        },
     }
 }
 
@@ -501,13 +535,15 @@ fn validate_connection_validity(workflow: &Workflow, issues: &mut Vec<Validation
 
     for conn in &workflow.connections {
         if !node_ids.contains(&conn.source) {
-            issues.push(ValidationIssue::error(
+            issues.push(ValidationIssue::error_for_node(
                 "Connection references non-existent source node".to_string(),
+                conn.source,
             ));
         }
         if !node_ids.contains(&conn.target) {
-            issues.push(ValidationIssue::error(
+            issues.push(ValidationIssue::error_for_node(
                 "Connection references non-existent target node".to_string(),
+                conn.target,
             ));
         }
     }
@@ -556,13 +592,15 @@ fn validate_connection_types(workflow: &Workflow, issues: &mut Vec<ValidationIss
 }
 
 fn get_output_port_type(node: &Node) -> Option<PortType> {
-    let workflow_node: WorkflowNode = node.node_type.parse().ok()?;
-    Some(workflow_node.output_port_type())
+    workflow_node_from_persisted(node)
+        .ok()
+        .map(|workflow_node| workflow_node.output_port_type())
 }
 
 fn get_input_port_type(node: &Node) -> Option<PortType> {
-    let workflow_node: WorkflowNode = node.node_type.parse().ok()?;
-    Some(workflow_node.input_port_type())
+    workflow_node_from_persisted(node)
+        .ok()
+        .map(|workflow_node| workflow_node.input_port_type())
 }
 
 #[cfg(test)]
@@ -661,6 +699,37 @@ mod tests {
 
             assert!(result.has_warnings());
         }
+
+        #[test]
+        fn given_disconnected_subgraph_with_incoming_edges_when_validating_then_unreachable_warning_is_emitted()
+        {
+            let mut workflow = make_workflow();
+            let _ = add_entry_node(&mut workflow);
+
+            let disconnected_start_index = workflow.nodes.len();
+            let _ = workflow.add_node("run", 200.0, 0.0);
+            let _ = workflow.add_node("run", 350.0, 0.0);
+
+            let disconnected_ids: Vec<NodeId> = workflow.nodes[disconnected_start_index..]
+                .iter()
+                .map(|node| node.id)
+                .collect();
+
+            workflow.add_connection(
+                disconnected_ids[0],
+                disconnected_ids[1],
+                &crate::graph::PortName("main".to_string()),
+                &crate::graph::PortName("main".to_string()),
+            );
+
+            let result = validate_workflow(&workflow);
+
+            assert!(result.issues.iter().any(|issue| {
+                issue.severity == ValidationSeverity::Warning
+                    && issue.node_id == Some(disconnected_ids[1])
+                    && issue.message.contains("not reachable")
+            }));
+        }
     }
 
     mod config_validation {
@@ -712,7 +781,17 @@ mod tests {
         fn given_unknown_node_type_when_validating_then_error_for_node_is_emitted() {
             let mut workflow = make_workflow();
             let _ = add_entry_node(&mut workflow);
-            let node_id = workflow.add_node("unknown-node-type", 120.0, 0.0);
+            let _ = workflow.add_node("run", 120.0, 0.0);
+            let node_id = workflow
+                .nodes
+                .last()
+                .map(|node| node.id)
+                .expect("A node should exist after adding one");
+
+            if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == node_id) {
+                node.node_type = "unknown-node-type".to_string();
+                node.config = serde_json::json!({});
+            }
 
             let result = validate_workflow(&workflow);
 
@@ -729,10 +808,11 @@ mod tests {
             let _ = add_entry_node(&mut workflow);
             let node_id = workflow.add_node("delayed-send", 160.0, 0.0);
             if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == node_id) {
-                node.config = serde_json::json!({
-                    "target": "queue-name",
-                    "delay_ms": 0
-                });
+                if let WorkflowNode::DelayedSend(config) = &mut node.node {
+                    config.delay_ms = Some(0);
+                    config.target = Some("queue-name".to_string());
+                }
+                node.config = serde_json::to_value(&node.node).unwrap_or_default();
             }
 
             let result = validate_workflow(&workflow);
@@ -774,9 +854,10 @@ mod tests {
         fn given_connection_with_missing_source_when_validating_then_source_error_is_reported() {
             let mut workflow = make_workflow();
             let target = add_entry_node(&mut workflow);
+            let missing_source = NodeId::new();
             workflow.connections.push(Connection {
                 id: Uuid::new_v4(),
-                source: NodeId::new(),
+                source: missing_source,
                 target,
                 source_port: PortName("main".to_string()),
                 target_port: PortName("main".to_string()),
@@ -786,6 +867,7 @@ mod tests {
 
             assert!(result.issues.iter().any(|issue| {
                 issue.severity == ValidationSeverity::Error
+                    && issue.node_id == Some(missing_source)
                     && issue.message.contains("non-existent source")
             }));
         }
@@ -794,10 +876,11 @@ mod tests {
         fn given_connection_with_missing_target_when_validating_then_target_error_is_reported() {
             let mut workflow = make_workflow();
             let source = add_entry_node(&mut workflow);
+            let missing_target = NodeId::new();
             workflow.connections.push(Connection {
                 id: Uuid::new_v4(),
                 source,
-                target: NodeId::new(),
+                target: missing_target,
                 source_port: PortName("main".to_string()),
                 target_port: PortName("main".to_string()),
             });
@@ -806,6 +889,7 @@ mod tests {
 
             assert!(result.issues.iter().any(|issue| {
                 issue.severity == ValidationSeverity::Error
+                    && issue.node_id == Some(missing_target)
                     && issue.message.contains("non-existent target")
             }));
         }

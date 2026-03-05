@@ -75,12 +75,13 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                     class: "flex items-center gap-2",
                     input {
                         r#type: "number",
+                        min: "1",
                         class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500",
                         placeholder: "milliseconds",
                         value: "{config.read().duration_ms}",
                         oninput: move |e| {
                             if let Ok(v) = e.value().parse::<u64>() {
-                                config.write().duration_ms = v;
+                                config.write().duration_ms = if v == 0 { 1 } else { v };
                             }
                         }
                     }

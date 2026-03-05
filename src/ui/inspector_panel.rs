@@ -76,6 +76,22 @@ fn filter_lines(text: &str, query: &str) -> String {
         .join("\n")
 }
 
+#[must_use]
+const fn execution_state_label(state: ExecutionState) -> &'static str {
+    match state {
+        ExecutionState::Idle | ExecutionState::Queued => "pending",
+        ExecutionState::Running => "running",
+        ExecutionState::Completed => "completed",
+        ExecutionState::Failed => "failed",
+        ExecutionState::Skipped => "skipped",
+    }
+}
+
+#[must_use]
+fn should_render_failure(state: ExecutionState, error_text: &str) -> bool {
+    state == ExecutionState::Failed || !error_text.is_empty()
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -169,7 +185,7 @@ pub fn InspectorPanel(
     // ── derive display values ───────────────────────────────────────────────
     let exec_state = selected.execution_state;
     let badge_class = status_badge_class(exec_state);
-    let state_label = exec_state.to_string();
+    let state_label = execution_state_label(exec_state);
     let node_name = selected.name.clone();
     let node_type = selected.node_type.clone();
 
@@ -193,8 +209,6 @@ pub fn InspectorPanel(
         .as_ref()
         .map_or_else(|| "null".to_string(), pretty_json);
 
-    let is_failed = exec_state == ExecutionState::Failed;
-
     let output_json_text = step_output
         .read()
         .as_ref()
@@ -202,6 +216,7 @@ pub fn InspectorPanel(
 
     let error_text = step_error.read().clone().unwrap_or_default();
     let stack_text = step_stack_trace.read().clone().unwrap_or_default();
+    let is_failed = should_render_failure(exec_state, &error_text);
 
     // Text that the Copy button on the active tab will copy.
     let copy_text_for_tab = match tab {
@@ -369,7 +384,10 @@ pub fn InspectorPanel(
 
 #[cfg(test)]
 mod tests {
-    use super::{filter_lines, format_duration, status_badge_class};
+    use super::{
+        execution_state_label, filter_lines, format_duration, should_render_failure,
+        status_badge_class,
+    };
     use oya_frontend::graph::ExecutionState;
 
     // -- status_badge_class --------------------------------------------------
@@ -420,6 +438,21 @@ mod tests {
             class.contains("slate"),
             "expected slate class, got: {class}"
         );
+    }
+
+    #[test]
+    fn given_queued_state_when_getting_status_label_then_returns_pending() {
+        assert_eq!(execution_state_label(ExecutionState::Queued), "pending");
+    }
+
+    #[test]
+    fn given_completed_state_with_error_text_when_checking_failure_then_true() {
+        assert!(should_render_failure(ExecutionState::Completed, "boom"));
+    }
+
+    #[test]
+    fn given_completed_state_without_error_text_when_checking_failure_then_false() {
+        assert!(!should_render_failure(ExecutionState::Completed, ""));
     }
 
     // -- format_duration -----------------------------------------------------

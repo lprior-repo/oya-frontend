@@ -19,7 +19,7 @@ pub enum WorkflowNode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpTriggerConfig {
-    pub handler_name: String,
+    pub path: String,
     pub method: HttpMethod,
 }
 
@@ -34,13 +34,16 @@ pub enum HttpMethod {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduleTriggerConfig {
-    pub cron_expression: String,
-    pub timezone: String,
+    pub schedule: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceCallConfig {
+    #[serde(default)]
+    pub target_type: TargetType,
     pub service_name: String,
+    #[serde(default)]
+    pub key: Option<String>,
     pub handler_name: String,
     pub input: serde_json::Value,
     pub condition: Option<String>,
@@ -65,8 +68,9 @@ pub struct DelayedMessageConfig {
     pub delay_ms: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default)]
 pub enum TargetType {
+    #[default]
     Service,
     VirtualObject,
     Workflow,
@@ -96,20 +100,37 @@ pub struct RouterConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RouterBranch {
+    #[serde(default = "default_router_branch_id")]
+    pub id: String,
     pub name: String,
     pub condition: String,
     pub next_node_id: Option<String>,
 }
 
+fn default_router_branch_id() -> String {
+    uuid::Uuid::new_v4().to_string()
+}
+
+impl RouterBranch {
+    pub fn new(name: String) -> Self {
+        Self {
+            id: default_router_branch_id(),
+            name,
+            condition: String::new(),
+            next_node_id: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WaitForWebhookConfig {
-    pub webhook_name: String,
+    pub awakeable_id: String,
     pub timeout_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WaitForSignalConfig {
-    pub signal_name: String,
+    pub promise_name: String,
     pub timeout_ms: Option<u64>,
 }
 
@@ -129,7 +150,7 @@ pub enum CodeLanguage {
 impl Default for WorkflowNode {
     fn default() -> Self {
         WorkflowNode::HttpTrigger(HttpTriggerConfig {
-            handler_name: String::new(),
+            path: String::new(),
             method: HttpMethod::POST,
         })
     }

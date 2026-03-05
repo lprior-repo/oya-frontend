@@ -1,8 +1,77 @@
 use crate::ui::workflow_nodes::schema::{CodeLanguage, RunCodeConfig};
 use dioxus::prelude::*;
 
+#[derive(Clone)]
+struct LanguageDrafts {
+    expression: String,
+    javascript: String,
+    python: String,
+}
+
+fn default_template(language: &CodeLanguage) -> &'static str {
+    match language {
+        CodeLanguage::Expression => "{{ steps.total.amount }} * 1.2",
+        CodeLanguage::JavaScript => {
+            "// Available: input (from previous step)\n// Return value is saved\n\nconst result = input.amount * 1.2;\nreturn { total: result };"
+        }
+        CodeLanguage::Python => {
+            "# Available: input (from previous step)\n# Return value is saved\n\nresult = input[\"amount\"] * 1.2\nreturn {\"total\": result}"
+        }
+    }
+}
+
+fn code_for_language(drafts: &LanguageDrafts, language: &CodeLanguage) -> String {
+    match language {
+        CodeLanguage::Expression => drafts.expression.clone(),
+        CodeLanguage::JavaScript => drafts.javascript.clone(),
+        CodeLanguage::Python => drafts.python.clone(),
+    }
+}
+
+fn with_language_draft(drafts: &LanguageDrafts, language: &CodeLanguage, code: String) -> LanguageDrafts {
+    match language {
+        CodeLanguage::Expression => LanguageDrafts {
+            expression: code,
+            javascript: drafts.javascript.clone(),
+            python: drafts.python.clone(),
+        },
+        CodeLanguage::JavaScript => LanguageDrafts {
+            expression: drafts.expression.clone(),
+            javascript: code,
+            python: drafts.python.clone(),
+        },
+        CodeLanguage::Python => LanguageDrafts {
+            expression: drafts.expression.clone(),
+            javascript: drafts.javascript.clone(),
+            python: code,
+        },
+    }
+}
+
 #[component]
 pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
+    let initial_config = config.read().clone();
+    let drafts = use_signal(move || {
+        let expression = match &initial_config.language {
+            CodeLanguage::Expression => initial_config.code.clone(),
+            _ => default_template(&CodeLanguage::Expression).to_string(),
+        };
+        let javascript = match &initial_config.language {
+            CodeLanguage::JavaScript => initial_config.code.clone(),
+            _ => default_template(&CodeLanguage::JavaScript).to_string(),
+        };
+        let python = match &initial_config.language {
+            CodeLanguage::Python => initial_config.code.clone(),
+            _ => default_template(&CodeLanguage::Python).to_string(),
+        };
+
+        LanguageDrafts {
+            expression,
+            javascript,
+            python,
+        }
+    });
+
     rsx! {
         div {
             class: "space-y-4",
@@ -31,12 +100,26 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                         RunCodeConfig { language: CodeLanguage::Expression, .. } => "Expression",
                     },
                     onchange: move |e| {
-                        config.write().language = match e.value().as_str() {
+                        let next_language = match e.value().as_str() {
                             "JavaScript" => CodeLanguage::JavaScript,
                             "Python" => CodeLanguage::Python,
                             "Expression" => CodeLanguage::Expression,
                             _ => CodeLanguage::Expression,
                         };
+
+                        let current_config = config.read().clone();
+                        let updated_drafts = with_language_draft(
+                            &drafts.read(),
+                            &current_config.language,
+                            current_config.code,
+                        );
+                        let next_code = code_for_language(&updated_drafts, &next_language);
+
+                        drafts.set(updated_drafts);
+                        config.set(RunCodeConfig {
+                            language: next_language,
+                            code: next_code,
+                        });
                     },
                     option { value: "Expression", "Expression (simple math/transform)" }
                     option { value: "JavaScript", "JavaScript" }
@@ -59,7 +142,13 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                                 placeholder: "{{ steps.total.amount }} * 1.2",
                                 value: "{config.read().code}",
                                 oninput: move |e| {
-                                    config.write().code = e.value().clone();
+                                    let value = e.value();
+                                    let language = config.read().language.clone();
+                                    drafts.set(with_language_draft(&drafts.read(), &language, value.clone()));
+                                    config.set(RunCodeConfig {
+                                        language,
+                                        code: value,
+                                    });
                                 }
                             }
                             p {
@@ -83,7 +172,13 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                                 placeholder: "// Available: input (from previous step)\n// Return value is saved\n\nconst result = input.amount * 1.2;\nreturn { total: result };",
                                 value: "{config.read().code}",
                                 oninput: move |e| {
-                                    config.write().code = e.value().clone();
+                                    let value = e.value();
+                                    let language = config.read().language.clone();
+                                    drafts.set(with_language_draft(&drafts.read(), &language, value.clone()));
+                                    config.set(RunCodeConfig {
+                                        language,
+                                        code: value,
+                                    });
                                 }
                             }
                             p {

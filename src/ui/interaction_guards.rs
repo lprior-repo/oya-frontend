@@ -97,4 +97,29 @@ mod tests {
 
         assert!(result.is_none());
     }
+
+    #[test]
+    fn given_negative_zoom_when_validating_then_zoom_is_valid() {
+        // Negative zoom is valid (just inverts the canvas)
+        assert!(is_valid_zoom(-1.0));
+    }
+
+    #[test]
+    fn given_negative_infinite_zoom_when_validating_then_zoom_is_invalid() {
+        assert!(!is_valid_zoom(f32::NEG_INFINITY));
+    }
+
+    #[test]
+    fn given_negative_zoom_when_mapping_to_viewport_then_point_is_transformed() {
+        let viewport = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: -2.0,
+        };
+
+        let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
+
+        // With negative zoom, the coordinate transformation inverts
+        assert_eq!(result, Some((-20.0, -25.0)));
+    }
 }

@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::{Node, NodeId, Workflow};
+use oya_frontend::graph::{ExecutionState, Node, NodeId, Workflow};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,17 +31,12 @@ fn chevron_rotation_class(collapsed: bool) -> &'static str {
 }
 
 fn node_status(node: &Node) -> &'static str {
-    match node
-        .config
-        .get("status")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default()
-    {
-        "running" => "running",
-        "completed" => "completed",
-        "failed" => "failed",
-        "skipped" => "skipped",
-        _ => "pending",
+    match node.execution_state {
+        ExecutionState::Running => "running",
+        ExecutionState::Completed => "completed",
+        ExecutionState::Failed => "failed",
+        ExecutionState::Skipped => "skipped",
+        ExecutionState::Idle | ExecutionState::Queued => "pending",
     }
 }
 
@@ -287,8 +282,8 @@ pub fn ExecutionPlanPanel(
 
 #[cfg(test)]
 mod tests {
-    use super::build_plan_snapshot;
-    use oya_frontend::graph::Workflow;
+    use super::{build_plan_snapshot, node_status};
+    use oya_frontend::graph::{ExecutionState, Workflow};
 
     #[test]
     fn given_simple_chain_when_building_plan_then_layers_follow_dependency_order() {
@@ -345,5 +340,19 @@ mod tests {
 
         assert!(snapshot.layers.is_empty());
         assert_eq!(snapshot.unscheduled, vec![a, b]);
+    }
+
+    #[test]
+    fn given_conflicting_config_status_when_getting_node_status_then_execution_state_wins() {
+        let mut workflow = Workflow::new();
+        let id = workflow.add_node("run", 0.0, 0.0);
+
+        let maybe_node = workflow.nodes.iter_mut().find(|n| n.id == id);
+        assert!(maybe_node.is_some());
+        if let Some(node) = maybe_node {
+            node.execution_state = ExecutionState::Failed;
+            node.config = serde_json::json!({ "status": "completed" });
+            assert_eq!(node_status(node), "failed");
+        }
     }
 }

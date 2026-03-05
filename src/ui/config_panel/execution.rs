@@ -1,6 +1,7 @@
-use super::{get_str_val, get_u64_val};
+use super::get_str_val;
 use crate::ui::icons::{icon_by_name, CopyIcon};
 use dioxus::prelude::*;
+use oya_frontend::graph::ExecutionState;
 use serde_json::Value;
 use wasm_bindgen::JsCast;
 use web_sys::window;
@@ -69,7 +70,10 @@ fn CopyButton(text: String, compact: bool) -> Element {
 #[component]
 fn PayloadPreview(payload: Value, label: String, shape: String, max_lines: usize) -> Element {
     let mut expanded = use_signal(|| false);
-    let json_full = serde_json::to_string_pretty(&payload).unwrap_or_else(|_| payload.to_string());
+    let json_full = match serde_json::to_string_pretty(&payload) {
+        Ok(serialized) => serialized,
+        Err(_) => payload.to_string(),
+    };
     let lines: Vec<&str> = json_full.lines().collect();
     let display_text = if *expanded.read() {
         json_full.clone()
@@ -119,16 +123,29 @@ struct ExecutionTimelineEvent {
 #[component]
 pub(super) fn ExecutionTab(
     config: Value,
+    execution_state: ExecutionState,
+    execution_data: Value,
     last_output: Option<Value>,
     input_payloads: Vec<Value>,
     on_pin_sample: EventHandler<Option<Value>>,
 ) -> Element {
-    let status = get_str_val(&config, "status");
-    let is_executed = !status.is_empty();
+    let status = resolve_status(execution_state, &execution_data, &config);
+    let is_executed = status.is_some();
+    let status_value = status.as_deref().map_or("", |value| value);
 
-    let journal_idx = get_u64_val(&config, "journalIndex");
-    let retry_count = get_u64_val(&config, "retryCount");
-    let timeline = build_execution_timeline(&status, journal_idx, retry_count);
+    let journal_idx = read_u64_with_legacy_fallback(
+        &execution_data,
+        &config,
+        "journal_index",
+        "journalIndex",
+    );
+    let retry_count = read_u64_with_legacy_fallback(
+        &execution_data,
+        &config,
+        "retry_count",
+        "retryCount",
+    );
+    let timeline = build_execution_timeline(status_value, journal_idx, retry_count);
     let pinned_output = get_pinned_output(&config);
     let output_payload = last_output.clone().or_else(|| pinned_output.clone());
 
@@ -138,19 +155,23 @@ pub(super) fn ExecutionTab(
                 label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Invocation Status" }
                 if is_executed {
                     {
-                        let (bg_color, text_color, border_color, icon_name, is_spin) = match status.as_str() {
+                        let (bg_color, text_color, border_color, icon_name, is_spin) = match status_value {
+                            "queued" => ("bg-cyan-500/15", "text-cyan-400", "border-cyan-500/30", "clock", false),
                             "running" => ("bg-indigo-500/15", "text-indigo-400", "border-indigo-500/30", "loader", true),
                             "suspended" => ("bg-pink-500/15", "text-pink-400", "border-pink-500/30", "pause", false),
                             "completed" => ("bg-emerald-500/15", "text-emerald-400", "border-emerald-500/30", "check-circle", false),
                             "failed" => ("bg-red-500/15", "text-red-400", "border-red-500/30", "alert-circle", false),
+                            "skipped" => ("bg-slate-500/15", "text-slate-300", "border-slate-500/30", "x", false),
                             "retrying" => ("bg-amber-500/15", "text-amber-400", "border-amber-500/30", "refresh", true),
                             _ => ("bg-slate-500/15", "text-slate-400", "border-slate-500/30", "help-circle", false),
                         };
-                        let label = match status.as_str() {
+                        let label = match status_value {
+                            "queued" => "Queued",
                             "running" => "Running",
                             "suspended" => "Suspended",
                             "completed" => "Completed",
                             "failed" => "Failed",
+                            "skipped" => "Skipped",
                             "retrying" => "Retrying",
                             other => other,
                         };
@@ -346,6 +367,59 @@ fn get_pinned_output(config: &Value) -> Option<Value> {
     config.get(PINNED_OUTPUT_KEY).cloned()
 }
 
+fn runtime_status(execution_state: ExecutionState, execution_data: &Value) -> Option<String> {
+    let runtime_status = execution_data
+        .get("status")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|status| !status.is_empty())
+        .map(ToOwned::to_owned);
+
+    match runtime_status {
+        Some(status) => Some(status),
+        None => match execution_state {
+            ExecutionState::Idle => None,
+            ExecutionState::Queued => Some("queued".to_string()),
+            ExecutionState::Running => Some("running".to_string()),
+            ExecutionState::Completed => Some("completed".to_string()),
+            ExecutionState::Failed => Some("failed".to_string()),
+            ExecutionState::Skipped => Some("skipped".to_string()),
+        },
+    }
+}
+
+fn resolve_status(
+    execution_state: ExecutionState,
+    execution_data: &Value,
+    config: &Value,
+) -> Option<String> {
+    match runtime_status(execution_state, execution_data) {
+        Some(status) => Some(status),
+        None => {
+            let legacy_status = get_str_val(config, "status");
+            if legacy_status.trim().is_empty() {
+                None
+            } else {
+                Some(legacy_status)
+            }
+        }
+    }
+}
+
+fn read_u64_with_legacy_fallback(
+    execution_data: &Value,
+    config: &Value,
+    key: &str,
+    legacy_key: &str,
+) -> Option<u64> {
+    execution_data
+        .get(key)
+        .and_then(Value::as_u64)
+        .or_else(|| execution_data.get(legacy_key).and_then(Value::as_u64))
+        .or_else(|| config.get(key).and_then(Value::as_u64))
+        .or_else(|| config.get(legacy_key).and_then(Value::as_u64))
+}
+
 fn output_origin_label(has_live_output: bool, has_pinned_output: bool) -> &'static str {
     if has_live_output {
         "Live output"
@@ -368,7 +442,10 @@ fn payload_shape(payload: &Value) -> String {
 }
 
 fn json_preview(payload: &Value, max_lines: usize) -> String {
-    let pretty = serde_json::to_string_pretty(payload).unwrap_or_else(|_| payload.to_string());
+    let pretty = match serde_json::to_string_pretty(payload) {
+        Ok(serialized) => serialized,
+        Err(_) => payload.to_string(),
+    };
     let lines: Vec<&str> = pretty.lines().collect();
     if lines.len() <= max_lines {
         return pretty;
@@ -383,8 +460,9 @@ fn json_preview(payload: &Value, max_lines: usize) -> String {
 mod tests {
     use super::{
         build_execution_timeline, get_pinned_output, json_preview, output_origin_label,
-        payload_shape, ExecutionEventKind,
+        payload_shape, read_u64_with_legacy_fallback, resolve_status, ExecutionEventKind,
     };
+    use oya_frontend::graph::ExecutionState;
     use serde_json::json;
 
     #[test]
@@ -447,5 +525,46 @@ mod tests {
 
         let preview = json_preview(&payload, 6);
         assert!(preview.contains("... (truncated)"));
+    }
+
+    #[test]
+    fn status_prefers_runtime_data_over_other_sources() {
+        let status = resolve_status(
+            ExecutionState::Completed,
+            &json!({"status": "retrying"}),
+            &json!({"status": "failed"}),
+        );
+
+        assert_eq!(status.as_deref(), Some("retrying"));
+    }
+
+    #[test]
+    fn status_falls_back_to_execution_state_and_then_legacy_config() {
+        let from_state =
+            resolve_status(ExecutionState::Running, &json!({}), &json!({"status": "failed"}));
+        let from_config =
+            resolve_status(ExecutionState::Idle, &json!({}), &json!({"status": "suspended"}));
+
+        assert_eq!(from_state.as_deref(), Some("running"));
+        assert_eq!(from_config.as_deref(), Some("suspended"));
+    }
+
+    #[test]
+    fn counters_prefer_runtime_and_fallback_to_legacy_keys() {
+        let runtime = read_u64_with_legacy_fallback(
+            &json!({"retry_count": 3}),
+            &json!({"retryCount": 2}),
+            "retry_count",
+            "retryCount",
+        );
+        let legacy = read_u64_with_legacy_fallback(
+            &json!({}),
+            &json!({"journalIndex": 8}),
+            "journal_index",
+            "journalIndex",
+        );
+
+        assert_eq!(runtime, Some(3));
+        assert_eq!(legacy, Some(8));
     }
 }

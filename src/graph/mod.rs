@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::fmt;
 use uuid::Uuid;
 
@@ -116,6 +117,83 @@ pub struct Node {
 }
 
 impl Node {
+    fn alias_target_for_config_key(key: &str) -> Option<&'static str> {
+        match key {
+            "stateKey" => Some("key"),
+            "conditionExpression" => Some("expression"),
+            "durableStepName" => Some("durable_step_name"),
+            "targetService" | "service_name" | "handler_name" => Some("target"),
+            "loopIterator" => Some("iterator"),
+            "compensationHandler" => Some("target_step"),
+            "cronExpression" => Some("schedule"),
+            "workflowKey" => Some("workflow_name"),
+            "promiseName" => Some("promise_name"),
+            "awakeableId" => Some("awakeable_id"),
+            "signalName" => Some("signal_name"),
+            "timeoutMs" => Some("timeout_ms"),
+            _ => None,
+        }
+    }
+
+    fn should_apply_alias(config_object: &Map<String, Value>, target: &str) -> bool {
+        config_object.get(target).map_or(true, Value::is_null)
+    }
+
+    fn normalize_config_aliases(config: &Value) -> Value {
+        let Value::Object(config_object) = config else {
+            return config.clone();
+        };
+
+        let mut normalized = config_object.clone();
+        for (key, value) in config_object {
+            if let Some(target) = Self::alias_target_for_config_key(key) {
+                if Self::should_apply_alias(&normalized, target) {
+                    normalized.insert(target.to_string(), value.clone());
+                }
+            }
+        }
+
+        Value::Object(normalized)
+    }
+
+    fn merged_node_json(&self, config: &Value) -> Option<Value> {
+        let Value::Object(base_object) = serde_json::to_value(&self.node).ok()? else {
+            return None;
+        };
+
+        let Value::Object(config_object) = config else {
+            return None;
+        };
+
+        let mut merged = base_object.clone();
+        for (key, value) in config_object {
+            merged.insert(key.clone(), value.clone());
+        }
+
+        if let Some(base_type) = base_object.get("type").cloned() {
+            merged.insert("type".to_string(), base_type);
+        }
+
+        Some(Value::Object(merged))
+    }
+
+    pub fn apply_config_update(&mut self, new_config: &Value) {
+        let normalized_config = Self::normalize_config_aliases(new_config);
+        self.config = normalized_config.clone();
+
+        if let Some(updated_node) = self
+            .merged_node_json(&normalized_config)
+            .and_then(|json| serde_json::from_value::<WorkflowNode>(json).ok())
+        {
+            self.node = updated_node;
+            self.node_type = self.node.to_string();
+            self.category = self.node.category();
+            self.icon = self.node.icon().to_string();
+            self.description = self.node.description().to_string();
+        }
+    }
+
+    #[must_use]
     pub fn from_workflow_node(name: String, node: WorkflowNode, x: f32, y: f32) -> Self {
         let category = node.category();
         let icon = node.icon().to_string();
@@ -137,8 +215,8 @@ impl Node {
             skipped: false,
             error: None,
             execution_state: ExecutionState::default(),
-            metadata: Default::default(),
-            execution_data: Default::default(),
+            metadata: Value::default(),
+            execution_data: Value::default(),
             node_type,
             description,
             config,
@@ -202,7 +280,9 @@ impl Default for Workflow {
 
 #[cfg(test)]
 mod tests {
-    use super::{NodeCategory, NodeId, PortName};
+    use super::workflow_node::{SendMessageConfig, SetStateConfig};
+    use super::{Node, NodeCategory, NodeId, PortName, WorkflowNode};
+    use serde_json::{json, Value};
 
     #[test]
     fn given_node_id_when_displayed_then_it_matches_inner_uuid() {
@@ -230,5 +310,93 @@ mod tests {
         assert_eq!(NodeCategory::Flow.to_string(), "flow");
         assert_eq!(NodeCategory::Timing.to_string(), "timing");
         assert_eq!(NodeCategory::Signal.to_string(), "signal");
+    }
+
+    #[test]
+    fn given_config_update_when_applied_then_node_config_is_replaced() {
+        let mut node = Node::from_workflow_node(
+            "state".to_string(),
+            WorkflowNode::SetState(SetStateConfig::default()),
+            0.0,
+            0.0,
+        );
+
+        node.apply_config_update(&json!({
+            "type": "set-state",
+            "stateKey": "cart"
+        }));
+
+        assert_eq!(node.config.get("stateKey").and_then(Value::as_str), Some("cart"));
+    }
+
+    #[test]
+    fn given_set_state_alias_state_key_when_applied_then_typed_key_is_updated() {
+        let mut node = Node::from_workflow_node(
+            "state".to_string(),
+            WorkflowNode::SetState(SetStateConfig::default()),
+            0.0,
+            0.0,
+        );
+
+        node.apply_config_update(&json!({
+            "type": "set-state",
+            "stateKey": "session"
+        }));
+
+        assert_eq!(
+            node.config.get("key").and_then(Value::as_str),
+            Some("session")
+        );
+
+        assert!(matches!(
+            &node.node,
+            WorkflowNode::SetState(config)
+                if config.key.as_deref() == Some("session")
+        ));
+    }
+
+    #[test]
+    fn given_send_message_alias_target_service_when_applied_then_typed_target_is_updated() {
+        let mut node = Node::from_workflow_node(
+            "send".to_string(),
+            WorkflowNode::SendMessage(SendMessageConfig::default()),
+            0.0,
+            0.0,
+        );
+
+        node.apply_config_update(&json!({
+            "type": "send-message",
+            "targetService": "notification-service"
+        }));
+
+        assert_eq!(
+            node.config.get("target").and_then(Value::as_str),
+            Some("notification-service")
+        );
+
+        assert!(matches!(
+            &node.node,
+            WorkflowNode::SendMessage(config)
+                if config.target.as_deref() == Some("notification-service")
+        ));
+    }
+
+    #[test]
+    fn given_non_object_config_when_applying_then_typed_node_is_preserved() {
+        let mut node = Node::from_workflow_node(
+            "state".to_string(),
+            WorkflowNode::SetState(SetStateConfig {
+                key: Some("session".to_string()),
+                value: Some("active".to_string()),
+            }),
+            0.0,
+            0.0,
+        );
+        let original_node = node.node.clone();
+
+        node.apply_config_update(&json!("invalid-shape"));
+
+        assert_eq!(node.config, json!("invalid-shape"));
+        assert_eq!(node.node, original_node);
     }
 }

@@ -2,6 +2,22 @@ use super::{get_str_val, get_u64_val};
 use dioxus::prelude::*;
 use serde_json::Value;
 
+fn normalize_http_method(method: &str) -> &'static str {
+    if method.eq_ignore_ascii_case("GET") {
+        "GET"
+    } else if method.eq_ignore_ascii_case("POST") {
+        "POST"
+    } else if method.eq_ignore_ascii_case("PUT") {
+        "PUT"
+    } else if method.eq_ignore_ascii_case("DELETE") {
+        "DELETE"
+    } else if method.eq_ignore_ascii_case("PATCH") {
+        "PATCH"
+    } else {
+        "POST"
+    }
+}
+
 #[component]
 pub(super) fn EntryConfig(
     icon: String,
@@ -11,38 +27,41 @@ pub(super) fn EntryConfig(
 ) -> Element {
     rsx! {
         match icon.as_str() {
-            "clock" => rsx! {
-                div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Cron Expression" }
-                    input {
-                        class: "{input_cls}",
-                        placeholder: "\"0 */5 * * *\" (every 5 min)",
-                        value: "{get_str_val(&config, \"cronExpression\")}",
-                        oninput: move |e| update_str.call(("cronExpression".to_string(), e.value()))
+            "globe" => {
+                let method = normalize_http_method(&get_str_val(&config, "method"));
+                rsx! {
+                    FieldInput {
+                        input_cls: input_cls,
+                        label: "Path",
+                        value: get_str_val(&config, "path"),
+                        on_change: move |value: String| update_str.call(("path".to_string(), value))
+                    }
+                    div { class: "flex flex-col gap-1.5",
+                        label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "HTTP Method" }
+                        select {
+                            class: "{input_cls}",
+                            value: "{method}",
+                            onchange: move |e| update_str.call((
+                                "method".to_string(),
+                                normalize_http_method(&e.value()).to_string(),
+                            )),
+                            option { value: "GET", "GET" }
+                            option { value: "POST", "POST" }
+                            option { value: "PUT", "PUT" }
+                            option { value: "DELETE", "DELETE" }
+                            option { value: "PATCH", "PATCH" }
+                        }
                     }
                 }
+            }
+            "clock" => rsx! {
+                FieldInput { input_cls: input_cls, label: "Schedule", value: get_str_val(&config, "schedule"), on_change: move |value: String| update_str.call(("schedule".to_string(), value)) }
             },
             "kafka" => rsx! {
-                div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Kafka Topic" }
-                    input {
-                        class: "{input_cls}",
-                        placeholder: "orders-topic",
-                        value: "{get_str_val(&config, \"topic\")}",
-                        oninput: move |e| update_str.call(("topic".to_string(), e.value()))
-                    }
-                }
+                FieldInput { input_cls: input_cls, label: "Kafka Topic", value: get_str_val(&config, "topic"), on_change: move |value: String| update_str.call(("topic".to_string(), value)) }
             },
-            "play-circle" => rsx! {
-                div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Workflow Key" }
-                    input {
-                        class: "{input_cls}",
-                        placeholder: "user-123",
-                        value: "{get_str_val(&config, \"workflowKey\")}",
-                        oninput: move |e| update_str.call(("workflowKey".to_string(), e.value()))
-                    }
-                }
+            "play" | "play-circle" => rsx! {
+                FieldInput { input_cls: input_cls, label: "Workflow Name", value: get_str_val(&config, "workflow_name"), on_change: move |value: String| update_str.call(("workflow_name".to_string(), value)) }
             },
             _ => rsx! {},
         }
@@ -50,139 +69,107 @@ pub(super) fn EntryConfig(
 }
 
 #[component]
-pub(super) fn DurableConfig(
-    icon: String,
-    config: Value,
-    update_str: EventHandler<(String, String)>,
+fn FieldInput(
     input_cls: &'static str,
+    label: &'static str,
+    value: String,
+    on_change: EventHandler<String>,
 ) -> Element {
     rsx! {
         div { class: "flex flex-col gap-1.5",
-            label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Step Name" }
-            input {
-                class: "{input_cls}",
-                placeholder: "e.g. \"create-user\"",
-                value: "{get_str_val(&config, \"durableStepName\")}",
-                oninput: move |e| update_str.call(("durableStepName".to_string(), e.value()))
-            }
-            span { class: "font-mono text-[10px] text-slate-500", "ctx.run(\"name\", () => ...)" }
+            label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "{label}" }
+            input { class: "{input_cls}", value: "{value}", oninput: move |e| on_change.call(e.value()) }
         }
+    }
+}
 
-        div { class: "flex flex-col gap-1.5",
-            label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Target Service" }
-            input {
-                class: "{input_cls}",
-                placeholder: "PaymentService",
-                value: "{get_str_val(&config, \"targetService\")}",
-                oninput: move |e| update_str.call(("targetService".to_string(), e.value()))
-            }
-            span { class: "font-mono text-[10px] text-slate-500", "ctx.serviceClient<T>(\"name\")" }
-        }
-
-        div { class: "flex flex-col gap-1.5",
-            label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Handler / Method" }
-            input {
-                class: "{input_cls}",
-                placeholder: "processPayment",
-                value: "{get_str_val(&config, \"targetHandler\")}",
-                oninput: move |e| update_str.call(("targetHandler".to_string(), e.value()))
-            }
-            span { class: "font-mono text-[10px] text-slate-500", ".processPayment(req)" }
-        }
-
-        if icon == "send" {
-            div { class: "rounded-lg border border-dashed border-indigo-500/30 bg-indigo-500/5 p-2",
-                p { class: "text-[10px] text-slate-400", "Fire-and-forget: ctx.objectSendClient<T>(key).method(req)" }
-            }
-        }
-
-        if icon == "clock-send" {
-            div { class: "flex flex-col gap-1.5",
-                label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Delay Duration" }
-                input {
-                    class: "{input_cls}",
-                    placeholder: "\"1h\", \"30m\"",
-                    value: "{get_str_val(&config, \"sleepDuration\")}",
-                    oninput: move |e| update_str.call(("sleepDuration".to_string(), e.value()))
+#[component]
+pub(super) fn DurableConfig(
+    node: WorkflowNode,
+    config: Value,
+    update_str: EventHandler<(String, String)>,
+    update_u64: EventHandler<(String, u64)>,
+    input_cls: &'static str,
+) -> Element {
+    rsx! {
+        match node {
+            WorkflowNode::Run(_) => rsx! { FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) } },
+            WorkflowNode::ServiceCall(_) => rsx! {
+                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Service", value: get_str_val(&config, "service"), on_change: move |value: String| update_str.call(("service".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Endpoint", value: get_str_val(&config, "endpoint"), on_change: move |value: String| update_str.call(("endpoint".to_string(), value)) }
+            },
+            WorkflowNode::ObjectCall(_) => rsx! {
+                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Object Name", value: get_str_val(&config, "object_name"), on_change: move |value: String| update_str.call(("object_name".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Handler", value: get_str_val(&config, "handler"), on_change: move |value: String| update_str.call(("handler".to_string(), value)) }
+            },
+            WorkflowNode::WorkflowCall(_) => rsx! {
+                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Workflow Name", value: get_str_val(&config, "workflow_name"), on_change: move |value: String| update_str.call(("workflow_name".to_string(), value)) }
+            },
+            WorkflowNode::SendMessage(_) => rsx! {
+                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
+                FieldInput { input_cls: input_cls, label: "Target", value: get_str_val(&config, "target"), on_change: move |value: String| update_str.call(("target".to_string(), value)) }
+            },
+            WorkflowNode::DelayedSend(_) => rsx! {
+                div { class: "flex flex-col gap-1.5",
+                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Delay (ms)" }
+                    input {
+                        r#type: "number",
+                        class: "{input_cls}",
+                        value: "{get_u64_val(&config, \"delay_ms\").map_or(0, |value| value)}",
+                        oninput: move |e| {
+                            if let Ok(value) = e.value().parse::<u64>() {
+                                update_u64.call(("delay_ms".to_string(), value));
+                            }
+                        }
+                    }
                 }
-                span { class: "font-mono text-[10px] text-slate-500", "ctx.objectSendClient(key, {{ delay: ... }})" }
-            }
+                FieldInput { input_cls: input_cls, label: "Target", value: get_str_val(&config, "target"), on_change: move |value: String| update_str.call(("target".to_string(), value)) }
+            },
+            _ => rsx! {},
         }
     }
 }
 
 #[component]
 pub(super) fn StateConfig(
-    icon: String,
+    node: WorkflowNode,
     config: Value,
     update_str: EventHandler<(String, String)>,
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        div { class: "flex flex-col gap-1.5",
-            label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "State Key" }
-            input {
-                class: "{input_cls}",
-                placeholder: "\"cart\", \"profile\"",
-                value: "{get_str_val(&config, \"stateKey\")}",
-                oninput: move |e| update_str.call(("stateKey".to_string(), e.value()))
-            }
-        }
-        div { class: "rounded-lg border border-dashed border-orange-500/30 bg-orange-500/5 p-2",
-            p { class: "font-mono text-[10px] leading-relaxed text-slate-400",
-                if icon == "download" { "await ctx.get<T>(\"key\")" }
-                else if icon == "upload" { "ctx.set(\"key\", value)" }
-                else if icon == "eraser" { "ctx.clear(\"key\") | clearAll()" }
-            }
+        FieldInput { input_cls: input_cls, label: "State Key", value: get_str_val(&config, "key"), on_change: move |value: String| update_str.call(("key".to_string(), value)) }
+        if matches!(node, WorkflowNode::SetState(_)) {
+            FieldInput { input_cls: input_cls, label: "Value", value: get_str_val(&config, "value"), on_change: move |value: String| update_str.call(("value".to_string(), value)) }
         }
     }
 }
 
 #[component]
 pub(super) fn FlowConfig(
-    icon: String,
+    node: WorkflowNode,
     config: Value,
     update_str: EventHandler<(String, String)>,
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        match icon.as_str() {
-            "git-branch" => rsx! {
+        match node {
+            WorkflowNode::Condition(_) | WorkflowNode::Switch(_) => rsx! {
                 div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Condition Expression" }
+                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Expression" }
                     textarea {
                         class: "resize-none rounded-md border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-[11px] text-slate-100 outline-none transition-colors focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30",
                         rows: "2",
-                        placeholder: "user.verified === true",
-                        value: "{get_str_val(&config, \"conditionExpression\")}",
-                        oninput: move |e| update_str.call(("conditionExpression".to_string(), e.value()))
+                        value: "{get_str_val(&config, \"expression\")}",
+                        oninput: move |e| update_str.call(("expression".to_string(), e.value()))
                     }
                 }
             },
-            "repeat" => rsx! {
-                div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Loop Iterator" }
-                    input {
-                        class: "{input_cls}",
-                        placeholder: "items, userIds, tasks",
-                        value: "{get_str_val(&config, \"loopIterator\")}",
-                        oninput: move |e| update_str.call(("loopIterator".to_string(), e.value()))
-                    }
-                    span { class: "font-mono text-[10px] text-slate-500", "for (const item of items) {{ ... }}" }
-                }
-            },
-            "undo" => rsx! {
-                div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Compensation Handler" }
-                    input {
-                        class: "{input_cls}",
-                        placeholder: "refundPayment",
-                        value: "{get_str_val(&config, \"compensationHandler\")}",
-                        oninput: move |e| update_str.call(("compensationHandler".to_string(), e.value()))
-                    }
-                    span { class: "text-[10px] text-slate-500", "Saga rollback logic" }
-                }
-            },
+            WorkflowNode::Loop(_) => rsx! { FieldInput { input_cls: input_cls, label: "Iterator", value: get_str_val(&config, "iterator"), on_change: move |value: String| update_str.call(("iterator".to_string(), value)) } },
+            WorkflowNode::Compensate(_) => rsx! { FieldInput { input_cls: input_cls, label: "Target Step", value: get_str_val(&config, "target_step"), on_change: move |value: String| update_str.call(("target_step".to_string(), value)) } },
             _ => rsx! {},
         }
     }
@@ -190,41 +177,33 @@ pub(super) fn FlowConfig(
 
 #[component]
 pub(super) fn TimingConfig(
-    icon: String,
+    node: WorkflowNode,
     config: Value,
-    update_str: EventHandler<(String, String)>,
     update_u64: EventHandler<(String, u64)>,
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        match icon.as_str() {
-            "timer" => rsx! {
+        match node {
+            WorkflowNode::Sleep(_) => rsx! {
                 div { class: "flex flex-col gap-1.5",
-                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Sleep Duration" }
+                    label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Duration (ms)" }
                     input {
+                        r#type: "number",
                         class: "{input_cls}",
-                        placeholder: "\"5m\", \"1h\", \"30s\"",
-                        value: "{get_str_val(&config, \"sleepDuration\")}",
-                        oninput: move |e| update_str.call(("sleepDuration".to_string(), e.value()))
+                        value: "{get_u64_val(&config, \"duration_ms\").map_or(0, |value| value)}",
+                        oninput: move |e| if let Ok(value) = e.value().parse::<u64>() { update_u64.call(("duration_ms".to_string(), value)); }
                     }
-                    span { class: "font-mono text-[10px] text-slate-500", "await ctx.sleep(duration)" }
                 }
             },
-            "alarm" => rsx! {
+            WorkflowNode::Timeout(_) => rsx! {
                 div { class: "flex flex-col gap-1.5",
                     label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Timeout (ms)" }
                     input {
                         r#type: "number",
                         class: "{input_cls}",
-                        placeholder: "30000",
-                        value: "{get_u64_val(&config, \"timeoutMs\").map_or_else(|| 30000, |v| v)}",
-                        oninput: move |e| {
-                            if let Ok(val) = e.value().parse::<u64>() {
-                                update_u64.call(("timeoutMs".to_string(), val));
-                            }
-                        }
+                        value: "{get_u64_val(&config, \"timeout_ms\").map_or(0, |value| value)}",
+                        oninput: move |e| if let Ok(value) = e.value().parse::<u64>() { update_u64.call(("timeout_ms".to_string(), value)); }
                     }
-                    span { class: "font-mono text-[10px] text-slate-500", "promise.orTimeout(ms)" }
                 }
             },
             _ => rsx! {},
@@ -234,40 +213,17 @@ pub(super) fn TimingConfig(
 
 #[component]
 pub(super) fn SignalConfig(
-    icon: String,
+    node: WorkflowNode,
     config: Value,
     update_str: EventHandler<(String, String)>,
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        if icon == "sparkles" || icon == "bell" {
-            div { class: "flex flex-col gap-1.5",
-                label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Promise Name" }
-                input {
-                    class: "{input_cls}",
-                    placeholder: "\"payment-completed\"",
-                    value: "{get_str_val(&config, \"promiseName\")}",
-                    oninput: move |e| update_str.call(("promiseName".to_string(), e.value()))
-                }
-                span { class: "font-mono text-[10px] text-slate-500",
-                    if icon == "sparkles" { "await ctx.promise<T>(\"name\")" }
-                    else { "const {{ id, promise }} = ctx.awakeable<T>()" }
-                }
-            }
-        } else if icon == "check-circle" {
-            div { class: "flex flex-col gap-1.5",
-                label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Promise to Resolve" }
-                input {
-                    class: "{input_cls}",
-                    placeholder: "\"payment-completed\"",
-                    value: "{get_str_val(&config, \"promiseName\")}",
-                    oninput: move |e| update_str.call(("promiseName".to_string(), e.value()))
-                }
-                span { class: "font-mono text-[10px] text-slate-500", "ctx.promiseManager().resolve(\"name\", val)" }
-            }
-        }
-        div { class: "rounded-lg border border-dashed border-blue-500/30 bg-blue-500/5 p-2",
-            p { class: "text-[10px] leading-relaxed text-slate-400", "Durable promises suspend execution until resolved externally via HTTP or SDK." }
+        match node {
+            WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_) => rsx! { FieldInput { input_cls: input_cls, label: "Promise Name", value: get_str_val(&config, "promise_name"), on_change: move |value: String| update_str.call(("promise_name".to_string(), value)) } },
+            WorkflowNode::Awakeable(_) => rsx! { FieldInput { input_cls: input_cls, label: "Awakeable ID", value: get_str_val(&config, "awakeable_id"), on_change: move |value: String| update_str.call(("awakeable_id".to_string(), value)) } },
+            WorkflowNode::SignalHandler(_) => rsx! { FieldInput { input_cls: input_cls, label: "Signal Name", value: get_str_val(&config, "signal_name"), on_change: move |value: String| update_str.call(("signal_name".to_string(), value)) } },
+            _ => rsx! {},
         }
     }
 }

@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn given_mixed_succeeded_and_failed_when_computing_status_then_returns_partial_failure() {
         let mut node1 = make_node(Uuid::nil(), "service-call", 0.0, 0.0);
-        node1.execution_state = ExecutionState::Succeeded;
+        node1.execution_state = ExecutionState::Completed;
         let mut node2 = make_node(Uuid::new_v4(), "run", 100.0, 100.0);
         node2.execution_state = ExecutionState::Failed;
 

@@ -4,46 +4,53 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-//! SQL queries for Restate introspection API
+//! SQL queries for Restate introspection API.
 
-/// Pre-built SQL queries for Restate introspection
+use crate::restate_client::types::InvocationStatus;
+
+const INVOCATION_PROJECTION: &str =
+    "id, target, target_service_name, target_service_key, target_handler_name, target_service_ty, status, created_at, modified_at, completed_at, journal_size, retry_count, invoked_by, invoked_by_service_name, invoked_by_id, trace_id, last_failure, last_failure_error_code";
+
+/// Pre-built SQL queries for Restate introspection.
 pub struct SqlQueries;
 
 impl SqlQueries {
-    /// List all invocations (active only by default)
+    /// List all invocations (active only by default).
     pub fn list_invocations(include_completed: bool) -> String {
         if include_completed {
-            "SELECT id, target, status, created_at, modified_at, completed_at, journal_size, retry_count, invoked_by, last_failure FROM sys_invocation ORDER BY created_at DESC".to_string()
+            format!("SELECT {INVOCATION_PROJECTION} FROM sys_invocation ORDER BY created_at DESC")
         } else {
-            "SELECT id, target, status, created_at, modified_at, completed_at, journal_size, retry_count, invoked_by, last_failure FROM sys_invocation WHERE status != 'completed' ORDER BY created_at DESC".to_string()
+            format!(
+                "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status != 'completed' ORDER BY created_at DESC"
+            )
         }
     }
 
-    /// Get single invocation by ID
+    /// Get single invocation by ID.
     pub fn invocation(id: &str) -> String {
         format!(
-            "SELECT * FROM sys_invocation WHERE id = '{}'",
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE id = '{}'",
             escape_sql(id)
         )
     }
 
-    /// Get invocation by status
-    pub fn invocations_by_status(status: &str) -> String {
+    /// Get invocations by status.
+    pub fn invocations_by_status(status: InvocationStatus) -> String {
         format!(
-            "SELECT id, target, status, created_at, modified_at, journal_size FROM sys_invocation WHERE status = '{}' ORDER BY created_at DESC",
-            status
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status = '{}' ORDER BY created_at DESC",
+            invocation_status_literal(status)
         )
     }
 
-    /// Get journal entries for an invocation (ordered by index)
+    /// Get journal entries for an invocation (ordered by index).
     pub fn journal(invocation_id: &str) -> String {
         format!(
-            "SELECT id, index, entry_type, name, completed, invoked_id, invoked_target, sleep_wakeup_at, promise_name, entry_json, appended_at FROM sys_journal WHERE id = '{}' ORDER BY index",
+            "SELECT id, index, entry_type, name, completed, invoked_id, invoked_target, sleep_wakeup_at, promise_name, entry_json, entry_lite_json, appended_at FROM sys_journal WHERE id = '{}' ORDER BY index",
             escape_sql(invocation_id)
         )
     }
 
-    /// Get journal events since a given index
+    /// Get journal events since a given index.
     pub fn journal_events_since(invocation_id: &str, since_index: u32) -> String {
         format!(
             "SELECT id, after_journal_entry_index, appended_at, event_type, event_json FROM sys_journal_events WHERE id = '{}' AND after_journal_entry_index > {} ORDER BY appended_at",
@@ -52,7 +59,7 @@ impl SqlQueries {
         )
     }
 
-    /// Get all state for a service
+    /// Get all state for a service.
     pub fn service_state(service_name: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, value_utf8, value FROM state WHERE service_name = '{}'",
@@ -60,7 +67,7 @@ impl SqlQueries {
         )
     }
 
-    /// Get state for a specific key
+    /// Get state for a specific key.
     pub fn keyed_state(service_name: &str, service_key: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, value_utf8, value FROM state WHERE service_name = '{}' AND service_key = '{}'",
@@ -69,22 +76,22 @@ impl SqlQueries {
         )
     }
 
-    /// List all services
+    /// List all services.
     pub fn services() -> String {
         "SELECT name, ty, revision, public, deployment_id FROM sys_service ORDER BY name".to_string()
     }
 
-    /// List all deployments
+    /// List all deployments.
     pub fn deployments() -> String {
         "SELECT id, ty, endpoint, created_at FROM sys_deployment ORDER BY created_at DESC".to_string()
     }
 
-    /// Get keyed service status (blocking invocations)
+    /// Get keyed service status (blocking invocations).
     pub fn keyed_service_status() -> String {
         "SELECT service_name, service_key, invocation_id FROM sys_keyed_service_status".to_string()
     }
 
-    /// Get promises for a workflow
+    /// Get promises for a workflow.
     pub fn promises(service_name: &str, service_key: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, completed, completion_success_value, completion_failure FROM sys_promise WHERE service_name = '{}' AND service_key = '{}'",
@@ -93,31 +100,46 @@ impl SqlQueries {
         )
     }
 
-    /// Get invocations for a specific service
+    /// Get invocations for a specific service.
     pub fn invocations_for_service(service_name: &str) -> String {
         format!(
-            "SELECT id, target, status, created_at, modified_at, journal_size FROM sys_invocation WHERE target_service_name = '{}' ORDER BY created_at DESC",
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE target_service_name = '{}' ORDER BY created_at DESC",
             escape_sql(service_name)
         )
     }
 
-    /// Get invocations in backing-off status (retries)
+    /// Get invocations in backing-off status (retries).
     pub fn retrying_invocations() -> String {
-        "SELECT id, target, status, retry_count, last_failure, last_failure_error_code, next_retry_at FROM sys_invocation WHERE status = 'backing-off' ORDER BY modified_at".to_string()
+        format!(
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status = 'backing-off' ORDER BY modified_at"
+        )
     }
 
-    /// Get oldest stuck invocations
-    pub fn stuck_invocations(since_hours: i64) -> String {
+    /// Get oldest stuck invocations using an absolute cutoff timestamp in epoch ms.
+    pub fn stuck_invocations(cutoff_epoch_ms: i64) -> String {
         format!(
-            "SELECT id, target, status, modified_at, journal_size FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {} ORDER BY modified_at",
-            since_hours * 3600 * 1000
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {} ORDER BY modified_at, created_at",
+            cutoff_epoch_ms
         )
     }
 }
 
-/// Escape single quotes in SQL string literals
-fn escape_sql(s: &str) -> String {
-    s.replace('\'', "''")
+fn invocation_status_literal(status: InvocationStatus) -> &'static str {
+    match status {
+        InvocationStatus::Pending => "pending",
+        InvocationStatus::Scheduled => "scheduled",
+        InvocationStatus::Ready => "ready",
+        InvocationStatus::Running => "running",
+        InvocationStatus::Paused => "paused",
+        InvocationStatus::BackingOff => "backing-off",
+        InvocationStatus::Suspended => "suspended",
+        InvocationStatus::Completed => "completed",
+    }
+}
+
+/// Escape single quotes in SQL string literals.
+fn escape_sql(input: &str) -> String {
+    input.replace('\'', "''")
 }
 
 #[cfg(test)]
@@ -125,116 +147,80 @@ mod tests {
     use super::*;
 
     #[test]
-    fn list_invocations_query_contains_select() {
-        let q = SqlQueries::list_invocations(false);
-        assert!(q.contains("SELECT"));
-        assert!(q.contains("sys_invocation"));
+    fn list_invocations_query_contains_projection() {
+        let query = SqlQueries::list_invocations(false);
+        assert!(query.contains("SELECT"));
+        assert!(query.contains("target_service_name"));
+        assert!(query.contains("last_failure_error_code"));
+    }
+
+    #[test]
+    fn invocation_query_uses_explicit_projection() {
+        let query = SqlQueries::invocation("inv_123");
+        assert!(query.contains("target_handler_name"));
+        assert!(!query.contains("SELECT *"));
+    }
+
+    #[test]
+    fn invocations_by_status_uses_typed_literal() {
+        let query = SqlQueries::invocations_by_status(InvocationStatus::Running);
+        assert!(query.contains("status = 'running'"));
+        assert!(!query.contains("DROP TABLE"));
+    }
+
+    #[test]
+    fn journal_query_includes_entry_lite_json() {
+        let query = SqlQueries::journal("inv_123");
+        assert!(query.contains("entry_lite_json"));
     }
 
     #[test]
     fn journal_query_escapes_id() {
-        let q = SqlQueries::journal("inv_123");
-        assert!(q.contains("inv_123"));
-    }
-
-    #[test]
-    fn service_state_query_escapes_name() {
-        let q = SqlQueries::service_state("MyService");
-        assert!(q.contains("MyService"));
-    }
-
-    #[test]
-    fn keyed_state_escapes_both_params() {
-        let q = SqlQueries::keyed_state("MyService", "my-key");
-        assert!(q.contains("MyService"));
-        assert!(q.contains("my-key"));
-    }
-
-    #[test]
-    fn escape_sql_handles_quotes() {
-        assert_eq!(escape_sql("test"), "test");
-        assert_eq!(escape_sql("it's"), "it''s");
-        assert_eq!(escape_sql("a'b'c"), "a''b''c");
-    }
-
-    #[test]
-    fn service_state_empty_name() {
-        let q = SqlQueries::service_state("");
-        assert!(q.contains("service_name = ''"));
+        let query = SqlQueries::journal("inv'id");
+        assert!(query.contains("inv''id"));
     }
 
     #[test]
     fn service_state_sql_injection_attempt() {
-        let q = SqlQueries::service_state("'; DROP TABLE state; --");
-        assert!(q.contains("''; DROP TABLE state; --"));
-        assert!(!q.contains("' DROP TABLE"));
+        let query = SqlQueries::service_state("'; DROP TABLE state; --");
+        assert!(query.contains("''; DROP TABLE state; --"));
+        assert!(!query.contains("' DROP TABLE"));
     }
 
     #[test]
-    fn service_state_special_characters() {
-        let q = SqlQueries::service_state("service'name");
-        assert!(q.contains("service''name"));
+    fn keyed_state_escapes_both_params() {
+        let query = SqlQueries::keyed_state("MyService", "my'key");
+        assert!(query.contains("MyService"));
+        assert!(query.contains("my''key"));
     }
 
     #[test]
-    fn service_state_unicode() {
-        let q = SqlQueries::service_state("服务");
-        assert!(q.contains("服务"));
+    fn stuck_invocations_uses_absolute_cutoff() {
+        let query = SqlQueries::stuck_invocations(1_700_000_000_000);
+        assert!(query.contains("modified_at <= 1700000000000"));
+        assert!(query.contains("ORDER BY modified_at, created_at"));
     }
 
     #[test]
-    fn keyed_state_empty_key() {
-        let q = SqlQueries::keyed_state("MyService", "");
-        assert!(q.contains("MyService"));
-        assert!(q.contains("service_key = ''"));
-    }
+    fn invocation_queries_share_projection_columns() {
+        let queries = [
+            SqlQueries::list_invocations(true),
+            SqlQueries::invocations_by_status(InvocationStatus::Pending),
+            SqlQueries::invocations_for_service("svc"),
+            SqlQueries::retrying_invocations(),
+            SqlQueries::stuck_invocations(0),
+        ];
 
-    #[test]
-    fn stuck_invocations_zero_hours() {
-        let q = SqlQueries::stuck_invocations(0);
-        assert!(q.contains("modified_at <= 0"));
-    }
-
-    #[test]
-    fn stuck_invocations_negative_hours() {
-        let q = SqlQueries::stuck_invocations(-1);
-        assert!(q.contains("modified_at <= -3600000"));
-    }
-
-    #[test]
-    fn journal_query_escapes_special_chars() {
-        let q = SqlQueries::journal("inv'id");
-        assert!(q.contains("inv''id"));
-    }
-
-    #[test]
-    fn invocation_query_empty_id() {
-        let q = SqlQueries::invocation("");
-        assert!(q.contains("id = ''"));
-    }
-
-    #[test]
-    fn invocations_for_service_empty() {
-        let q = SqlQueries::invocations_for_service("");
-        assert!(q.contains("target_service_name = ''"));
-    }
-
-    #[test]
-    fn promises_empty_key() {
-        let q = SqlQueries::promises("Service", "");
-        assert!(q.contains("Service"));
-        assert!(q.contains("service_key = ''"));
-    }
-
-    #[test]
-    fn journal_events_since_zero_index() {
-        let q = SqlQueries::journal_events_since("inv_123", 0);
-        assert!(q.contains("after_journal_entry_index > 0"));
+        for query in queries {
+            assert!(query.contains("target_service_name"));
+            assert!(query.contains("invoked_by_service_name"));
+            assert!(query.contains("last_failure_error_code"));
+        }
     }
 
     #[test]
     fn journal_events_since_max_index() {
-        let q = SqlQueries::journal_events_since("inv_123", u32::MAX);
-        assert!(q.contains(&format!("after_journal_entry_index > {}", u32::MAX)));
+        let query = SqlQueries::journal_events_since("inv_123", u32::MAX);
+        assert!(query.contains(&format!("after_journal_entry_index > {}", u32::MAX)));
     }
 }

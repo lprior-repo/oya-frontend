@@ -21,20 +21,20 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
                 class: "form-field",
                 label {
                     class: "block text-sm font-medium text-gray-700 mb-1",
-                    "Signal Name"
+                    "Promise Name"
                 }
                 input {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500",
                     placeholder: "e.g., payment_complete, order_shipped",
-                    value: "{config.read().signal_name}",
+                    value: "{config.read().promise_name}",
                     oninput: move |e| {
-                        config.write().signal_name = e.value().clone();
+                        config.write().promise_name = e.value().clone();
                     }
                 }
                 p {
                     class: "text-xs text-gray-500 mt-1",
-                    "Another workflow resolves this promise with this name"
+                    "Another workflow resolves this promise by name"
                 }
             }
 

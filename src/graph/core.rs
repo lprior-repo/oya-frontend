@@ -3,19 +3,25 @@ use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
 
 impl Workflow {
-    pub(super) fn set_node_status(node: &mut Node, status: &str) {
-        let config_json = serde_json::to_value(&node.node).ok();
-        if let Some(mut obj) = config_json.and_then(|v| v.as_object().cloned()) {
-            obj.insert(
+    pub(super) fn set_node_status(node: &mut Node, status: ExecutionState) {
+        node.execution_state = status;
+        let status_text = status.to_string();
+
+        let config_obj = match node.config.as_object().cloned() {
+            Some(obj) => obj
+                .into_iter()
+                .chain(std::iter::once((
+                    "status".to_string(),
+                    serde_json::Value::String(status_text.clone()),
+                )))
+                .collect(),
+            None => std::iter::once((
                 "status".to_string(),
-                serde_json::Value::String(status.to_string()),
-            );
-            if let Ok(new_node) = serde_json::from_value::<WorkflowNode>(
-                serde_json::Value::Object(obj)
-            ) {
-                node.node = new_node;
-            }
-        }
+                serde_json::Value::String(status_text),
+            ))
+            .collect(),
+        };
+        node.config = serde_json::Value::Object(config_obj);
     }
 
     #[must_use]
@@ -45,7 +51,9 @@ impl Workflow {
         let workflow_node = WorkflowNode::from_str(node_type)
             .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default()));
 
-        self.nodes.push(Node::from_workflow_node(name, workflow_node, final_x, final_y));
+        let mut node = Node::from_workflow_node(name, workflow_node, final_x, final_y);
+        node.id = id;
+        self.nodes.push(node);
         id
     }
 
@@ -95,6 +103,14 @@ mod tests {
     }
 
     #[test]
+    fn given_added_node_when_returning_id_then_it_matches_inserted_node_id() {
+        let mut workflow = Workflow::new();
+        let id = workflow.add_node("run", 0.0, 0.0);
+
+        assert!(workflow.nodes.iter().any(|node| node.id == id));
+    }
+
+    #[test]
     fn given_viewport_offset_and_zoom_when_adding_node_at_center_then_node_is_centered() {
         let mut workflow = Workflow::new();
         workflow.viewport = Viewport {
@@ -130,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn given_node_when_setting_status_then_status_is_updated_in_workflow_node() {
+    fn given_node_when_setting_status_then_status_is_updated_in_execution_state_and_config() {
         let mut node = Node::from_workflow_node(
             "n".to_string(),
             WorkflowNode::Run(RunConfig::default()),
@@ -138,13 +154,16 @@ mod tests {
             0.0,
         );
 
-        Workflow::set_node_status(&mut node, "running");
+        Workflow::set_node_status(&mut node, ExecutionState::Running);
 
-        match &node.node {
-            WorkflowNode::Run(config) => {
-                assert!(config.durable_step_name.is_none());
-            }
-            _ => panic!("Expected Run variant"),
-        }
+        // execution_state should be updated
+        assert_eq!(node.execution_state, ExecutionState::Running);
+        // config["status"] should be updated
+        assert_eq!(
+            node.config
+                .get("status")
+                .and_then(serde_json::Value::as_str),
+            Some("running")
+        );
     }
 }

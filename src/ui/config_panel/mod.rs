@@ -67,6 +67,8 @@ pub fn NodeConfigEditor(
                     Tab::Execution => rsx! {
                         ExecutionTab {
                             config: config.clone(),
+                            execution_state: node.execution_state,
+                            execution_data: node.execution_data.clone(),
                             last_output: node.last_output.clone(),
                             input_payloads,
                             on_pin_sample: EventHandler::new({
@@ -124,10 +126,10 @@ fn ConfigTab(node: Node, on_change: EventHandler<Value>) -> Element {
         div { class: "flex flex-col gap-4",
             match node.category {
                 NodeCategory::Entry => rsx! { EntryConfig { icon: node.icon.clone(), config: config.clone(), update_str, input_cls: INPUT_CLASS } },
-                NodeCategory::Durable => rsx! { DurableConfig { icon: node.icon.clone(), config: config.clone(), update_str, input_cls: INPUT_CLASS } },
+                NodeCategory::Durable => rsx! { DurableConfig { icon: node.icon.clone(), config: config.clone(), update_str, update_u64, input_cls: INPUT_CLASS } },
                 NodeCategory::State => rsx! { StateConfig { icon: node.icon.clone(), config: config.clone(), update_str, input_cls: INPUT_CLASS } },
                 NodeCategory::Flow => rsx! { FlowConfig { icon: node.icon.clone(), config: config.clone(), update_str, input_cls: INPUT_CLASS } },
-                NodeCategory::Timing => rsx! { TimingConfig { icon: node.icon.clone(), config: config.clone(), update_str, update_u64, input_cls: INPUT_CLASS } },
+                NodeCategory::Timing => rsx! { TimingConfig { icon: node.icon.clone(), config: config.clone(), update_u64, input_cls: INPUT_CLASS } },
                 NodeCategory::Signal => rsx! { SignalConfig { icon: node.icon.clone(), config: config.clone(), update_str, input_cls: INPUT_CLASS } },
             }
 

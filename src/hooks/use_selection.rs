@@ -31,6 +31,19 @@ fn add_unique_selection(current: &[NodeId], id: NodeId) -> Vec<NodeId> {
     next
 }
 
+fn reconcile_primary_selection(
+    current_primary: Option<NodeId>,
+    selected_ids: &[NodeId],
+) -> Option<NodeId> {
+    if selected_ids.is_empty() {
+        return None;
+    }
+
+    current_primary
+        .filter(|id| selected_ids.contains(id))
+        .or_else(|| selected_ids.first().copied())
+}
+
 /// Selection state hook - manages which nodes are selected.
 ///
 /// Follows functional reactive pattern:
@@ -75,7 +88,11 @@ impl SelectionState {
     /// Add a node to selection without clearing
     pub fn add_to_selection(mut self, id: NodeId) {
         let ids = self.selected_ids.read().clone();
-        self.selected_ids.set(add_unique_selection(&ids, id));
+        let next_ids = add_unique_selection(&ids, id);
+        let current_primary = *self.selected_id.read();
+        self.selected_id
+            .set(reconcile_primary_selection(current_primary, &next_ids));
+        self.selected_ids.set(next_ids);
     }
 
     /// Set multiple selected nodes at once
@@ -92,24 +109,17 @@ impl SelectionState {
 
     /// Set pending drag targets
     pub fn set_pending_drag(mut self, ids: Vec<NodeId>) {
-        if let Ok(mut pending_drag) = self.pending_drag.try_write() {
-            *pending_drag = Some(ids);
-        }
+        self.pending_drag.set(Some(ids));
     }
 
     /// Clear pending drag targets
     pub fn clear_pending_drag(mut self) {
-        if let Ok(mut pending_drag) = self.pending_drag.try_write() {
-            *pending_drag = None;
-        }
+        self.pending_drag.set(None);
     }
 
     /// Read and clear pending drag targets atomically if present.
     pub fn take_pending_drag(mut self) -> Option<Vec<NodeId>> {
-        self.pending_drag
-            .try_write()
-            .ok()
-            .and_then(|mut pending_drag| pending_drag.take())
+        self.pending_drag.write().take()
     }
 
     /// Access pending drag targets
@@ -147,7 +157,7 @@ pub fn use_selection() -> SelectionState {
 
 #[cfg(test)]
 mod tests {
-    use super::{add_unique_selection, toggle_selection_ids};
+    use super::{add_unique_selection, reconcile_primary_selection, toggle_selection_ids};
     use oya_frontend::graph::NodeId;
 
     #[test]
@@ -182,5 +192,34 @@ mod tests {
 
         assert_eq!(next, vec![a, b]);
         assert_eq!(selected, Some(b));
+    }
+
+    #[test]
+    fn given_current_primary_in_selection_when_reconciling_then_primary_is_preserved() {
+        let a = NodeId::new();
+        let b = NodeId::new();
+
+        let primary = reconcile_primary_selection(Some(b), &[a, b]);
+
+        assert_eq!(primary, Some(b));
+    }
+
+    #[test]
+    fn given_missing_primary_when_reconciling_then_first_selected_becomes_primary() {
+        let a = NodeId::new();
+        let b = NodeId::new();
+
+        let primary = reconcile_primary_selection(None, &[a, b]);
+
+        assert_eq!(primary, Some(a));
+    }
+
+    #[test]
+    fn given_empty_selection_when_reconciling_then_primary_is_none() {
+        let a = NodeId::new();
+
+        let primary = reconcile_primary_selection(Some(a), &[]);
+
+        assert_eq!(primary, None);
     }
 }

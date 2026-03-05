@@ -102,16 +102,22 @@ pub fn ValidationPanel(
                                 ValidationSeverity::Warning => rsx! { AlertTriangleIcon { class: "h-3.5 w-3.5 text-amber-500 shrink-0" } },
                             };
 
-                            rsx! {
-                                button {
-                                    class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors hover:bg-white {severity_class}",
-                                    onclick: move |_| {
-                                        if let Some(nid) = node_id {
-                                            on_select_node.call(nid);
-                                        }
-                                    },
-                                    {icon}
-                                    span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
+                            if let Some(nid) = node_id {
+                                rsx! {
+                                    button {
+                                        class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors hover:bg-white {severity_class}",
+                                        onclick: move |_| on_select_node.call(nid),
+                                        {icon}
+                                        span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
+                                    }
+                                }
+                            } else {
+                                rsx! {
+                                    div {
+                                        class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 {severity_class}",
+                                        {icon}
+                                        span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
+                                    }
                                 }
                             }
                         }

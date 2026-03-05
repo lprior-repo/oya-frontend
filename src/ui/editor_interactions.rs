@@ -37,12 +37,15 @@ pub fn snap_handle(
     String,
     crate::ui::edges::Position,
 )> {
-    const SNAP_RADIUS: f32 = 24.0;
-    let radius_sq = SNAP_RADIUS * SNAP_RADIUS;
+    const SCREEN_SNAP_RADIUS: f32 = 24.0;
 
     if !viewport.zoom.is_finite() || viewport.zoom.abs() <= f32::EPSILON {
         return None;
     }
+
+    // Convert screen-space radius to canvas-space for zoom-invariant behavior
+    let canvas_radius = SCREEN_SNAP_RADIUS / viewport.zoom.abs();
+    let radius_sq = canvas_radius * canvas_radius;
 
     let canvas_x = (mx - viewport.x) / viewport.zoom;
     let canvas_y = (my - viewport.y) / viewport.zoom;
@@ -83,7 +86,22 @@ pub fn snap_handle(
             }
 
             let should_replace = match &best {
-                Some((_, _, _, best_dist)) => dist_sq < *best_dist,
+                Some((best_id, best_kind, _, best_dist)) => {
+                    // Deterministic tie-breaking: compare by distance first, then node id, then handle kind
+                    if dist_sq < *best_dist {
+                        true
+                    } else if (dist_sq - *best_dist).abs() < f32::EPSILON {
+                        // Equal distance: use stable ordering by node id and handle kind
+                        let node_cmp = node.id.cmp(best_id);
+                        if node_cmp == std::cmp::Ordering::Equal {
+                            kind.cmp(best_kind) == std::cmp::Ordering::Less
+                        } else {
+                            node_cmp == std::cmp::Ordering::Less
+                        }
+                    } else {
+                        false
+                    }
+                }
                 None => true,
             };
             if should_replace {
@@ -163,5 +181,129 @@ mod tests {
             }
             None => assert!(false, "closest handle should be detected"),
         }
+    }
+
+    #[test]
+    fn given_zoom_level_when_snapping_then_behavior_is_zoom_invariant() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("node", 100.0, 100.0);
+
+        // At zoom 1.0: cursor at (123, 109) is ~23 pixels from source handle (320, 134)
+        // At zoom 0.5: cursor at (210, 117) should snap to same handle (same visual distance)
+        // At zoom 2.0: cursor at (246, 121) should snap to same handle (same visual distance)
+
+        let viewport_1x = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: 1.0,
+        };
+        let snapped_1x = snap_handle(&workflow.nodes, 318.0, 134.0, &viewport_1x);
+
+        let viewport_05x = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: 0.5,
+        };
+        let snapped_05x = snap_handle(&workflow.nodes, 209.0, 117.0, &viewport_05x);
+
+        let viewport_2x = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: 2.0,
+        };
+        let snapped_2x = snap_handle(&workflow.nodes, 246.0, 121.0, &viewport_2x);
+
+        // All should snap to the same handle (source handle at x=320, y=134)
+        assert!(snapped_1x.is_some());
+        assert!(snapped_05x.is_some());
+        assert!(snapped_2x.is_some());
+
+        if let (Some((id1, kind1, _)), Some((id2, kind2, _)), Some((id3, kind3, _))) =
+            (snapped_1x, snapped_05x, snapped_2x)
+        {
+            assert_eq!(id1, id2, "zoom 0.5 should select same node as zoom 1.0");
+            assert_eq!(id2, id3, "zoom 2.0 should select same node as zoom 0.5");
+            assert_eq!(
+                kind1, kind2,
+                "zoom 0.5 should select same handle kind as zoom 1.0"
+            );
+            assert_eq!(
+                kind2, kind3,
+                "zoom 2.0 should select same handle kind as zoom 0.5"
+            );
+        } else {
+            assert!(false, "all zoom levels should find a snap handle");
+        }
+    }
+
+    #[test]
+    fn given_equal_distance_candidates_when_snapping_then_selection_is_deterministic() {
+        let mut workflow = Workflow::new();
+        // Add two nodes with handles at the same distance from cursor
+        let _ = workflow.add_node("node-a", 100.0, 100.0);
+        let _ = workflow.add_node("node-b", 300.0, 100.0);
+
+        let viewport = Viewport {
+            x: 0.0,
+            y: 0.0,
+            zoom: 1.0,
+        };
+
+        // Cursor at x=200 is equidistant from both source handles (x=100 and x=300)
+        // With deterministic tie-breaking, node-a should always win (lexicographically smaller id)
+        let snapped = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+
+        assert!(snapped.is_some());
+
+        // The selection should be deterministic based on node id ordering
+        // Run multiple times to verify consistency
+        for _ in 0..10 {
+            let result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+            assert!(result.is_some());
+            let (node_id, _, _) = result.unwrap();
+            // node-a should always be selected due to deterministic tie-breaking
+            assert!(
+                node_id.0.contains("node-a") || node_id.0 < "node-b",
+                "deterministic tie-break should prefer lower node id"
+            );
+        }
+    }
+
+    #[test]
+    fn given_infinite_zoom_when_snapping_then_no_handle_is_returned() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("test", 100.0, 100.0);
+
+        let result = snap_handle(
+            &workflow.nodes,
+            100.0,
+            100.0,
+            &Viewport {
+                x: 0.0,
+                y: 0.0,
+                zoom: f32::INFINITY,
+            },
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn given_nan_zoom_when_snapping_then_no_handle_is_returned() {
+        let mut workflow = Workflow::new();
+        let _ = workflow.add_node("test", 100.0, 100.0);
+
+        let result = snap_handle(
+            &workflow.nodes,
+            100.0,
+            100.0,
+            &Viewport {
+                x: 0.0,
+                y: 0.0,
+                zoom: f32::NAN,
+            },
+        );
+
+        assert!(result.is_none());
     }
 }

@@ -6,8 +6,22 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
     let pretty_input = if let Ok(value) = serde_json::to_string_pretty(&*config.read().input) {
         value
     } else {
-        String::new()
+        "{}".to_string()
     };
+    let json_draft = use_signal(|| pretty_input.clone());
+    let json_error = use_signal(|| Option::<String>::None);
+    let last_synced_input = use_signal(|| pretty_input.clone());
+
+    use_effect(move || {
+        let latest = serde_json::to_string_pretty(&*config.read().input)
+            .unwrap_or_else(|_| "{}".to_string());
+        let synced = last_synced_input.read().clone();
+        if latest != synced {
+            last_synced_input.set(latest.clone());
+            json_draft.set(latest);
+            json_error.set(None);
+        }
+    });
 
     let key_value = match config.read().key.clone() {
         Some(value) => value,
@@ -47,12 +61,18 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                         ServiceCallConfig { target_type: TargetType::Workflow, .. } => "Workflow",
                     },
                     onchange: move |e| {
-                        config.write().target_type = match e.value().as_str() {
+                        let next_target_type = match e.value().as_str() {
                             "Service" => TargetType::Service,
                             "Virtual Object" => TargetType::VirtualObject,
                             "Workflow" => TargetType::Workflow,
                             _ => TargetType::Service,
                         };
+
+                        let mut cfg = config.write();
+                        cfg.target_type = next_target_type;
+                        if matches!(next_target_type, TargetType::Service) {
+                            cfg.key = None;
+                        }
                     },
                     option { value: "Service", "Service (stateless)" }
                     option { value: "Virtual Object", "Virtual Object (stateful)" }
@@ -90,7 +110,12 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                     placeholder: "e.g., order-123",
                     value: "{key_value}",
                     oninput: move |e| {
-                        config.write().key = Some(e.value().clone());
+                        let value = e.value().clone();
+                        config.write().key = if value.trim().is_empty() {
+                            None
+                        } else {
+                            Some(value)
+                        };
                     }
                 }
                 p {
@@ -126,16 +151,33 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
-                    value: "{pretty_input}",
+                    value: "{json_draft.read()}",
                     oninput: move |e| {
-                        if let Ok(v) = serde_json::from_str(&e.value()) {
-                            config.write().input = v;
+                        let draft = e.value().clone();
+                        json_draft.set(draft.clone());
+
+                        match serde_json::from_str(&draft) {
+                            Ok(value) => {
+                                config.write().input = value;
+                                last_synced_input.set(draft);
+                                json_error.set(None);
+                            }
+                            Err(error) => {
+                                json_error.set(Some(format!("Invalid JSON: {error}")));
+                            }
                         }
                     },
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Invalid JSON is ignored to preserve last valid value"
+                if let Some(error) = json_error() {
+                    p {
+                        class: "text-xs text-red-600 mt-1",
+                        "{error}"
+                    }
+                } else {
+                    p {
+                        class: "text-xs text-gray-500 mt-1",
+                        "Enter valid JSON to update this field"
+                    }
                 }
             }
 
@@ -151,7 +193,12 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                     placeholder: "e.g., {{ steps.validate.valid }} == true",
                     value: "{condition_value}",
                     oninput: move |e| {
-                        config.write().condition = Some(e.value().clone());
+                        let value = e.value().clone();
+                        config.write().condition = if value.trim().is_empty() {
+                            None
+                        } else {
+                            Some(value)
+                        };
                     }
                 }
                 p {

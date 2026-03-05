@@ -96,6 +96,55 @@ pub fn format_run_duration(_run: &RunRecord) -> String {
     "—".to_string()
 }
 
+
+#[must_use]
+fn truncate_preview(input: &str, max_chars: usize) -> String {
+    if max_chars == 0 {
+        return String::new();
+    }
+
+    if input.chars().count() <= max_chars {
+        return input.to_string();
+    }
+
+    if max_chars <= 3 {
+        return ".".repeat(max_chars);
+    }
+
+    let keep = max_chars - 3;
+    let mut preview: String = input.chars().take(keep).collect();
+    preview.push_str("...");
+    preview
+}
+
+#[must_use]
+fn is_failed_step_result(result: &serde_json::Value) -> bool {
+    match result {
+        serde_json::Value::Null => true,
+        serde_json::Value::Object(map) => map.get("error").is_some_and(|error_value| {
+            match error_value {
+                serde_json::Value::Null => false,
+                serde_json::Value::String(message) => !message.is_empty(),
+                _ => true,
+            }
+        }),
+        _ => false,
+    }
+}
+
+#[must_use]
+fn derive_step_counts(run: &RunRecord) -> (usize, usize) {
+    run.results
+        .values()
+        .fold((0usize, 0usize), |(ok, failed), result| {
+            if is_failed_step_result(result) {
+                (ok, failed + 1)
+            } else {
+                (ok + 1, failed)
+            }
+        })
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -103,10 +152,10 @@ pub fn format_run_duration(_run: &RunRecord) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        format_elapsed, format_run_duration, format_run_status, run_status_badge_class,
-        status_badge_classes, truncate_id,
+        derive_step_counts, format_elapsed, format_run_duration, format_run_status,
+        run_status_badge_class, status_badge_classes, truncate_id, truncate_preview,
     };
-    use oya_frontend::graph::RunRecord;
+    use oya_frontend::graph::{NodeId, RunRecord};
     use std::collections::HashMap;
     use uuid::Uuid;
 
@@ -178,6 +227,51 @@ mod tests {
         let run = make_run(true);
         assert_eq!(format_run_duration(&run), "—");
     }
+
+
+    #[test]
+    fn given_multibyte_preview_when_truncating_then_utf8_boundaries_are_preserved() {
+        let input = "alpha🙂beta🙂gamma";
+        assert_eq!(truncate_preview(input, 10), "alpha🙂b...");
+    }
+
+    #[test]
+    fn given_short_preview_when_truncating_then_value_is_unchanged() {
+        let input = r#"{"ok":true}"#;
+        assert_eq!(truncate_preview(input, 30), input);
+    }
+
+    #[test]
+    fn given_failed_run_without_step_errors_when_deriving_counts_then_steps_are_not_all_failed() {
+        let mut results = HashMap::new();
+        let _ = results.insert(NodeId::new(), serde_json::json!({"ok": true}));
+
+        let run = RunRecord {
+            id: Uuid::new_v4(),
+            timestamp: chrono::Utc::now(),
+            results,
+            success: false,
+        };
+
+        assert_eq!(derive_step_counts(&run), (1, 0));
+    }
+
+    #[test]
+    fn given_mixed_step_results_when_deriving_counts_then_ok_and_failed_are_counted_per_result() {
+        let mut results = HashMap::new();
+        let _ = results.insert(NodeId::new(), serde_json::json!({"value": 1}));
+        let _ = results.insert(NodeId::new(), serde_json::json!({"error": "boom"}));
+        let _ = results.insert(NodeId::new(), serde_json::json!(null));
+
+        let run = RunRecord {
+            id: Uuid::new_v4(),
+            timestamp: chrono::Utc::now(),
+            results,
+            success: false,
+        };
+
+        assert_eq!(derive_step_counts(&run), (1, 2));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,11 +313,7 @@ pub fn ExecutionHistoryTable(
                             let badge_class = run_status_badge_class(run.success);
                             let start_time = format_timestamp(&run.timestamp);
                             let duration = format_run_duration(run);
-                            // Derive steps OK / failed from results map (placeholder logic).
-                            // Once RunRecord carries per-step success flags this can be refined.
-                            let steps_total = run.results.len();
-                            let steps_ok = if run.success { steps_total } else { 0usize };
-                            let steps_failed = steps_total - steps_ok;
+                            let (steps_ok, steps_failed) = derive_step_counts(run);
 
                             let row_base = "cursor-pointer transition-colors border-b border-slate-100 last:border-b-0";
                             let row_class = if is_active {
@@ -446,13 +536,11 @@ pub fn ExecutionHistoryPanel(
                                                                     |n| n.name.clone(),
                                                                 );
                                                             let node_id_for_click = *node_id;
-                                                            let result_preview = serde_json::to_string(result)
-                                                                .unwrap_or_else(|_| "{}".to_string());
-                                                            let truncated_result = if result_preview.len() > 30 {
-                                                                format!("{}...", &result_preview[..27])
-                                                            } else {
-                                                                result_preview
+                                                            let result_preview = match serde_json::to_string(result) {
+                                                                Ok(serialized) => serialized,
+                                                                Err(_) => "{}".to_string(),
                                                             };
+                                                            let truncated_result = truncate_preview(&result_preview, 30);
 
                                                             rsx! {
                                                                 button {

@@ -7,6 +7,22 @@ use super::config_panel::{get_str_val, get_u64_val};
 const INPUT_CLASS: &str =
     "h-7 w-full rounded border border-slate-300 bg-white px-2 font-mono text-[11px] text-slate-800 outline-none transition-colors focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30";
 
+fn normalize_http_method(method: &str) -> &'static str {
+    if method.eq_ignore_ascii_case("GET") {
+        "GET"
+    } else if method.eq_ignore_ascii_case("POST") {
+        "POST"
+    } else if method.eq_ignore_ascii_case("PUT") {
+        "PUT"
+    } else if method.eq_ignore_ascii_case("DELETE") {
+        "DELETE"
+    } else if method.eq_ignore_ascii_case("PATCH") {
+        "PATCH"
+    } else {
+        "POST"
+    }
+}
+
 #[component]
 pub fn InlineConfigPanel(
     node: Node,
@@ -39,7 +55,7 @@ pub fn InlineConfigPanel(
                     NodeCategory::State => state_config(&config, on_change),
                     NodeCategory::Flow => flow_config(&icon, &config, on_change),
                     NodeCategory::Timing => timing_config(&icon, &config, on_change),
-                    NodeCategory::Signal => signal_config(&config, on_change),
+                    NodeCategory::Signal => signal_config(&icon, &config, on_change),
                 }}
             }
         }
@@ -48,9 +64,38 @@ pub fn InlineConfigPanel(
 
 fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
     match icon {
-        "clock" => text_field("Cron", "cronExpression", config, "0 */5 * * *", on_change),
+        "globe" => {
+            let method = normalize_http_method(&get_str_val(config, "method")).to_string();
+            let config_clone = config.clone();
+            rsx! {
+                {text_field("Path", "path", config, "/orders/{order_id}", on_change.clone())}
+                div { class: "flex flex-col gap-0.5",
+                    label { class: "text-[9px] font-medium uppercase tracking-wide text-slate-500", "Method" }
+                    select {
+                        class: "{INPUT_CLASS}",
+                        value: "{method}",
+                        onchange: move |e| {
+                            let mut new_config = config_clone.clone();
+                            if let Some(obj) = new_config.as_object_mut() {
+                                obj.insert(
+                                    "method".to_string(),
+                                    Value::String(normalize_http_method(&e.value()).to_string()),
+                                );
+                                on_change.call(new_config);
+                            }
+                        },
+                        option { value: "GET", "GET" }
+                        option { value: "POST", "POST" }
+                        option { value: "PUT", "PUT" }
+                        option { value: "DELETE", "DELETE" }
+                        option { value: "PATCH", "PATCH" }
+                    }
+                }
+            }
+        }
+        "clock" => text_field("Schedule", "schedule", config, "0 */5 * * *", on_change),
         "kafka" => text_field("Topic", "topic", config, "orders-topic", on_change),
-        "play-circle" => text_field("Workflow Key", "workflowKey", config, "user-123", on_change),
+        "play" => text_field("Workflow Name", "workflow_name", config, "SignupWorkflow", on_change),
         _ => rsx! { div { class: "text-[10px] italic text-slate-400", "No quick config" } },
     }
 }
@@ -156,14 +201,38 @@ fn timing_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> 
     }
 }
 
-fn signal_config(config: &Value, on_change: EventHandler<Value>) -> Element {
-    text_field(
-        "Promise",
-        "promiseName",
-        config,
-        "payment-completed",
-        on_change,
-    )
+fn signal_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+    match icon {
+        "target" => text_field(
+            "Promise Name",
+            "promise_name",
+            config,
+            "payment-completed",
+            on_change,
+        ),
+        "radio" => text_field(
+            "Awakeable ID",
+            "awakeable_id",
+            config,
+            "payment-callback",
+            on_change,
+        ),
+        "check-circle" => text_field(
+            "Promise Name",
+            "promise_name",
+            config,
+            "payment-completed",
+            on_change,
+        ),
+        "bell" => text_field(
+            "Signal Name",
+            "signal_name",
+            config,
+            "payment_signal",
+            on_change,
+        ),
+        _ => rsx! { div { class: "text-[10px] italic text-slate-400", "No quick config" } },
+    }
 }
 
 fn text_field(

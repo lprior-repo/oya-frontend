@@ -1,22 +1,9 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, Node, NodeId};
+use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 
-#[derive(Clone, Copy, PartialEq)]
-struct Rect {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-}
-
-#[derive(Clone, PartialEq)]
-struct ParallelGroup {
-    source_node: Option<Node>,
-    target_nodes: Vec<Node>,
-    bounds: Rect,
-}
+use crate::ui::editor_interactions::{NODE_WIDTH, NODE_HEIGHT};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
@@ -24,8 +11,6 @@ pub struct Position {
     pub y: f32,
 }
 
-const NODE_WIDTH: f32 = 220.0;
-const NODE_HEIGHT: f32 = 68.0;
 const BEND_CLAMP: f32 = 200.0;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -35,10 +20,10 @@ struct EdgeAnchor {
 }
 
 #[derive(Clone)]
-struct DragState {
-    edge_id: String,
-    start_y: f32,
-    start_bend: f32,
+pub struct DragState {
+    pub edge_id: String,
+    pub start_page_y: f32,
+    pub start_bend: f32,
 }
 
 fn get_source_point(node: &Node) -> Position {
@@ -127,7 +112,12 @@ fn resolve_edge_anchors_with_parallel(
 
             let group = parallel_groups
                 .iter()
-                .find(|g| g.target_nodes.iter().any(|n| n.id == edge.target));
+                .find(|g| {
+                    g.source_node
+                        .as_ref()
+                        .is_some_and(|src| src.id == edge.source)
+                        && g.target_nodes.iter().any(|n| n.id == edge.target)
+                });
 
             let adjusted_to = group.map_or(to, |g| {
                 let offset = calculate_parallel_offset(&edge.target, &g.target_nodes, NODE_HEIGHT);
@@ -163,13 +153,23 @@ fn calculate_parallel_offset(target_id: &NodeId, targets: &[Node], node_height: 
 }
 
 fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<ParallelGroup> {
+    // Only consider explicit WorkflowNode::Parallel nodes as sources for parallel groups
+    let parallel_node_ids: Vec<NodeId> = nodes
+        .iter()
+        .filter(|node| matches!(node.node, WorkflowNode::Parallel(_)))
+        .map(|node| node.id)
+        .collect();
+
     let mut source_targets: HashMap<NodeId, std::collections::HashSet<NodeId>> = HashMap::new();
 
     for connection in connections {
-        source_targets
-            .entry(connection.source)
-            .or_default()
-            .insert(connection.target);
+        // Only include connections from explicit Parallel nodes
+        if parallel_node_ids.contains(&connection.source) {
+            source_targets
+                .entry(connection.source)
+                .or_default()
+                .insert(connection.target);
+        }
     }
 
     let node_by_id: HashMap<_, _> = nodes.iter().map(|node| (node.id, node.clone())).collect();
@@ -234,10 +234,10 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        calculate_parallel_offset, find_parallel_branches, resolve_edge_anchors_with_parallel,
-        ParallelGroup, Rect,
+        calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
+        resolve_edge_anchors_with_parallel, ParallelGroup, Rect,
     };
-    use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName};
+    use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
 
     // Constants for test data builders
@@ -249,6 +249,16 @@ mod tests {
         Node::from_workflow_node(
             format!("Node {}", id),
             WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
+            x,
+            y,
+        )
+    }
+
+    /// Build a Parallel node for testing
+    fn build_parallel_node(id: NodeId, x: f32, y: f32) -> Node {
+        Node::from_workflow_node(
+            format!("Parallel {}", id),
+            WorkflowNode::Parallel(oya_frontend::graph::workflow_node::ParallelConfig::default()),
             x,
             y,
         )
@@ -836,6 +846,211 @@ mod tests {
         assert_eq!(anchor_a.to.x, 300.0);
         assert_eq!(anchor_b.to.x, 300.0);
     }
+
+    // ==================== Explicit Parallel Source Gating Tests ====================
+
+    #[test]
+    fn given_non_parallel_node_with_two_targets_when_find_parallel_then_returns_empty() {
+        // Even with >=2 outgoing edges, non-Parallel nodes should NOT create parallel groups
+        let source_id = NodeId::new();
+        let target_a_id = NodeId::new();
+        let target_b_id = NodeId::new();
+
+        let source = build_node(source_id, 100.0, 100.0); // Not a Parallel node
+        let target_a = build_node(target_a_id, 300.0, 100.0);
+        let target_b = build_node(target_b_id, 300.0, 200.0);
+
+        let nodes = vec![source.clone(), target_a.clone(), target_b.clone()];
+
+        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
+        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let connections = vec![conn_a, conn_b];
+
+        let groups = find_parallel_branches(&nodes, &connections);
+
+        // Should be empty because source is not WorkflowNode::Parallel
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn given_parallel_node_with_two_targets_when_find_parallel_then_returns_one_group() {
+        let source_id = NodeId::new();
+        let target_a_id = NodeId::new();
+        let target_b_id = NodeId::new();
+
+        let source = build_parallel_node(source_id, 100.0, 100.0); // Explicit Parallel node
+        let target_a = build_node(target_a_id, 300.0, 100.0);
+        let target_b = build_node(target_b_id, 300.0, 200.0);
+
+        let nodes = vec![source.clone(), target_a.clone(), target_b.clone()];
+
+        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
+        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let connections = vec![conn_a, conn_b];
+
+        let groups = find_parallel_branches(&nodes, &connections);
+
+        assert_eq!(groups.len(), 1);
+        let group = &groups[0];
+
+        assert!(group.source_node.is_some());
+        assert_eq!(group.target_nodes.len(), 2);
+    }
+
+    #[test]
+    fn given_multiple_parallel_nodes_when_find_parallel_then_returns_groups_for_each() {
+        let source_a_id = NodeId::new();
+        let source_b_id = NodeId::new();
+        let target_a1_id = NodeId::new();
+        let target_a2_id = NodeId::new();
+        let target_b1_id = NodeId::new();
+        let target_b2_id = NodeId::new();
+
+        let source_a = build_parallel_node(source_a_id, 100.0, 100.0);
+        let source_b = build_parallel_node(source_b_id, 100.0, 300.0);
+        let target_a1 = build_node(target_a1_id, 300.0, 100.0);
+        let target_a2 = build_node(target_a2_id, 300.0, 200.0);
+        let target_b1 = build_node(target_b1_id, 300.0, 300.0);
+        let target_b2 = build_node(target_b2_id, 300.0, 400.0);
+
+        let nodes = vec![source_a, source_b, target_a1, target_a2, target_b1, target_b2];
+
+        let conn_a1 = build_connection(Uuid::new_v4(), source_a_id, target_a1_id);
+        let conn_a2 = build_connection(Uuid::new_v4(), source_a_id, target_a2_id);
+        let conn_b1 = build_connection(Uuid::new_v4(), source_b_id, target_b1_id);
+        let conn_b2 = build_connection(Uuid::new_v4(), source_b_id, target_b2_id);
+        let connections = vec![conn_a1, conn_a2, conn_b1, conn_b2];
+
+        let groups = find_parallel_branches(&nodes, &connections);
+
+        assert_eq!(groups.len(), 2);
+    }
+
+    // ==================== Zoom-Normalized Bend Tests ====================
+
+    #[test]
+    fn given_valid_zoom_when_normalize_bend_then_returns_scaled_delta() {
+        let page_delta = 100.0;
+        let zoom = 2.0; // 200% zoom
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 50.0);
+    }
+
+    #[test]
+    fn given_zoom_of_one_when_normalize_bend_then_returns_same_delta() {
+        let page_delta = 75.0;
+        let zoom = 1.0;
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 75.0);
+    }
+
+    #[test]
+    fn given_invalid_zoom_zero_when_normalize_bend_then_returns_zero() {
+        let page_delta = 100.0;
+        let zoom = 0.0;
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn given_invalid_zoom_negative_when_normalize_bend_then_returns_zero() {
+        let page_delta = 100.0;
+        let zoom = -1.0;
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn given_invalid_zoom_nan_when_normalize_bend_then_returns_zero() {
+        let page_delta = 100.0;
+        let zoom = f32::NAN;
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn given_invalid_zoom_infinity_when_normalize_bend_then_returns_zero() {
+        let page_delta = 100.0;
+        let zoom = f32::INFINITY;
+
+        let result = normalize_bend_delta(page_delta, zoom);
+
+        assert_eq!(result, 0.0);
+    }
+
+    // ==================== Shared Target Disambiguation Test ====================
+
+    #[test]
+    fn given_shared_target_across_sources_when_resolve_anchors_then_uses_source_target_match() {
+        // Scenario: Two different Parallel sources both point to the SAME target
+        // The anchor resolution should correctly associate each edge with its source
+        let source_a_id = NodeId::new();
+        let source_b_id = NodeId::new();
+        let shared_target_id = NodeId::new();
+
+        // Both sources must be Parallel nodes for parallel group detection
+        let source_a = build_parallel_node(source_a_id, 100.0, 100.0);
+        let source_b = build_parallel_node(source_b_id, 100.0, 300.0);
+        let shared_target = build_node(shared_target_id, 300.0, 200.0);
+
+        let nodes = vec![
+            source_a.clone(),
+            source_b.clone(),
+            shared_target.clone(),
+        ];
+
+        let conn_a = build_connection(Uuid::new_v4(), source_a_id, shared_target_id);
+        let conn_b = build_connection(Uuid::new_v4(), source_b_id, shared_target_id);
+        let connections = vec![conn_a.clone(), conn_b.clone()];
+
+        // Create parallel groups for each source (each has single target)
+        let group_a = ParallelGroup {
+            source_node: Some(source_a),
+            target_nodes: vec![shared_target.clone()],
+            bounds: Rect {
+                x: 292.0,
+                y: 192.0,
+                width: 236.0,
+                height: 84.0,
+            },
+        };
+        let group_b = ParallelGroup {
+            source_node: Some(source_b),
+            target_nodes: vec![shared_target.clone()],
+            bounds: Rect {
+                x: 292.0,
+                y: 392.0,
+                width: 236.0,
+                height: 84.0,
+            },
+        };
+        let groups = vec![group_a, group_b];
+
+        let anchors = resolve_edge_anchors_with_parallel(&connections, &nodes, &groups);
+
+        // Both edges should resolve to the same target position (no offset since single target)
+        let anchor_a = anchors.get(&conn_a.id.to_string()).copied();
+        let anchor_b = anchors.get(&conn_b.id.to_string()).copied();
+
+        assert!(anchor_a.is_some());
+        assert!(anchor_b.is_some());
+
+        let anchor_a = anchor_a.unwrap();
+        let anchor_b = anchor_b.unwrap();
+
+        // Both should have the same target y since there's only one target in each group
+        assert_eq!(anchor_a.to.y, anchor_b.to.y);
+    }
 }
 
 #[component]
@@ -844,6 +1059,7 @@ pub fn FlowEdges(
     nodes: ReadSignal<Vec<Node>>,
     temp_edge: ReadSignal<Option<(Position, Position)>>,
     running_node_ids: ReadSignal<Vec<NodeId>>,
+    zoom: ReadSignal<f32>,
 ) -> Element {
     let mut hovered_edge = use_signal(|| None::<String>);
     let mut bend_offsets = use_signal(HashMap::<String, f32>::new);
@@ -898,7 +1114,15 @@ pub fn FlowEdges(
                     if !page_y.is_finite() {
                         return;
                     }
-                    let next_bend = sanitize_bend_input_edge(state.start_bend + (page_y - state.start_y), state.start_bend);
+                    let current_zoom = *zoom.read();
+                    // Validate zoom before applying delta
+                    if !current_zoom.is_finite() || current_zoom <= 0.0 {
+                        return;
+                    }
+                    // Normalize page-space delta to canvas-space using zoom
+                    let page_delta = page_y - state.start_page_y;
+                    let canvas_delta = page_delta / current_zoom;
+                    let next_bend = sanitize_bend_input_edge(state.start_bend + canvas_delta, state.start_bend);
                     bend_offsets.write().insert(state.edge_id, next_bend);
                 }
             },
@@ -1113,7 +1337,7 @@ pub fn FlowEdges(
                                             let next_bend = sanitize_bend_input_edge(current_bend, current_bend);
                                             drag_state.set(Some(DragState {
                                                 edge_id: edge_id.clone(),
-                                                start_y: page_y,
+                                                start_page_y: page_y,
                                                 start_bend: next_bend,
                                             }));
                                             hovered_edge.set(Some(edge_id.clone()));

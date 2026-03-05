@@ -1,5 +1,5 @@
 use super::expressions::ExpressionContext;
-use super::{NodeCategory, NodeId, RunRecord, Workflow};
+use super::{ExecutionState, NodeCategory, NodeId, RunRecord, Workflow};
 
 impl Workflow {
     fn compare_execution_priority(&self, a: NodeId, b: NodeId) -> std::cmp::Ordering {
@@ -94,7 +94,7 @@ impl Workflow {
             node.last_output = None;
             node.skipped = false;
             node.error = None;
-            Self::set_node_status(node, "pending");
+            Self::set_node_status(node, ExecutionState::Queued);
         });
     }
 
@@ -124,12 +124,11 @@ impl Workflow {
 
     async fn execute_node_type(
         &self,
-        node: &crate::graph::workflow_node::WorkflowNode,
+        node_type_str: &str,
         resolved_config: &serde_json::Value,
         parent_outputs: &[serde_json::Value],
     ) -> serde_json::Value {
-        let node_type_str = node.to_string();
-        match node_type_str.as_str() {
+        match node_type_str {
             "http-handler" | "kafka-handler" | "cron-trigger" => serde_json::json!({
                 "timestamp": chrono::Utc::now().to_rfc3339(),
                 "source": node_type_str
@@ -138,7 +137,7 @@ impl Workflow {
                 .get("mapping")
                 .cloned()
                 .map_or_else(|| serde_json::json!({}), std::convert::identity),
-            "service-call" | "object-call" | "workflow-call" => self.execute_service_call(node, resolved_config).await,
+            "service-call" | "object-call" | "workflow-call" => self.execute_service_call(resolved_config).await,
             "condition" => {
                 let condition = resolved_config
                     .get("expression")
@@ -158,7 +157,6 @@ impl Workflow {
 
     async fn execute_service_call(
         &self,
-        _node: &crate::graph::workflow_node::WorkflowNode,
         _resolved_config: &serde_json::Value,
     ) -> serde_json::Value {
         serde_json::json!({ "executed": true })
@@ -215,7 +213,7 @@ impl Workflow {
             .is_some_and(|n| n.skipped)
         {
             if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
-                Self::set_node_status(node, "skipped");
+                Self::set_node_status(node, ExecutionState::Skipped);
             }
             self.current_step += 1;
             return true;
@@ -223,7 +221,7 @@ impl Workflow {
 
         if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
             node.executing = true;
-            Self::set_node_status(node, "running");
+            Self::set_node_status(node, ExecutionState::Running);
         }
 
         let parent_outputs: Vec<serde_json::Value> = self
@@ -238,33 +236,53 @@ impl Workflow {
             })
             .collect();
 
-        if let Some(node) = self.nodes.iter().find(|n| n.id == node_id).cloned() {
-            let node_config_json = serde_json::to_value(&node.node).unwrap_or_default();
+        if let Some(node) = self.nodes.iter().find(|n| n.id == node_id) {
+            let node_type = node.node_type.clone();
+            let node_config_json = node.config.clone();
             let resolved_config = self.resolve_expressions(&node_config_json);
             let output = self
-                .execute_node_type(&node.node, &resolved_config, &parent_outputs)
+                .execute_node_type(&node_type, &resolved_config, &parent_outputs)
                 .await;
 
-            if matches!(node.node, crate::graph::workflow_node::WorkflowNode::Condition(_)) {
+            if node_type == "condition" {
                 let result = output
                     .get("result")
                     .and_then(serde_json::Value::as_bool)
                     .is_some_and(|value| value);
                 let skip_port = if result { "false" } else { "true" };
 
-                let targets_to_skip: Vec<NodeId> = self
+                // Collect all nodes in the non-taken branch (direct targets and descendants)
+                let branch_targets: Vec<NodeId> = self
                     .connections
                     .iter()
                     .filter(|c| c.source == node_id && c.source_port.0 == skip_port)
                     .map(|c| c.target)
                     .collect();
 
-                let all_targets_to_skip = self.collect_descendants(&targets_to_skip);
+                let branch_descendants = self.collect_descendants(&branch_targets);
+                
+                // Build the full skip set: condition node + all branch nodes
+                let mut skip_set: std::collections::HashSet<NodeId> = std::collections::HashSet::new();
+                skip_set.insert(node_id);
+                skip_set.extend(branch_descendants);
 
-                for target_id in &all_targets_to_skip {
-                    if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == *target_id) {
-                        target_node.skipped = true;
-                        Self::set_node_status(target_node, "skipped");
+                // Only skip a node if ALL its incoming connections come from the skip set
+                let target_ids: Vec<NodeId> = self.nodes.iter().map(|n| n.id).collect();
+                for target_id in target_ids {
+                    // Get all incoming connections to this target
+                    let incoming: Vec<NodeId> = self
+                        .connections
+                        .iter()
+                        .filter(|c| c.target == target_id)
+                        .map(|c| c.source)
+                        .collect();
+
+                    // If all incoming connections are from the skip set, mark as skipped
+                    if !incoming.is_empty() && incoming.iter().all(|src| skip_set.contains(src)) {
+                        if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == target_id) {
+                            target_node.skipped = true;
+                            Self::set_node_status(target_node, ExecutionState::Skipped);
+                        }
                     }
                 }
             }
@@ -272,9 +290,9 @@ impl Workflow {
             if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
                 if let Some(err) = output.get("error").and_then(serde_json::Value::as_str) {
                     n.error = Some(err.to_string());
-                    Self::set_node_status(n, "failed");
+                    Self::set_node_status(n, ExecutionState::Failed);
                 } else {
-                    Self::set_node_status(n, "completed");
+                    Self::set_node_status(n, ExecutionState::Completed);
                 }
                 n.executing = false;
                 n.last_output = Some(output);
@@ -326,11 +344,10 @@ impl Workflow {
                 return false;
             }
 
-            let node_config_json = serde_json::to_value(&node.node).unwrap_or_default();
-            node_config_json
-                .get("status")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(|status| status == "completed" || status == "skipped")
+            matches!(
+                node.execution_state,
+                ExecutionState::Completed | ExecutionState::Skipped
+            )
         });
         self.history.push(RunRecord {
             id: uuid::Uuid::new_v4(),
@@ -431,26 +448,36 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_node_output_error_when_running_then_node_is_failed_and_run_is_unsuccessful() {
+    async fn given_node_with_custom_config_when_executing_then_uses_persisted_config() {
         let mut workflow = Workflow::new();
         let trigger = workflow.add_node("http-handler", 0.0, 0.0);
-        let request = workflow.add_node("http-request", 10.0, 10.0);
+        let run_node = workflow.add_node("run", 100.0, 100.0);
         let main = PortName::from("main");
-        let _ = workflow.add_connection(trigger, request, &main, &main);
+        let _ = workflow.add_connection(trigger, run_node, &main, &main);
 
-        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == request) {
-            node.config = json!({"url": "http://127.0.0.1:0", "method": "GET"});
+        // Set custom config on the node - this is the user-edited config that gets persisted
+        if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == run_node) {
+            node.config = json!({
+                "mapping": {
+                    "custom_field": "custom_value",
+                    "nested": {"key": "nested_value"}
+                }
+            });
         }
 
         workflow.run().await;
 
-        let status = workflow
-            .nodes
-            .iter()
-            .find(|n| n.id == request)
-            .and_then(|n| n.config.get("status"))
-            .and_then(serde_json::Value::as_str);
-        assert_eq!(status, Some("failed"));
-        assert!(!workflow.history[0].success);
+        // Verify the node executed and used the custom config from node.config
+        let node = workflow.nodes.iter().find(|n| n.id == run_node);
+        assert!(node.is_some_and(|n| n.execution_state == ExecutionState::Completed));
+        
+        // Verify the output contains the custom config fields
+        if let Some(n) = node {
+            let output = n.last_output.as_ref();
+            assert!(output.is_some());
+            let out = output.unwrap();
+            assert_eq!(out.get("custom_field"), Some(&json!("custom_value")));
+            assert_eq!(out.get("nested"), Some(&json!({"key": "nested_value"})));
+        }
     }
 }

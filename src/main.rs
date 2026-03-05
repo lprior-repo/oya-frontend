@@ -212,14 +212,43 @@ fn App() -> Element {
             .as_ref()
             .and_then(|n| n.config.as_object().cloned().map(serde_json::Value::Object))
     });
-    let inspector_output = use_memo(move || {
-        selected_node
-            .read()
-            .as_ref()
-            .and_then(|n| n.last_output.clone())
+    let selected_frozen_run = use_memo(move || {
+        let run_id = *frozen_run_id.read();
+        run_id.and_then(|id| {
+            workflow
+                .workflow()
+                .read()
+                .history
+                .iter()
+                .find(|run| run.id == id)
+                .cloned()
+        })
     });
-    let inspector_error =
-        use_memo(move || selected_node.read().as_ref().and_then(|n| n.error.clone()));
+    let inspector_output = use_memo(move || {
+        let selected = selected_node.read().clone();
+        let frozen = selected_frozen_run.read().clone();
+
+        if let (Some(node), Some(run)) = (selected.as_ref(), frozen.as_ref()) {
+            return run.results.get(&node.id).cloned();
+        }
+
+        selected.and_then(|node| node.last_output)
+    });
+    let inspector_error = use_memo(move || {
+        let selected = selected_node.read().clone();
+        let frozen = selected_frozen_run.read().clone();
+
+        if let (Some(node), Some(run)) = (selected.as_ref(), frozen.as_ref()) {
+            return run
+                .results
+                .get(&node.id)
+                .and_then(|result| result.get("error"))
+                .and_then(serde_json::Value::as_str)
+                .map(std::string::ToString::to_string);
+        }
+
+        selected.and_then(|node| node.error)
+    });
     let mut show_inspector = use_signal(|| false);
 
     use_effect(move || {
@@ -440,7 +469,9 @@ fn App() -> Element {
                 on_query_change: move |value| panels.set_palette_query(value),
                 on_close: move |()| panels.close_palette(),
                 on_pick: move |node_type| {
-                    workflow.add_node_at_viewport_center(node_type);
+                    let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
+                        .map_or((1280.0, 760.0), std::convert::identity);
+                    workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
                     panels.close_palette();
                 }
             }
@@ -449,7 +480,9 @@ fn App() -> Element {
                 open: ReadSignal::from(use_memo(move || *prototype_open.read())),
                 on_close: move |()| prototype_open.set(false),
                 on_add_node: move |node_type| {
-                    workflow.add_node_at_viewport_center(node_type);
+                    let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
+                        .map_or((1280.0, 760.0), std::convert::identity);
+                    workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
                     prototype_open.set(false);
                 }
             }
@@ -482,7 +515,9 @@ fn App() -> Element {
                     },
                     on_add_node: move |node_type: &'static str| {
                         sidebar.clear_pending_drop();
-                        workflow.add_node_at_viewport_center(node_type);
+                        let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
+                            .map_or((1280.0, 760.0), std::convert::identity);
+                        workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
                     }
                 }
 
@@ -589,9 +624,7 @@ fn App() -> Element {
                             }
 
                             evt.prevent_default();
-                            for node_id in ids {
-                                let _ = workflow.remove_node(node_id);
-                            }
+                            let _ = workflow.remove_nodes(&ids);
                             selection.clear();
                             return;
                         }
@@ -942,7 +975,8 @@ fn App() -> Element {
                                     .filter(|n| matches!(n.execution_state, oya_frontend::graph::ExecutionState::Running))
                                     .map(|n| n.id)
                                     .collect::<Vec<_>>()
-                            })
+                            }),
+                            zoom: use_memo(move || *viewport_state.read().zoom),
                         }
 
                         ParallelGroupOverlay {
@@ -1084,13 +1118,13 @@ fn App() -> Element {
                                          },
                                          on_handle_mouse_enter: move |handle_type| canvas_clone.set_hovered_handle(Some((node_id, handle_type))),
                                          on_handle_mouse_leave: move |()| canvas_clone.set_hovered_handle(None),
-                                         on_inline_change: move |new_config| {
-                                             let mut binding = workflow_clone.workflow();
-                                             let mut wf = binding.write();
-                                             if let Some(n) = wf.nodes.iter_mut().find(|n| n.id == node_id) {
-                                                 n.config = new_config;
-                                             }
-                                         },
+                                          on_inline_change: move |new_config| {
+                                              let mut binding = workflow_clone.workflow();
+                                              let mut wf = binding.write();
+                                              if let Some(n) = wf.nodes.iter_mut().find(|n| n.id == node_id) {
+                                                  n.apply_config_update(&new_config);
+                                              }
+                                          },
                                          on_inline_close: move |()| {
                                              panels_clone.close_inline_panel();
                                          }
@@ -1143,7 +1177,6 @@ fn App() -> Element {
                     let plan_collapsed = use_signal(|| false);
                     let history_collapsed = use_signal(|| true);
                     let history_signal = use_memo(move || workflow.workflow().read().history.clone());
-                    let mut active_run_id: Signal<Option<uuid::Uuid>> = use_signal(|| None);
                     let workflow_signal = workflow.workflow();
 
                     rsx! {
@@ -1170,12 +1203,12 @@ fn App() -> Element {
                                     selection.select_single(node_id);
                                 },
                                 collapsed: history_collapsed,
-                                active_run_id: ReadSignal::from(active_run_id),
+                                active_run_id: ReadSignal::from(frozen_run_id),
                                 on_run_select: move |id| {
-                                    let _ = active_run_id.try_write().map(|mut v| *v = Some(id));
+                                    let _ = frozen_run_id.try_write().map(|mut v| *v = Some(id));
                                 },
                                 on_exit_frozen: move |()| {
-                                    let _ = active_run_id.try_write().map(|mut v| *v = None);
+                                    let _ = frozen_run_id.try_write().map(|mut v| *v = None);
                                 },
                             }
                         }
@@ -1183,12 +1216,9 @@ fn App() -> Element {
                 }
 
                 SelectedNodePanel {
-                    selected_node_id: selection.selected_id(),
-                    selected_node_ids: selection.selected_ids(),
+                    selection: selection,
                     nodes_by_id,
-                    workflow: workflow.workflow(),
-                    undo_stack: workflow.undo_stack(),
-                    redo_stack: workflow.redo_stack(),
+                    workflow_state: workflow,
                     preview_patches: extension_previews,
                 }
 

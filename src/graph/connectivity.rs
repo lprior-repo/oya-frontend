@@ -6,6 +6,8 @@ use crate::graph::restate_types::types_compatible;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionError {
     SelfConnection,
+    MissingSourceNode(NodeId),
+    MissingTargetNode(NodeId),
     WouldCreateCycle,
     Duplicate,
     TypeMismatch {
@@ -18,6 +20,12 @@ impl std::fmt::Display for ConnectionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SelfConnection => write!(f, "Cannot connect node to itself"),
+            Self::MissingSourceNode(node_id) => {
+                write!(f, "Source node not found: {node_id}")
+            }
+            Self::MissingTargetNode(node_id) => {
+                write!(f, "Target node not found: {node_id}")
+            }
             Self::WouldCreateCycle => write!(f, "Connection would create a cycle"),
             Self::Duplicate => write!(f, "Connection already exists"),
             Self::TypeMismatch {
@@ -36,7 +44,6 @@ impl std::error::Error for ConnectionError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionResult {
     Created,
-    CreatedWithTypeWarning(String),
 }
 
 impl Workflow {
@@ -48,12 +55,7 @@ impl Workflow {
         target_port: &PortName,
     ) -> bool {
         self.add_connection_checked(source, target, source_port, target_port)
-            .is_ok_and(|r| {
-                matches!(
-                    r,
-                    ConnectionResult::Created | ConnectionResult::CreatedWithTypeWarning(_)
-                )
-            })
+            .is_ok()
     }
 
     /// Adds a connection with full type checking.
@@ -62,8 +64,10 @@ impl Workflow {
     ///
     /// Returns `ConnectionError` if:
     /// - `source` and `target` are the same node
+    /// - Either endpoint does not exist in the workflow
     /// - The connection would create a cycle
     /// - An identical connection already exists
+    /// - Source and target port types are incompatible
     pub fn add_connection_checked(
         &mut self,
         source: NodeId,
@@ -74,9 +78,19 @@ impl Workflow {
         if source == target {
             return Err(ConnectionError::SelfConnection);
         }
+
+        if !self.nodes.iter().any(|node| node.id == source) {
+            return Err(ConnectionError::MissingSourceNode(source));
+        }
+
+        if !self.nodes.iter().any(|node| node.id == target) {
+            return Err(ConnectionError::MissingTargetNode(target));
+        }
+
         if Self::path_exists(&self.connections, target, source) {
             return Err(ConnectionError::WouldCreateCycle);
         }
+
         if self.connections.iter().any(|c| {
             c.source == source
                 && c.target == target
@@ -86,7 +100,7 @@ impl Workflow {
             return Err(ConnectionError::Duplicate);
         }
 
-        let type_warning = Self::check_port_type_compatibility(&self.nodes, source, target);
+        Self::check_port_type_compatibility(&self.nodes, source, target)?;
 
         self.connections.push(Connection {
             id: Uuid::new_v4(),
@@ -96,38 +110,54 @@ impl Workflow {
             target_port: target_port.clone(),
         });
 
-        type_warning.map_or(Ok(ConnectionResult::Created), |warning| {
-            Ok(ConnectionResult::CreatedWithTypeWarning(warning))
-        })
+        Ok(ConnectionResult::Created)
     }
 
     fn check_port_type_compatibility(
         nodes: &[super::Node],
         source: NodeId,
         target: NodeId,
-    ) -> Option<String> {
-        let source_node = nodes.iter().find(|n| n.id == source)?;
-        let target_node = nodes.iter().find(|n| n.id == target)?;
+    ) -> Result<(), ConnectionError> {
+        let source_node = match nodes.iter().find(|n| n.id == source) {
+            Some(node) => node,
+            None => return Err(ConnectionError::MissingSourceNode(source)),
+        };
+        let target_node = match nodes.iter().find(|n| n.id == target) {
+            Some(node) => node,
+            None => return Err(ConnectionError::MissingTargetNode(target)),
+        };
 
-        let source_type = Self::get_node_output_port_type(source_node)?;
-        let target_type = Self::get_node_input_port_type(target_node)?;
+        let source_type = Self::get_node_output_port_type(source_node);
+        let target_type = Self::get_node_input_port_type(target_node);
 
-        if !types_compatible(source_type, target_type) {
-            return Some(format!("Type warning: {source_type} -> {target_type}"));
+        if let (Some(src), Some(tgt)) = (source_type, target_type) {
+            if !types_compatible(src, tgt) {
+                return Err(ConnectionError::TypeMismatch {
+                    source_type: src.to_string(),
+                    target_type: tgt.to_string(),
+                });
+            }
         }
-        None
+
+        Ok(())
     }
 
     fn get_node_output_port_type(
         node: &super::Node,
     ) -> Option<crate::graph::restate_types::PortType> {
-        Some(node.node.output_port_type())
+        node.node_type
+            .parse::<crate::graph::workflow_node::WorkflowNode>()
+            .ok()
+            .map(|workflow_node| workflow_node.output_port_type())
     }
 
     fn get_node_input_port_type(
         node: &super::Node,
     ) -> Option<crate::graph::restate_types::PortType> {
-        Some(node.node.input_port_type())
+        node.node_type
+            .parse::<crate::graph::workflow_node::WorkflowNode>()
+            .ok()
+            .map(|workflow_node| workflow_node.input_port_type())
     }
 
     fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
@@ -154,6 +184,7 @@ impl Workflow {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn given_self_connection_when_adding_checked_connection_then_self_connection_error_is_returned()
@@ -199,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn given_type_mismatch_ports_when_adding_checked_connection_then_warning_result_is_returned() {
+    fn given_type_mismatch_ports_when_adding_checked_connection_then_type_mismatch_error_is_returned() {
         let mut workflow = Workflow::new();
         let source = workflow.add_node("condition", 0.0, 0.0);
         let target = workflow.add_node("signal-handler", 100.0, 0.0);
@@ -207,9 +238,51 @@ mod tests {
 
         let result = workflow.add_connection_checked(source, target, &main, &main);
 
-        assert!(matches!(
+        assert_eq!(
             result,
-            Ok(ConnectionResult::CreatedWithTypeWarning(_))
-        ));
+            Err(ConnectionError::TypeMismatch {
+                source_type: "flow-control".to_string(),
+                target_type: "signal".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn given_missing_source_when_adding_checked_connection_then_source_not_found_error_is_returned()
+    {
+        let mut workflow = Workflow::new();
+        let target = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let missing_source = NodeId(Uuid::new_v4());
+        let result = workflow.add_connection_checked(missing_source, target, &main, &main);
+
+        assert_eq!(result, Err(ConnectionError::MissingSourceNode(missing_source)));
+    }
+
+    #[test]
+    fn given_missing_target_when_adding_checked_connection_then_target_not_found_error_is_returned()
+    {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let missing_target = NodeId(Uuid::new_v4());
+        let result = workflow.add_connection_checked(source, missing_target, &main, &main);
+
+        assert_eq!(result, Err(ConnectionError::MissingTargetNode(missing_target)));
+    }
+
+    #[test]
+    fn given_compatible_ports_when_adding_checked_connection_then_connection_is_created() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let target = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let result = workflow.add_connection_checked(source, target, &main, &main);
+
+        assert_eq!(result, Ok(ConnectionResult::Created));
+        assert_eq!(workflow.connections.len(), 1);
     }
 }
