@@ -1,4 +1,12 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+fn deserialize_empty_to_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(deserializer)?;
+    Ok(s.filter(|s| !s.is_empty()))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -42,10 +50,11 @@ pub struct ServiceCallConfig {
     #[serde(default)]
     pub target_type: TargetType,
     pub service_name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
     pub key: Option<String>,
     pub handler_name: String,
     pub input: serde_json::Value,
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
     pub condition: Option<String>,
 }
 
@@ -58,13 +67,32 @@ pub struct SendMessageConfig {
     pub input: serde_json::Value,
 }
 
+fn default_delay_ms() -> u64 {
+    60_000
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DelayedMessageConfig {
+    #[serde(default)]
+    pub target_type: TargetType,
+    pub service_name: String,
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
+    pub key: Option<String>,
+    pub handler_name: String,
+    pub input: serde_json::Value,
+    #[serde(default = "default_delay_ms")]
+    pub delay_ms: u64,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayedMessageConfig {
     pub target_type: TargetType,
     pub service_name: String,
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
     pub key: Option<String>,
     pub handler_name: String,
     pub input: serde_json::Value,
+    #[serde(default = "default_delay_ms")]
     pub delay_ms: u64,
 }
 
@@ -88,8 +116,13 @@ pub struct LoadFromMemoryConfig {
     pub default: Option<serde_json::Value>,
 }
 
+fn default_duration_ms() -> u64 {
+    1000
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayConfig {
+    #[serde(default = "default_duration_ms")]
     pub duration_ms: u64,
 }
 
