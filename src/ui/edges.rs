@@ -115,13 +115,15 @@ fn resolve_edge_anchors_with_parallel(
                 .iter()
                 .find(|g| {
                     g.parallel_node_id == edge.source
-                        && g.branch_node_ids.contains(&edge.target)
+                        && g.branch_node_ids.iter().any(|id| *id == edge.target)
                 });
 
             let adjusted_to = group.map_or(to, |g| {
-                let offset = calculate_parallel_offset(&edge.target, &g.branch_node_ids.iter().map(|id| {
-                    node_by_id.get(id).cloned().unwrap_or_else(|| Node::default())
-                }).collect::<Vec<_>>(), NODE_HEIGHT);
+                let branch_nodes: Vec<Node> = g.branch_node_ids
+                    .iter()
+                    .filter_map(|id| node_by_id.get(id).cloned())
+                    .collect();
+                let offset = calculate_parallel_offset(&edge.target, &branch_nodes, NODE_HEIGHT);
                 Position {
                     x: to.x,
                     y: to.y + offset,
@@ -182,8 +184,6 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
                 return None;
             }
 
-            let source_node = node_by_id.get(&source_id).cloned();
-
             let mut target_nodes: Vec<Node> = target_ids
                 .iter()
                 .copied()
@@ -218,7 +218,7 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
 
             Some(ParallelGroup {
                 parallel_node_id: source_id,
-                branch_node_ids: target_ids.into_iter().collect(),
+                branch_node_ids: target_nodes.iter().map(|n| n.id).collect(),
                 bounding_box: bounds,
                 branch_count: target_nodes.len(),
                 aggregate_status: AggregateStatus::Pending,
@@ -234,21 +234,12 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
     input.clamp(-BEND_CLAMP, BEND_CLAMP)
 }
 
-#[inline]
-fn normalize_bend_delta(page_delta: f32, zoom: f32) -> f32 {
-    if !zoom.is_finite() || zoom <= 0.0 {
-        return 0.0;
-    }
-    page_delta / zoom
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
-        resolve_edge_anchors_with_parallel, ParallelGroup,
+        resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup,
     };
-    use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox};
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
 
@@ -344,7 +335,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].branch_node_ids.len(), 3);
+        assert_eq!(groups[0].target_nodes.len(), 3);
     }
 
     #[test]
@@ -367,7 +358,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].branch_node_ids.len(), 5);
+        assert_eq!(groups[0].target_nodes.len(), 5);
     }
 
     #[test]
@@ -479,7 +470,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].branch_node_ids.len(), 2);
+        assert_eq!(groups[0].target_nodes.len(), 2);
     }
 
     // ==================== calculate_parallel_offset Tests ====================
@@ -672,7 +663,6 @@ mod tests {
         let connections = vec![conn_a, conn_b];
 
         // Create parallel group
-        let source_node = build_node(source_id, 100.0, 100.0);
         let group = ParallelGroup {
             parallel_node_id: source_id,
             branch_node_ids: vec![target_a_id, target_b_id],
@@ -764,7 +754,6 @@ mod tests {
         let connections = vec![conn_a.clone(), conn_b.clone(), conn_c.clone()];
 
         // Only target_a and target_b are in parallel group
-        let source_node = build_node(source_id, 100.0, 100.0);
         let group = ParallelGroup {
             parallel_node_id: source_id,
             branch_node_ids: vec![target_a_id, target_b_id],
@@ -804,11 +793,11 @@ mod tests {
         assert_eq!(anchor_c.unwrap().to.y, 334.0);
     }
 
-    // ==================== BoundingBox Tests ====================
+    // ==================== Rect Tests ====================
 
     #[test]
     fn given_rect_when_created_then_has_correct_values() {
-        let rect = BoundingBox {
+        let rect = Rect {
             x: 10.0,
             y: 20.0,
             width: 100.0,
