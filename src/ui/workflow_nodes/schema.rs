@@ -1,5 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+fn deserialize_empty_to_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s: Option<String> = Option::deserialize(deserializer)?;
+    Ok(s.filter(|s| !s.is_empty()))
+}
+
+fn default_delay_ms() -> u64 {
+    60_000
+}
+
+fn default_duration_ms() -> u64 {
+    1_000
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WorkflowNode {
@@ -42,10 +58,11 @@ pub struct ServiceCallConfig {
     #[serde(default)]
     pub target_type: TargetType,
     pub service_name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
     pub key: Option<String>,
     pub handler_name: String,
     pub input: serde_json::Value,
+    #[serde(default, deserialize_with = "deserialize_empty_to_none")]
     pub condition: Option<String>,
 }
 
@@ -65,6 +82,7 @@ pub struct DelayedMessageConfig {
     pub key: Option<String>,
     pub handler_name: String,
     pub input: serde_json::Value,
+    #[serde(default = "default_delay_ms")]
     pub delay_ms: u64,
 }
 
@@ -90,6 +108,7 @@ pub struct LoadFromMemoryConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DelayConfig {
+    #[serde(default = "default_duration_ms")]
     pub duration_ms: u64,
 }
 
