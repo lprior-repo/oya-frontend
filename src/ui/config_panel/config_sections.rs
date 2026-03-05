@@ -1,5 +1,6 @@
 use super::{get_str_val, get_u64_val};
 use dioxus::prelude::*;
+use oya_frontend::graph::WorkflowNode;
 use serde_json::Value;
 
 fn normalize_http_method(method: &str) -> &'static str {
@@ -20,14 +21,14 @@ fn normalize_http_method(method: &str) -> &'static str {
 
 #[component]
 pub(super) fn EntryConfig(
-    icon: String,
+    node: WorkflowNode,
     config: Value,
     update_str: EventHandler<(String, String)>,
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        match icon.as_str() {
-            "globe" => {
+        match node {
+            WorkflowNode::HttpHandler(_) => {
                 let method = normalize_http_method(&get_str_val(&config, "method"));
                 rsx! {
                     FieldInput {

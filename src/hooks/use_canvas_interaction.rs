@@ -6,13 +6,19 @@ use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
-fn drag_mode_from_selection(selected_ids: Vec<NodeId>) -> Option<InteractionMode> {
+fn drag_mode_from_selection(node_id: NodeId, selected_ids: Vec<NodeId>) -> InteractionMode {
     if selected_ids.is_empty() {
-        None
+        InteractionMode::Dragging {
+            node_ids: vec![node_id],
+        }
+    } else if !selected_ids.contains(&node_id) {
+        let mut all_ids = selected_ids;
+        all_ids.push(node_id);
+        InteractionMode::Dragging { node_ids: all_ids }
     } else {
-        Some(InteractionMode::Dragging {
+        InteractionMode::Dragging {
             node_ids: selected_ids,
-        })
+        }
     }
 }
 
@@ -110,10 +116,10 @@ impl CanvasInteraction {
     }
 
     /// Start dragging nodes
-    pub fn start_drag(mut self, _node_id: NodeId, selected_ids: Vec<NodeId>) {
-        if let Some(next_mode) = drag_mode_from_selection(selected_ids) {
-            self.mode.set(next_mode);
-        }
+    /// Uses node_id as fallback if selected_ids is empty
+    pub fn start_drag(mut self, node_id: NodeId, selected_ids: Vec<NodeId>) {
+        let next_mode = drag_mode_from_selection(node_id, selected_ids);
+        self.mode.set(next_mode);
     }
 
     /// Start connecting from a handle
@@ -281,13 +287,29 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
 
 #[cfg(test)]
 mod tests {
-    use super::{cursor_class_for, drag_mode_from_selection, update_marquee_mode, InteractionMode};
+    use super::{cursor_class_for, drag_mode_from_selection, update_marquee_mode, CanvasInteraction, InteractionMode};
+    use dioxus::prelude::ReadableExt;
+    use dioxus::signals::Signal;
     use oya_frontend::graph::NodeId;
+    use crate::ui::edges::Position as FlowPosition;
+
+    fn create_test_state() -> CanvasInteraction {
+        CanvasInteraction {
+            mode: Signal::new(InteractionMode::default()),
+            is_space_hand: Signal::new(false),
+            mouse_pos: Signal::new((0.0_f32, 0.0_f32)),
+            canvas_origin: Signal::new((0.0_f32, 0.0_f32)),
+            temp_edge_to: Signal::new(None),
+            hovered_handle: Signal::new(None),
+            drag_anchor: Signal::new(None),
+        }
+    }
 
     #[test]
-    fn given_empty_selected_ids_when_starting_drag_then_mode_remains_unchanged() {
-        let next = drag_mode_from_selection(Vec::new());
-        assert_eq!(next, None);
+    fn given_empty_selected_ids_when_starting_drag_then_uses_node_id_as_fallback() {
+        let id = NodeId::new();
+        let next = drag_mode_from_selection(id, Vec::new());
+        assert_eq!(next, InteractionMode::Dragging { node_ids: vec![id] });
     }
 
     #[test]
@@ -314,9 +336,159 @@ mod tests {
     }
 
     #[test]
-    fn given_non_empty_selected_ids_when_starting_drag_then_dragging_mode_is_returned() {
+    fn given_non_empty_selected_ids_when_starting_drag_then_dragging_mode_includes_all() {
         let id = NodeId::new();
-        let next = drag_mode_from_selection(vec![id]);
-        assert_eq!(next, Some(InteractionMode::Dragging { node_ids: vec![id] }));
+        let id2 = NodeId::new();
+        let next = drag_mode_from_selection(id, vec![id2]);
+        assert!(matches!(next, InteractionMode::Dragging { .. }));
+        if let InteractionMode::Dragging { node_ids } = next {
+            assert!(node_ids.contains(&id));
+            assert!(node_ids.contains(&id2));
+        }
+    }
+
+    #[test]
+    fn given_node_id_not_in_selected_ids_when_starting_drag_then_includes_node_id() {
+        let id = NodeId::new();
+        let other_id = NodeId::new();
+        let next = drag_mode_from_selection(id, vec![other_id]);
+        if let InteractionMode::Dragging { node_ids } = next {
+            assert!(node_ids.contains(&id));
+            assert!(node_ids.contains(&other_id));
+        }
+    }
+
+    // Contract tests for state transitions
+
+    #[test]
+    fn test_idle_to_dragging_transition() {
+        let mut state = create_test_state();
+        
+        state.start_drag(NodeId::new(), vec![NodeId::new()]);
+        
+        assert!(state.is_dragging());
+    }
+
+    #[test]
+    fn test_idle_to_connecting_transition() {
+        let mut state = create_test_state();
+        
+        state.start_connect(NodeId::new(), "source".to_string());
+        
+        assert!(state.is_connecting());
+    }
+
+    #[test]
+    fn test_idle_to_marquee_transition() {
+        let mut state = create_test_state();
+        
+        state.start_marquee((100.0, 200.0));
+        
+        assert!(state.is_marquee());
+    }
+
+    #[test]
+    fn test_idle_to_panning_transition() {
+        let mut state = create_test_state();
+        
+        state.start_pan();
+        
+        assert!(state.is_panning());
+    }
+
+    #[test]
+    fn test_dragging_to_idle_via_end_interaction() {
+        let mut state = create_test_state();
+        state.start_drag(NodeId::new(), vec![NodeId::new()]);
+        
+        state.end_interaction();
+        
+        assert!(state.is_idle());
+    }
+
+    #[test]
+    fn test_connecting_to_idle_via_end_interaction() {
+        let mut state = create_test_state();
+        state.start_connect(NodeId::new(), "source".to_string());
+        
+        state.end_interaction();
+        
+        assert!(state.is_idle());
+    }
+
+    #[test]
+    fn test_marquee_to_idle_via_end_interaction() {
+        let mut state = create_test_state();
+        state.start_marquee((100.0, 200.0));
+        
+        state.end_interaction();
+        
+        assert!(state.is_idle());
+    }
+
+    #[test]
+    fn test_panning_to_idle_via_end_interaction() {
+        let mut state = create_test_state();
+        state.start_pan();
+        
+        state.end_interaction();
+        
+        assert!(state.is_idle());
+    }
+
+    #[test]
+    fn test_end_interaction_clears_ephemeral_state() {
+        let mut state = create_test_state();
+        state.start_connect(NodeId::new(), "source".to_string());
+        state.set_temp_edge(Some((FlowPosition { x: 0.0, y: 0.0 }, FlowPosition { x: 10.0, y: 10.0 })));
+        state.start_drag_anchor((50.0, 50.0));
+        
+        state.end_interaction();
+        
+        assert!(state.temp_edge_to().read().is_none());
+        assert!(state.drag_anchor().is_none());
+    }
+
+    #[test]
+    fn test_cancel_interaction_clears_space_hand() {
+        let mut state = create_test_state();
+        state.enable_space_hand();
+        
+        state.cancel_interaction();
+        
+        assert!(!state.is_space_hand().read());
+    }
+
+    #[test]
+    fn test_invariant_dragging_mode_has_node_ids() {
+        let node_id = NodeId::new();
+        let mut state = create_test_state();
+        
+        state.start_drag(node_id, vec![]);
+        
+        let ids = state.dragging_node_ids();
+        assert!(ids.is_some());
+        assert!(!ids.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_invariant_connecting_mode_has_source() {
+        let node_id = NodeId::new();
+        let mut state = create_test_state();
+        
+        state.start_connect(node_id, "target".to_string());
+        
+        let source = state.connecting_from();
+        assert!(source.is_some());
+    }
+
+    #[test]
+    fn test_invariant_marquee_mode_has_rect() {
+        let mut state = create_test_state();
+        
+        state.start_marquee((10.0, 20.0));
+        
+        let rect = state.marquee_rect();
+        assert!(rect.is_some());
     }
 }

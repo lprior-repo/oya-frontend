@@ -72,6 +72,22 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
         }
     });
 
+    let last_synced_code = use_signal(|| initial_config.code.clone());
+    let last_synced_lang = use_signal(|| initial_config.language.clone());
+
+    use_effect(move || {
+        let current_code = config.read().code.clone();
+        let current_lang = config.read().language.clone();
+        let synced_code = last_synced_code.read().clone();
+        let synced_lang = last_synced_lang.read().clone();
+
+        if current_code != synced_code || current_lang != synced_lang {
+            last_synced_code.set(current_code.clone());
+            last_synced_lang.set(current_lang.clone());
+            drafts.set(with_language_draft(&drafts.read(), &current_lang, current_code));
+        }
+    });
+
     rsx! {
         div {
             class: "space-y-4",

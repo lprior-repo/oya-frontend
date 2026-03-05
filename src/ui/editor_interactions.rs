@@ -92,7 +92,7 @@ pub fn snap_handle(
                         true
                     } else if (dist_sq - *best_dist).abs() < f32::EPSILON {
                         // Equal distance: use stable ordering by node id and handle kind
-                        let node_cmp = node.id.cmp(best_id);
+                        let node_cmp = node.id.0.cmp(&best_id.0);
                         if node_cmp == std::cmp::Ordering::Equal {
                             kind.cmp(best_kind) == std::cmp::Ordering::Less
                         } else {

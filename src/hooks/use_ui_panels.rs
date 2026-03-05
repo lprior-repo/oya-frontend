@@ -203,8 +203,21 @@ pub fn use_ui_panels() -> UiPanels {
 
 #[cfg(test)]
 mod tests {
-    use super::{toggle_inline_target, toggle_palette_state};
+    use super::{toggle_inline_target, toggle_palette_state, ContextMenuState, UiPanels};
+    use dioxus::prelude::*;
+    use dioxus::signals::Signal;
     use oya_frontend::graph::NodeId;
+
+    fn create_test_state() -> UiPanels {
+        UiPanels {
+            settings_open: Signal::new(false),
+            palette_open: Signal::new(false),
+            palette_query: Signal::new(String::new()),
+            context_menu: Store::new(ContextMenuState::default()),
+            context_menu_state: Memo::new(ContextMenuState::default),
+            inline_panel_node_id: Signal::new(None),
+        }
+    }
 
     #[test]
     fn given_palette_closed_when_toggling_then_it_opens_and_query_should_clear() {
@@ -225,5 +238,129 @@ mod tests {
         let id = NodeId::new();
         let next = toggle_inline_target(Some(id), id);
         assert_eq!(next, None);
+    }
+
+    // Contract tests for state transitions
+
+    #[test]
+    fn test_toggle_settings_opens_from_closed() {
+        let mut state = create_test_state();
+        
+        state.toggle_settings();
+        
+        assert!(*state.settings_open().read());
+    }
+
+    #[test]
+    fn test_toggle_settings_closes_from_open() {
+        let mut state = create_test_state();
+        state.open_settings();
+        
+        state.toggle_settings();
+        
+        assert!(!*state.settings_open().read());
+    }
+
+    #[test]
+    fn test_toggle_palette_opens_and_clears_query() {
+        let mut state = create_test_state();
+        
+        state.toggle_palette();
+        
+        assert!(*state.palette_open().read());
+        assert!(state.palette_query().read().is_empty());
+    }
+
+    #[test]
+    fn test_toggle_palette_closes_without_clearing_query() {
+        let mut state = create_test_state();
+        state.open_palette();
+        state.set_palette_query("test query".to_string());
+        
+        state.toggle_palette();
+        
+        assert!(!*state.palette_open().read());
+    }
+
+    #[test]
+    fn test_close_all_clears_everything() {
+        let mut state = create_test_state();
+        state.open_settings();
+        state.open_palette();
+        state.show_context_menu(100.0, 200.0);
+        state.open_inline_panel(NodeId::new());
+        
+        state.close_all();
+        
+        assert!(!*state.settings_open().read());
+        assert!(!*state.palette_open().read());
+        assert!(!state.is_context_menu_open());
+        assert!(state.inline_panel_node_id().read().is_none());
+    }
+
+    #[test]
+    fn test_context_menu_show_at_position() {
+        let mut state = create_test_state();
+        
+        state.show_context_menu(150.0, 250.0);
+        
+        assert!(state.is_context_menu_open());
+        let ctx_signal = state.context_menu();
+        let ctx = ctx_signal.read();
+        assert_eq!(ctx.x, 150.0);
+        assert_eq!(ctx.y, 250.0);
+    }
+
+    #[test]
+    fn test_context_menu_close() {
+        let mut state = create_test_state();
+        state.show_context_menu(100.0, 100.0);
+        
+        state.close_context_menu();
+        
+        assert!(!state.is_context_menu_open());
+    }
+
+    #[test]
+    fn test_inline_panel_toggle_opens() {
+        let mut state = create_test_state();
+        let node_id = NodeId::new();
+        
+        state.toggle_inline_panel(node_id);
+        
+        assert!(state.is_inline_panel_open(node_id));
+    }
+
+    #[test]
+    fn test_inline_panel_toggle_closes_existing() {
+        let mut state = create_test_state();
+        let node_id = NodeId::new();
+        state.open_inline_panel(node_id);
+        
+        state.toggle_inline_panel(node_id);
+        
+        assert!(!state.is_inline_panel_open(node_id));
+    }
+
+    #[test]
+    fn test_any_open_returns_true_when_panel_open() {
+        let state = create_test_state();
+        
+        assert!(!state.any_open());
+        
+        let mut state2 = create_test_state();
+        state2.open_settings();
+        
+        assert!(state2.any_open());
+    }
+
+    #[test]
+    fn test_open_palette_clears_query() {
+        let mut state = create_test_state();
+        state.set_palette_query("previous".to_string());
+        
+        state.open_palette();
+        
+        assert!(state.palette_query().read().is_empty());
     }
 }

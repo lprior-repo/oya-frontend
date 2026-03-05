@@ -3,6 +3,8 @@ use dioxus::prelude::*;
 
 #[component]
 pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
+    let duration_error = use_signal(|| Option::<String>::None);
+
     rsx! {
         div {
             class: "space-y-4",
@@ -80,8 +82,16 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                         placeholder: "milliseconds",
                         value: "{config.read().duration_ms}",
                         oninput: move |e| {
-                            if let Ok(v) = e.value().parse::<u64>() {
-                                config.write().duration_ms = if v == 0 { 1 } else { v };
+                            let value = e.value();
+                            if value.trim().is_empty() {
+                                duration_error.set(None);
+                            } else if let Ok(v) = value.parse::<u64>() {
+                                if v > 0 {
+                                    config.write().duration_ms = v;
+                                    duration_error.set(None);
+                                } else {
+                                    duration_error.set(Some("Duration must be greater than 0 ms".to_string()));
+                                }
                             }
                         }
                     }
@@ -92,13 +102,25 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "bg-yellow-50 p-3 rounded-lg",
-                p {
-                    class: "text-sm text-yellow-800",
-                    "⚠️ The workflow will be paused. For Virtual Objects, this blocks other calls to the same object."
+                if let Some(error) = duration_error() {
+                    p {
+                        class: "text-xs text-red-600 mt-1",
+                        "{error}"
+                    }
+                } else {
+                    p {
+                        class: "text-xs text-gray-500 mt-1",
+                        "Duration must be greater than 0 ms"
+                    }
                 }
-            }
+
+                div {
+                    class: "bg-yellow-50 p-3 rounded-lg",
+                    p {
+                        class: "text-sm text-yellow-800",
+                        "⚠️ The workflow will be paused. For Virtual Objects, this blocks other calls to the same object."
+                    }
+                }
         }
     }
 }

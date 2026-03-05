@@ -100,6 +100,22 @@ pub fn FlowToolbar(
                 }
             }
 
+            // Mobile: visible buttons for fit view and auto layout (accessible without right-click)
+            div { class: "flex items-center gap-0.5 md:hidden",
+                ToolbarButton {
+                    label: "Fit View",
+                    disabled: false,
+                    on_click: move |evt| on_fit_view.call(evt),
+                    MaximizeIcon { class: "h-4 w-4" }
+                }
+                ToolbarButton {
+                    label: "Auto Layout",
+                    disabled: false,
+                    on_click: move |evt| on_layout.call(evt),
+                    LayersIcon { class: "h-4 w-4" }
+                }
+            }
+
             div { class: "flex items-center gap-0.5 md:gap-1",
                 ToolbarButton {
                     label: "Undo",

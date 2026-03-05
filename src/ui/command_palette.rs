@@ -1,5 +1,13 @@
 use dioxus::prelude::*;
 
+/// Pure helper to detect if a key string represents an Escape key.
+/// Returns true for "Escape" or "Esc" (case-insensitive).
+#[inline]
+pub fn is_escape_key(key: &str) -> bool {
+    let key_lower = key.to_lowercase();
+    key_lower == "escape" || key_lower == "esc"
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CommandTemplate {
     pub node_type: &'static str,
@@ -99,7 +107,7 @@ pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
 
 #[cfg(test)]
 mod tests {
-    use super::filtered_templates;
+    use super::{filtered_templates, is_escape_key};
 
     #[test]
     fn given_empty_query_when_filtering_templates_then_all_templates_are_returned() {
@@ -122,6 +130,36 @@ mod tests {
     fn given_non_matching_query_when_filtering_templates_then_empty_vec_is_returned() {
         let templates = filtered_templates("zz-no-match-zz");
         assert!(templates.is_empty());
+    }
+
+    #[test]
+    fn given_query_with_leading_and_trailing_whitespace_then_query_is_trimmed() {
+        let templates = filtered_templates("  HTTP  ");
+        // Should match "HTTP Handler" after trimming whitespace
+        assert!(!templates.is_empty());
+        assert!(templates.iter().any(|t| t.node_type == "http-handler"));
+    }
+
+    #[test]
+    fn when_key_is_escape_then_returns_true() {
+        assert!(is_escape_key("Escape"));
+        assert!(is_escape_key("escape"));
+        assert!(is_escape_key("ESCAPE"));
+    }
+
+    #[test]
+    fn when_key_is_esc_then_returns_true() {
+        assert!(is_escape_key("Esc"));
+        assert!(is_escape_key("esc"));
+        assert!(is_escape_key("ESC"));
+    }
+
+    #[test]
+    fn when_key_is_not_escape_then_returns_false() {
+        assert!(!is_escape_key("Enter"));
+        assert!(!is_escape_key("Tab"));
+        assert!(!is_escape_key("a"));
+        assert!(!is_escape_key(""));
     }
 }
 
@@ -166,7 +204,7 @@ pub fn NodeCommandPalette(
                         class: "h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-[13px] text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30",
                         oninput: move |evt| on_query_change.call(evt.value()),
                         onkeydown: move |evt| {
-                            if evt.key().to_string().to_lowercase() == "escape" {
+                            if is_escape_key(evt.key()) {
                                 evt.prevent_default();
                                 on_close.call(());
                             }

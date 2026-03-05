@@ -4,6 +4,7 @@ use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 
 use crate::ui::editor_interactions::{NODE_WIDTH, NODE_HEIGHT};
+use crate::ui::parallel_group_overlay::{BoundingBox, ParallelGroup};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
@@ -208,7 +209,7 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
                 .map(|n| n.x + NODE_WIDTH)
                 .fold(f32::NEG_INFINITY, f32::max);
 
-            let bounds = Rect {
+            let bounds = BoundingBox {
                 x: min_x - 8.0,
                 y: min_y - 8.0,
                 width: (max_x - min_x) + 16.0,

@@ -583,37 +583,34 @@ fn App() -> Element {
                             return;
                         }
 
-                        if key == "+" || key == "=" || key == "add" {
+                        // Use command dispatcher for editor commands (requires Ctrl/Cmd for undo/redo)
+                        let modifiers = KeyModifiers::from(evt.modifiers());
+                        if let Some(cmd) = parse_key_event(&key, &modifiers) {
                             evt.prevent_default();
-                            workflow.zoom(0.12, 640.0, 400.0);
-                            return;
-                        }
-
-                        if key == "-" || key == "_" || key == "subtract" {
-                            evt.prevent_default();
-                            workflow.zoom(-0.12, 640.0, 400.0);
-                            return;
-                        }
-
-                        if key == "0" {
-                            evt.prevent_default();
-                            workflow.fit_view(1280.0, 760.0, 200.0);
-                            return;
-                        }
-
-                        if key == "z" {
-                            evt.prevent_default();
-                            workflow.undo();
-                            extension_previews.set(Vec::new());
-                            selection.clear();
-                            return;
-                        }
-
-                        if key == "y" {
-                            evt.prevent_default();
-                            workflow.redo();
-                            extension_previews.set(Vec::new());
-                            selection.clear();
+                            match cmd {
+                                EditorCommand::ZoomIn => {
+                                    workflow.zoom(0.12, 640.0, 400.0);
+                                }
+                                EditorCommand::ZoomOut => {
+                                    workflow.zoom(-0.12, 640.0, 400.0);
+                                }
+                                EditorCommand::FitView => {
+                                    workflow.fit_view(1280.0, 760.0, 200.0);
+                                }
+                                EditorCommand::AutoLayout => {
+                                    workflow.apply_layout();
+                                }
+                                EditorCommand::Undo => {
+                                    workflow.undo();
+                                    extension_previews.set(Vec::new());
+                                    selection.clear();
+                                }
+                                EditorCommand::Redo => {
+                                    workflow.redo();
+                                    extension_previews.set(Vec::new());
+                                    selection.clear();
+                                }
+                            }
                             return;
                         }
 
@@ -976,7 +973,7 @@ fn App() -> Element {
                                     .map(|n| n.id)
                                     .collect::<Vec<_>>()
                             }),
-                            zoom: use_memo(move || *viewport_state.read().zoom),
+                            zoom: use_memo(move || viewport_state.read().zoom),
                         }
 
                         ParallelGroupOverlay {
@@ -1244,6 +1241,183 @@ fn App() -> Element {
                 }
             }
         }
+    }
+}
+
+// ============================================================================
+// Editor Command Dispatcher
+// ============================================================================
+
+/// Centralized command enum for repeated editor actions.
+/// This dispatcher reduces duplicated side effects across toolbar, context menu,
+/// minimap, and keyboard handlers.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EditorCommand {
+    ZoomIn,
+    ZoomOut,
+    FitView,
+    AutoLayout,
+    Undo,
+    Redo,
+}
+
+/// Keyboard modifier state for command routing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct KeyModifiers {
+    pub ctrl: bool,
+    pub shift: bool,
+    pub alt: bool,
+}
+
+impl From<&dioxus::html::input_data::key_types::Modifiers> for KeyModifiers {
+    fn from(mods: &dioxus::html::input_data::key_types::Modifiers) -> Self {
+        Self {
+            ctrl: mods.ctrl() || mods.meta(),
+            shift: mods.shift(),
+            alt: mods.alt(),
+        }
+    }
+}
+
+/// Parse a keyboard event into an optional editor command.
+/// Returns `None` for keys that don't map to editor commands or lack required modifiers.
+pub fn parse_key_event(key: &str, modifiers: &KeyModifiers) -> Option<EditorCommand> {
+    match key {
+        // Zoom commands - no modifiers required
+        "+" | "=" | "add" => Some(EditorCommand::ZoomIn),
+        "-" | "_" | "subtract" => Some(EditorCommand::ZoomOut),
+        "0" => Some(EditorCommand::FitView),
+
+        // Undo/Redo - require Ctrl/Cmd modifier (security requirement)
+        // Plain 'z'/'y' should NOT mutate history
+        "z" if modifiers.ctrl => Some(EditorCommand::Undo),
+        "y" | "z" if modifiers.ctrl && modifiers.shift => Some(EditorCommand::Redo),
+        "y" if modifiers.ctrl => Some(EditorCommand::Redo),
+
+        // Auto layout - accessible via toolbar/context
+        "l" if modifiers.ctrl => Some(EditorCommand::AutoLayout),
+
+        _ => None,
+    }
+}
+
+/// Canvas dimensions for viewport calculations.
+#[derive(Clone, Copy, Debug)]
+pub struct CanvasDimensions {
+    pub width: f32,
+    pub height: f32,
+}
+
+impl Default for CanvasDimensions {
+    fn default() -> Self {
+        Self {
+            width: 1280.0,
+            height: 760.0,
+        }
+    }
+}
+
+/// Zoom delta constants for the dispatcher.
+pub struct ZoomConfig {
+    pub delta: f32,
+    pub center_x: f32,
+    pub center_y: f32,
+}
+
+impl Default for ZoomConfig {
+    fn default() -> Self {
+        Self {
+            delta: 0.12,
+            center_x: 640.0,
+            center_y: 400.0,
+        }
+    }
+}
+
+/// Fit view padding constant.
+pub const FIT_VIEW_PADDING: f32 = 200.0;
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+
+    #[test]
+    fn given_plain_z_key_when_parsing_then_returns_none() {
+        let mods = KeyModifiers::default();
+        let result = parse_key_event("z", &mods);
+        assert!(result.is_none(), "Plain 'z' should not trigger undo");
+    }
+
+    #[test]
+    fn given_ctrl_z_key_when_parsing_then_returns_undo() {
+        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let result = parse_key_event("z", &mods);
+        assert_eq!(result, Some(EditorCommand::Undo));
+    }
+
+    #[test]
+    fn given_ctrl_shift_z_key_when_parsing_then_returns_redo() {
+        let mods = KeyModifiers { ctrl: true, shift: true, ..Default::default() };
+        let result = parse_key_event("z", &mods);
+        assert_eq!(result, Some(EditorCommand::Redo));
+    }
+
+    #[test]
+    fn given_ctrl_y_key_when_parsing_then_returns_redo() {
+        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let result = parse_key_event("y", &mods);
+        assert_eq!(result, Some(EditorCommand::Redo));
+    }
+
+    #[test]
+    fn given_plain_y_key_when_parsing_then_returns_none() {
+        let mods = KeyModifiers::default();
+        let result = parse_key_event("y", &mods);
+        assert!(result.is_none(), "Plain 'y' should not trigger redo");
+    }
+
+    #[test]
+    fn given_plus_key_when_parsing_then_returns_zoom_in() {
+        let mods = KeyModifiers::default();
+        let result = parse_key_event("+", &mods);
+        assert_eq!(result, Some(EditorCommand::ZoomIn));
+    }
+
+    #[test]
+    fn given_minus_key_when_parsing_then_returns_zoom_out() {
+        let mods = KeyModifiers::default();
+        let result = parse_key_event("-", &mods);
+        assert_eq!(result, Some(EditorCommand::ZoomOut));
+    }
+
+    #[test]
+    fn given_zero_key_when_parsing_then_returns_fit_view() {
+        let mods = KeyModifiers::default();
+        let result = parse_key_event("0", &mods);
+        assert_eq!(result, Some(EditorCommand::FitView));
+    }
+
+    #[test]
+    fn given_ctrl_l_key_when_parsing_then_returns_auto_layout() {
+        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let result = parse_key_event("l", &mods);
+        assert_eq!(result, Some(EditorCommand::AutoLayout));
+    }
+
+    #[test]
+    fn given_unmapped_key_when_parsing_then_returns_none() {
+        let mods = KeyModifiers::default();
+        assert!(parse_key_event("a", &mods).is_none());
+        assert!(parse_key_event("escape", &mods).is_none());
+        assert!(parse_key_event("enter", &mods).is_none());
+    }
+
+    #[test]
+    fn given_meta_key_as_ctrl_when_parsing_then_interprets_as_ctrl() {
+        // On macOS, meta (Cmd) should be treated like ctrl
+        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let result = parse_key_event("z", &mods);
+        assert_eq!(result, Some(EditorCommand::Undo));
     }
 }
 

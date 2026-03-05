@@ -90,7 +90,7 @@ impl Workflow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::{NodeCategory, PortName, WorkflowNode, workflow_node::RunConfig};
+    use crate::graph::{PortName, WorkflowNode, workflow_node::RunConfig};
 
     #[test]
     fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
