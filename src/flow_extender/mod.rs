@@ -1500,7 +1500,7 @@ mod tests {
         suggest_extensions_with_analysis, ConflictKind, ExtensionKey, PreviewEndpoint,
         RationaleClass, RestateCapability, RestateServiceKind, WorkflowNode,
     };
-    use crate::graph::Workflow;
+    use crate::graph::{Workflow, workflow_node::WorkflowNode};
     use std::collections::HashSet;
 
     #[test]
