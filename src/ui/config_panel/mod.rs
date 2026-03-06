@@ -1,3 +1,8 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+
 use dioxus::prelude::*;
 use oya_frontend::graph::{Node, NodeCategory};
 use serde_json::Value;

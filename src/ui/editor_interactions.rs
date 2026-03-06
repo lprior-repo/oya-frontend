@@ -1,3 +1,9 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+#![forbid(unsafe_code)]
+
 pub const NODE_WIDTH: f32 = 220.0;
 pub const NODE_HEIGHT: f32 = 68.0;
 pub type SelectionRect = (f32, f32, f32, f32);

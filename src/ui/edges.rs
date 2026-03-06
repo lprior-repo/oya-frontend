@@ -234,11 +234,27 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
     input.clamp(-BEND_CLAMP, BEND_CLAMP)
 }
 
+fn normalize_bend_delta(page_delta: f32, zoom: f32) -> f32 {
+    if !zoom.is_finite() || zoom <= 0.0 {
+        return 0.0;
+    }
+    page_delta / zoom
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Rect {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
         resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup,
+        Rect,
     };
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
@@ -249,22 +265,26 @@ mod tests {
     // ==================== Test Data Builders ====================
 
     fn build_node(id: NodeId, x: f32, y: f32) -> Node {
-        Node::from_workflow_node(
+        let mut node = Node::from_workflow_node(
             format!("Node {}", id),
             WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
             x,
             y,
-        )
+        );
+        node.id = id;
+        node
     }
 
     /// Build a Parallel node for testing
     fn build_parallel_node(id: NodeId, x: f32, y: f32) -> Node {
-        Node::from_workflow_node(
+        let mut node = Node::from_workflow_node(
             format!("Parallel {}", id),
             WorkflowNode::Parallel(oya_frontend::graph::workflow_node::ParallelConfig::default()),
             x,
             y,
-        )
+        );
+        node.id = id;
+        node
     }
 
     fn build_connection(id: Uuid, source: NodeId, target: NodeId) -> Connection {
@@ -276,6 +296,12 @@ mod tests {
             target_port: PortName::from("in"),
         }
     }
+    
+    fn build_node_with_id(id: NodeId, x: f32, y: f32) -> Node {
+        let mut node = build_node(id, x, y);
+        node.id = id;
+        node
+    }
 
     // ==================== find_parallel_branches Tests ====================
 
@@ -285,7 +311,7 @@ mod tests {
         let target_a_id = NodeId::new();
         let target_b_id = NodeId::new();
 
-        let source = build_node(source_id, 100.0, 100.0);
+        let source = build_parallel_node(source_id, 100.0, 100.0);
         let target_a = build_node(target_a_id, 300.0, 100.0);
         let target_b = build_node(target_b_id, 300.0, 200.0);
 
@@ -320,7 +346,7 @@ mod tests {
         let target_b_id = NodeId::new();
         let target_c_id = NodeId::new();
 
-        let source = build_node(source_id, 100.0, 100.0);
+        let source = build_parallel_node(source_id, 100.0, 100.0);
         let target_a = build_node(target_a_id, 300.0, 100.0);
         let target_b = build_node(target_b_id, 300.0, 200.0);
         let target_c = build_node(target_c_id, 300.0, 300.0);
@@ -335,7 +361,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 3);
+        assert_eq!(groups[0].branch_node_ids.len(), 3);
     }
 
     #[test]
@@ -352,13 +378,13 @@ mod tests {
             connections.push(build_connection(Uuid::new_v4(), source_id, target_id));
         }
 
-        let source = build_node(source_id, 100.0, 100.0);
+        let source = build_parallel_node(source_id, 100.0, 100.0);
         nodes.insert(0, source);
 
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 5);
+        assert_eq!(groups[0].branch_node_ids.len(), 5);
     }
 
     #[test]
@@ -454,7 +480,7 @@ mod tests {
         let target_a2_id = NodeId::new();
         let target_b1_id = NodeId::new();
 
-        let source_a = build_node(source_a_id, 100.0, 100.0);
+        let source_a = build_parallel_node(source_a_id, 100.0, 100.0);
         let source_b = build_node(source_b_id, 100.0, 300.0);
         let target_a1 = build_node(target_a1_id, 300.0, 100.0);
         let target_a2 = build_node(target_a2_id, 300.0, 200.0);
@@ -470,7 +496,7 @@ mod tests {
         let groups = find_parallel_branches(&nodes, &connections);
 
         assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].target_nodes.len(), 2);
+        assert_eq!(groups[0].branch_node_ids.len(), 2);
     }
 
     // ==================== calculate_parallel_offset Tests ====================
@@ -820,7 +846,7 @@ mod tests {
         let target_a_id = NodeId::new();
         let target_b_id = NodeId::new();
 
-        let source = build_node(source_id, 100.0, 100.0);
+        let source = build_parallel_node(source_id, 100.0, 100.0);
         let target_a = build_node(target_a_id, 300.0, 100.0);
         let target_b = build_node(target_b_id, 300.0, 200.0);
 
