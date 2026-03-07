@@ -321,15 +321,66 @@ mod tests {
         assert!(!state.is_context_menu_open());
     }
 
-    #[test]
-    fn test_inline_panel_toggle_opens() {
-        let mut state = create_test_state();
-        let node_id = NodeId::new();
-        
-        state.toggle_inline_panel(node_id);
-        
-        assert!(state.is_inline_panel_open(node_id));
+#[cfg(test)]
+mod tests {
+    use super::{toggle_inline_target, toggle_palette_state, UIPPanelsState};
+    use dioxus::prelude::ReadableExt;
+    use dioxus::signals::Signal;
+    use oya_frontend::graph::NodeId;
+
+    fn create_test_state() -> UIPanelsState {
+        UIPanelsState {
+            settings_open: Signal::new(false),
+            palette_open: Signal::new(false),
+            palette_query: Signal::new(String::new()),
+            context_menu: Signal::new(None),
+            inline_panel_node_id: Signal::new(None),
+        }
     }
+
+    #[test]
+    fn test_any_open_returns_true_when_panel_open() {
+        let state = create_test_state();
+        state.settings_open.set(true);
+        
+        assert!(state.any_open());
+    }
+
+    #[test]
+    fn test_close_all_clears_everything() {
+        let mut state = create_test_state();
+        state.settings_open.set(true);
+        state.palette_open.set(true);
+        state.context_menu.set(Some((100.0, 200.0)));
+        state.inline_panel_node_id.set(Some(NodeId::new()));
+        
+        state.close_all();
+        
+        assert!(!*state.settings_open.read());
+        assert!(!*state.palette_open.read());
+        assert!(!state.context_menu.read().is_some());
+        assert!(state.inline_panel_node_id.read().is_none());
+    }
+
+    #[test]
+    fn test_context_menu_show_at_position() {
+        let mut state = create_test_state();
+        
+        state.show_context_menu(150.0, 250.0);
+        
+        assert!(state.is_context_menu_open());
+        let ctx = state.context_menu.read();
+        let ctx = ctx_signal.read();
+        assert_eq!(ctx.x, 150.0);
+        assert_eq!(ctx.y, 250.0);
+    }
+
+    #[test]
+    fn test_context_menu_close() {
+        let mut state = create_test_state();
+        state.show_context_menu(100.0, 100.0);
+        
+        state.close_context_menu();
 
     #[test]
     fn test_inline_panel_toggle_closes_existing() {

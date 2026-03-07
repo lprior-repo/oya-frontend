@@ -72,15 +72,21 @@ pub fn use_sidebar() -> SidebarState {
 
 #[cfg(test)]
 mod tests {
-    use super::{pending_drop_after_clear, pending_drop_after_pickup, SidebarState};
-    use dioxus::prelude::ReadableExt;
-    use dioxus::signals::Signal;
+    use super::{pending_drop_after_clear, pending_drop_after_pickup};
 
-    fn create_test_state() -> SidebarState {
-        SidebarState {
-            search: Signal::new(String::new()),
-            pending_drop: Signal::new(None),
-        }
+    #[test]
+    fn given_node_type_when_picking_up_then_pending_drop_is_set() {
+        assert_eq!(
+            pending_drop_after_pickup("run"),
+            "run".to_string()
+        );
+    }
+
+    #[test]
+    fn given_pending_drop_when_clearing_then_pending_drop_is_none() {
+        assert_eq!(pending_drop_after_clear(), None);
+    }
+}
     }
 
     #[test]
