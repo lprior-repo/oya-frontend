@@ -1,3 +1,8 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+
 use super::get_str_val;
 use crate::ui::icons::{icon_by_name, CopyIcon};
 use dioxus::prelude::*;
@@ -316,35 +321,30 @@ fn build_execution_timeline(
     journal_idx: Option<u64>,
     retry_count: Option<u64>,
 ) -> Vec<ExecutionTimelineEvent> {
-    let mut events = Vec::new();
+    let status_event = (!status.is_empty()).then_some(ExecutionTimelineEvent {
+        kind: ExecutionEventKind::Status,
+        label: "Invocation status updated".to_string(),
+        detail: status.to_string(),
+    });
 
-    if !status.is_empty() {
-        events.push(ExecutionTimelineEvent {
-            kind: ExecutionEventKind::Status,
-            label: "Invocation status updated".to_string(),
-            detail: status.to_string(),
+    let journal_event = journal_idx.map(|index| ExecutionTimelineEvent {
+        kind: ExecutionEventKind::Journal,
+        label: "Durable journal checkpoint".to_string(),
+        detail: format!("journal #{index}"),
+    });
+
+    let retry_event = retry_count
+        .filter(|&retry| retry > 0)
+        .map(|retry| ExecutionTimelineEvent {
+            kind: ExecutionEventKind::Retry,
+            label: "Retry attempts recorded".to_string(),
+            detail: format!("{retry} retries"),
         });
-    }
 
-    if let Some(index) = journal_idx {
-        events.push(ExecutionTimelineEvent {
-            kind: ExecutionEventKind::Journal,
-            label: "Durable journal checkpoint".to_string(),
-            detail: format!("journal #{index}"),
-        });
-    }
-
-    if let Some(retry) = retry_count {
-        if retry > 0 {
-            events.push(ExecutionTimelineEvent {
-                kind: ExecutionEventKind::Retry,
-                label: "Retry attempts recorded".to_string(),
-                detail: format!("{retry} retries"),
-            });
-        }
-    }
-
-    events
+    [status_event, journal_event, retry_event]
+        .into_iter()
+        .flatten()
+        .collect()
 }
 
 const fn execution_event_style(kind: ExecutionEventKind) -> (&'static str, &'static str) {
@@ -393,16 +393,14 @@ fn resolve_status(
     execution_data: &Value,
     config: &Value,
 ) -> Option<String> {
-    match runtime_status(execution_state, execution_data) {
-        Some(status) => Some(status),
-        None => {
-            let legacy_status = get_str_val(config, "status");
-            if legacy_status.trim().is_empty() {
-                None
-            } else {
-                Some(legacy_status)
-            }
-        }
+    if let Some(status) = runtime_status(execution_state, execution_data) {
+        return Some(status);
+    }
+    let legacy_status = get_str_val(config, "status");
+    if legacy_status.trim().is_empty() {
+        None
+    } else {
+        Some(legacy_status)
     }
 }
 
@@ -451,9 +449,7 @@ fn json_preview(payload: &Value, max_lines: usize) -> String {
         return pretty;
     }
 
-    let mut preview = lines[..max_lines].join("\n");
-    preview.push_str("\n... (truncated)");
-    preview
+    format!("{}\n... (truncated)", lines[..max_lines].join("\n"))
 }
 
 #[cfg(test)]

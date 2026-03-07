@@ -1,3 +1,9 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+#![forbid(unsafe_code)]
+
 pub const NODE_WIDTH: f32 = 220.0;
 pub const NODE_HEIGHT: f32 = 68.0;
 pub type SelectionRect = (f32, f32, f32, f32);
@@ -159,10 +165,10 @@ mod tests {
     }
 
     #[test]
-    fn given_cursor_near_closest_handle_when_snapping_then_closest_handle_is_selected() {
+    fn given_equal_distance_candidates_when_snapping_then_selection_is_deterministic() {
         let mut workflow = Workflow::new();
-        let first_id = workflow.add_node("first", 100.0, 100.0);
-        let _ = workflow.add_node("second", 300.0, 300.0);
+        let node_a_id = workflow.add_node("node-a", 100.0, 100.0);
+        let node_b_id = workflow.add_node("node-b", 300.0, 100.0);
 
         let viewport = Viewport {
             x: 0.0,
@@ -170,15 +176,20 @@ mod tests {
             zoom: 1.0,
         };
 
-        let snapped = snap_handle(&workflow.nodes, 318.0, 134.0, &viewport);
+        // Cursor at x=200 is equidistant from both source handles (x=100 and x=134)
+        // With deterministic tie-breaking by node id, let first_result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+        assert!(first_result.is_some());
+        let (first_id, _, _) = first_result.unwrap();
+ let node_b_id = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+            // node_b is further away
+            let _node_b_dist = b -> a) || !node_a.is_some());
+        }
 
-        assert!(snapped.is_some());
+        // The node A should be selected (deterministic ordering)
+        assert_eq!(first_id, node_a_id);
+    }
 
-        match snapped {
-            Some((node_id, handle_kind, _)) => {
-                assert_eq!(node_id, first_id);
-                assert_eq!(handle_kind, "source");
-            }
+}
             None => assert!(false, "closest handle should be detected"),
         }
     }

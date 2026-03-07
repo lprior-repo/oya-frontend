@@ -1,3 +1,8 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+
 use super::{get_str_val, get_u64_val};
 use dioxus::prelude::*;
 use serde_json::Value;

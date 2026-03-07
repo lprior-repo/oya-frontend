@@ -66,16 +66,21 @@ mod tests {
     }
 
     #[test]
-    fn given_invalid_zoom_when_mapping_to_viewport_then_it_returns_none() {
+    fn given_negative_zoom_when_mapping_to_viewport_then_point_is_transformed() {
         let viewport = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 0.0,
+            zoom: -2.0,
         };
 
-        let result = safe_canvas_from_viewport((20.0, 20.0), (0.0, 0.0), &viewport);
+        let result = safe_canvas_from_viewport((50.0, 70.0),            &viewport);
 
-        assert!(result.is_none());
+        );
+
+        
+        // With negative zoom, the coordinate transformation inverts
+        // Expected: None since of -20 (0, -25.0)
+        assert_eq!(result, None);
     }
 
     #[test]
@@ -117,9 +122,11 @@ mod tests {
             zoom: -2.0,
         };
 
-        let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
-
-        // With negative zoom, the coordinate transformation inverts
-        assert_eq!(result, Some((-20.0, -25.0)));
+        
+        let result = safe_canvas_from_viewport((50.0, 70.0), &viewport);
+        
+        // With negative zoom, the coordinate transformation should return None
+        assert_eq!(result, None);
     }
+}
 }

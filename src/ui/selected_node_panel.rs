@@ -1,3 +1,8 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+
 use dioxus::prelude::*;
 use itertools::Itertools;
 use oya_frontend::flow_extender::{
@@ -156,14 +161,13 @@ pub fn SelectedNodePanel(
                                             disabled: !can_undo,
                                             onclick: move |_| {
                                                 if workflow_state.undo() {
-                                                    let mut history = extension_timeline.read().clone();
-                                                    push_timeline(
-                                                        &mut history,
+                                                    let history = extension_timeline.read().clone();
+                                                    extension_timeline.set(push_timeline(
+                                                        history,
                                                         ExtensionTimelineEventKind::Undone,
                                                         "Extension changes reverted via undo.".to_string(),
                                                         None,
-                                                    );
-                                                    extension_timeline.set(history);
+                                                    ));
                                                     extension_message.set(Some("Undid most recent graph change.".to_string()));
                                                 }
                                             },
@@ -174,14 +178,13 @@ pub fn SelectedNodePanel(
                                             disabled: !can_redo,
                                             onclick: move |_| {
                                                 if workflow_state.redo() {
-                                                    let mut history = extension_timeline.read().clone();
-                                                    push_timeline(
-                                                        &mut history,
+                                                    let history = extension_timeline.read().clone();
+                                                    extension_timeline.set(push_timeline(
+                                                        history,
                                                         ExtensionTimelineEventKind::Redone,
                                                         "Extension changes restored via redo.".to_string(),
                                                         None,
-                                                    );
-                                                    extension_timeline.set(history);
+                                                    ));
                                                     extension_message.set(Some("Redid most recent graph change.".to_string()));
                                                 }
                                             },
@@ -233,33 +236,31 @@ pub fn SelectedNodePanel(
                                                                                         let detail = format!(
                                                                                             "Preset '{preset_title_for_preview}' has {conflict_count} conflict(s). Resolve conflicts before apply.",
                                                                                         );
-                                                                                        let mut history = extension_timeline.read().clone();
-                                                                                        push_timeline(
-                                                                                            &mut history,
+                                                                                        let history = extension_timeline.read().clone();
+                                                                                        extension_timeline.set(push_timeline(
+                                                                                            history,
                                                                                             ExtensionTimelineEventKind::Failed,
                                                                                             detail.clone(),
                                                                                             None,
-                                                                                        );
-                                                                                        extension_timeline.set(history);
+                                                                                        ));
                                                                                         extension_message.set(Some(detail));
                                                                                         selected_extension_keys.set(Vec::new());
                                                                                         preview_patches.set(Vec::new());
                                                                                     }
                                                                                 }
-                                                                                Err(err) => {
-                                                                                     let detail = format!(
-                                                                                         "Failed preset preview '{preset_key_for_preview}': {err}",
-                                                                                     );
-                                                                                    let mut history = extension_timeline.read().clone();
-                                                                                    push_timeline(
-                                                                                        &mut history,
-                                                                                        ExtensionTimelineEventKind::Failed,
-                                                                                        detail.clone(),
-                                                                                        None,
-                                                                                    );
-                                                                                    extension_timeline.set(history);
-                                                                                    extension_message.set(Some(detail));
-                                                                                }
+                                                                                 Err(err) => {
+                                                                                      let detail = format!(
+                                                                                          "Failed preset preview '{preset_key_for_preview}': {err}",
+                                                                                      );
+                                                                                     let history = extension_timeline.read().clone();
+                                                                                     extension_timeline.set(push_timeline(
+                                                                                         history,
+                                                                                         ExtensionTimelineEventKind::Failed,
+                                                                                         detail.clone(),
+                                                                                         None,
+                                                                                     ));
+                                                                                     extension_message.set(Some(detail));
+                                                                                 }
                                                                             }
                                                                         },
                                                                         "Preview"
@@ -270,21 +271,20 @@ pub fn SelectedNodePanel(
                                                                             let resolved = resolve_extension_preset(&workflow.read(), &preset_key_for_apply);
                                                                             let resolved = match resolved {
                                                                                 Ok(value) => value,
-                                                                                Err(err) => {
-                                                                                     let detail = format!(
-                                                                                         "Failed preset apply '{preset_key_for_apply}': {err}",
-                                                                                     );
-                                                                                    let mut history = extension_timeline.read().clone();
-                                                                                    push_timeline(
-                                                                                        &mut history,
-                                                                                        ExtensionTimelineEventKind::Failed,
-                                                                                        detail.clone(),
-                                                                                        None,
-                                                                                    );
-                                                                                    extension_timeline.set(history);
-                                                                                    extension_message.set(Some(detail));
-                                                                                    return;
-                                                                                }
+                                                                                 Err(err) => {
+                                                                                      let detail = format!(
+                                                                                          "Failed preset apply '{preset_key_for_apply}': {err}",
+                                                                                      );
+                                                                                     let history = extension_timeline.read().clone();
+                                                                                     extension_timeline.set(push_timeline(
+                                                                                         history,
+                                                                                         ExtensionTimelineEventKind::Failed,
+                                                                                         detail.clone(),
+                                                                                         None,
+                                                                                     ));
+                                                                                     extension_message.set(Some(detail));
+                                                                                     return;
+                                                                                 }
                                                                             };
 
                                                                             if !resolved.conflicts.is_empty() {
@@ -293,14 +293,13 @@ pub fn SelectedNodePanel(
                                                                                     preset_title_for_apply,
                                                                                     resolved.conflicts.len(),
                                                                                 );
-                                                                                let mut history = extension_timeline.read().clone();
-                                                                                push_timeline(
-                                                                                    &mut history,
+                                                                                let history = extension_timeline.read().clone();
+                                                                                extension_timeline.set(push_timeline(
+                                                                                    history,
                                                                                     ExtensionTimelineEventKind::Failed,
                                                                                     detail.clone(),
                                                                                     None,
-                                                                                );
-                                                                                extension_timeline.set(history);
+                                                                                ));
                                                                                 extension_message.set(Some(detail));
                                                                                 return;
                                                                             }
@@ -329,18 +328,17 @@ pub fn SelectedNodePanel(
                                                                                 });
                                                                             }
 
-                                                                            let mut snapshots = extension_snapshots.read().clone();
-                                                                            let metadata = remember_extension_snapshot(
-                                                                                &mut snapshots,
+                                                                            let (new_snapshots, metadata) = remember_extension_snapshot(
+                                                                                extension_snapshots.read().clone(),
                                                                                 ExtensionApplyMode::Bulk,
                                                                                 resolved.ordered_keys.clone(),
                                                                                 total_created,
                                                                                 workflow_before,
                                                                             );
-                                                                            extension_snapshots.set(snapshots);
-                                                                            let mut history = extension_timeline.read().clone();
-                                                                            push_timeline(
-                                                                                &mut history,
+                                                                            extension_snapshots.set(new_snapshots);
+                                                                            let history = extension_timeline.read().clone();
+                                                                            extension_timeline.set(push_timeline(
+                                                                                history,
                                                                                 ExtensionTimelineEventKind::Snapshot,
                                                                                 format!(
                                                                                     "Captured rollback snapshot #{} for batch #{} (preset apply).",
@@ -348,7 +346,7 @@ pub fn SelectedNodePanel(
                                                                                     metadata.batch_id,
                                                                                 ),
                                                                                 Some(metadata.clone()),
-                                                                            );
+                                                                            ));
 
                                                                             if failures.is_empty() {
                                                                                 let summary = format!(
@@ -358,13 +356,13 @@ pub fn SelectedNodePanel(
                                                                                     applied_count,
                                                                                     total_created,
                                                                                 );
-                                                                                push_timeline(
-                                                                                    &mut history,
+                                                                                let history = extension_timeline.read().clone();
+                                                                                extension_timeline.set(push_timeline(
+                                                                                    history,
                                                                                     ExtensionTimelineEventKind::Applied,
                                                                                     summary.clone(),
                                                                                     Some(metadata),
-                                                                                );
-                                                                                extension_timeline.set(history);
+                                                                                ));
                                                                                 extension_message.set(Some(summary));
                                                                                 selected_extension_keys.set(Vec::new());
                                                                                 preview_patches.set(Vec::new());
@@ -376,13 +374,13 @@ pub fn SelectedNodePanel(
                                                                                     failures.len(),
                                                                                     failures.join(" | "),
                                                                                 );
-                                                                                push_timeline(
-                                                                                    &mut history,
+                                                                                let history = extension_timeline.read().clone();
+                                                                                extension_timeline.set(push_timeline(
+                                                                                    history,
                                                                                     ExtensionTimelineEventKind::Failed,
                                                                                     detail.clone(),
                                                                                     Some(metadata),
-                                                                                );
-                                                                                extension_timeline.set(history);
+                                                                                ));
                                                                                 extension_message.set(Some(detail));
                                                                             }
                                                                         },
@@ -432,18 +430,17 @@ pub fn SelectedNodePanel(
                                                                          }
                                                     }
 
-                                                    let mut snapshots = extension_snapshots.read().clone();
-                                                    let metadata = remember_extension_snapshot(
-                                                        &mut snapshots,
+                                                    let (new_snapshots, metadata) = remember_extension_snapshot(
+                                                        extension_snapshots.read().clone(),
                                                         ExtensionApplyMode::Bulk,
                                                         keys.clone(),
                                                         total_created,
                                                         workflow_before,
                                                     );
-                                                    extension_snapshots.set(snapshots);
-                                                    let mut history = extension_timeline.read().clone();
-                                                    push_timeline(
-                                                        &mut history,
+                                                    extension_snapshots.set(new_snapshots);
+                                                    let history = extension_timeline.read().clone();
+                                                    extension_timeline.set(push_timeline(
+                                                        history,
                                                         ExtensionTimelineEventKind::Snapshot,
                                                         format!(
                                                             "Captured rollback snapshot #{} for batch #{} ({} apply).",
@@ -452,7 +449,7 @@ pub fn SelectedNodePanel(
                                                             mode_label(metadata.mode)
                                                         ),
                                                         Some(metadata.clone()),
-                                                    );
+                                                    ));
 
                                                     if failures.is_empty() {
                                                         let summary = format!(
@@ -461,13 +458,13 @@ pub fn SelectedNodePanel(
                                                             total_created,
                                                             metadata.batch_id,
                                                         );
-                                                        push_timeline(
-                                                            &mut history,
+                                                        let history = extension_timeline.read().clone();
+                                                        extension_timeline.set(push_timeline(
+                                                            history,
                                                             ExtensionTimelineEventKind::Applied,
                                                             summary.clone(),
                                                             Some(metadata),
-                                                        );
-                                                        extension_timeline.set(history);
+                                                        ));
                                                         extension_message.set(Some(summary));
                                                         selected_extension_keys.set(Vec::new());
                                                         preview_patches.set(Vec::new());
@@ -478,13 +475,13 @@ pub fn SelectedNodePanel(
                                                             failures.len(),
                                                             failures.join(" | ")
                                                         );
-                                                        push_timeline(
-                                                            &mut history,
+                                                        let history = extension_timeline.read().clone();
+                                                        extension_timeline.set(push_timeline(
+                                                            history,
                                                             ExtensionTimelineEventKind::Failed,
                                                             detail.clone(),
                                                             Some(metadata),
-                                                        );
-                                                        extension_timeline.set(history);
+                                                        ));
                                                         extension_message.set(Some(detail));
                                                     }
                                                 },
@@ -594,18 +591,17 @@ pub fn SelectedNodePanel(
                                                                         let created_nodes = result
                                                                             .as_ref()
                                                                             .map_or(0, |applied| applied.created_nodes.len());
-                                                                        let mut snapshots = extension_snapshots.read().clone();
-                                                                        let metadata = remember_extension_snapshot(
-                                                                            &mut snapshots,
+                                                                        let (new_snapshots, metadata) = remember_extension_snapshot(
+                                                                            extension_snapshots.read().clone(),
                                                                             ExtensionApplyMode::Single,
                                                                             vec![key_for_apply.clone()],
                                                                             created_nodes,
                                                                             workflow_before,
                                                                         );
-                                                                        extension_snapshots.set(snapshots);
-                                                                        let mut history = extension_timeline.read().clone();
-                                                                        push_timeline(
-                                                                            &mut history,
+                                                                        extension_snapshots.set(new_snapshots);
+                                                                        let history = extension_timeline.read().clone();
+                                                                        extension_timeline.set(push_timeline(
+                                                                            history,
                                                                             ExtensionTimelineEventKind::Snapshot,
                                                                             format!(
                                                                                 "Captured rollback snapshot #{} for batch #{} (single apply).",
@@ -613,7 +609,7 @@ pub fn SelectedNodePanel(
                                                                                 metadata.batch_id
                                                                             ),
                                                                             Some(metadata.clone()),
-                                                                        );
+                                                                        ));
 
                                                                         match result {
                                                                             Ok(applied) => {
@@ -628,13 +624,13 @@ pub fn SelectedNodePanel(
                                                                                     metadata.batch_id,
                                                                                     applied.created_nodes.len()
                                                                                 );
-                                                                                push_timeline(
-                                                                                    &mut history,
+                                                                                let history = extension_timeline.read().clone();
+                                                                                extension_timeline.set(push_timeline(
+                                                                                    history,
                                                                                     ExtensionTimelineEventKind::Applied,
                                                                                     summary.clone(),
                                                                                     Some(metadata),
-                                                                                );
-                                                                                extension_timeline.set(history);
+                                                                                ));
                                                                                 extension_message.set(Some(summary));
                                                                                 let mut next = selected_extension_keys.read().clone();
                                                                                 next.retain(|selected| selected != &key_for_apply);
@@ -647,13 +643,13 @@ pub fn SelectedNodePanel(
                                                                                     metadata.batch_id,
                                                                                     err
                                                                                 );
-                                                                                push_timeline(
-                                                                                    &mut history,
+                                                                                let history = extension_timeline.read().clone();
+                                                                                extension_timeline.set(push_timeline(
+                                                                                    history,
                                                                                     ExtensionTimelineEventKind::Failed,
                                                                                     detail.clone(),
                                                                                     Some(metadata),
-                                                                                );
-                                                                                extension_timeline.set(history);
+                                                                                ));
                                                                                 extension_message.set(Some(detail));
                                                                             }
                                                                         }
@@ -718,9 +714,9 @@ pub fn SelectedNodePanel(
                                                                                             snapshot.keys.len(),
                                                                                             snapshot.created_nodes
                                                                                         );
-                                                                                        let mut history = extension_timeline.read().clone();
-                                                                                        push_timeline(
-                                                                                            &mut history,
+                                                                                        let history = extension_timeline.read().clone();
+                                                                                        extension_timeline.set(push_timeline(
+                                                                                            history,
                                                                                             ExtensionTimelineEventKind::RolledBack,
                                                                                             detail.clone(),
                                                                                             Some(ExtensionTimelineMetadata {
@@ -728,8 +724,7 @@ pub fn SelectedNodePanel(
                                                                                                 snapshot_id: snapshot.snapshot_id,
                                                                                                 mode: snapshot.mode,
                                                                                             }),
-                                                                                        );
-                                                                                        extension_timeline.set(history);
+                                                                                        ));
                                                                                         extension_message.set(Some(detail));
                                                                                         preview_patches.set(Vec::new());
                                                                                     }
@@ -884,24 +879,24 @@ struct ExtensionBatchSnapshot {
 }
 
 fn push_timeline(
-    timeline: &mut Vec<ExtensionTimelineEvent>,
+    timeline: Vec<ExtensionTimelineEvent>,
     kind: ExtensionTimelineEventKind,
     message: String,
     metadata: Option<ExtensionTimelineMetadata>,
-) {
+) -> Vec<ExtensionTimelineEvent> {
     let next_id = timeline.first().map_or(1, |entry| entry.id + 1);
-    timeline.insert(
-        0,
-        ExtensionTimelineEvent {
-            id: next_id,
-            kind,
-            message,
-            metadata,
-        },
+    let mut new_timeline = vec![ExtensionTimelineEvent {
+        id: next_id,
+        kind,
+        message,
+        metadata,
+    }];
+    new_timeline.extend(
+        timeline
+            .into_iter()
+            .take(11),
     );
-    if timeline.len() > 12 {
-        timeline.truncate(12);
-    }
+    new_timeline
 }
 
 fn event_appearance(
@@ -937,12 +932,12 @@ fn mode_label(mode: ExtensionApplyMode) -> &'static str {
 }
 
 fn remember_extension_snapshot(
-    snapshots: &mut Vec<ExtensionBatchSnapshot>,
+    snapshots: Vec<ExtensionBatchSnapshot>,
     mode: ExtensionApplyMode,
     keys: Vec<String>,
     created_nodes: usize,
     workflow_before: Workflow,
-) -> ExtensionTimelineMetadata {
+) -> (Vec<ExtensionBatchSnapshot>, ExtensionTimelineMetadata) {
     let next_snapshot_id = snapshots.first().map_or(1, |entry| entry.snapshot_id + 1);
     let next_batch_id = snapshots.first().map_or(1, |entry| entry.batch_id + 1);
     let snapshot = ExtensionBatchSnapshot {
@@ -953,16 +948,21 @@ fn remember_extension_snapshot(
         created_nodes,
         workflow_before,
     };
-    snapshots.insert(0, snapshot);
-    if snapshots.len() > 24 {
-        snapshots.truncate(24);
-    }
+    let mut new_snapshots = vec![snapshot];
+    new_snapshots.extend(
+        snapshots
+            .into_iter()
+            .take(23),
+    );
 
-    ExtensionTimelineMetadata {
-        batch_id: next_batch_id,
-        snapshot_id: next_snapshot_id,
-        mode,
-    }
+    (
+        new_snapshots,
+        ExtensionTimelineMetadata {
+            batch_id: next_batch_id,
+            snapshot_id: next_snapshot_id,
+            mode,
+        },
+    )
 }
 
 fn snapshot_by_id(
@@ -990,8 +990,8 @@ mod tests {
         let mut timeline: Vec<ExtensionTimelineEvent> = Vec::new();
 
         for idx in 0..14 {
-            push_timeline(
-                &mut timeline,
+            timeline = push_timeline(
+                timeline,
                 ExtensionTimelineEventKind::Applied,
                 format!("entry-{idx}"),
                 None,
@@ -1017,8 +1017,8 @@ mod tests {
         let mut snapshots: Vec<ExtensionBatchSnapshot> = Vec::new();
 
         for _ in 0..28 {
-            let _ = remember_extension_snapshot(
-                &mut snapshots,
+            (snapshots, _) = remember_extension_snapshot(
+                snapshots,
                 ExtensionApplyMode::Bulk,
                 vec!["add-entry-trigger".to_string()],
                 2,
@@ -1034,9 +1034,9 @@ mod tests {
 
     #[test]
     fn snapshot_lookup_finds_exact_snapshot() {
-        let mut snapshots: Vec<ExtensionBatchSnapshot> = Vec::new();
-        let metadata = remember_extension_snapshot(
-            &mut snapshots,
+        let snapshots: Vec<ExtensionBatchSnapshot> = Vec::new();
+        let (snapshots, metadata) = remember_extension_snapshot(
+            snapshots,
             ExtensionApplyMode::Single,
             vec!["add-timeout-guard".to_string()],
             1,

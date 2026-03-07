@@ -1281,8 +1281,9 @@ pub fn parse_key_event(key: &str, modifiers: &KeyModifiers) -> Option<EditorComm
 
         // Undo/Redo - require Ctrl/Cmd modifier (security requirement)
         // Plain 'z'/'y' should NOT mutate history
-        "z" if modifiers.ctrl => Some(EditorCommand::Undo),
+        // Note: More specific patterns must come first
         "y" | "z" if modifiers.ctrl && modifiers.shift => Some(EditorCommand::Redo),
+        "z" if modifiers.ctrl => Some(EditorCommand::Undo),
         "y" if modifiers.ctrl => Some(EditorCommand::Redo),
 
         // Auto layout - accessible via toolbar/context
