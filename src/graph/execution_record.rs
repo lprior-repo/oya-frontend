@@ -422,9 +422,10 @@ mod tests {
 
         let run = RunRecord {
             id: Uuid::new_v4(),
-            timestamp: utc(1_000),
+            timestamp: utc(1),
             results,
             success: true,
+            restate_invocation_id: None,
         };
 
         let record = from_run_record(&run);
