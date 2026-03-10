@@ -137,7 +137,9 @@ impl Workflow {
                 .get("mapping")
                 .cloned()
                 .map_or_else(|| serde_json::json!({}), std::convert::identity),
-            "service-call" | "object-call" | "workflow-call" => self.execute_service_call(resolved_config).await,
+            "service-call" | "object-call" | "workflow-call" => {
+                self.execute_service_call(resolved_config).await
+            }
             "condition" => {
                 let condition = resolved_config
                     .get("expression")
@@ -260,9 +262,10 @@ impl Workflow {
                     .collect();
 
                 let branch_descendants = self.collect_descendants(&branch_targets);
-                
+
                 // Build the full skip set: condition node + all branch nodes
-                let mut skip_set: std::collections::HashSet<NodeId> = std::collections::HashSet::new();
+                let mut skip_set: std::collections::HashSet<NodeId> =
+                    std::collections::HashSet::new();
                 skip_set.insert(node_id);
                 skip_set.extend(branch_descendants);
 
@@ -279,7 +282,8 @@ impl Workflow {
 
                     // If all incoming connections are from the skip set, mark as skipped
                     if !incoming.is_empty() && incoming.iter().all(|src| skip_set.contains(src)) {
-                        if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == target_id) {
+                        if let Some(target_node) = self.nodes.iter_mut().find(|n| n.id == target_id)
+                        {
                             target_node.skipped = true;
                             Self::set_node_status(target_node, ExecutionState::Skipped);
                         }
@@ -319,6 +323,7 @@ impl Workflow {
                 timestamp: start_time,
                 results,
                 success: false,
+                restate_invocation_id: None,
             });
             if self.history.len() > 10 {
                 let _ = self.history.remove(0);
@@ -354,6 +359,7 @@ impl Workflow {
             timestamp: start_time,
             results,
             success,
+            restate_invocation_id: None,
         });
 
         if self.history.len() > 10 {
@@ -470,7 +476,7 @@ mod tests {
         // Verify the node executed and used the custom config from node.config
         let node = workflow.nodes.iter().find(|n| n.id == run_node);
         assert!(node.is_some_and(|n| n.execution_state == ExecutionState::Completed));
-        
+
         // Verify the output contains the custom config fields
         if let Some(n) = node {
             let output = n.last_output.as_ref();

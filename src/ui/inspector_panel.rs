@@ -5,12 +5,9 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
+use crate::ui::panel_types::{CollapseState, InvocationStatus, invocation_badge_style, chevron_rotation_class};
 use dioxus::prelude::*;
 use oya_frontend::graph::{ExecutionState, Node};
-
-// ---------------------------------------------------------------------------
-// Tab enum
-// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InspectorTab {
@@ -18,11 +15,6 @@ pub enum InspectorTab {
     Output,
 }
 
-// ---------------------------------------------------------------------------
-// Pure helpers (no side-effects, fully testable)
-// ---------------------------------------------------------------------------
-
-/// Returns Tailwind badge classes for a given `ExecutionState`.
 #[must_use]
 pub const fn status_badge_class(state: ExecutionState) -> &'static str {
     match state {
@@ -36,11 +28,6 @@ pub const fn status_badge_class(state: ExecutionState) -> &'static str {
     }
 }
 
-/// Formats an optional duration in milliseconds to a human-readable string.
-///
-/// - `None`   → `"—"`
-/// - `< 1000` → `"234ms"`
-/// - `≥ 1000` → `"1.23s"`
 #[must_use]
 pub fn format_duration(ms: Option<i64>) -> String {
     match ms {
@@ -54,17 +41,10 @@ pub fn format_duration(ms: Option<i64>) -> String {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal helpers (also pure)
-// ---------------------------------------------------------------------------
-
-/// Pretty-prints a `serde_json::Value`, returning a fallback string on error.
 fn pretty_json(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_string())
 }
 
-/// Filters `text` to lines that contain `query` (case-insensitive).
-/// If `query` is empty the original text is returned unchanged.
 fn filter_lines(text: &str, query: &str) -> String {
     if query.is_empty() {
         return text.to_string();
@@ -92,11 +72,6 @@ fn should_render_failure(state: ExecutionState, error_text: &str) -> bool {
     state == ExecutionState::Failed || !error_text.is_empty()
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-/// A single tab pill button.
 #[component]
 fn TabPill(label: &'static str, active: bool, on_click: EventHandler<()>) -> Element {
     let base = "px-3 py-1 rounded-full text-[11px] font-medium transition-colors cursor-pointer";
@@ -114,7 +89,6 @@ fn TabPill(label: &'static str, active: bool, on_click: EventHandler<()>) -> Ele
     }
 }
 
-/// Copy-to-clipboard button (WASM-only clipboard write; no-op on non-WASM targets).
 #[component]
 fn CopyButton(text: String) -> Element {
     rsx! {
@@ -130,7 +104,6 @@ fn CopyButton(text: String) -> Element {
                         let _ = w.navigator().clipboard().write_text(&payload);
                     }
                 }
-                // On non-WASM targets this is intentionally a no-op.
                 let _ = payload;
             },
             crate::ui::icons::CopyIcon { class: "h-3 w-3" }
@@ -139,50 +112,30 @@ fn CopyButton(text: String) -> Element {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Main InspectorPanel component
-// ---------------------------------------------------------------------------
-
-/// Inspector Panel — slides in from the right when a node is selected.
-///
-/// When `node` is `None` the panel is hidden entirely.
 #[allow(clippy::too_many_arguments)]
 #[component]
 pub fn InspectorPanel(
-    /// The node currently selected for inspection. `None` hides the panel.
     node: ReadSignal<Option<Node>>,
-    /// JSON that was fed into this step (from the execution record).
     step_input: ReadSignal<Option<serde_json::Value>>,
-    /// JSON that the step produced on success (`None` when the step failed).
     step_output: ReadSignal<Option<serde_json::Value>>,
-    /// Error message when the step failed (`None` on success).
     step_error: ReadSignal<Option<String>>,
-    /// Stack trace string when the step failed (`None` on success).
     step_stack_trace: ReadSignal<Option<String>>,
-    /// Human-readable start time, e.g. `"14:03:22"`.
     step_start_time: ReadSignal<Option<String>>,
-    /// Human-readable end time, e.g. `"14:03:23"`.
     step_end_time: ReadSignal<Option<String>>,
-    /// Duration of the step in milliseconds.
     step_duration_ms: ReadSignal<Option<i64>>,
-    /// Which retry attempt this is (1-based; 1 = first attempt).
     step_attempt: ReadSignal<u32>,
-    /// Emitted when the user clicks the close (×) button.
     on_close: EventHandler<()>,
 ) -> Element {
     const SLIDE_STYLE: &str = "@keyframes slide-in-right { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-in-right { animation: slide-in-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }";
 
-    // ── internal state ──────────────────────────────────────────────────────
     let mut active_tab: Signal<InspectorTab> = use_signal(|| InspectorTab::Input);
     let mut search_query: Signal<String> = use_signal(String::new);
 
-    // ── early-out: hidden when no node is selected ──────────────────────────
     let current_node = node.read();
     let Some(ref selected) = *current_node else {
         return rsx! {};
     };
 
-    // ── derive display values ───────────────────────────────────────────────
     let exec_state = selected.execution_state;
     let badge_class = status_badge_class(exec_state);
     let state_label = execution_state_label(exec_state);
@@ -200,7 +153,6 @@ pub fn InspectorPanel(
     let duration_str = format_duration(*step_duration_ms.read());
     let attempt = *step_attempt.read();
 
-    // ── tab content ─────────────────────────────────────────────────────────
     let tab = *active_tab.read();
     let query = search_query.read().clone();
 
@@ -218,7 +170,6 @@ pub fn InspectorPanel(
     let stack_text = step_stack_trace.read().clone().unwrap_or_default();
     let is_failed = should_render_failure(exec_state, &error_text);
 
-    // Text that the Copy button on the active tab will copy.
     let copy_text_for_tab = match tab {
         InspectorTab::Input => input_json_text.clone(),
         InspectorTab::Output => {
@@ -230,24 +181,19 @@ pub fn InspectorPanel(
         }
     };
 
-    // Pre-filter content so RSX only interpolates plain Strings.
     let input_display = filter_lines(&input_json_text, &query);
     let output_display = filter_lines(&output_json_text, &query);
     let stack_display = filter_lines(&stack_text, &query);
-    // Keep a copy of query for display in the search input value.
     let query_display = query;
 
     rsx! {
-        // Slide-in animation keyframe injected once via a style block.
         style { "{SLIDE_STYLE}" }
 
         aside {
             class: "animate-slide-in-right fixed right-0 top-0 z-30 flex h-full w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl",
 
-            // ── Header ─────────────────────────────────────────────────────
             div { class: "shrink-0 border-b border-slate-200 px-4 py-3",
 
-                // Row 1 — name + close button
                 div { class: "mb-2 flex items-center justify-between gap-2",
                     h2 { class: "text-[15px] font-bold leading-tight text-slate-900 truncate",
                         "{node_name}"
@@ -260,7 +206,6 @@ pub fn InspectorPanel(
                     }
                 }
 
-                // Row 2 — status badge + type chip
                 div { class: "mb-3 flex items-center gap-2",
                     span {
                         class: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize {badge_class}",
@@ -272,7 +217,6 @@ pub fn InspectorPanel(
                     }
                 }
 
-                // Row 3 — timing grid
                 div { class: "grid grid-cols-4 gap-2",
                     div { class: "flex flex-col gap-0.5",
                         span { class: "text-[9px] font-semibold uppercase tracking-wide text-slate-400", "Start" }
@@ -293,7 +237,6 @@ pub fn InspectorPanel(
                 }
             }
 
-            // ── Tab bar ────────────────────────────────────────────────────
             div { class: "shrink-0 flex items-center gap-2 border-b border-slate-100 px-4 py-2",
                 TabPill {
                     label: "Input",
@@ -313,7 +256,6 @@ pub fn InspectorPanel(
                 }
             }
 
-            // ── Search bar ─────────────────────────────────────────────────
             div { class: "shrink-0 flex items-center gap-2 border-b border-slate-100 px-4 py-2",
                 div { class: "relative flex-1",
                     crate::ui::icons::SearchIcon {
@@ -330,7 +272,6 @@ pub fn InspectorPanel(
                 CopyButton { text: copy_text_for_tab }
             }
 
-            // ── Tab content (scrollable) ────────────────────────────────────
             div { class: "flex-1 overflow-y-auto p-4",
                 match tab {
                     InspectorTab::Input => rsx! {
@@ -342,14 +283,12 @@ pub fn InspectorPanel(
                     InspectorTab::Output => {
                         if is_failed {
                             rsx! {
-                                // Error message box
                                 if !error_text.is_empty() {
                                     div { class: "mb-3 rounded-md border border-red-200 bg-red-50 p-3",
                                         p { class: "mb-1 text-[11px] font-semibold text-red-700", "Error" }
                                         p { class: "text-[11px] leading-relaxed text-red-800", "{error_text}" }
                                     }
                                 }
-                                // Stack trace block
                                 if !stack_text.is_empty() {
                                     div { class: "mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500",
                                         "Stack Trace"
@@ -378,10 +317,6 @@ pub fn InspectorPanel(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 #[cfg(test)]
 mod tests {
     use super::{
@@ -389,8 +324,6 @@ mod tests {
         status_badge_class,
     };
     use oya_frontend::graph::ExecutionState;
-
-    // -- status_badge_class --------------------------------------------------
 
     #[test]
     fn given_idle_state_when_getting_badge_class_then_returns_slate() {
@@ -455,8 +388,6 @@ mod tests {
         assert!(!should_render_failure(ExecutionState::Completed, ""));
     }
 
-    // -- format_duration -----------------------------------------------------
-
     #[test]
     fn given_none_duration_when_formatting_then_returns_dash() {
         assert_eq!(format_duration(None), "—");
@@ -491,8 +422,6 @@ mod tests {
     fn given_large_duration_when_formatting_then_returns_seconds() {
         assert_eq!(format_duration(Some(60_000)), "60.00s");
     }
-
-    // -- filter_lines --------------------------------------------------------
 
     #[test]
     fn given_empty_query_when_filtering_then_returns_all_lines() {

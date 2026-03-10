@@ -1,23 +1,8 @@
 use super::{get_str_val, get_u64_val};
+use crate::ui::panel_types::HttpMethod;
 use dioxus::prelude::*;
 use oya_frontend::graph::WorkflowNode;
 use serde_json::Value;
-
-fn normalize_http_method(method: &str) -> &'static str {
-    if method.eq_ignore_ascii_case("GET") {
-        "GET"
-    } else if method.eq_ignore_ascii_case("POST") {
-        "POST"
-    } else if method.eq_ignore_ascii_case("PUT") {
-        "PUT"
-    } else if method.eq_ignore_ascii_case("DELETE") {
-        "DELETE"
-    } else if method.eq_ignore_ascii_case("PATCH") {
-        "PATCH"
-    } else {
-        "POST"
-    }
-}
 
 #[component]
 pub(super) fn EntryConfig(
@@ -29,7 +14,7 @@ pub(super) fn EntryConfig(
     rsx! {
         match node {
             WorkflowNode::HttpHandler(_) => {
-                let method = normalize_http_method(&get_str_val(&config, "method"));
+                let method = HttpMethod::parse(&get_str_val(&config, "method"));
                 rsx! {
                     FieldInput {
                         input_cls: input_cls,
@@ -44,25 +29,38 @@ pub(super) fn EntryConfig(
                             value: "{method}",
                             onchange: move |e| update_str.call((
                                 "method".to_string(),
-                                normalize_http_method(&e.value()).to_string(),
+                                HttpMethod::parse(&e.value()).to_string(),
                             )),
-                            option { value: "GET", "GET" }
-                            option { value: "POST", "POST" }
-                            option { value: "PUT", "PUT" }
-                            option { value: "DELETE", "DELETE" }
-                            option { value: "PATCH", "PATCH" }
+                            for m in HttpMethod::all() {
+                                option { value: "{m}", "{m}" }
+                            }
                         }
                     }
                 }
             }
             WorkflowNode::CronTrigger(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Schedule", value: get_str_val(&config, "schedule"), on_change: move |value: String| update_str.call(("schedule".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Schedule",
+                    value: get_str_val(&config, "schedule"),
+                    on_change: move |value: String| update_str.call(("schedule".to_string(), value))
+                }
             },
             WorkflowNode::KafkaHandler(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Kafka Topic", value: get_str_val(&config, "topic"), on_change: move |value: String| update_str.call(("topic".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Kafka Topic",
+                    value: get_str_val(&config, "topic"),
+                    on_change: move |value: String| update_str.call(("topic".to_string(), value))
+                }
             },
             WorkflowNode::WorkflowSubmit(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Workflow Name", value: get_str_val(&config, "workflow_name"), on_change: move |value: String| update_str.call(("workflow_name".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Workflow Name",
+                    value: get_str_val(&config, "workflow_name"),
+                    on_change: move |value: String| update_str.call(("workflow_name".to_string(), value))
+                }
             },
             _ => rsx! {},
         }
@@ -94,24 +92,81 @@ pub(super) fn DurableConfig(
 ) -> Element {
     rsx! {
         match node {
-            WorkflowNode::Run(_) => rsx! { FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) } },
+            WorkflowNode::Run(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Durable Step Name",
+                    value: get_str_val(&config, "durable_step_name"),
+                    on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value))
+                }
+            },
             WorkflowNode::ServiceCall(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Service", value: get_str_val(&config, "service"), on_change: move |value: String| update_str.call(("service".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Endpoint", value: get_str_val(&config, "endpoint"), on_change: move |value: String| update_str.call(("endpoint".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Durable Step Name",
+                    value: get_str_val(&config, "durable_step_name"),
+                    on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Service",
+                    value: get_str_val(&config, "service"),
+                    on_change: move |value: String| update_str.call(("service".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Endpoint",
+                    value: get_str_val(&config, "endpoint"),
+                    on_change: move |value: String| update_str.call(("endpoint".to_string(), value))
+                }
             },
             WorkflowNode::ObjectCall(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Object Name", value: get_str_val(&config, "object_name"), on_change: move |value: String| update_str.call(("object_name".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Handler", value: get_str_val(&config, "handler"), on_change: move |value: String| update_str.call(("handler".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Durable Step Name",
+                    value: get_str_val(&config, "durable_step_name"),
+                    on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Object Name",
+                    value: get_str_val(&config, "object_name"),
+                    on_change: move |value: String| update_str.call(("object_name".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Handler",
+                    value: get_str_val(&config, "handler"),
+                    on_change: move |value: String| update_str.call(("handler".to_string(), value))
+                }
             },
             WorkflowNode::WorkflowCall(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Workflow Name", value: get_str_val(&config, "workflow_name"), on_change: move |value: String| update_str.call(("workflow_name".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Durable Step Name",
+                    value: get_str_val(&config, "durable_step_name"),
+                    on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Workflow Name",
+                    value: get_str_val(&config, "workflow_name"),
+                    on_change: move |value: String| update_str.call(("workflow_name".to_string(), value))
+                }
             },
             WorkflowNode::SendMessage(_) => rsx! {
-                FieldInput { input_cls: input_cls, label: "Durable Step Name", value: get_str_val(&config, "durable_step_name"), on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value)) }
-                FieldInput { input_cls: input_cls, label: "Target", value: get_str_val(&config, "target"), on_change: move |value: String| update_str.call(("target".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Durable Step Name",
+                    value: get_str_val(&config, "durable_step_name"),
+                    on_change: move |value: String| update_str.call(("durable_step_name".to_string(), value))
+                }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Target",
+                    value: get_str_val(&config, "target"),
+                    on_change: move |value: String| update_str.call(("target".to_string(), value))
+                }
             },
             WorkflowNode::DelayedSend(_) => rsx! {
                 div { class: "flex flex-col gap-1.5",
@@ -127,7 +182,12 @@ pub(super) fn DurableConfig(
                         }
                     }
                 }
-                FieldInput { input_cls: input_cls, label: "Target", value: get_str_val(&config, "target"), on_change: move |value: String| update_str.call(("target".to_string(), value)) }
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Target",
+                    value: get_str_val(&config, "target"),
+                    on_change: move |value: String| update_str.call(("target".to_string(), value))
+                }
             },
             _ => rsx! {},
         }
@@ -142,9 +202,19 @@ pub(super) fn StateConfig(
     input_cls: &'static str,
 ) -> Element {
     rsx! {
-        FieldInput { input_cls: input_cls, label: "State Key", value: get_str_val(&config, "key"), on_change: move |value: String| update_str.call(("key".to_string(), value)) }
+        FieldInput {
+            input_cls: input_cls,
+            label: "State Key",
+            value: get_str_val(&config, "key"),
+            on_change: move |value: String| update_str.call(("key".to_string(), value))
+        }
         if matches!(node, WorkflowNode::SetState(_)) {
-            FieldInput { input_cls: input_cls, label: "Value", value: get_str_val(&config, "value"), on_change: move |value: String| update_str.call(("value".to_string(), value)) }
+            FieldInput {
+                input_cls: input_cls,
+                label: "Value",
+                value: get_str_val(&config, "value"),
+                on_change: move |value: String| update_str.call(("value".to_string(), value))
+            }
         }
     }
 }
@@ -169,8 +239,22 @@ pub(super) fn FlowConfig(
                     }
                 }
             },
-            WorkflowNode::Loop(_) => rsx! { FieldInput { input_cls: input_cls, label: "Iterator", value: get_str_val(&config, "iterator"), on_change: move |value: String| update_str.call(("iterator".to_string(), value)) } },
-            WorkflowNode::Compensate(_) => rsx! { FieldInput { input_cls: input_cls, label: "Target Step", value: get_str_val(&config, "target_step"), on_change: move |value: String| update_str.call(("target_step".to_string(), value)) } },
+            WorkflowNode::Loop(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Iterator",
+                    value: get_str_val(&config, "iterator"),
+                    on_change: move |value: String| update_str.call(("iterator".to_string(), value))
+                }
+            },
+            WorkflowNode::Compensate(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Target Step",
+                    value: get_str_val(&config, "target_step"),
+                    on_change: move |value: String| update_str.call(("target_step".to_string(), value))
+                }
+            },
             _ => rsx! {},
         }
     }
@@ -221,9 +305,30 @@ pub(super) fn SignalConfig(
 ) -> Element {
     rsx! {
         match node {
-            WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_) => rsx! { FieldInput { input_cls: input_cls, label: "Promise Name", value: get_str_val(&config, "promise_name"), on_change: move |value: String| update_str.call(("promise_name".to_string(), value)) } },
-            WorkflowNode::Awakeable(_) => rsx! { FieldInput { input_cls: input_cls, label: "Awakeable ID", value: get_str_val(&config, "awakeable_id"), on_change: move |value: String| update_str.call(("awakeable_id".to_string(), value)) } },
-            WorkflowNode::SignalHandler(_) => rsx! { FieldInput { input_cls: input_cls, label: "Signal Name", value: get_str_val(&config, "signal_name"), on_change: move |value: String| update_str.call(("signal_name".to_string(), value)) } },
+            WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Promise Name",
+                    value: get_str_val(&config, "promise_name"),
+                    on_change: move |value: String| update_str.call(("promise_name".to_string(), value))
+                }
+            },
+            WorkflowNode::Awakeable(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Awakeable ID",
+                    value: get_str_val(&config, "awakeable_id"),
+                    on_change: move |value: String| update_str.call(("awakeable_id".to_string(), value))
+                }
+            },
+            WorkflowNode::SignalHandler(_) => rsx! {
+                FieldInput {
+                    input_cls: input_cls,
+                    label: "Signal Name",
+                    value: get_str_val(&config, "signal_name"),
+                    on_change: move |value: String| update_str.call(("signal_name".to_string(), value))
+                }
+            },
             _ => rsx! {},
         }
     }

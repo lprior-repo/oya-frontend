@@ -9,31 +9,28 @@
 //!
 //! Displays journal entries with expandable input/output details
 
+use crate::restate_client::types::{JournalEntry, JournalEntryType};
 use dioxus::prelude::*;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct JournalEntryInfo {
-    pub index: u32,
-    #[serde(rename = "entryType")]
-    pub entry_type: String,
-    pub name: Option<String>,
-    pub completed: bool,
-    #[serde(rename = "invokedTarget")]
-    pub invoked_target: Option<String>,
-    #[serde(rename = "invokedId")]
-    pub invoked_id: Option<String>,
-    #[serde(rename = "promiseName")]
-    pub promise_name: Option<String>,
-    #[serde(rename = "sleepWakeupAt")]
-    pub sleep_wakeup_at: Option<i64>,
-    #[serde(rename = "entryJson")]
-    pub entry_json: Option<String>,
+fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
+    match entry_type {
+        JournalEntryType::Call | JournalEntryType::OneWayCall => " bg-blue-100 text-blue-800",
+        JournalEntryType::Sleep => " bg-purple-100 text-purple-800",
+        JournalEntryType::Awakeable => " bg-orange-100 text-orange-800",
+        JournalEntryType::GetState | JournalEntryType::SetState | JournalEntryType::ClearState => {
+            " bg-yellow-100 text-yellow-800"
+        }
+        JournalEntryType::GetPromise
+        | JournalEntryType::PeekPromise
+        | JournalEntryType::CompletePromise => " bg-pink-100 text-pink-800",
+        JournalEntryType::Custom => " bg-teal-100 text-teal-800",
+        JournalEntryType::Unknown(_) => " bg-gray-100 text-gray-800",
+    }
 }
 
 #[derive(Props, Clone, PartialEq)]
 pub struct RestateJournalViewerProps {
-    pub journal: Vec<JournalEntryInfo>,
+    pub journal: Vec<JournalEntry>,
 }
 
 #[component]
@@ -82,16 +79,9 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                         span {
                             class: {
                                 let base = "px-2 py-0.5 rounded text-xs font-medium ";
-                                match entry.entry_type.as_str() {
-                                    "Call" | "ServiceCall" => format!("{} bg-blue-100 text-blue-800", base),
-                                    "Sleep" => format!("{} bg-purple-100 text-purple-800", base),
-                                    "Awakeable" => format!("{} bg-orange-100 text-orange-800", base),
-                                    "GetState" | "SetState" | "ClearState" => format!("{} bg-yellow-100 text-yellow-800", base),
-                                    "Promise" => format!("{} bg-pink-100 text-pink-800", base),
-                                    _ => format!("{} bg-gray-100 text-gray-800", base),
-                                }
+                                format!("{}{}", base, entry_type_color(&entry.entry_type))
                             },
-                            {&entry.entry_type}
+                            {&entry.raw_entry_type}
                         }
 
                         // Name

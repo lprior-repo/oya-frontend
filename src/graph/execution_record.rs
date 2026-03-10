@@ -6,9 +6,245 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 use super::{ExecutionState, NodeId};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct ExecutionError(String);
+
+impl ExecutionError {
+    #[must_use]
+    pub fn new(message: impl Into<String>) -> Self {
+        Self(message.into())
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    #[must_use]
+    pub fn into_message(self) -> String {
+        self.0
+    }
+}
+
+impl TryFrom<String> for ExecutionError {
+    type Error = EmptyErrorMessage;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Err(EmptyErrorMessage);
+        }
+        Ok(Self(value))
+    }
+}
+
+impl From<ExecutionError> for String {
+    fn from(value: ExecutionError) -> Self {
+        value.0
+    }
+}
+
+impl fmt::Display for ExecutionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for ExecutionError {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EmptyErrorMessage;
+
+impl fmt::Display for EmptyErrorMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "error message cannot be empty")
+    }
+}
+
+impl std::error::Error for EmptyErrorMessage {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct StepName(String);
+
+impl StepName {
+    #[must_use]
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for StepName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<String> for StepName {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for StepName {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct StepType(String);
+
+impl StepType {
+    #[must_use]
+    pub fn new(step_type: impl Into<String>) -> Self {
+        Self(step_type.into())
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for StepType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<String> for StepType {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for StepType {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AttemptNumber(pub u32);
+
+impl AttemptNumber {
+    #[must_use]
+    pub const fn first() -> Self {
+        Self(1)
+    }
+
+    #[must_use]
+    pub const fn next(self) -> Self {
+        Self(self.0.saturating_add(1))
+    }
+
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ExecutionRecordId(Uuid);
+
+impl ExecutionRecordId {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+
+    #[must_use]
+    pub fn as_uuid(&self) -> Uuid {
+        self.0
+    }
+}
+
+impl Default for ExecutionRecordId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<Uuid> for ExecutionRecordId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl From<ExecutionRecordId> for Uuid {
+    fn from(id: ExecutionRecordId) -> Self {
+        id.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct WorkflowName(String);
+
+impl WorkflowName {
+    #[must_use]
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for WorkflowName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Default for WorkflowName {
+    fn default() -> Self {
+        Self(String::new())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct StepCount(pub u32);
+
+impl StepCount {
+    #[must_use]
+    pub const fn zero() -> Self {
+        Self(0)
+    }
+
+    #[must_use]
+    pub const fn increment(self) -> Self {
+        Self(self.0.saturating_add(1))
+    }
+
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
+
+impl Default for StepCount {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
 
 /// Overall status of a complete workflow execution run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,35 +269,24 @@ impl ExecutionOverallStatus {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum StepOutput {
-    /// Step completed successfully with this JSON value as its output.
     Success(serde_json::Value),
-    /// Step failed with an error message and optional stack trace.
     Failure {
-        error: String,
+        error: ExecutionError,
         stack_trace: Option<String>,
     },
-    /// Step has not yet produced output.
     Pending,
 }
 
 /// A frozen record of a single step's execution within a workflow run.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StepRecord {
-    /// Human-readable name of the step (from the node's `name` field).
-    pub step_name: String,
-    /// The node type identifier (e.g. `"run"`, `"http-handler"`).
-    pub step_type: String,
-    /// Per-step execution status.
+    pub step_name: StepName,
+    pub step_type: StepType,
     pub status: ExecutionState,
-    /// Wall-clock time when this step began executing.
     pub start_time: Option<chrono::DateTime<chrono::Utc>>,
-    /// Wall-clock time when this step finished executing.
     pub end_time: Option<chrono::DateTime<chrono::Utc>>,
-    /// Which attempt number this record belongs to (1-indexed).
-    pub attempt: u32,
-    /// The JSON value that was passed into this step as its input.
+    pub attempt: AttemptNumber,
     pub input: Option<serde_json::Value>,
-    /// The output produced (success value, failure detail, or pending).
     pub output: StepOutput,
 }
 
@@ -86,23 +311,14 @@ impl StepRecord {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExecutionRecord {
-    /// Unique identifier for this execution run.
-    pub id: Uuid,
-    /// Name of the workflow that was executed.
-    pub workflow_name: String,
-    /// Overall status of the execution.
+    pub id: ExecutionRecordId,
+    pub workflow_name: WorkflowName,
     pub status: ExecutionOverallStatus,
-    /// Wall-clock time when execution began.
     pub start_time: chrono::DateTime<chrono::Utc>,
-    /// Wall-clock time when execution finished (absent while still running).
     pub end_time: Option<chrono::DateTime<chrono::Utc>>,
-    /// Ordered list of `(NodeId, StepRecord)` pairs — one entry per node
-    /// that was visited during this run. Order is deterministic (topological).
     pub steps: Vec<(NodeId, StepRecord)>,
-    /// Number of steps that completed successfully.
-    pub steps_completed: u32,
-    /// Number of steps that failed.
-    pub steps_failed: u32,
+    pub steps_completed: StepCount,
+    pub steps_failed: StepCount,
 }
 
 impl ExecutionRecord {
@@ -146,9 +362,12 @@ impl ExecutionRecord {
 /// Pure function — no side effects.
 #[must_use]
 pub fn from_run_record(record: &super::RunRecord) -> ExecutionRecord {
-    #[allow(clippy::cast_possible_truncation)]
-    let steps_completed = record.results.len() as u32;
-    let steps_failed = u32::from(!record.success);
+    let steps_completed = StepCount(u32::try_from(record.results.len()).unwrap_or(0));
+    let steps_failed = if record.success {
+        StepCount::zero()
+    } else {
+        StepCount::zero().increment()
+    };
     let status = if record.success {
         ExecutionOverallStatus::Succeeded
     } else {
@@ -156,8 +375,8 @@ pub fn from_run_record(record: &super::RunRecord) -> ExecutionRecord {
     };
 
     ExecutionRecord {
-        id: record.id,
-        workflow_name: String::new(),
+        id: ExecutionRecordId::from(record.id),
+        workflow_name: WorkflowName::default(),
         status,
         start_time: record.timestamp,
         end_time: None,
@@ -169,8 +388,8 @@ pub fn from_run_record(record: &super::RunRecord) -> ExecutionRecord {
                 (
                     *node_id,
                     StepRecord {
-                        step_name: String::new(),
-                        step_type: String::new(),
+                        step_name: StepName::new(""),
+                        step_type: StepType::new(""),
                         status: if record.success {
                             ExecutionState::Completed
                         } else {
@@ -178,7 +397,7 @@ pub fn from_run_record(record: &super::RunRecord) -> ExecutionRecord {
                         },
                         start_time: Some(record.timestamp),
                         end_time: None,
-                        attempt: 1,
+                        attempt: AttemptNumber::first(),
                         input: None,
                         output: StepOutput::Success(output.clone()),
                     },
@@ -201,12 +420,12 @@ mod tests {
 
     fn make_step(start: Option<i64>, end: Option<i64>) -> StepRecord {
         StepRecord {
-            step_name: "test-step".to_string(),
-            step_type: "run".to_string(),
+            step_name: StepName::new("test-step"),
+            step_type: StepType::new("run"),
             status: ExecutionState::Completed,
             start_time: start.map(utc),
             end_time: end.map(utc),
-            attempt: 1,
+            attempt: AttemptNumber::first(),
             input: None,
             output: StepOutput::Pending,
         }
@@ -218,14 +437,14 @@ mod tests {
         status: ExecutionOverallStatus,
     ) -> ExecutionRecord {
         ExecutionRecord {
-            id: Uuid::new_v4(),
-            workflow_name: "wf".to_string(),
+            id: ExecutionRecordId::new(),
+            workflow_name: WorkflowName::new("wf"),
             status,
             start_time: utc(start),
             end_time: end.map(utc),
             steps: Vec::new(),
-            steps_completed: 0,
-            steps_failed: 0,
+            steps_completed: StepCount::zero(),
+            steps_failed: StepCount::zero(),
         }
     }
 
@@ -302,19 +521,19 @@ mod tests {
         let node_id = NodeId::new();
         let step = make_step(Some(0), Some(1));
         let record = ExecutionRecord {
-            id: Uuid::new_v4(),
-            workflow_name: "wf".to_string(),
+            id: ExecutionRecordId::new(),
+            workflow_name: WorkflowName::new("wf"),
             status: ExecutionOverallStatus::Succeeded,
             start_time: utc(0),
             end_time: Some(utc(1)),
             steps: vec![(node_id, step.clone())],
-            steps_completed: 1,
-            steps_failed: 0,
+            steps_completed: StepCount::zero().increment(),
+            steps_failed: StepCount::zero(),
         };
 
         let found = record.step_for_node(node_id);
         assert!(found.is_some());
-        assert_eq!(found.unwrap().step_name, "test-step");
+        assert_eq!(found.unwrap().step_name.as_str(), "test-step");
     }
 
     #[test]
@@ -323,14 +542,14 @@ mod tests {
         let other_id = NodeId::new();
         let step = make_step(Some(0), Some(1));
         let record = ExecutionRecord {
-            id: Uuid::new_v4(),
-            workflow_name: "wf".to_string(),
+            id: ExecutionRecordId::new(),
+            workflow_name: WorkflowName::new("wf"),
             status: ExecutionOverallStatus::Succeeded,
             start_time: utc(0),
             end_time: Some(utc(1)),
             steps: vec![(node_id, step)],
-            steps_completed: 1,
-            steps_failed: 0,
+            steps_completed: StepCount::zero().increment(),
+            steps_failed: StepCount::zero(),
         };
 
         assert!(record.step_for_node(other_id).is_none());
@@ -377,7 +596,7 @@ mod tests {
     #[test]
     fn step_output_failure_roundtrips_through_json() {
         let output = StepOutput::Failure {
-            error: "oops".to_string(),
+            error: ExecutionError::new("oops"),
             stack_trace: Some("at line 1".to_string()),
         };
         let json = serde_json::to_string(&output).unwrap();
@@ -430,11 +649,11 @@ mod tests {
 
         let record = from_run_record(&run);
 
-        assert_eq!(record.id, run.id);
+        assert_eq!(record.id.as_uuid(), run.id);
         assert_eq!(record.status, ExecutionOverallStatus::Succeeded);
-        assert_eq!(record.steps_completed, 1);
-        assert_eq!(record.steps_failed, 0);
-        assert_eq!(record.start_time, utc(1_000));
+        assert_eq!(record.steps_completed.get(), 1);
+        assert_eq!(record.steps_failed.get(), 0);
+        assert_eq!(record.start_time, utc(1));
         assert!(record.end_time.is_none());
         assert_eq!(record.steps.len(), 1);
         assert_eq!(record.steps[0].0, node_id);
@@ -460,8 +679,8 @@ mod tests {
         let record = from_run_record(&run);
 
         assert_eq!(record.status, ExecutionOverallStatus::Failed);
-        assert_eq!(record.steps_completed, 1);
-        assert_eq!(record.steps_failed, 1);
+        assert_eq!(record.steps_completed.get(), 1);
+        assert_eq!(record.steps_failed.get(), 1);
     }
 
     #[test]
@@ -479,7 +698,7 @@ mod tests {
 
         let record = from_run_record(&run);
         assert!(record.steps.is_empty());
-        assert_eq!(record.steps_completed, 0);
-        assert_eq!(record.steps_failed, 0);
+        assert_eq!(record.steps_completed.get(), 0);
+        assert_eq!(record.steps_failed.get(), 0);
     }
 }

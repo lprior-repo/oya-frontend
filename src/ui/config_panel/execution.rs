@@ -5,6 +5,10 @@
 
 use super::get_str_val;
 use crate::ui::icons::{icon_by_name, CopyIcon};
+use crate::ui::panel_types::{
+    ExecutionEventCategory, InvocationStatus, OutputOrigin, PayloadShape, StatusBadgeStyle,
+    invocation_badge_style,
+};
 use dioxus::prelude::*;
 use oya_frontend::graph::ExecutionState;
 use serde_json::Value;
@@ -73,7 +77,7 @@ fn CopyButton(text: String, compact: bool) -> Element {
 }
 
 #[component]
-fn PayloadPreview(payload: Value, label: String, shape: String, max_lines: usize) -> Element {
+fn PayloadPreview(payload: Value, label: String, shape: PayloadShape, max_lines: usize) -> Element {
     let mut expanded = use_signal(|| false);
     let json_full = match serde_json::to_string_pretty(&payload) {
         Ok(serialized) => serialized,
@@ -85,13 +89,14 @@ fn PayloadPreview(payload: Value, label: String, shape: String, max_lines: usize
     } else {
         json_preview(&payload, max_lines)
     };
+    let shape_display = shape.to_display();
 
     rsx! {
         div { class: "rounded-lg border border-slate-700 bg-slate-900/65 p-2",
             div { class: "mb-1 flex items-center justify-between",
                 span { class: "text-[10px] font-medium text-slate-300", "{label}" }
                 div { class: "flex items-center gap-2",
-                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{shape}" }
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400", "{shape_display}" }
                     CopyButton { text: json_full.clone(), compact: true }
                 }
             }
@@ -111,16 +116,9 @@ fn PayloadPreview(payload: Value, label: String, shape: String, max_lines: usize
     }
 }
 
-#[derive(Clone, Copy)]
-enum ExecutionEventKind {
-    Status,
-    Journal,
-    Retry,
-}
-
 #[derive(Clone)]
 struct ExecutionTimelineEvent {
-    kind: ExecutionEventKind,
+    category: ExecutionEventCategory,
     label: String,
     detail: String,
 }
@@ -134,10 +132,7 @@ pub(super) fn ExecutionTab(
     input_payloads: Vec<Value>,
     on_pin_sample: EventHandler<Option<Value>>,
 ) -> Element {
-    let status = resolve_status(execution_state, &execution_data, &config);
-    let is_executed = status.is_some();
-    let status_value = status.as_deref().map_or("", |value| value);
-
+    let invocation_status = resolve_invocation_status(execution_state, &execution_data, &config);
     let journal_idx = read_u64_with_legacy_fallback(
         &execution_data,
         &config,
@@ -150,45 +145,17 @@ pub(super) fn ExecutionTab(
         "retry_count",
         "retryCount",
     );
-    let timeline = build_execution_timeline(status_value, journal_idx, retry_count);
+    let timeline = build_execution_timeline(invocation_status, journal_idx, retry_count);
     let pinned_output = get_pinned_output(&config);
     let output_payload = last_output.clone().or_else(|| pinned_output.clone());
+    let output_origin = OutputOrigin::from_flags(last_output.is_some(), pinned_output.is_some());
 
     rsx! {
         div { class: "flex flex-col gap-4",
             div { class: "flex flex-col gap-2",
                 label { class: "text-[11px] font-medium uppercase tracking-wide text-slate-500", "Invocation Status" }
-                if is_executed {
-                    {
-                        let (bg_color, text_color, border_color, icon_name, is_spin) = match status_value {
-                            "queued" => ("bg-cyan-500/15", "text-cyan-400", "border-cyan-500/30", "clock", false),
-                            "running" => ("bg-indigo-500/15", "text-indigo-400", "border-indigo-500/30", "loader", true),
-                            "suspended" => ("bg-pink-500/15", "text-pink-400", "border-pink-500/30", "pause", false),
-                            "completed" => ("bg-emerald-500/15", "text-emerald-400", "border-emerald-500/30", "check-circle", false),
-                            "failed" => ("bg-red-500/15", "text-red-400", "border-red-500/30", "alert-circle", false),
-                            "skipped" => ("bg-slate-500/15", "text-slate-300", "border-slate-500/30", "x", false),
-                            "retrying" => ("bg-amber-500/15", "text-amber-400", "border-amber-500/30", "refresh", true),
-                            _ => ("bg-slate-500/15", "text-slate-400", "border-slate-500/30", "help-circle", false),
-                        };
-                        let label = match status_value {
-                            "queued" => "Queued",
-                            "running" => "Running",
-                            "suspended" => "Suspended",
-                            "completed" => "Completed",
-                            "failed" => "Failed",
-                            "skipped" => "Skipped",
-                            "retrying" => "Retrying",
-                            other => other,
-                        };
-                        let icon_class = if is_spin { "h-3 w-3 animate-spin".to_string() } else { "h-3 w-3".to_string() };
-                        rsx! {
-                            div {
-                                class: "inline-flex self-start items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium {bg_color} {text_color} {border_color}",
-                                {icon_by_name(icon_name, icon_class)}
-                                "{label}"
-                            }
-                        }
-                    }
+                if let Some(status) = invocation_status {
+                    StatusBadge { status }
                 } else {
                     span { class: "text-[11px] text-slate-500", "Not yet executed" }
                 }
@@ -231,7 +198,7 @@ pub(super) fn ExecutionTab(
                             PayloadPreview {
                                 payload: payload.clone(),
                                 label: format!("Input #{}", index + 1),
-                                shape: payload_shape(payload),
+                                shape: PayloadShape::from_value(payload),
                                 max_lines: DEFAULT_PREVIEW_LINES,
                             }
                         }
@@ -244,14 +211,14 @@ pub(super) fn ExecutionTab(
             div { class: "flex flex-col gap-2",
                 div { class: "flex items-center justify-between",
                     h4 { class: "text-[11px] font-semibold uppercase tracking-wide text-slate-300", "Output Payload" }
-                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400", "{output_origin_label(last_output.is_some(), pinned_output.is_some())}" }
+                    span { class: "rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400", "{output_origin.display_label()}" }
                 }
 
                 if let Some(output) = output_payload.as_ref() {
                     PayloadPreview {
                         payload: output.clone(),
                         label: "Payload".to_string(),
-                        shape: payload_shape(output),
+                        shape: PayloadShape::from_value(output),
                         max_lines: 14,
                     }
                 } else {
@@ -291,19 +258,7 @@ pub(super) fn ExecutionTab(
                 } else {
                     div { class: "flex flex-col gap-1.5",
                         for event in timeline.iter() {
-                            {
-                                let (dot_class, pill_class) = execution_event_style(event.kind);
-                                rsx! {
-                                    div { class: "flex gap-2 rounded-md border border-slate-700 bg-slate-900/80 px-2 py-1.5",
-                                        div { class: "mt-[2px] h-2 w-2 rounded-full {dot_class}" }
-                                        div {
-                                            p { class: "text-[10px] font-medium text-slate-200", "{event.label}" }
-                                            p { class: "text-[10px] text-slate-400", "{event.detail}" }
-                                        }
-                                        span { class: "ml-auto inline-flex h-fit rounded px-1.5 py-0.5 text-[9px] font-medium {pill_class}", "{event_kind_label(event.kind)}" }
-                                    }
-                                }
-                            }
+                            TimelineEventItem { event: event.clone() }
                         }
                     }
                 }
@@ -316,19 +271,55 @@ pub(super) fn ExecutionTab(
     }
 }
 
+#[component]
+fn StatusBadge(status: InvocationStatus) -> Element {
+    let style = invocation_badge_style(status);
+    let icon_class = if status.is_spinning() {
+        "h-3 w-3 animate-spin".to_string()
+    } else {
+        "h-3 w-3".to_string()
+    };
+
+    rsx! {
+        div {
+            class: "inline-flex self-start items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium {style.bg} {style.text} {style.border}",
+            {icon_by_name(status.icon_name(), icon_class)}
+            "{status.display_label()}"
+        }
+    }
+}
+
+#[component]
+fn TimelineEventItem(event: ExecutionTimelineEvent) -> Element {
+    let dot_class = event.category.dot_class();
+    let pill_class = event.category.pill_class();
+    let label_text = event.category.display_label();
+
+    rsx! {
+        div { class: "flex gap-2 rounded-md border border-slate-700 bg-slate-900/80 px-2 py-1.5",
+            div { class: "mt-[2px] h-2 w-2 rounded-full {dot_class}" }
+            div {
+                p { class: "text-[10px] font-medium text-slate-200", "{event.label}" }
+                p { class: "text-[10px] text-slate-400", "{event.detail}" }
+            }
+            span { class: "ml-auto inline-flex h-fit rounded px-1.5 py-0.5 text-[9px] font-medium {pill_class}", "{label_text}" }
+        }
+    }
+}
+
 fn build_execution_timeline(
-    status: &str,
+    status: Option<InvocationStatus>,
     journal_idx: Option<u64>,
     retry_count: Option<u64>,
 ) -> Vec<ExecutionTimelineEvent> {
-    let status_event = (!status.is_empty()).then_some(ExecutionTimelineEvent {
-        kind: ExecutionEventKind::Status,
+    let status_event = status.map(|s| ExecutionTimelineEvent {
+        category: ExecutionEventCategory::Status,
         label: "Invocation status updated".to_string(),
-        detail: status.to_string(),
+        detail: s.as_str().to_string(),
     });
 
     let journal_event = journal_idx.map(|index| ExecutionTimelineEvent {
-        kind: ExecutionEventKind::Journal,
+        category: ExecutionEventCategory::Journal,
         label: "Durable journal checkpoint".to_string(),
         detail: format!("journal #{index}"),
     });
@@ -336,7 +327,7 @@ fn build_execution_timeline(
     let retry_event = retry_count
         .filter(|&retry| retry > 0)
         .map(|retry| ExecutionTimelineEvent {
-            kind: ExecutionEventKind::Retry,
+            category: ExecutionEventCategory::Retry,
             label: "Retry attempts recorded".to_string(),
             detail: format!("{retry} retries"),
         });
@@ -347,61 +338,41 @@ fn build_execution_timeline(
         .collect()
 }
 
-const fn execution_event_style(kind: ExecutionEventKind) -> (&'static str, &'static str) {
-    match kind {
-        ExecutionEventKind::Status => ("bg-indigo-500", "bg-indigo-500/15 text-indigo-300"),
-        ExecutionEventKind::Journal => ("bg-emerald-500", "bg-emerald-500/15 text-emerald-300"),
-        ExecutionEventKind::Retry => ("bg-amber-500", "bg-amber-500/15 text-amber-300"),
-    }
-}
-
-const fn event_kind_label(kind: ExecutionEventKind) -> &'static str {
-    match kind {
-        ExecutionEventKind::Status => "Status",
-        ExecutionEventKind::Journal => "Journal",
-        ExecutionEventKind::Retry => "Retry",
-    }
-}
-
 fn get_pinned_output(config: &Value) -> Option<Value> {
     config.get(PINNED_OUTPUT_KEY).cloned()
 }
 
-fn runtime_status(execution_state: ExecutionState, execution_data: &Value) -> Option<String> {
+fn runtime_status(execution_state: ExecutionState, execution_data: &Value) -> Option<InvocationStatus> {
     let runtime_status = execution_data
         .get("status")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|status| !status.is_empty())
-        .map(ToOwned::to_owned);
+        .and_then(InvocationStatus::parse);
 
     match runtime_status {
         Some(status) => Some(status),
         None => match execution_state {
             ExecutionState::Idle => None,
-            ExecutionState::Queued => Some("queued".to_string()),
-            ExecutionState::Running => Some("running".to_string()),
-            ExecutionState::Completed => Some("completed".to_string()),
-            ExecutionState::Failed => Some("failed".to_string()),
-            ExecutionState::Skipped => Some("skipped".to_string()),
+            ExecutionState::Queued => Some(InvocationStatus::Queued),
+            ExecutionState::Running => Some(InvocationStatus::Running),
+            ExecutionState::Completed => Some(InvocationStatus::Completed),
+            ExecutionState::Failed => Some(InvocationStatus::Failed),
+            ExecutionState::Skipped => Some(InvocationStatus::Skipped),
         },
     }
 }
 
-fn resolve_status(
+fn resolve_invocation_status(
     execution_state: ExecutionState,
     execution_data: &Value,
     config: &Value,
-) -> Option<String> {
+) -> Option<InvocationStatus> {
     if let Some(status) = runtime_status(execution_state, execution_data) {
         return Some(status);
     }
     let legacy_status = get_str_val(config, "status");
-    if legacy_status.trim().is_empty() {
-        None
-    } else {
-        Some(legacy_status)
-    }
+    InvocationStatus::parse(&legacy_status)
 }
 
 fn read_u64_with_legacy_fallback(
@@ -416,27 +387,6 @@ fn read_u64_with_legacy_fallback(
         .or_else(|| execution_data.get(legacy_key).and_then(Value::as_u64))
         .or_else(|| config.get(key).and_then(Value::as_u64))
         .or_else(|| config.get(legacy_key).and_then(Value::as_u64))
-}
-
-fn output_origin_label(has_live_output: bool, has_pinned_output: bool) -> &'static str {
-    if has_live_output {
-        "Live output"
-    } else if has_pinned_output {
-        "Pinned sample"
-    } else {
-        "No output"
-    }
-}
-
-fn payload_shape(payload: &Value) -> String {
-    match payload {
-        Value::Object(map) => format!("object ({})", map.len()),
-        Value::Array(arr) => format!("array ({})", arr.len()),
-        Value::String(text) => format!("string ({})", text.len()),
-        Value::Number(_) => "number".to_string(),
-        Value::Bool(_) => "boolean".to_string(),
-        Value::Null => "null".to_string(),
-    }
 }
 
 fn json_preview(payload: &Value, max_lines: usize) -> String {
@@ -455,30 +405,38 @@ fn json_preview(payload: &Value, max_lines: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_execution_timeline, get_pinned_output, json_preview, output_origin_label,
-        payload_shape, read_u64_with_legacy_fallback, resolve_status, ExecutionEventKind,
+        build_execution_timeline, get_pinned_output, json_preview, resolve_invocation_status,
+        ExecutionEventCategory, InvocationStatus,
     };
     use oya_frontend::graph::ExecutionState;
     use serde_json::json;
 
     #[test]
     fn timeline_includes_status_journal_and_retry_when_present() {
-        let timeline = build_execution_timeline("retrying", Some(7), Some(2));
+        let timeline = build_execution_timeline(
+            Some(InvocationStatus::Retrying),
+            Some(7),
+            Some(2),
+        );
 
         assert_eq!(timeline.len(), 3);
-        assert!(matches!(timeline[0].kind, ExecutionEventKind::Status));
+        assert!(matches!(timeline[0].category, ExecutionEventCategory::Status));
         assert!(timeline[1].detail.contains("#7"));
-        assert!(matches!(timeline[2].kind, ExecutionEventKind::Retry));
+        assert!(matches!(timeline[2].category, ExecutionEventCategory::Retry));
     }
 
     #[test]
     fn timeline_skips_retry_when_zero() {
-        let timeline = build_execution_timeline("running", Some(1), Some(0));
+        let timeline = build_execution_timeline(
+            Some(InvocationStatus::Running),
+            Some(1),
+            Some(0),
+        );
 
         assert_eq!(timeline.len(), 2);
         assert!(!timeline
             .iter()
-            .any(|entry| matches!(entry.kind, ExecutionEventKind::Retry)));
+            .any(|entry| matches!(entry.category, ExecutionEventCategory::Retry)));
     }
 
     #[test]
@@ -488,35 +446,11 @@ mod tests {
     }
 
     #[test]
-    fn output_origin_prefers_live_data() {
-        assert_eq!(output_origin_label(true, true), "Live output");
-        assert_eq!(output_origin_label(false, true), "Pinned sample");
-        assert_eq!(output_origin_label(false, false), "No output");
-    }
-
-    #[test]
-    fn payload_shape_reports_kind_and_size() {
-        assert_eq!(payload_shape(&json!({"a": 1, "b": 2})), "object (2)");
-        assert_eq!(payload_shape(&json!([1, 2, 3])), "array (3)");
-        assert_eq!(payload_shape(&json!("hello")), "string (5)");
-    }
-
-    #[test]
     fn json_preview_truncates_large_payloads() {
         let payload = json!({
-            "a": 1,
-            "b": 2,
-            "c": 3,
-            "d": 4,
-            "e": 5,
-            "f": 6,
-            "g": 7,
-            "h": 8,
-            "i": 9,
-            "j": 10,
-            "k": 11,
-            "l": 12,
-            "m": 13
+            "a": 1, "b": 2, "c": 3, "d": 4, "e": 5,
+            "f": 6, "g": 7, "h": 8, "i": 9, "j": 10,
+            "k": 11, "l": 12, "m": 13
         });
 
         let preview = json_preview(&payload, 6);
@@ -525,42 +459,23 @@ mod tests {
 
     #[test]
     fn status_prefers_runtime_data_over_other_sources() {
-        let status = resolve_status(
+        let status = resolve_invocation_status(
             ExecutionState::Completed,
             &json!({"status": "retrying"}),
             &json!({"status": "failed"}),
         );
 
-        assert_eq!(status.as_deref(), Some("retrying"));
+        assert_eq!(status, Some(InvocationStatus::Retrying));
     }
 
     #[test]
     fn status_falls_back_to_execution_state_and_then_legacy_config() {
         let from_state =
-            resolve_status(ExecutionState::Running, &json!({}), &json!({"status": "failed"}));
+            resolve_invocation_status(ExecutionState::Running, &json!({}), &json!({"status": "failed"}));
         let from_config =
-            resolve_status(ExecutionState::Idle, &json!({}), &json!({"status": "suspended"}));
+            resolve_invocation_status(ExecutionState::Idle, &json!({}), &json!({"status": "suspended"}));
 
-        assert_eq!(from_state.as_deref(), Some("running"));
-        assert_eq!(from_config.as_deref(), Some("suspended"));
-    }
-
-    #[test]
-    fn counters_prefer_runtime_and_fallback_to_legacy_keys() {
-        let runtime = read_u64_with_legacy_fallback(
-            &json!({"retry_count": 3}),
-            &json!({"retryCount": 2}),
-            "retry_count",
-            "retryCount",
-        );
-        let legacy = read_u64_with_legacy_fallback(
-            &json!({}),
-            &json!({"journalIndex": 8}),
-            "journal_index",
-            "journalIndex",
-        );
-
-        assert_eq!(runtime, Some(3));
-        assert_eq!(legacy, Some(8));
+        assert_eq!(from_state, Some(InvocationStatus::Running));
+        assert_eq!(from_config, Some(InvocationStatus::Suspended));
     }
 }

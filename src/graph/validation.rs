@@ -701,8 +701,8 @@ mod tests {
         }
 
         #[test]
-        fn given_disconnected_subgraph_with_incoming_edges_when_validating_then_unreachable_warning_is_emitted()
-        {
+        fn given_disconnected_subgraph_with_incoming_edges_when_validating_then_unreachable_warning_is_emitted(
+        ) {
             let mut workflow = make_workflow();
             let _ = add_entry_node(&mut workflow);
 

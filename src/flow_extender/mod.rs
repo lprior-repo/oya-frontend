@@ -1,5 +1,5 @@
-use crate::graph::{Node, NodeCategory, NodeId, PortName, Workflow};
 use crate::graph::workflow_node::WorkflowNode;
+use crate::graph::{Node, NodeCategory, NodeId, PortName, Workflow};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
@@ -826,7 +826,10 @@ fn plan_unbalanced_condition(workflow: &Workflow) -> Option<RulePlan> {
     let condition_node = workflow
         .nodes
         .iter()
-        .find(|node| matches!(node.node, WorkflowNode::Condition(_)) && missing_condition_branch(workflow, node.id))
+        .find(|node| {
+            matches!(node.node, WorkflowNode::Condition(_))
+                && missing_condition_branch(workflow, node.id)
+        })
         .cloned()?;
 
     Some(RulePlan {
@@ -1037,20 +1040,22 @@ fn key_is_compatible_with_workflow(workflow: &Workflow, key: ExtensionKey) -> bo
 
 fn infer_workflow_service_kinds(workflow: &Workflow) -> HashSet<RestateServiceKind> {
     let has_promise_semantics = workflow.nodes.iter().any(|node| {
-        matches!(node.node, WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_))
-            || is_signal_wait_anchor(workflow, node)
+        matches!(
+            node.node,
+            WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_)
+        ) || is_signal_wait_anchor(workflow, node)
     });
     let has_state_semantics = workflow.nodes.iter().any(|node| {
-        matches!(node.node, WorkflowNode::GetState(_) | WorkflowNode::SetState(_) | WorkflowNode::ClearState(_))
+        matches!(
+            node.node,
+            WorkflowNode::GetState(_) | WorkflowNode::SetState(_) | WorkflowNode::ClearState(_)
+        )
     });
 
     if has_promise_semantics {
         HashSet::from([RestateServiceKind::Workflow])
     } else if has_state_semantics {
-        HashSet::from([
-            RestateServiceKind::Actor,
-            RestateServiceKind::Workflow,
-        ])
+        HashSet::from([RestateServiceKind::Actor, RestateServiceKind::Workflow])
     } else if workflow.nodes.is_empty() {
         HashSet::from([
             RestateServiceKind::Handler,
@@ -1104,10 +1109,7 @@ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
             provides: vec![RestateCapability::TimerGuard],
         },
         ExtensionKey::AddDurableCheckpoint => ExtensionSemantics {
-            compatible_service_kinds: vec![
-                RestateServiceKind::Actor,
-                RestateServiceKind::Workflow,
-            ],
+            compatible_service_kinds: vec![RestateServiceKind::Actor, RestateServiceKind::Workflow],
             requires: vec![RestateCapability::DurableExecution],
             provides: vec![RestateCapability::StateStore],
         },
@@ -1271,7 +1273,8 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                 .nodes
                 .iter()
                 .filter(|node| {
-                    matches!(node.node, WorkflowNode::Condition(_)) && missing_condition_branch(workflow, node.id)
+                    matches!(node.node, WorkflowNode::Condition(_))
+                        && missing_condition_branch(workflow, node.id)
                 })
                 .count() as f32;
             (0.72 + missing * 0.09).min(0.96)
@@ -1500,7 +1503,7 @@ mod tests {
         suggest_extensions_with_analysis, ConflictKind, ExtensionKey, PreviewEndpoint,
         RationaleClass, RestateCapability, RestateServiceKind, WorkflowNode,
     };
-    use crate::graph::{Workflow, workflow_node::WorkflowNode};
+    use crate::graph::{workflow_node::WorkflowNode, Workflow};
     use std::collections::HashSet;
 
     #[test]

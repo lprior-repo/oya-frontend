@@ -12,37 +12,26 @@
 //! - Journal entries list
 //! - State changes
 
+use crate::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 use dioxus::prelude::*;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct InvocationInfo {
-    pub id: String,
-    pub target: String,
-    pub status: String,
-    pub created_at: i64,
-    pub completed_at: Option<i64>,
-    pub journal_size: u32,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct JournalEntryInfo {
-    pub index: u32,
-    pub entry_type: String,
-    pub name: Option<String>,
-    pub completed: bool,
-    pub invoked_target: Option<String>,
-    pub invoked_id: Option<String>,
-    pub promise_name: Option<String>,
-    pub sleep_wakeup_at: Option<i64>,
-    pub entry_json: Option<String>,
+fn status_to_ui_string(status: InvocationStatus) -> &'static str {
+    match status {
+        InvocationStatus::Pending => "pending",
+        InvocationStatus::Scheduled => "scheduled",
+        InvocationStatus::Ready => "ready",
+        InvocationStatus::Running => "running",
+        InvocationStatus::Paused => "paused",
+        InvocationStatus::BackingOff => "backing-off",
+        InvocationStatus::Suspended => "suspended",
+        InvocationStatus::Completed => "completed",
+    }
 }
 
 #[derive(Props, Clone, PartialEq)]
-#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct RestateInvocationDetailsProps {
-    pub invocation: InvocationInfo,
-    pub journal: Vec<JournalEntryInfo>,
+    pub invocation: Invocation,
+    pub journal: Vec<JournalEntry>,
     pub on_close: EventHandler<()>,
 }
 
@@ -50,6 +39,7 @@ pub struct RestateInvocationDetailsProps {
 pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element {
     let inv = &props.invocation;
     let journal = &props.journal;
+    let status_str = status_to_ui_string(inv.status);
 
     rsx! {
         div {
@@ -101,16 +91,15 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                             div { class: "text-sm text-gray-500", "Status" }
                             div {
                                 class: {
-                                    let status = &inv.status;
                                     let base = "px-2 py-1 rounded text-sm ";
-                                    match status.as_str() {
-                                        "completed" => format!("{} bg-green-100 text-green-800", base),
-                                        "running" => format!("{} bg-blue-100 text-blue-800", base),
-                                        "failed" => format!("{} bg-red-100 text-red-800", base),
+                                    match inv.status {
+                                        InvocationStatus::Completed => format!("{} bg-green-100 text-green-800", base),
+                                        InvocationStatus::Running => format!("{} bg-blue-100 text-blue-800", base),
+                                        InvocationStatus::Paused | InvocationStatus::BackingOff => format!("{} bg-red-100 text-red-800", base),
                                         _ => format!("{} bg-gray-100 text-gray-800", base),
                                     }
                                 },
-                                {&inv.status}
+                                {status_str}
                             }
                         }
 
@@ -169,7 +158,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                                                     format!("{} bg-yellow-100 text-yellow-800", base)
                                                 }
                                             },
-                                            {&entry.entry_type}
+                                            {&entry.raw_entry_type}
                                         }
 
                                         span {

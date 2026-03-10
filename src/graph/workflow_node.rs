@@ -179,6 +179,126 @@ pub struct SignalHandlerConfig {
     pub signal_name: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ConditionResult {
+    True,
+    False,
+}
+
+impl ConditionResult {
+    #[must_use]
+    pub const fn is_true(self) -> bool {
+        matches!(self, Self::True)
+    }
+
+    #[must_use]
+    pub const fn is_false(self) -> bool {
+        matches!(self, Self::False)
+    }
+
+    #[must_use]
+    pub const fn branch_port(self) -> &'static str {
+        match self {
+            Self::True => "true",
+            Self::False => "false",
+        }
+    }
+
+    #[must_use]
+    pub const fn opposite_port(self) -> &'static str {
+        match self {
+            Self::True => "false",
+            Self::False => "true",
+        }
+    }
+}
+
+impl From<bool> for ConditionResult {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
+
+impl From<ConditionResult> for bool {
+    fn from(value: ConditionResult) -> Self {
+        value.is_true()
+    }
+}
+
+impl fmt::Display for ConditionResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::True => write!(f, "true"),
+            Self::False => write!(f, "false"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum HttpMethod {
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
+    Head,
+    Options,
+}
+
+impl HttpMethod {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Get => "GET",
+            Self::Post => "POST",
+            Self::Put => "PUT",
+            Self::Delete => "DELETE",
+            Self::Patch => "PATCH",
+            Self::Head => "HEAD",
+            Self::Options => "OPTIONS",
+        }
+    }
+}
+
+impl fmt::Display for HttpMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl FromStr for HttpMethod {
+    type Err = UnknownHttpMethodError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "GET" => Ok(Self::Get),
+            "POST" => Ok(Self::Post),
+            "PUT" => Ok(Self::Put),
+            "DELETE" => Ok(Self::Delete),
+            "PATCH" => Ok(Self::Patch),
+            "HEAD" => Ok(Self::Head),
+            "OPTIONS" => Ok(Self::Options),
+            _ => Err(UnknownHttpMethodError(s.to_string())),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnknownHttpMethodError(pub String);
+
+impl fmt::Display for UnknownHttpMethodError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Unknown HTTP method: {}", self.0)
+    }
+}
+
+impl std::error::Error for UnknownHttpMethodError {}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnknownNodeTypeError(pub String);
 
@@ -298,10 +418,7 @@ impl WorkflowNode {
             Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
                 vec![ContextType::Synchronous]
             }
-            _ => vec![
-                ContextType::Synchronous,
-                ContextType::Asynchronous,
-            ],
+            _ => vec![ContextType::Synchronous, ContextType::Asynchronous],
         }
     }
 
@@ -365,8 +482,7 @@ impl WorkflowNode {
         serde_json::to_value(self).unwrap_or_default()
     }
 
-    pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {
-    }
+    pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {}
 
     #[must_use]
     pub fn get_metadata(&self) -> serde_json::Value {

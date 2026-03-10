@@ -147,7 +147,9 @@ fn remove_nodes_transaction(
     }
 
     let snapshot = workflow.clone();
-    node_ids.iter().for_each(|node_id| workflow.remove_node(*node_id));
+    node_ids
+        .iter()
+        .for_each(|node_id| workflow.remove_node(*node_id));
     push_undo_snapshot(undo_stack, snapshot, 60);
     redo_stack.clear();
     Ok(())
@@ -469,8 +471,8 @@ pub fn use_workflow_state() -> WorkflowState {
 #[cfg(test)]
 mod tests {
     use super::{
-        add_connection_transaction, apply_redo, apply_undo, map_connection_error,
-        merge_run_result, push_undo_snapshot, remove_nodes_transaction, run_workflow_detached,
+        add_connection_transaction, apply_redo, apply_undo, map_connection_error, merge_run_result,
+        push_undo_snapshot, remove_nodes_transaction, run_workflow_detached,
         viewport_center_node_origin,
     };
     use crate::errors::WorkflowError;
@@ -661,11 +663,7 @@ mod tests {
         }
 
         let merged = merge_run_result(current, completed);
-        let merged_node = merged
-            .nodes
-            .iter()
-            .find(|node| node.id == node_id)
-            .cloned();
+        let merged_node = merged.nodes.iter().find(|node| node.id == node_id).cloned();
 
         assert!(merged_node.is_some());
         let merged_node = merged_node.unwrap_or_default();

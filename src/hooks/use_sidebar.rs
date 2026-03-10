@@ -4,192 +4,174 @@
 
 use dioxus::prelude::*;
 
-fn pending_drop_after_pickup(node_type: &'static str) -> String {
-    node_type.to_string()
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct NodeType(String);
+
+impl NodeType {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
-const fn pending_drop_after_clear() -> Option<String> {
-    None
+impl From<&'static str> for NodeType {
+    fn from(s: &'static str) -> Self {
+        Self::new(s)
+    }
 }
 
-/// Sidebar state hook - manages sidebar search and drag-drop state.
-///
-/// Follows functional reactive pattern with methods for state mutations.
+impl From<String> for NodeType {
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum DropState {
+    #[default]
+    Idle,
+    Dragging {
+        node_type: NodeType,
+    },
+}
+
+impl DropState {
+    pub fn idle() -> Self {
+        Self::Idle
+    }
+
+    pub fn dragging(node_type: NodeType) -> Self {
+        Self::Dragging { node_type }
+    }
+
+    pub fn is_dragging(&self) -> bool {
+        matches!(self, DropState::Dragging { .. })
+    }
+
+    pub fn node_type(&self) -> Option<&NodeType> {
+        match self {
+            DropState::Idle => None,
+            DropState::Dragging { node_type } => Some(node_type),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SearchQuery(String);
+
+impl SearchQuery {
+    pub fn new(query: impl Into<String>) -> Self {
+        Self(query.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+}
+
+impl From<String> for SearchQuery {
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct SidebarState {
-    search: Signal<String>,
-    pending_drop: Signal<Option<String>>,
+    search: Signal<SearchQuery>,
+    drop_state: Signal<DropState>,
 }
 
 #[allow(dead_code)]
 impl SidebarState {
-    /// Read-only access to search query
-    pub fn search(&self) -> ReadSignal<String> {
+    pub fn search(&self) -> ReadSignal<SearchQuery> {
         self.search.into()
     }
 
-    /// Read-only access to pending drop node type
-    pub fn pending_drop(&self) -> ReadSignal<Option<String>> {
-        self.pending_drop.into()
+    pub fn drop_state(&self) -> ReadSignal<DropState> {
+        self.drop_state.into()
     }
 
-    /// Set search query
     pub fn set_search(mut self, query: String) {
-        self.search.set(query);
+        self.search.set(SearchQuery::new(query));
     }
 
-    /// Set pending drop node type
-    pub fn set_pending_drop(mut self, node_type: Option<String>) {
-        self.pending_drop.set(node_type);
+    pub fn set_drop_state(mut self, state: DropState) {
+        self.drop_state.set(state);
     }
 
-    /// Start dragging a node type from sidebar
     pub fn pickup_node(mut self, node_type: &'static str) {
-        self.pending_drop
-            .set(Some(pending_drop_after_pickup(node_type)));
+        self.drop_state
+            .set(DropState::dragging(NodeType::from(node_type)));
     }
 
-    /// Clear pending drop (after drop or cancel)
-    pub fn clear_pending_drop(mut self) {
-        self.pending_drop.set(pending_drop_after_clear());
+    pub fn clear_drop(mut self) {
+        self.drop_state.set(DropState::Idle);
     }
 
-    /// Check if there's a pending drop
-    pub fn has_pending_drop(&self) -> bool {
-        self.pending_drop.read().is_some()
+    pub fn is_dragging(&self) -> bool {
+        self.drop_state.read().is_dragging()
+    }
+
+    pub fn dragged_node_type(&self) -> Option<String> {
+        self.drop_state
+            .read()
+            .node_type()
+            .map(|t| t.as_str().to_string())
     }
 }
 
 pub fn use_sidebar() -> SidebarState {
-    let search = use_signal(String::new);
-    let pending_drop = use_signal(|| None::<String>);
+    let search = use_signal(SearchQuery::default);
+    let drop_state = use_signal(DropState::default);
 
-    SidebarState {
-        search,
-        pending_drop,
-    }
+    SidebarState { search, drop_state }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{pending_drop_after_clear, pending_drop_after_pickup};
+    use super::{DropState, NodeType, SearchQuery};
 
     #[test]
-    fn given_node_type_when_picking_up_then_pending_drop_is_set() {
-        assert_eq!(
-            pending_drop_after_pickup("run"),
-            "run".to_string()
-        );
+    fn given_idle_drop_state_when_is_dragging_then_false() {
+        assert!(!DropState::Idle.is_dragging());
     }
 
     #[test]
-    fn given_pending_drop_when_clearing_then_pending_drop_is_none() {
-        assert_eq!(pending_drop_after_clear(), None);
-    }
-}
-    }
-
-    #[test]
-    fn given_node_type_when_picking_up_then_pending_drop_is_set() {
-        assert_eq!(pending_drop_after_pickup("run"), "run".to_string());
+    fn given_dragging_drop_state_when_is_dragging_then_true() {
+        let state = DropState::dragging(NodeType::from("run"));
+        assert!(state.is_dragging());
     }
 
     #[test]
-    fn given_pending_drop_when_clearing_then_pending_drop_is_none() {
-        assert_eq!(pending_drop_after_clear(), None);
-    }
-
-    // Contract tests for state transitions
-
-    #[test]
-    fn given_empty_state_when_pickup_node_then_pending_drop_is_some() {
-        let mut state = create_test_state();
-        
-        state.pickup_node("http-handler");
-        
-        assert!(state.has_pending_drop());
+    fn given_dragging_state_when_node_type_then_returns_type() {
+        let state = DropState::dragging(NodeType::from("http-handler"));
+        assert_eq!(state.node_type().map(|t| t.as_str()), Some("http-handler"));
     }
 
     #[test]
-    fn given_empty_state_when_pickup_node_then_returns_correct_type() {
-        let mut state = create_test_state();
-        
-        state.pickup_node("http-handler");
-        
-        assert_eq!(*state.pending_drop().read(), Some("http-handler".to_string()));
+    fn given_idle_state_when_node_type_then_none() {
+        assert!(DropState::Idle.node_type().is_none());
     }
 
     #[test]
-    fn given_pending_drop_state_when_clear_pending_drop_then_pending_drop_is_none() {
-        let mut state = create_test_state();
-        state.pickup_node("run");
-        
-        state.clear_pending_drop();
-        
-        assert!(!state.has_pending_drop());
+    fn given_empty_search_query_when_is_empty_then_true() {
+        assert!(SearchQuery::default().is_empty());
     }
 
     #[test]
-    fn given_no_pending_drop_when_clear_pending_drop_then_remains_none() {
-        let mut state = create_test_state();
-        
-        state.clear_pending_drop();
-        state.clear_pending_drop();
-        
-        assert!(!state.has_pending_drop());
-    }
-
-    #[test]
-    fn given_pending_drop_when_set_pending_drop_none_then_clears() {
-        let mut state = create_test_state();
-        state.pickup_node("run");
-        
-        state.set_pending_drop(None);
-        
-        assert!(!state.has_pending_drop());
-    }
-
-    #[test]
-    fn given_empty_state_when_set_pending_drop_some_then_sets() {
-        let mut state = create_test_state();
-        
-        state.set_pending_drop(Some("condition".to_string()));
-        
-        assert!(state.has_pending_drop());
-    }
-
-    #[test]
-    fn test_invariant_pending_drop_always_some_or_none() {
-        let mut state = create_test_state();
-        
-        // Should always be valid (Some or None)
-        let _ = *state.pending_drop().read();
-        
-        state.pickup_node("test");
-        let _ = *state.pending_drop().read();
-        
-        state.clear_pending_drop();
-        let _ = *state.pending_drop().read();
-    }
-
-    #[test]
-    fn test_search_does_not_affect_pending_drop() {
-        let mut state = create_test_state();
-        state.pickup_node("run");
-        
-        state.set_search("search query".to_string());
-        
-        assert!(state.has_pending_drop());
-        assert_eq!(*state.pending_drop().read(), Some("run".to_string()));
-    }
-
-    #[test]
-    fn test_pickup_overwrites_existing_pending_drop() {
-        let mut state = create_test_state();
-        state.pickup_node("first");
-        
-        state.pickup_node("second");
-        
-        assert_eq!(*state.pending_drop().read(), Some("second".to_string()));
+    fn given_non_empty_search_query_when_is_empty_then_false() {
+        let query = SearchQuery::new("test");
+        assert!(!query.is_empty());
     }
 }

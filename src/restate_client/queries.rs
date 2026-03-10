@@ -6,7 +6,7 @@
 
 //! SQL queries for Restate introspection API.
 
-use crate::restate_client::types::InvocationStatus;
+use crate::restate_client::types::{InvocationFilter, InvocationStatus};
 
 const INVOCATION_PROJECTION: &str =
     "id, target, target_service_name, target_service_key, target_handler_name, target_service_ty, status, created_at, modified_at, completed_at, journal_size, retry_count, invoked_by, invoked_by_service_name, invoked_by_id, trace_id, last_failure, last_failure_error_code";
@@ -15,9 +15,9 @@ const INVOCATION_PROJECTION: &str =
 pub struct SqlQueries;
 
 impl SqlQueries {
-    /// List all invocations (active only by default).
-    pub fn list_invocations(include_completed: bool) -> String {
-        if include_completed {
+    /// List all invocations.
+    pub fn list_invocations(filter: InvocationFilter) -> String {
+        if filter.include_completed() {
             format!("SELECT {INVOCATION_PROJECTION} FROM sys_invocation ORDER BY created_at DESC")
         } else {
             format!(
@@ -78,12 +78,14 @@ impl SqlQueries {
 
     /// List all services.
     pub fn services() -> String {
-        "SELECT name, ty, revision, public, deployment_id FROM sys_service ORDER BY name".to_string()
+        "SELECT name, ty, revision, public, deployment_id FROM sys_service ORDER BY name"
+            .to_string()
     }
 
     /// List all deployments.
     pub fn deployments() -> String {
-        "SELECT id, ty, endpoint, created_at FROM sys_deployment ORDER BY created_at DESC".to_string()
+        "SELECT id, ty, endpoint, created_at FROM sys_deployment ORDER BY created_at DESC"
+            .to_string()
     }
 
     /// Get keyed service status (blocking invocations).
@@ -119,7 +121,10 @@ impl SqlQueries {
     /// Panics if cutoff_epoch_ms is negative.
     pub fn stuck_invocations(cutoff_epoch_ms: i64) -> String {
         if cutoff_epoch_ms < 0 {
-            panic!("cutoff_epoch_ms must be non-negative, got {}", cutoff_epoch_ms);
+            panic!(
+                "cutoff_epoch_ms must be non-negative, got {}",
+                cutoff_epoch_ms
+            );
         }
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {} ORDER BY modified_at, created_at",

@@ -1,5 +1,7 @@
-use crate::restate_client::RestateClient;
+use crate::restate_client::types::InvocationStatus as RestateInvocationStatus;
+use crate::restate_client::{InvocationFilter, RestateClient};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -42,6 +44,21 @@ pub enum InvocationStatus {
     Suspended,
 }
 
+impl From<RestateInvocationStatus> for InvocationStatus {
+    fn from(status: RestateInvocationStatus) -> Self {
+        match status {
+            RestateInvocationStatus::Pending => Self::Pending,
+            RestateInvocationStatus::Scheduled => Self::Pending,
+            RestateInvocationStatus::Ready => Self::Pending,
+            RestateInvocationStatus::Running => Self::Running,
+            RestateInvocationStatus::Paused => Self::Failed,
+            RestateInvocationStatus::BackingOff => Self::Running,
+            RestateInvocationStatus::Suspended => Self::Suspended,
+            RestateInvocationStatus::Completed => Self::Completed,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PollResult {
@@ -60,10 +77,49 @@ impl PollResult {
     }
 }
 
+/// Poller state machine - explicit tracking of known invocations
+#[derive(Debug, Clone, Default)]
+pub enum PollerState {
+    #[default]
+    Initial,
+    Tracking(HashMap<String, InvocationStatus>),
+}
+
+impl PollerState {
+    pub fn is_tracking(&self) -> bool {
+        matches!(self, Self::Tracking(_))
+    }
+
+    pub fn get_tracked_status(&self, id: &str) -> Option<InvocationStatus> {
+        match self {
+            Self::Initial => None,
+            Self::Tracking(map) => map.get(id).copied(),
+        }
+    }
+
+    pub fn update(&mut self, id: String, status: InvocationStatus) {
+        match self {
+            Self::Initial => {
+                *self = Self::Tracking(HashMap::from([(id, status)]));
+            }
+            Self::Tracking(map) => {
+                map.insert(id, status);
+            }
+        }
+    }
+
+    pub fn tracked_ids(&self) -> Vec<String> {
+        match self {
+            Self::Initial => Vec::new(),
+            Self::Tracking(map) => map.keys().cloned().collect(),
+        }
+    }
+}
+
 pub struct InvocationPoller {
     client: Arc<RestateClient>,
     poll_interval_ms: u32,
-    last_known_ids: std::collections::HashSet<String>,
+    state: PollerState,
 }
 
 impl InvocationPoller {
@@ -71,7 +127,7 @@ impl InvocationPoller {
         Self {
             client,
             poll_interval_ms: 5000,
-            last_known_ids: std::collections::HashSet::new(),
+            state: PollerState::default(),
         }
     }
 
@@ -79,8 +135,12 @@ impl InvocationPoller {
         Self {
             client,
             poll_interval_ms,
-            last_known_ids: std::collections::HashSet::new(),
+            state: PollerState::default(),
         }
+    }
+
+    pub fn state(&self) -> &PollerState {
+        &self.state
     }
 
     pub async fn start_polling<F>(mut self, mut callback: F) -> Result<(), PollerError>
@@ -106,74 +166,49 @@ impl InvocationPoller {
     pub async fn poll(&mut self) -> Result<PollResult, PollerError> {
         let invocations = self
             .client
-            .list_invocations(true)
+            .list_invocations(InvocationFilter::All)
             .await
             .map_err(|e| PollerError::RequestError(e.to_string()))?;
 
-        let events = Vec::new();
+        let mut events = Vec::new();
+        let mut new_state = HashMap::new();
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            use wasm_bindgen::JsCast;
+        for inv in invocations {
+            let id = inv.id.clone();
+            let new_status = InvocationStatus::from(inv.status);
 
-            if let Some(invocations_array) = invocations.dyn_ref::<js_sys::Array>() {
-                for inv in invocations_array.iter() {
-                    if let Some(inv_obj) = inv.dyn_ref::<js_sys::Object>() {
-                        let id = js_sys::Reflect::get(&inv_obj, &"invocationId".into())
-                            .ok()
-                            .and_then(|v| v.as_string())
-                            .unwrap_or_default();
+            if let Some(old_status) = self.state.get_tracked_status(&id) {
+                if old_status != new_status {
+                    events.push(InvocationEvent::StatusChanged {
+                        invocation_id: id.clone(),
+                        old_status,
+                        new_status: new_status.clone(),
+                    });
 
-                        let status_val = js_sys::Reflect::get(&inv_obj, &"status".into())
-                            .ok()
-                            .and_then(|v| v.as_string())
-                            .map(|s| match s.as_str() {
-                                "completed" => InvocationStatus::Completed,
-                                "failed" => InvocationStatus::Failed,
-                                "running" => InvocationStatus::Running,
-                                "suspended" => InvocationStatus::Suspended,
-                                _ => InvocationStatus::Pending,
-                            })
-                            .unwrap_or(InvocationStatus::Pending);
-
-                        if !self.last_known_ids.contains(&id) {
-                            events.push(InvocationEvent::New {
-                                invocation_id: id.clone(),
-                            });
-                        } else {
-                            let old_status = InvocationStatus::Pending;
-                            if old_status != status_val {
-                                events.push(InvocationEvent::StatusChanged {
-                                    invocation_id: id.clone(),
-                                    old_status,
-                                    new_status: status_val.clone(),
-                                });
-
-                                if status_val == InvocationStatus::Completed {
-                                    events.push(InvocationEvent::Completed {
-                                        invocation_id: id,
-                                        result: None,
-                                    });
-                                } else if status_val == InvocationStatus::Failed {
-                                    events.push(InvocationEvent::Failed {
-                                        invocation_id: id,
-                                        error: "Invocation failed".to_string(),
-                                    });
-                                }
-                            }
-                        }
+                    if new_status == InvocationStatus::Completed {
+                        events.push(InvocationEvent::Completed {
+                            invocation_id: id.clone(),
+                            result: None,
+                        });
+                    } else if new_status == InvocationStatus::Failed {
+                        events.push(InvocationEvent::Failed {
+                            invocation_id: id.clone(),
+                            error: inv
+                                .last_failure
+                                .unwrap_or_else(|| "Unknown error".to_string()),
+                        });
                     }
                 }
+            } else {
+                events.push(InvocationEvent::New {
+                    invocation_id: id.clone(),
+                });
             }
+
+            new_state.insert(id, new_status);
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let _ = invocations;
-        }
-
-        let current_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
-        self.last_known_ids = current_ids;
+        self.state = PollerState::Tracking(new_state);
 
         Ok(PollResult::new(events))
     }

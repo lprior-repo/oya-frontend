@@ -5,6 +5,7 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
+use crate::ui::panel_types::ValidationResultCategory;
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, ValidationResult, ValidationSeverity};
 
@@ -19,42 +20,19 @@ pub fn ValidationPanel(
     let issue_count = validation_result.read().issues.len();
     let error_count = validation_result.read().error_count();
     let warning_count = validation_result.read().warning_count();
-    let has_errors = validation_result.read().has_errors();
+    let category = ValidationResultCategory::from_counts(error_count, warning_count);
     let is_collapsed = *collapsed.read();
 
-    let header_bg = if has_errors {
-        "bg-red-50 border-red-200"
-    } else if warning_count > 0 {
-        "bg-amber-50 border-amber-200"
-    } else {
-        "bg-emerald-50 border-emerald-200"
+    let header_bg = category.header_bg_class();
+    let status_text = build_status_text(error_count, warning_count);
+
+    let status_icon: Option<Element> = match category {
+        ValidationResultCategory::HasErrors => Some(rsx! { AlertCircleIcon { class: "h-4 w-4 text-red-500" } }),
+        ValidationResultCategory::HasWarningsOnly => Some(rsx! { AlertTriangleIcon { class: "h-4 w-4 text-amber-500" } }),
+        ValidationResultCategory::Valid => None,
     };
 
-    let status_text = if has_errors {
-        format!(
-            "{} error{}, {} warning{}",
-            error_count,
-            if error_count == 1 { "" } else { "s" },
-            warning_count,
-            if warning_count == 1 { "" } else { "s" }
-        )
-    } else if warning_count > 0 {
-        format!(
-            "{} warning{}",
-            warning_count,
-            if warning_count == 1 { "" } else { "s" }
-        )
-    } else {
-        "Workflow valid".to_string()
-    };
-
-    let status_icon: Option<Element> = if has_errors {
-        Some(rsx! { AlertCircleIcon { class: "h-4 w-4 text-red-500" } })
-    } else if warning_count > 0 {
-        Some(rsx! { AlertTriangleIcon { class: "h-4 w-4 text-amber-500" } })
-    } else {
-        None
-    };
+    let status_text_class = category.status_text_class();
 
     rsx! {
         div { class: "border-b border-slate-200",
@@ -69,20 +47,13 @@ pub fn ValidationPanel(
                     }
                     {status_icon}
                     span {
-                        class: if has_errors {
-                            "text-[12px] font-medium text-red-700"
-                        } else if warning_count > 0 {
-                            "text-[12px] font-medium text-amber-700"
-                        } else {
-                            "text-[12px] font-medium text-emerald-700"
-                        },
+                        class: "{status_text_class}",
                         "{status_text}"
                     }
                 }
                 if issue_count > 0 {
                     span {
-                        class: "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                        class: if has_errors { "bg-red-100 text-red-700" } else { "bg-amber-100 text-amber-700" },
+                        class: "rounded-full px-1.5 py-0.5 text-[10px] font-medium {category.badge_class()}",
                         "{issue_count}"
                     }
                 }
@@ -91,35 +62,9 @@ pub fn ValidationPanel(
             if !is_collapsed && issue_count > 0 {
                 div { class: "max-h-[200px] overflow-y-auto border-t border-slate-100 bg-slate-50/50",
                     for issue in validation_result.read().issues.iter() {
-                        {
-                            let node_id = issue.node_id;
-                            let severity_class = match issue.severity {
-                                ValidationSeverity::Error => "border-l-red-400 bg-red-50/50",
-                                ValidationSeverity::Warning => "border-l-amber-400 bg-amber-50/50",
-                            };
-                            let icon = match issue.severity {
-                                ValidationSeverity::Error => rsx! { AlertCircleIcon { class: "h-3.5 w-3.5 text-red-500 shrink-0" } },
-                                ValidationSeverity::Warning => rsx! { AlertTriangleIcon { class: "h-3.5 w-3.5 text-amber-500 shrink-0" } },
-                            };
-
-                            if let Some(nid) = node_id {
-                                rsx! {
-                                    button {
-                                        class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors hover:bg-white {severity_class}",
-                                        onclick: move |_| on_select_node.call(nid),
-                                        {icon}
-                                        span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
-                                    }
-                                }
-                            } else {
-                                rsx! {
-                                    div {
-                                        class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 {severity_class}",
-                                        {icon}
-                                        span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
-                                    }
-                                }
-                            }
+                        IssueRow {
+                            issue: issue.clone(),
+                            on_select_node
                         }
                     }
                 }
@@ -132,5 +77,70 @@ pub fn ValidationPanel(
                 }
             }
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct IssueData {
+    node_id: Option<NodeId>,
+    severity: ValidationSeverity,
+    message: String,
+}
+
+#[component]
+fn IssueRow(
+    issue: oya_frontend::graph::ValidationIssue,
+    on_select_node: EventHandler<NodeId>,
+) -> Element {
+    let node_id = issue.node_id;
+    let (border_class, bg_class) = match issue.severity {
+        ValidationSeverity::Error => ("border-l-red-400", "bg-red-50/50"),
+        ValidationSeverity::Warning => ("border-l-amber-400", "bg-amber-50/50"),
+    };
+
+    let icon = match issue.severity {
+        ValidationSeverity::Error => rsx! { AlertCircleIcon { class: "h-3.5 w-3.5 text-red-500 shrink-0" } },
+        ValidationSeverity::Warning => rsx! { AlertTriangleIcon { class: "h-3.5 w-3.5 text-amber-500 shrink-0" } },
+    };
+
+    if let Some(nid) = node_id {
+        rsx! {
+            button {
+                class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left transition-colors hover:bg-white {border_class} {bg_class}",
+                onclick: move |_| on_select_node.call(nid),
+                {icon}
+                span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
+            }
+        }
+    } else {
+        rsx! {
+            div {
+                class: "flex w-full items-start gap-2 border-l-2 px-3 py-2 {border_class} {bg_class}",
+                {icon}
+                span { class: "text-[11px] leading-relaxed text-slate-600", "{issue.message}" }
+            }
+        }
+    }
+}
+
+fn build_status_text(error_count: usize, warning_count: usize) -> String {
+    match ValidationResultCategory::from_counts(error_count, warning_count) {
+        ValidationResultCategory::HasErrors => {
+            format!(
+                "{} error{}, {} warning{}",
+                error_count,
+                if error_count == 1 { "" } else { "s" },
+                warning_count,
+                if warning_count == 1 { "" } else { "s" }
+            )
+        }
+        ValidationResultCategory::HasWarningsOnly => {
+            format!(
+                "{} warning{}",
+                warning_count,
+                if warning_count == 1 { "" } else { "s" }
+            )
+        }
+        ValidationResultCategory::Valid => "Workflow valid".to_string(),
     }
 }

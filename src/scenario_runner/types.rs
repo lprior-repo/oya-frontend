@@ -2,21 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum ScenarioError {
-    #[error("Failed to read scenario file: {0}")]
-    ReadError(#[from] std::io::Error),
-    #[error("Failed to parse YAML: {0}")]
-    ParseError(#[from] serde_yaml::Error),
-    #[error("HTTP request failed: {0}")]
-    HttpError(#[from] reqwest::Error),
-    #[error("Assertion failed: {0}")]
-    AssertionFailed(String),
-    #[error("Setup failed: {0}")]
-    SetupFailed(String),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioIdentity {
     pub id: String,
     #[serde(rename = "spec_ref")]
@@ -30,7 +16,7 @@ pub struct ScenarioIdentity {
     pub rationale: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioSetup {
     pub universe: String,
     #[serde(rename = "initial_state")]
@@ -38,13 +24,13 @@ pub struct ScenarioSetup {
     pub preconditions: Vec<Precondition>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Precondition {
     pub description: String,
     pub check: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StepAction {
     #[serde(rename = "type")]
     pub action_type: String,
@@ -55,7 +41,7 @@ pub struct StepAction {
     pub params: Option<HashMap<String, String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Assertion {
     #[serde(rename = "type")]
     pub assertion_type: String,
@@ -65,7 +51,7 @@ pub struct Assertion {
     pub message: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Extraction {
     pub name: String,
     pub from: String,
@@ -75,7 +61,7 @@ pub struct Extraction {
     pub extract_group: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioStep {
     pub id: String,
     pub description: String,
@@ -84,7 +70,7 @@ pub struct ScenarioStep {
     pub extractions: Vec<Extraction>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioTeardown {
     #[serde(rename = "reset_universe")]
     pub reset_universe: bool,
@@ -92,7 +78,7 @@ pub struct ScenarioTeardown {
     pub custom_cleanup: Option<Vec<serde_json::Value>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Scenario {
     pub scenario: ScenarioIdentity,
     pub setup: ScenarioSetup,
@@ -100,7 +86,7 @@ pub struct Scenario {
     pub teardown: ScenarioTeardown,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StepResult {
     pub step_id: String,
     pub passed: bool,
@@ -110,7 +96,7 @@ pub struct StepResult {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioResult {
     pub scenario_id: String,
     pub spec_ref: String,
@@ -121,7 +107,7 @@ pub struct ScenarioResult {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValidationReport {
     pub spec_id: String,
     pub total_scenarios: usize,
@@ -131,7 +117,7 @@ pub struct ValidationReport {
     pub category_breakdown: HashMap<String, CategoryResult>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CategoryResult {
     pub total: usize,
     pub passed: usize,
@@ -143,4 +129,84 @@ pub struct ActionResult {
     pub status: u16,
     pub body: String,
     pub response_time_ms: u64,
+}
+
+#[derive(Debug, Error, Clone, PartialEq)]
+pub enum ScenarioError {
+    #[error("Failed to read scenario file: {0}")]
+    ReadError(#[source] std::io::Error),
+    #[error("Failed to parse YAML: {0}")]
+    ParseError(#[source] serde_yaml::Error),
+    #[error("HTTP request failed: {0}")]
+    HttpError(#[source] reqwest::Error),
+    #[error("Assertion failed: {0}")]
+    AssertionFailed(String),
+    #[error("Setup failed: {0}")]
+    SetupFailed(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ScenarioCategory(String);
+
+impl ScenarioCategory {
+    pub fn new(cat: impl Into<String>) -> Self {
+        Self(cat.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn security() -> Self {
+        Self("security".to_string())
+    }
+
+    pub fn error_handling() -> Self {
+        Self("error-handling".to_string())
+    }
+
+    pub fn happy_path() -> Self {
+        Self("happy-path".to_string())
+    }
+}
+
+impl std::fmt::Display for ScenarioCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct HttpMethod(String);
+
+impl HttpMethod {
+    pub fn new(method: impl Into<String>) -> Self {
+        Self(method.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn get() -> Self {
+        Self("GET".to_string())
+    }
+
+    pub fn post() -> Self {
+        Self("POST".to_string())
+    }
+
+    pub fn put() -> Self {
+        Self("PUT".to_string())
+    }
+
+    pub fn delete() -> Self {
+        Self("DELETE".to_string())
+    }
+}
+
+impl std::fmt::Display for HttpMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }

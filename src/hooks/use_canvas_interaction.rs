@@ -32,15 +32,21 @@ fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> InteractionMo
     }
 }
 
-fn cursor_class_for(mode: &InteractionMode, is_space_hand: bool) -> &'static str {
+fn cursor_class_for(mode: &InteractionMode, cursor_tool: &CursorTool) -> &'static str {
     match mode {
         InteractionMode::Panning => "cursor-grabbing",
-        InteractionMode::Idle if is_space_hand => "cursor-grab",
+        InteractionMode::Idle if *cursor_tool == CursorTool::SpaceHand => "cursor-grab",
         _ => "cursor-default",
     }
 }
 
-/// Interaction mode state machine - ensures illegal states are unrepresentable.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum CursorTool {
+    #[default]
+    Select,
+    SpaceHand,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum InteractionMode {
     #[default]
@@ -51,191 +57,292 @@ pub enum InteractionMode {
     },
     Connecting {
         from: NodeId,
-        handle: String,
+        handle: HandleName,
     },
     Marquee {
-        start: (f32, f32),
-        current: (f32, f32),
+        start: CanvasPoint,
+        current: CanvasPoint,
     },
 }
 
-/// Canvas interaction hook - manages all canvas interaction state.
-///
-/// Uses a state machine (`InteractionMode`) to ensure consistent state.
-/// Follows functional reactive pattern with methods for state transitions.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct CanvasPoint {
+    pub x: f32,
+    pub y: f32,
+}
+
+impl From<(f32, f32)> for CanvasPoint {
+    fn from((x, y): (f32, f32)) -> Self {
+        Self { x, y }
+    }
+}
+
+impl From<CanvasPoint> for (f32, f32) {
+    fn from(point: CanvasPoint) -> Self {
+        (point.x, point.y)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct HandleName(String);
+
+impl HandleName {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for HandleName {
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
+impl From<&str> for HandleName {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum DragAnchor {
+    #[default]
+    None,
+    Active {
+        x: f32,
+        y: f32,
+    },
+}
+
+impl DragAnchor {
+    pub fn active(x: f32, y: f32) -> Self {
+        Self::Active { x, y }
+    }
+
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn as_point(&self) -> Option<(f32, f32)> {
+        match self {
+            DragAnchor::None => None,
+            DragAnchor::Active { x, y } => Some((*x, *y)),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum TempEdge {
+    #[default]
+    None,
+    Active {
+        source: FlowPosition,
+        target: FlowPosition,
+    },
+}
+
+impl TempEdge {
+    pub fn active(source: FlowPosition, target: FlowPosition) -> Self {
+        Self::Active { source, target }
+    }
+
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn as_positions(&self) -> Option<(FlowPosition, FlowPosition)> {
+        match self {
+            TempEdge::None => None,
+            TempEdge::Active { source, target } => Some((source.clone(), target.clone())),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum HoveredHandle {
+    #[default]
+    None,
+    Active {
+        node_id: NodeId,
+        handle: HandleName,
+    },
+}
+
+impl HoveredHandle {
+    pub fn active(node_id: NodeId, handle: HandleName) -> Self {
+        Self::Active { node_id, handle }
+    }
+
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn as_tuple(&self) -> Option<(NodeId, String)> {
+        match self {
+            HoveredHandle::None => None,
+            HoveredHandle::Active { node_id, handle } => Some((*node_id, handle.0.clone())),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct CanvasInteraction {
     mode: Signal<InteractionMode>,
-    is_space_hand: Signal<bool>,
-    mouse_pos: Signal<(f32, f32)>,
-    canvas_origin: Signal<(f32, f32)>,
-    temp_edge_to: Signal<Option<(FlowPosition, FlowPosition)>>,
-    hovered_handle: Signal<Option<(NodeId, String)>>,
-    drag_anchor: Signal<Option<(f32, f32)>>,
+    cursor_tool: Signal<CursorTool>,
+    mouse_pos: Signal<CanvasPoint>,
+    canvas_origin: Signal<CanvasPoint>,
+    temp_edge: Signal<TempEdge>,
+    hovered_handle: Signal<HoveredHandle>,
+    drag_anchor: Signal<DragAnchor>,
 }
 
 #[allow(dead_code)]
 impl CanvasInteraction {
-    /// Read-only access to current interaction mode
     pub fn mode(&self) -> ReadSignal<InteractionMode> {
         self.mode.into()
     }
 
-    /// Read-only access to space-hand tool state
-    pub fn is_space_hand(&self) -> ReadSignal<bool> {
-        self.is_space_hand.into()
+    pub fn cursor_tool(&self) -> ReadSignal<CursorTool> {
+        self.cursor_tool.into()
     }
 
-    /// Read-only access to mouse position
-    pub fn mouse_pos(&self) -> ReadSignal<(f32, f32)> {
+    pub fn mouse_pos(&self) -> ReadSignal<CanvasPoint> {
         self.mouse_pos.into()
     }
 
-    /// Read-only access to canvas origin (for coordinate transforms)
-    pub fn canvas_origin(&self) -> ReadSignal<(f32, f32)> {
+    pub fn canvas_origin(&self) -> ReadSignal<CanvasPoint> {
         self.canvas_origin.into()
     }
 
-    /// Read-only access to temporary edge target position
-    pub fn temp_edge_to(&self) -> ReadSignal<Option<(FlowPosition, FlowPosition)>> {
-        self.temp_edge_to.into()
+    pub fn temp_edge(&self) -> ReadSignal<TempEdge> {
+        self.temp_edge.into()
     }
 
-    /// Read-only access to currently hovered handle
-    pub fn hovered_handle(&self) -> ReadSignal<Option<(NodeId, String)>> {
+    pub fn hovered_handle(&self) -> ReadSignal<HoveredHandle> {
         self.hovered_handle.into()
     }
 
-    // === State transitions ===
-    // Note: Methods take `self` (not `&self`) because Signal::set requires mutable access.
-    // Since CanvasInteraction is Copy, consuming `self` is cheap and allows mutation.
-
-    /// Start panning mode
     pub fn start_pan(mut self) {
         self.mode.set(InteractionMode::Panning);
     }
 
-    /// Start dragging nodes
-    /// Uses node_id as fallback if selected_ids is empty
     pub fn start_drag(mut self, node_id: NodeId, selected_ids: Vec<NodeId>) {
         let next_mode = drag_mode_from_selection(node_id, selected_ids);
         self.mode.set(next_mode);
     }
 
-    /// Start connecting from a handle
     pub fn start_connect(mut self, node_id: NodeId, handle: String) {
-        self.hovered_handle.set(Some((node_id, handle.clone())));
+        let handle_name = HandleName::new(handle.clone());
+        self.hovered_handle
+            .set(HoveredHandle::active(node_id, handle_name));
         self.mode.set(InteractionMode::Connecting {
             from: node_id,
-            handle,
+            handle: HandleName::new(handle),
         });
     }
 
-    /// Start marquee selection
     pub fn start_marquee(mut self, pos: (f32, f32)) {
         self.mode.set(InteractionMode::Marquee {
-            start: pos,
-            current: pos,
+            start: CanvasPoint::from(pos),
+            current: CanvasPoint::from(pos),
         });
     }
 
-    /// Update marquee current position
     pub fn update_marquee(mut self, pos: (f32, f32)) {
         let mode = self.mode.read().clone();
         self.mode.set(update_marquee_mode(&mode, pos));
     }
 
-    /// Update mouse position
     pub fn update_mouse(mut self, pos: (f32, f32)) {
-        self.mouse_pos.set(pos);
+        self.mouse_pos.set(CanvasPoint::from(pos));
     }
 
-    /// Set canvas origin for coordinate transforms
     pub fn set_origin(mut self, origin: (f32, f32)) {
-        self.canvas_origin.set(origin);
+        self.canvas_origin.set(CanvasPoint::from(origin));
     }
 
-    /// Set temporary edge target position
-    pub fn set_temp_edge(mut self, pos: Option<(FlowPosition, FlowPosition)>) {
-        self.temp_edge_to.set(pos);
+    pub fn set_temp_edge(mut self, positions: Option<(FlowPosition, FlowPosition)>) {
+        match positions {
+            Some((source, target)) => self.temp_edge.set(TempEdge::active(source, target)),
+            None => self.temp_edge.set(TempEdge::None),
+        }
     }
 
-    /// Set hovered handle
     pub fn set_hovered_handle(mut self, handle: Option<(NodeId, String)>) {
-        self.hovered_handle.set(handle);
+        match handle {
+            Some((node_id, handle)) => {
+                self.hovered_handle
+                    .set(HoveredHandle::active(node_id, HandleName::new(handle)));
+            }
+            None => self.hovered_handle.set(HoveredHandle::None),
+        }
     }
 
-    /// Start drag anchor for thresholding
     pub fn start_drag_anchor(mut self, pos: (f32, f32)) {
-        self.drag_anchor.set(Some(pos));
+        self.drag_anchor.set(DragAnchor::active(pos.0, pos.1));
     }
 
-    /// Clear drag anchor
     pub fn clear_drag_anchor(mut self) {
-        self.drag_anchor.set(None);
+        self.drag_anchor.set(DragAnchor::None);
     }
 
-    /// Enable space-hand tool mode
     pub fn enable_space_hand(mut self) {
-        self.is_space_hand.set(true);
+        self.cursor_tool.set(CursorTool::SpaceHand);
     }
 
-    /// Disable space-hand tool mode
     pub fn disable_space_hand(mut self) {
-        self.is_space_hand.set(false);
+        self.cursor_tool.set(CursorTool::Select);
     }
 
-    /// End current interaction (return to idle)
     pub fn end_interaction(mut self) {
         self.mode.set(InteractionMode::Idle);
-        self.temp_edge_to.set(None);
-        self.hovered_handle.set(None);
-        self.drag_anchor.set(None);
+        self.temp_edge.set(TempEdge::None);
+        self.hovered_handle.set(HoveredHandle::None);
+        self.drag_anchor.set(DragAnchor::None);
     }
 
-    /// Cancel current interaction and reset state
     pub fn cancel_interaction(mut self) {
         self.mode.set(InteractionMode::Idle);
-        self.temp_edge_to.set(None);
-        self.hovered_handle.set(None);
-        self.is_space_hand.set(false);
-        self.drag_anchor.set(None);
+        self.temp_edge.set(TempEdge::None);
+        self.hovered_handle.set(HoveredHandle::None);
+        self.cursor_tool.set(CursorTool::Select);
+        self.drag_anchor.set(DragAnchor::None);
     }
 
-    // === Query methods ===
-
-    /// Check if currently in dragging mode
     pub fn is_dragging(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Dragging { .. })
     }
 
-    /// Check if currently in connecting mode
     pub fn is_connecting(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Connecting { .. })
     }
 
-    /// Check if currently in marquee selection mode
     pub fn is_marquee(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Marquee { .. })
     }
 
-    /// Check if currently in panning mode
     pub fn is_panning(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Panning)
     }
 
-    /// Check if idle
     pub fn is_idle(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Idle)
     }
 
-    /// Get cursor CSS class based on current mode
-    pub fn cursor_class(&self) -> &'static str {
-        let mode = self.mode.read().clone();
-        cursor_class_for(&mode, *self.is_space_hand.read())
+    pub fn is_space_hand_active(&self) -> bool {
+        *self.cursor_tool.read() == CursorTool::SpaceHand
     }
 
-    /// Get dragging node IDs if in dragging mode
+    pub fn cursor_class(&self) -> &'static str {
+        let mode = self.mode.read().clone();
+        let cursor_tool = self.cursor_tool.read().clone();
+        cursor_class_for(&mode, &cursor_tool)
+    }
+
     pub fn dragging_node_ids(&self) -> Option<Vec<NodeId>> {
         match &*self.mode.read() {
             InteractionMode::Dragging { node_ids } => Some(node_ids.clone()),
@@ -243,23 +350,24 @@ impl CanvasInteraction {
         }
     }
 
-    /// Get drag anchor position if set
     pub fn drag_anchor(&self) -> Option<(f32, f32)> {
-        *self.drag_anchor.read()
+        self.drag_anchor.read().as_point()
     }
 
-    /// Get connection source if in connecting mode
     pub fn connecting_from(&self) -> Option<(NodeId, String)> {
         match &*self.mode.read() {
-            InteractionMode::Connecting { from, handle } => Some((*from, handle.clone())),
+            InteractionMode::Connecting { from, handle } => {
+                Some((*from, handle.as_str().to_string()))
+            }
             _ => None,
         }
     }
 
-    /// Get marquee rect if in marquee mode
     pub fn marquee_rect(&self) -> Option<((f32, f32), (f32, f32))> {
         match &*self.mode.read() {
-            InteractionMode::Marquee { start, current } => Some((*start, *current)),
+            InteractionMode::Marquee { start, current } => {
+                Some(((start.x, start.y), (current.x, current.y)))
+            }
             _ => None,
         }
     }
@@ -267,19 +375,19 @@ impl CanvasInteraction {
 
 pub fn use_canvas_interaction() -> CanvasInteraction {
     let mode = use_signal(InteractionMode::default);
-    let is_space_hand = use_signal(|| false);
-    let mouse_pos = use_signal(|| (0.0_f32, 0.0_f32));
-    let canvas_origin = use_signal(|| (0.0_f32, 0.0_f32));
-    let temp_edge_to = use_signal(|| None::<(FlowPosition, FlowPosition)>);
-    let hovered_handle = use_signal(|| None::<(NodeId, String)>);
-    let drag_anchor = use_signal(|| None::<(f32, f32)>);
+    let cursor_tool = use_signal(CursorTool::default);
+    let mouse_pos = use_signal(CanvasPoint::default);
+    let canvas_origin = use_signal(CanvasPoint::default);
+    let temp_edge = use_signal(TempEdge::default);
+    let hovered_handle = use_signal(HoveredHandle::default);
+    let drag_anchor = use_signal(DragAnchor::default);
 
     CanvasInteraction {
         mode,
-        is_space_hand,
+        cursor_tool,
         mouse_pos,
         canvas_origin,
-        temp_edge_to,
+        temp_edge,
         hovered_handle,
         drag_anchor,
     }
@@ -287,7 +395,10 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
 
 #[cfg(test)]
 mod tests {
-    use super::{cursor_class_for, drag_mode_from_selection, update_marquee_mode, InteractionMode};
+    use super::{
+        CanvasPoint, CursorTool, DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
+        cursor_class_for, drag_mode_from_selection, update_marquee_mode,
+    };
     use oya_frontend::graph::NodeId;
 
     #[test]
@@ -300,23 +411,23 @@ mod tests {
     #[test]
     fn given_marquee_mode_when_updating_then_start_is_preserved_and_current_updates() {
         let mode = InteractionMode::Marquee {
-            start: (1.0, 2.0),
-            current: (3.0, 4.0),
+            start: CanvasPoint::from((1.0, 2.0)),
+            current: CanvasPoint::from((3.0, 4.0)),
         };
 
         let next = update_marquee_mode(&mode, (9.0, 10.0));
         assert_eq!(
             next,
             InteractionMode::Marquee {
-                start: (1.0, 2.0),
-                current: (9.0, 10.0)
+                start: CanvasPoint::from((1.0, 2.0)),
+                current: CanvasPoint::from((9.0, 10.0))
             }
         );
     }
 
     #[test]
     fn given_space_hand_enabled_and_idle_when_getting_cursor_class_then_cursor_grab_is_returned() {
-        let class = cursor_class_for(&InteractionMode::Idle, true);
+        let class = cursor_class_for(&InteractionMode::Idle, &CursorTool::SpaceHand);
         assert_eq!(class, "cursor-grab");
     }
 
@@ -341,5 +452,25 @@ mod tests {
             assert!(node_ids.contains(&id));
             assert!(node_ids.contains(&other_id));
         }
+    }
+
+    #[test]
+    fn given_drag_anchor_active_when_as_point_then_returns_some() {
+        let anchor = DragAnchor::active(10.0, 20.0);
+        assert_eq!(anchor.as_point(), Some((10.0, 20.0)));
+    }
+
+    #[test]
+    fn given_drag_anchor_none_when_as_point_then_returns_none() {
+        let anchor = DragAnchor::none();
+        assert_eq!(anchor.as_point(), None);
+    }
+
+    #[test]
+    fn given_hovered_handle_active_when_as_tuple_then_returns_some() {
+        let id = NodeId::new();
+        let handle = HoveredHandle::active(id, HandleName::new("output"));
+        let result = handle.as_tuple();
+        assert_eq!(result, Some((id, "output".to_string())));
     }
 }

@@ -13,6 +13,7 @@ use uuid::Uuid;
 pub mod calc;
 mod connectivity;
 mod core;
+mod domain_types;
 mod execution;
 pub mod execution_record;
 pub mod execution_state;
@@ -26,10 +27,22 @@ pub mod validation;
 pub mod workflow_node;
 
 pub use connectivity::{ConnectionError, ConnectionResult};
-pub use workflow_node::{RunConfig, WorkflowNode};
-pub use execution_record::{ExecutionOverallStatus, ExecutionRecord, StepOutput, StepRecord};
-pub use execution_state::ExecutionState;
+pub use domain_types::{
+    EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
+    RunOutcome, ServiceName, StateKey, UnknownIconError,
+};
+pub use execution_record::{
+    AttemptNumber, EmptyErrorMessage, ExecutionError, ExecutionOverallStatus, ExecutionRecord,
+    ExecutionRecordId, StepCount, StepName, StepOutput, StepRecord, StepType, WorkflowName,
+};
+pub use execution_state::{
+    can_transition, try_transition, CompletedState, ExecutionState, FailedState, IdleState,
+    InvalidTransition, QueuedState, RunningState, SkippedState, StateTransition, TerminalState,
+};
 pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
+pub use workflow_node::{
+    ConditionResult, HttpMethod, RunConfig, UnknownHttpMethodError, WorkflowNode,
+};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct NodeId(pub Uuid);
@@ -62,7 +75,7 @@ impl<S: Into<String>> From<S> for PortName {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum NodeCategory {
     Entry,
@@ -98,9 +111,13 @@ pub struct Node {
     pub x: f32,
     pub y: f32,
     pub last_output: Option<serde_json::Value>,
+    #[serde(default)]
     pub selected: bool,
+    #[serde(default)]
     pub executing: bool,
+    #[serde(default)]
     pub skipped: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     #[serde(default, skip)]
     pub execution_state: ExecutionState,
@@ -223,6 +240,10 @@ impl Node {
             config,
         }
     }
+
+    pub fn set_selected(&mut self, selected: bool) {
+        self.selected = selected;
+    }
 }
 
 impl Default for Node {
@@ -324,7 +345,10 @@ mod tests {
             "stateKey": "cart"
         }));
 
-        assert_eq!(node.config.get("stateKey").and_then(Value::as_str), Some("cart"));
+        assert_eq!(
+            node.config.get("stateKey").and_then(Value::as_str),
+            Some("cart")
+        );
     }
 
     #[test]

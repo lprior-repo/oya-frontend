@@ -8,74 +8,58 @@
 use dioxus::prelude::*;
 use std::fmt::Write as _;
 
-/// A node the user has added to their sketch during prototype mode.
+use super::domain_types::NodeTemplateId;
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct SketchNode {
-    pub node_type: &'static str,
+    pub node_type: NodeTemplateId,
     pub label: String,
 }
 
-/// Palette entry: every node type available in prototype mode.
-#[derive(Clone, Copy)]
 struct PaletteEntry {
-    node_type: &'static str,
-    label: &'static str,
+    node_type: NodeTemplateId,
     icon: &'static str,
 }
 
 const PALETTE_ENTRIES: [PaletteEntry; 9] = [
     PaletteEntry {
-        node_type: "http-handler",
-        label: "HTTP Handler",
+        node_type: NodeTemplateId::HttpHandler,
         icon: "🌐",
     },
     PaletteEntry {
-        node_type: "run",
-        label: "Durable Step",
+        node_type: NodeTemplateId::Run,
         icon: "🛡️",
     },
     PaletteEntry {
-        node_type: "sleep",
-        label: "Sleep / Timer",
+        node_type: NodeTemplateId::Sleep,
         icon: "⏱️",
     },
     PaletteEntry {
-        node_type: "set-state",
-        label: "Set State",
+        node_type: NodeTemplateId::SetState,
         icon: "⬆️",
     },
     PaletteEntry {
-        node_type: "get-state",
-        label: "Get State",
+        node_type: NodeTemplateId::GetState,
         icon: "⬇️",
     },
     PaletteEntry {
-        node_type: "send-message",
-        label: "Send Message",
+        node_type: NodeTemplateId::SendMessage,
         icon: "📤",
     },
     PaletteEntry {
-        node_type: "awakeable",
-        label: "Awakeable",
-        icon: "🔔",
+        node_type: NodeTemplateId::Condition,
+        icon: "⑂",
     },
     PaletteEntry {
-        node_type: "parallel",
-        label: "Parallel",
+        node_type: NodeTemplateId::Parallel,
         icon: "⫿",
     },
     PaletteEntry {
-        node_type: "condition",
-        label: "If / Else",
+        node_type: NodeTemplateId::Condition,
         icon: "⑂",
     },
 ];
 
-// ── Pure skeleton generator ────────────────────────────────────────────────────
-
-/// Generates a YAML workflow skeleton from a slice of sketch nodes.
-/// The resulting workflow is a linear chain: each step `depends_on` the one
-/// before it.
 pub fn generate_skeleton(nodes: &[SketchNode]) -> String {
     let mut out = String::from("name: \"prototype-workflow\"\nsteps:\n");
 
@@ -93,13 +77,11 @@ pub fn generate_skeleton(nodes: &[SketchNode]) -> String {
     out
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 #[component]
 pub fn PrototypePalette(
     open: ReadSignal<bool>,
     on_close: EventHandler<()>,
-    on_add_node: EventHandler<&'static str>,
+    on_add_node: EventHandler<NodeTemplateId>,
 ) -> Element {
     if !*open.read() {
         return rsx! {};
@@ -112,17 +94,14 @@ pub fn PrototypePalette(
     let skeleton_snapshot = generated_skeleton.read().clone();
 
     rsx! {
-        // Full-screen backdrop
         div {
             class: "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start justify-center overflow-y-auto",
             onclick: move |_| on_close.call(()),
 
-            // Centered panel (stop propagation so clicks inside don't close)
             div {
                 class: "relative w-full max-w-2xl mx-auto mt-24 mb-12 bg-white rounded-xl shadow-2xl overflow-hidden",
                 onclick: move |evt| evt.stop_propagation(),
 
-                // ── Header ────────────────────────────────────────────────────
                 div {
                     class: "flex items-start justify-between px-6 py-5 border-b border-slate-200",
                     div {
@@ -139,7 +118,6 @@ pub fn PrototypePalette(
                     }
                 }
 
-                // ── Node palette grid ─────────────────────────────────────────
                 div { class: "px-6 py-4 border-b border-slate-100",
                     h3 { class: "mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400", "Node Types" }
                     div { class: "grid grid-cols-3 gap-2",
@@ -150,22 +128,20 @@ pub fn PrototypePalette(
                                 onclick: move |_| {
                                     let new_node = SketchNode {
                                         node_type: entry.node_type,
-                                        label: entry.label.to_string(),
+                                        label: entry.node_type.label().to_string(),
                                     };
                                     sketch_nodes.write().push(new_node);
-                                    // reset skeleton when nodes change
                                     *generated_skeleton.write() = None;
                                     on_add_node.call(entry.node_type);
                                 },
                                 span { class: "text-2xl leading-none", "{entry.icon}" }
                                 span { class: "font-mono text-[10px] text-slate-500", "{entry.node_type}" }
-                                span { class: "text-[11px] font-medium text-slate-700", "{entry.label}" }
+                                span { class: "text-[11px] font-medium text-slate-700", "{entry.node_type.label()}" }
                             }
                         }
                     }
                 }
 
-                // ── Sketch summary (chips) ────────────────────────────────────
                 div { class: "px-6 py-4 border-b border-slate-100 min-h-[64px]",
                     h3 { class: "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400", "Sketch" }
                     if nodes_snapshot.is_empty() {
@@ -195,7 +171,6 @@ pub fn PrototypePalette(
                     }
                 }
 
-                // ── Generate button ───────────────────────────────────────────
                 div { class: "px-6 py-4",
                     if !nodes_snapshot.is_empty() {
                         button {
@@ -208,7 +183,6 @@ pub fn PrototypePalette(
                         }
                     }
 
-                    // ── Skeleton output ───────────────────────────────────────
                     if let Some(ref skeleton) = skeleton_snapshot {
                         div { class: "mt-4",
                             div { class: "mb-2 flex items-center justify-between",
@@ -218,7 +192,6 @@ pub fn PrototypePalette(
                                     onclick: {
                                         let skeleton_to_copy = skeleton.clone();
                                         move |_| {
-                                            // Clipboard write via eval
                                             let js = format!(
                                                 "navigator.clipboard.writeText({skeleton_to_copy:?}).catch(()=>{{}})"
                                             );
@@ -240,16 +213,14 @@ pub fn PrototypePalette(
     }
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
 #[cfg(test)]
 mod tests {
-    use super::{generate_skeleton, SketchNode};
+    use super::{generate_skeleton, SketchNode, NodeTemplateId};
 
-    fn node(node_type: &'static str) -> SketchNode {
+    fn node(node_type: NodeTemplateId) -> SketchNode {
         SketchNode {
             node_type,
-            label: node_type.to_string(),
+            label: node_type.label().to_string(),
         }
     }
 
@@ -258,20 +229,18 @@ mod tests {
         let result = generate_skeleton(&[]);
         assert!(result.contains("name: \"prototype-workflow\""));
         assert!(result.contains("steps:"));
-        // No step entries
         assert!(!result.contains("step-1"));
     }
 
     #[test]
     fn given_two_nodes_when_generating_skeleton_then_second_has_depends_on() {
-        let nodes = vec![node("http-handler"), node("run")];
+        let nodes = vec![node(NodeTemplateId::HttpHandler), node(NodeTemplateId::Run)];
         let result = generate_skeleton(&nodes);
 
         assert!(result.contains("id: step-1"));
         assert!(result.contains("type: http-handler"));
         assert!(result.contains("id: step-2"));
         assert!(result.contains("type: run"));
-        // step-1 has no depends_on, step-2 does
         assert!(!result
             .lines()
             .take_while(|l| !l.contains("step-2"))
@@ -281,13 +250,11 @@ mod tests {
 
     #[test]
     fn given_three_nodes_when_generating_skeleton_then_linear_chain_is_correct() {
-        let nodes = vec![node("http-handler"), node("run"), node("sleep")];
+        let nodes = vec![node(NodeTemplateId::HttpHandler), node(NodeTemplateId::Run), node(NodeTemplateId::Sleep)];
         let result = generate_skeleton(&nodes);
 
-        // Collect lines for structural inspection
         let lines: Vec<&str> = result.lines().collect();
 
-        // step-1: no depends_on
         let step1_block: Vec<&str> = lines
             .iter()
             .skip_while(|l| !l.contains("id: step-1"))
@@ -296,7 +263,6 @@ mod tests {
             .collect();
         assert!(!step1_block.iter().any(|l| l.contains("depends_on")));
 
-        // step-2: depends on step-1
         let step2_block: Vec<&str> = lines
             .iter()
             .skip_while(|l| !l.contains("id: step-2"))
@@ -307,7 +273,6 @@ mod tests {
             .iter()
             .any(|l| l.contains("depends_on: [step-1]")));
 
-        // step-3: depends on step-2
         let step3_block: Vec<&str> = lines
             .iter()
             .skip_while(|l| !l.contains("id: step-3"))

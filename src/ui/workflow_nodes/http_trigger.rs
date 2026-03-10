@@ -1,8 +1,10 @@
-use crate::ui::workflow_nodes::schema::{HttpMethod, HttpTriggerConfig};
+use crate::ui::workflow_nodes::schema::{HttpMethod, HttpPath, HttpTriggerConfig};
 use dioxus::prelude::*;
 
 #[component]
-pub fn HttpTriggerForm(config: Signal<HttpTriggerConfig>) -> Element {
+pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
+    let mut write_config = config.writer();
+
     rsx! {
         div {
             class: "space-y-4",
@@ -27,9 +29,9 @@ pub fn HttpTriggerForm(config: Signal<HttpTriggerConfig>) -> Element {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
                     placeholder: "/orders/{order_id}",
-                    value: "{config.read().path}",
+                    value: "{config.read().path.as_str()}",
                     oninput: move |e| {
-                        config.write().path = e.value().clone();
+                        write_config.write().path = HttpPath::new(e.value());
                     }
                 }
                 p {
@@ -46,15 +48,15 @@ pub fn HttpTriggerForm(config: Signal<HttpTriggerConfig>) -> Element {
                 }
                 select {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    value: match &*config.read() {
-                        HttpTriggerConfig { method: HttpMethod::GET, .. } => "GET",
-                        HttpTriggerConfig { method: HttpMethod::POST, .. } => "POST",
-                        HttpTriggerConfig { method: HttpMethod::PUT, .. } => "PUT",
-                        HttpTriggerConfig { method: HttpMethod::DELETE, .. } => "DELETE",
-                        HttpTriggerConfig { method: HttpMethod::PATCH, .. } => "PATCH",
+                    value: match config.read().method {
+                        HttpMethod::GET => "GET",
+                        HttpMethod::POST => "POST",
+                        HttpMethod::PUT => "PUT",
+                        HttpMethod::DELETE => "DELETE",
+                        HttpMethod::PATCH => "PATCH",
                     },
                     onchange: move |e| {
-                        config.write().method = match e.value().as_str() {
+                        write_config.write().method = match e.value().as_str() {
                             "GET" => HttpMethod::GET,
                             "POST" => HttpMethod::POST,
                             "PUT" => HttpMethod::PUT,

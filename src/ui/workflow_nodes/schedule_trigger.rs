@@ -1,8 +1,10 @@
-use crate::ui::workflow_nodes::schema::ScheduleTriggerConfig;
+use crate::ui::workflow_nodes::schema::{CronExpression, ScheduleTriggerConfig};
 use dioxus::prelude::*;
 
 #[component]
-pub fn ScheduleTriggerForm(config: Signal<ScheduleTriggerConfig>) -> Element {
+pub fn ScheduleTriggerForm(config: ReadOnlySignal<ScheduleTriggerConfig>) -> Element {
+    let mut write_config = config.writer();
+
     rsx! {
         div {
             class: "space-y-4",
@@ -28,21 +30,21 @@ pub fn ScheduleTriggerForm(config: Signal<ScheduleTriggerConfig>) -> Element {
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().schedule = "0 * * * *".to_string();
+                            write_config.write().schedule = CronExpression::new("0 * * * *");
                         },
                         "Every hour"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().schedule = "0 0 * * *".to_string();
+                            write_config.write().schedule = CronExpression::new("0 0 * * *");
                         },
                         "Daily"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().schedule = "0 0 * * 0".to_string();
+                            write_config.write().schedule = CronExpression::new("0 0 * * 0");
                         },
                         "Weekly"
                     }
@@ -51,9 +53,9 @@ pub fn ScheduleTriggerForm(config: Signal<ScheduleTriggerConfig>) -> Element {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
                     placeholder: "0 * * * *",
-                    value: "{config.read().schedule}",
+                    value: "{config.read().schedule.as_str()}",
                     oninput: move |e| {
-                        config.write().schedule = e.value().clone();
+                        write_config.write().schedule = CronExpression::new(e.value());
                     }
                 }
                 p {

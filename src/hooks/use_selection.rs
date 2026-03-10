@@ -44,120 +44,220 @@ fn reconcile_primary_selection(
         .or_else(|| selected_ids.first().copied())
 }
 
-/// Selection state hook - manages which nodes are selected.
-///
-/// Follows functional reactive pattern:
-/// - State stored in Copy signals
-/// - Methods for mutations
-/// - `ReadSignal` accessors for derived views
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum Selection {
+    #[default]
+    None,
+    Single {
+        node_id: NodeId,
+    },
+    Multiple {
+        primary: NodeId,
+        secondary: Vec<NodeId>,
+    },
+}
+
+impl Selection {
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Selection::None)
+    }
+
+    pub fn primary(&self) -> Option<NodeId> {
+        match self {
+            Selection::None => None,
+            Selection::Single { node_id } => Some(*node_id),
+            Selection::Multiple { primary, .. } => Some(*primary),
+        }
+    }
+
+    pub fn all_ids(&self) -> Vec<NodeId> {
+        match self {
+            Selection::None => Vec::new(),
+            Selection::Single { node_id } => vec![*node_id],
+            Selection::Multiple { primary, secondary } => {
+                let mut all = vec![*primary];
+                all.extend(secondary.iter().copied());
+                all
+            }
+        }
+    }
+
+    pub fn contains(&self, id: NodeId) -> bool {
+        match self {
+            Selection::None => false,
+            Selection::Single { node_id } => *node_id == id,
+            Selection::Multiple { primary, secondary } => *primary == id || secondary.contains(&id),
+        }
+    }
+
+    pub fn count(&self) -> usize {
+        match self {
+            Selection::None => 0,
+            Selection::Single { .. } => 1,
+            Selection::Multiple { primary, secondary } => 1 + secondary.len(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum PendingDrag {
+    #[default]
+    None,
+    Ready {
+        node_ids: Vec<NodeId>,
+    },
+}
+
+impl PendingDrag {
+    pub fn none() -> Self {
+        Self::None
+    }
+
+    pub fn ready(node_ids: Vec<NodeId>) -> Self {
+        Self::Ready { node_ids }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        matches!(self, PendingDrag::Ready { .. })
+    }
+
+    pub fn node_ids(&self) -> Option<&[NodeId]> {
+        match self {
+            PendingDrag::None => None,
+            PendingDrag::Ready { node_ids } => Some(node_ids),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct SelectionState {
-    selected_id: Signal<Option<NodeId>>,
-    selected_ids: Signal<Vec<NodeId>>,
-    pending_drag: Signal<Option<Vec<NodeId>>>,
+    selection: Signal<Selection>,
+    pending_drag: Signal<PendingDrag>,
 }
 
 #[allow(dead_code)]
 impl SelectionState {
-    /// Access to the primary selected node ID signal
-    pub fn selected_id(&self) -> Signal<Option<NodeId>> {
-        self.selected_id
+    pub fn selection(&self) -> ReadSignal<Selection> {
+        self.selection.into()
     }
 
-    /// Access to all selected node IDs signal
-    pub fn selected_ids(&self) -> Signal<Vec<NodeId>> {
-        self.selected_ids
+    pub fn primary_id(&self) -> Option<NodeId> {
+        self.selection.read().primary()
     }
 
-    // === Mutation methods (take `self` since Copy) ===
+    pub fn all_selected_ids(&self) -> Vec<NodeId> {
+        self.selection.read().all_ids()
+    }
 
-    /// Select a single node (clears multi-selection)
     pub fn select_single(mut self, id: NodeId) {
-        self.selected_id.set(Some(id));
-        self.selected_ids.set(vec![id]);
+        self.selection.set(Selection::Single { node_id: id });
     }
 
-    /// Toggle a node in the selection
     pub fn toggle(mut self, id: NodeId) {
-        let ids = self.selected_ids.read().clone();
-        let (new_ids, selected_id) = toggle_selection_ids(&ids, id);
-        self.selected_id.set(selected_id);
-        self.selected_ids.set(new_ids);
+        let current_ids = self.selection.read().all_ids();
+        let (new_ids, selected_id) = toggle_selection_ids(&current_ids, id);
+
+        let new_selection = match new_ids.len() {
+            0 => Selection::None,
+            1 => Selection::Single {
+                node_id: new_ids[0],
+            },
+            _ => Selection::Multiple {
+                primary: selected_id.unwrap_or(new_ids[0]),
+                secondary: new_ids.into_iter().skip(1).collect(),
+            },
+        };
+        self.selection.set(new_selection);
     }
 
-    /// Add a node to selection without clearing
     pub fn add_to_selection(mut self, id: NodeId) {
-        let ids = self.selected_ids.read().clone();
-        let next_ids = add_unique_selection(&ids, id);
-        let current_primary = *self.selected_id.read();
-        self.selected_id
-            .set(reconcile_primary_selection(current_primary, &next_ids));
-        self.selected_ids.set(next_ids);
+        let current_ids = self.selection.read().all_ids();
+        let next_ids = add_unique_selection(&current_ids, id);
+
+        let new_selection = match next_ids.len() {
+            0 => Selection::None,
+            1 => Selection::Single {
+                node_id: next_ids[0],
+            },
+            _ => {
+                let current_primary = self.selection.read().primary();
+                let primary =
+                    reconcile_primary_selection(current_primary, &next_ids).unwrap_or(next_ids[0]);
+                let secondary: Vec<NodeId> =
+                    next_ids.into_iter().filter(|&n| n != primary).collect();
+                Selection::Multiple { primary, secondary }
+            }
+        };
+        self.selection.set(new_selection);
     }
 
-    /// Set multiple selected nodes at once
     pub fn set_multiple(mut self, ids: Vec<NodeId>) {
-        self.selected_id.set(ids.first().copied());
-        self.selected_ids.set(ids);
+        let new_selection = match ids.len() {
+            0 => Selection::None,
+            1 => Selection::Single { node_id: ids[0] },
+            _ => Selection::Multiple {
+                primary: ids[0],
+                secondary: ids.into_iter().skip(1).collect(),
+            },
+        };
+        self.selection.set(new_selection);
     }
 
-    /// Clear all selection
     pub fn clear(mut self) {
-        self.selected_id.set(None);
-        self.selected_ids.set(Vec::new());
+        self.selection.set(Selection::None);
     }
 
-    /// Set pending drag targets
     pub fn set_pending_drag(mut self, ids: Vec<NodeId>) {
-        self.pending_drag.set(Some(ids));
+        self.pending_drag.set(PendingDrag::ready(ids));
     }
 
-    /// Clear pending drag targets
     pub fn clear_pending_drag(mut self) {
-        self.pending_drag.set(None);
+        self.pending_drag.set(PendingDrag::None);
     }
 
-    /// Read and clear pending drag targets atomically if present.
     pub fn take_pending_drag(mut self) -> Option<Vec<NodeId>> {
-        self.pending_drag.write().take()
+        match self.pending_drag.read().clone() {
+            PendingDrag::None => None,
+            PendingDrag::Ready { node_ids } => {
+                self.pending_drag.set(PendingDrag::None);
+                Some(node_ids)
+            }
+        }
     }
 
-    /// Access pending drag targets
-    pub fn pending_drag(&self) -> ReadSignal<Option<Vec<NodeId>>> {
+    pub fn pending_drag(&self) -> ReadSignal<PendingDrag> {
         self.pending_drag.into()
     }
 
-    /// Check if a node is selected
     pub fn is_selected(&self, id: NodeId) -> bool {
-        self.selected_ids.read().contains(&id)
+        self.selection.read().contains(id)
     }
 
-    /// Get the number of selected nodes
     pub fn count(&self) -> usize {
-        self.selected_ids.read().len()
+        self.selection.read().count()
     }
 
-    /// Check if anything is selected
     pub fn has_selection(&self) -> bool {
-        !self.selected_ids.read().is_empty()
+        !self.selection.read().is_empty()
     }
 }
 
 pub fn use_selection() -> SelectionState {
-    let selected_id = use_signal(|| None::<NodeId>);
-    let selected_ids = use_signal(Vec::<NodeId>::new);
-    let pending_drag = use_signal(|| None::<Vec<NodeId>>);
+    let selection = use_signal(Selection::default);
+    let pending_drag = use_signal(PendingDrag::default);
 
     SelectionState {
-        selected_id,
-        selected_ids,
+        selection,
         pending_drag,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{add_unique_selection, reconcile_primary_selection, toggle_selection_ids};
+    use super::{
+        PendingDrag, Selection, add_unique_selection, reconcile_primary_selection,
+        toggle_selection_ids,
+    };
     use oya_frontend::graph::NodeId;
 
     #[test]
@@ -221,5 +321,43 @@ mod tests {
         let primary = reconcile_primary_selection(Some(a), &[]);
 
         assert_eq!(primary, None);
+    }
+
+    #[test]
+    fn given_selection_none_when_is_empty_then_true() {
+        assert!(Selection::None.is_empty());
+    }
+
+    #[test]
+    fn given_selection_single_when_is_empty_then_false() {
+        let sel = Selection::Single {
+            node_id: NodeId::new(),
+        };
+        assert!(!sel.is_empty());
+    }
+
+    #[test]
+    fn given_selection_multiple_when_count_then_returns_correct_count() {
+        let a = NodeId::new();
+        let b = NodeId::new();
+        let c = NodeId::new();
+        let sel = Selection::Multiple {
+            primary: a,
+            secondary: vec![b, c],
+        };
+        assert_eq!(sel.count(), 3);
+    }
+
+    #[test]
+    fn given_pending_drag_ready_when_node_ids_then_some() {
+        let ids = vec![NodeId::new()];
+        let drag = PendingDrag::ready(ids.clone());
+        assert_eq!(drag.node_ids(), Some(&ids[..]));
+    }
+
+    #[test]
+    fn given_pending_drag_none_when_node_ids_then_none() {
+        let drag = PendingDrag::none();
+        assert!(drag.node_ids().is_none());
     }
 }

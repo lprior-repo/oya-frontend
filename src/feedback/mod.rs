@@ -1,9 +1,110 @@
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct FeedbackLevel(u8);
+
+impl FeedbackLevel {
+    pub const MINIMAL: Self = Self(1);
+    pub const CATEGORICAL: Self = Self(2);
+    pub const GUIDED: Self = Self(3);
+    pub const DIAGNOSTIC: Self = Self(4);
+    pub const TRANSPARENT: Self = Self(5);
+
+    pub fn new(level: u8) -> Result<Self, FeedbackConfigError> {
+        match level {
+            1 => Ok(Self::MINIMAL),
+            2 => Ok(Self::CATEGORICAL),
+            3 => Ok(Self::GUIDED),
+            4 => Ok(Self::DIAGNOSTIC),
+            5 => Ok(Self::TRANSPARENT),
+            _ => Err(FeedbackConfigError::InvalidLevel(level)),
+        }
+    }
+
+    pub fn value(&self) -> u8 {
+        self.0
+    }
+
+    pub fn is_minimal(&self) -> bool {
+        self.0 == Self::MINIMAL
+    }
+
+    pub fn is_transparent(&self) -> bool {
+        self.0 == Self::TRANSPARENT
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self.0 {
+            1 => "minimal",
+            2 => "categorical",
+            3 => "guided",
+            4 => "diagnostic",
+            5 => "transparent",
+            _ => "unknown",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct FailureCategoryName(String);
+
+impl FailureCategoryName {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn categorize(error_message: &str) -> Self {
+        if error_message.contains("404") {
+            Self("Resource Not Found".into())
+        } else if error_message.contains("500") {
+            Self("Server Error".into())
+        } else if error_message.contains("timeout") {
+            Self("Timeout".into())
+        } else {
+            Self("Unknown".into())
+        }
+    }
+}
+
+impl std::fmt::Display for FailureCategoryName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SpecRef(String);
+
+impl SpecRef {
+    pub fn new(reference: impl Into<String>) -> Self {
+        Self(reference.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for SpecRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Error, Clone, PartialEq)]
+pub enum FeedbackConfigError {
+    #[error("Invalid feedback level: {0}. Must be 1-5")]
+    InvalidLevel(u8),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeedbackConfig {
-    pub level: u8,
+    pub level: FeedbackLevel,
     pub name: String,
     pub includes_status_codes: bool,
     pub includes_bodies: bool,
@@ -18,7 +119,7 @@ impl FeedbackConfig {
     pub fn from_level(level: u8) -> Self {
         match level {
             1 => Self {
-                level,
+                level: FeedbackLevel::MINIMAL,
                 name: "minimal".to_string(),
                 includes_status_codes: false,
                 includes_bodies: false,
@@ -28,7 +129,7 @@ impl FeedbackConfig {
                 includes_exact_assertions: false,
             },
             2 => Self {
-                level,
+                level: FeedbackLevel::CATEGORICAL,
                 name: "categorical".to_string(),
                 includes_status_codes: false,
                 includes_bodies: false,
@@ -38,7 +139,7 @@ impl FeedbackConfig {
                 includes_exact_assertions: false,
             },
             3 => Self {
-                level,
+                level: FeedbackLevel::GUIDED,
                 name: "guided".to_string(),
                 includes_status_codes: false,
                 includes_bodies: false,
@@ -48,7 +149,7 @@ impl FeedbackConfig {
                 includes_exact_assertions: false,
             },
             4 => Self {
-                level,
+                level: FeedbackLevel::DIAGNOSTIC,
                 name: "diagnostic".to_string(),
                 includes_status_codes: true,
                 includes_bodies: false,
@@ -58,7 +159,7 @@ impl FeedbackConfig {
                 includes_exact_assertions: false,
             },
             5 => Self {
-                level,
+                level: FeedbackLevel::TRANSPARENT,
                 name: "transparent".to_string(),
                 includes_status_codes: true,
                 includes_bodies: true,
@@ -74,8 +175,8 @@ impl FeedbackConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SanitizedFailure {
-    pub category: String,
-    pub spec_ref: String,
+    pub category: FailureCategoryName,
+    pub spec_ref: SpecRef,
     pub description: String,
     pub hint: String,
     pub spec_text: String,
@@ -92,7 +193,6 @@ pub struct SanitizedFeedback {
 }
 
 pub struct FeedbackSanitizer {
-    #[allow(dead_code)]
     config: FeedbackConfig,
 }
 
@@ -140,38 +240,38 @@ impl FeedbackSanitizer {
 
         SanitizedFailure {
             category,
-            spec_ref: result.spec_ref.clone(),
+            spec_ref: SpecRef::new(result.spec_ref.clone()),
             description,
             hint,
             spec_text,
         }
     }
 
-    fn categorize_failure(result: &super::scenario_runner::ScenarioResult) -> String {
+    fn categorize_failure(result: &super::scenario_runner::ScenarioResult) -> FailureCategoryName {
         let failed_step = result.steps.iter().find(|s| !s.passed);
 
         if let Some(step) = failed_step {
             if step.error.as_ref().is_some_and(|e| e.contains("404")) {
-                return "Resource Not Found".to_string();
+                return FailureCategoryName::new("Resource Not Found");
             }
             if step.error.as_ref().is_some_and(|e| e.contains("500")) {
-                return "Server Error".to_string();
+                return FailureCategoryName::new("Server Error");
             }
             if step.error.as_ref().is_some_and(|e| e.contains("timeout")) {
-                return "Timeout".to_string();
+                return FailureCategoryName::new("Timeout");
             }
         }
 
         match result.category.as_str() {
-            "security" => "Security Violation".to_string(),
-            "error-handling" => "Error Handling".to_string(),
-            "happy-path" => "Happy Path".to_string(),
-            _ => "Unknown".to_string(),
+            "security" => FailureCategoryName::new("Security Violation"),
+            "error-handling" => FailureCategoryName::new("Error Handling"),
+            "happy-path" => FailureCategoryName::new("Happy Path"),
+            _ => FailureCategoryName::new("Unknown"),
         }
     }
 
-    fn sanitize_description(category: &str) -> String {
-        match category {
+    fn sanitize_description(category: &FailureCategoryName) -> String {
+        match category.as_str() {
             "Security Violation" => "The system does not properly enforce security constraints.".to_string(),
             "Error Handling" => "The system does not gracefully handle error conditions.".to_string(),
             "Happy Path" => "The primary workflow does not produce expected results.".to_string(),
@@ -182,8 +282,8 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn generate_hint(category: &str) -> String {
-        match category {
+    fn generate_hint(category: &FailureCategoryName) -> String {
+        match category.as_str() {
             "Security Violation" => {
                 "Review the spec's security requirements and ensure all invariants are enforced."
                     .to_string()
@@ -207,8 +307,8 @@ impl FeedbackSanitizer {
         }
     }
 
-    fn get_spec_text_reference(category: &str) -> String {
-        match category {
+    fn get_spec_text_reference(category: &FailureCategoryName) -> String {
+        match category.as_str() {
             "Security Violation" => {
                 "Review context.invariants for security constraints.".to_string()
             }

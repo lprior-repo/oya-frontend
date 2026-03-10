@@ -10,80 +10,99 @@ use oya_frontend::graph::{NodeId, RunRecord};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Frozen mode: replays a historical `RunRecord` onto the canvas view.
-/// Does NOT mutate the live workflow — it's a read-only overlay.
-#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum FrozenMode {
+    Live,
+    Frozen {
+        run_id: Uuid,
+        results: HashMap<NodeId, serde_json::Value>,
+    },
+}
+
+impl Default for FrozenMode {
+    fn default() -> Self {
+        Self::Live
+    }
+}
+
+impl FrozenMode {
+    pub fn live() -> Self {
+        Self::Live
+    }
+
+    pub fn frozen(run_id: Uuid, results: HashMap<NodeId, serde_json::Value>) -> Self {
+        Self::Frozen { run_id, results }
+    }
+
+    pub fn is_frozen(&self) -> bool {
+        matches!(self, FrozenMode::Frozen { .. })
+    }
+
+    pub fn run_id(&self) -> Option<Uuid> {
+        match self {
+            FrozenMode::Live => None,
+            FrozenMode::Frozen { run_id, .. } => Some(*run_id),
+        }
+    }
+
+    pub fn result_for_node(&self, node_id: NodeId) -> Option<serde_json::Value> {
+        match self {
+            FrozenMode::Live => None,
+            FrozenMode::Frozen { results, .. } => results.get(&node_id).cloned(),
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct FrozenModeState {
-    active_run_id: Signal<Option<Uuid>>,
-    frozen_results: Signal<HashMap<NodeId, serde_json::Value>>,
+    mode: Signal<FrozenMode>,
 }
 
 #[allow(dead_code)]
 impl FrozenModeState {
-    /// Returns a read-only signal for the currently active run ID.
-    pub fn active_run_id(&self) -> ReadSignal<Option<Uuid>> {
-        ReadSignal::from(self.active_run_id)
+    pub fn mode(&self) -> ReadSignal<FrozenMode> {
+        self.mode.into()
     }
 
-    /// Returns `true` when a historical run is loaded in frozen mode.
     #[must_use]
     pub fn is_frozen(&self) -> bool {
-        self.active_run_id.read().is_some()
+        self.mode.read().is_frozen()
     }
 
-    /// Returns a read-only signal for the frozen node-result map.
-    pub fn frozen_results(&self) -> ReadSignal<HashMap<NodeId, serde_json::Value>> {
-        ReadSignal::from(self.frozen_results)
+    pub fn active_run_id(&self) -> Option<Uuid> {
+        self.mode.read().run_id()
     }
 
-    /// Activate frozen mode by loading a `RunRecord`.
-    pub fn activate(&mut self, run: &RunRecord) {
-        self.active_run_id.set(Some(run.id));
-        self.frozen_results.set(run.results.clone());
-    }
-
-    /// Exit frozen mode and clear the overlay.
-    pub fn deactivate(&mut self) {
-        self.active_run_id.set(None);
-        self.frozen_results.set(HashMap::new());
-    }
-
-    /// Returns the recorded output for `node_id`, or `None` if not present.
-    #[must_use]
     pub fn result_for_node(&self, node_id: NodeId) -> Option<serde_json::Value> {
-        self.frozen_results.read().get(&node_id).cloned()
+        self.mode.read().result_for_node(node_id)
+    }
+
+    pub fn activate(&mut self, run: &RunRecord) {
+        self.mode
+            .set(FrozenMode::frozen(run.id, run.results.clone()));
+    }
+
+    pub fn deactivate(&mut self) {
+        self.mode.set(FrozenMode::Live);
     }
 }
 
-/// Initialises the frozen-mode signals inside a Dioxus component.
 #[allow(dead_code)]
 pub fn use_frozen_mode() -> FrozenModeState {
     FrozenModeState {
-        active_run_id: use_signal(|| None),
-        frozen_results: use_signal(HashMap::new),
+        mode: use_signal(FrozenMode::default),
     }
 }
 
-// ---------------------------------------------------------------------------
-// Pure helpers
-// ---------------------------------------------------------------------------
-
-/// Given a list of run records, find one by ID.
-/// Pure function, no side effects.
 #[must_use]
 #[allow(dead_code)]
 pub fn find_run_by_id(history: &[RunRecord], id: Uuid) -> Option<&RunRecord> {
     history.iter().find(|r| r.id == id)
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 #[cfg(test)]
 mod tests {
-    use super::find_run_by_id;
+    use super::{FrozenMode, find_run_by_id};
     use oya_frontend::graph::RunRecord;
     use std::collections::HashMap;
     use uuid::Uuid;
@@ -95,6 +114,31 @@ mod tests {
             results: HashMap::new(),
             success: true,
         }
+    }
+
+    #[test]
+    fn given_live_mode_when_is_frozen_then_returns_false() {
+        let mode = FrozenMode::live();
+        assert!(!mode.is_frozen());
+    }
+
+    #[test]
+    fn given_frozen_mode_when_is_frozen_then_returns_true() {
+        let mode = FrozenMode::frozen(Uuid::new_v4(), HashMap::new());
+        assert!(mode.is_frozen());
+    }
+
+    #[test]
+    fn given_live_mode_when_run_id_then_returns_none() {
+        let mode = FrozenMode::live();
+        assert!(mode.run_id().is_none());
+    }
+
+    #[test]
+    fn given_frozen_mode_when_run_id_then_returns_some() {
+        let id = Uuid::new_v4();
+        let mode = FrozenMode::frozen(id, HashMap::new());
+        assert_eq!(mode.run_id(), Some(id));
     }
 
     #[test]

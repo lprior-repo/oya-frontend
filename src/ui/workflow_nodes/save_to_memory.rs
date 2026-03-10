@@ -1,4 +1,4 @@
-use crate::ui::workflow_nodes::schema::SaveToMemoryConfig;
+use crate::ui::workflow_nodes::schema::{MemoryKey, SaveToMemoryConfig};
 use dioxus::prelude::*;
 
 fn json_to_display(value: &serde_json::Value) -> String {
@@ -9,36 +9,9 @@ fn parse_json_draft(input: &str) -> Result<serde_json::Value, String> {
     serde_json::from_str(input).map_err(|error| format!("Invalid JSON: {error}"))
 }
 
-#[derive(Clone)]
-pub struct SaveToMemoryNode {
-    pub config: Signal<SaveToMemoryConfig>,
-}
-
-impl SaveToMemoryNode {
-    pub fn new() -> Self {
-        Self {
-            config: use_signal(|| SaveToMemoryConfig {
-                key: String::new(),
-                value: serde_json::Value::Null,
-            }),
-        }
-    }
-
-    pub fn from_config(config: SaveToMemoryConfig) -> Self {
-        Self {
-            config: use_signal(|| config),
-        }
-    }
-}
-
-impl Default for SaveToMemoryNode {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[component]
-pub fn SaveToMemoryForm(config: Signal<SaveToMemoryConfig>) -> Element {
+pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
+    let mut write_config = config.writer();
     let initial_draft = json_to_display(&config.read().value);
     let draft = use_signal(move || initial_draft);
     let parse_error = use_signal(|| None::<String>);
@@ -62,8 +35,8 @@ pub fn SaveToMemoryForm(config: Signal<SaveToMemoryConfig>) -> Element {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500",
                     placeholder: "e.g., order_total, user_email, approval_status",
-                    value: "{config.read().key}",
-                    oninput: move |e| config.write().key = e.value().clone(),
+                    value: "{config.read().key.as_str()}",
+                    oninput: move |e| write_config.write().key = MemoryKey::new(e.value()),
                 }
                 p { class: "text-xs text-gray-500 mt-1", "Use this name to load the data later" }
             }
@@ -81,7 +54,7 @@ pub fn SaveToMemoryForm(config: Signal<SaveToMemoryConfig>) -> Element {
                         match parse_json_draft(next_value.as_str()) {
                             Ok(value) => {
                                 parse_error.set(None);
-                                config.write().value = value;
+                                write_config.write().value = value;
                             }
                             Err(error_text) => parse_error.set(Some(error_text)),
                         }

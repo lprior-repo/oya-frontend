@@ -3,24 +3,15 @@ use oya_frontend::graph::{Node, NodeCategory};
 use serde_json::Value;
 
 use super::config_panel::{get_str_val, get_u64_val};
+use super::domain_types::HttpMethod;
 
 const INPUT_CLASS: &str =
     "h-7 w-full rounded border border-slate-300 bg-white px-2 font-mono text-[11px] text-slate-800 outline-none transition-colors focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30";
 
-fn normalize_http_method(method: &str) -> &'static str {
-    if method.eq_ignore_ascii_case("GET") {
-        "GET"
-    } else if method.eq_ignore_ascii_case("POST") {
-        "POST"
-    } else if method.eq_ignore_ascii_case("PUT") {
-        "PUT"
-    } else if method.eq_ignore_ascii_case("DELETE") {
-        "DELETE"
-    } else if method.eq_ignore_ascii_case("PATCH") {
-        "PATCH"
-    } else {
-        "POST"
-    }
+fn parse_http_method(config: &Value, key: &str) -> HttpMethod {
+    get_str_val(config, key)
+        .parse::<HttpMethod>()
+        .unwrap_or_default()
 }
 
 #[component]
@@ -65,7 +56,7 @@ pub fn InlineConfigPanel(
 fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
     match icon {
         "globe" => {
-            let method = normalize_http_method(&get_str_val(config, "method")).to_string();
+            let method = parse_http_method(config, "method");
             let config_clone = config.clone();
             rsx! {
                 {text_field("Path", "path", config, "/orders/{order_id}", on_change.clone())}
@@ -77,10 +68,8 @@ fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> E
                         onchange: move |e| {
                             let mut new_config = config_clone.clone();
                             if let Some(obj) = new_config.as_object_mut() {
-                                obj.insert(
-                                    "method".to_string(),
-                                    Value::String(normalize_http_method(&e.value()).to_string()),
-                                );
+                                let parsed: HttpMethod = e.value().parse().unwrap_or_default();
+                                obj.insert("method".to_string(), Value::String(parsed.to_string()));
                                 on_change.call(new_config);
                             }
                         },

@@ -4,27 +4,25 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::ui::panel_types::{
+    CollapseState, RunOutcome, PayloadShape,
+    chevron_rotation_class, outcome_badge_style, outcome_icon_class, panel_height_class,
+};
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, RunRecord};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-// ---------------------------------------------------------------------------
-// Pure helpers
-// ---------------------------------------------------------------------------
-
-const fn status_badge_classes(success: bool) -> &'static str {
-    if success {
-        "bg-emerald-50 text-emerald-700 border-emerald-200"
-    } else {
-        "bg-red-50 text-red-700 border-red-200"
+const fn status_badge_classes(outcome: RunOutcome) -> &'static str {
+    match outcome {
+        RunOutcome::Success => "bg-emerald-50 text-emerald-700 border-emerald-200",
+        RunOutcome::Failure => "bg-red-50 text-red-700 border-red-200",
     }
 }
 
-const fn status_icon_classes(success: bool) -> &'static str {
-    if success {
-        "h-3 w-3 text-emerald-500"
-    } else {
-        "h-3 w-3 text-red-500"
+const fn status_icon_classes(outcome: RunOutcome) -> &'static str {
+    match outcome {
+        RunOutcome::Success => "h-3 w-3 text-emerald-500",
+        RunOutcome::Failure => "h-3 w-3 text-red-500",
     }
 }
 
@@ -45,57 +43,29 @@ fn format_elapsed(ts: &chrono::DateTime<chrono::Utc>) -> String {
     }
 }
 
-fn panel_height_class(collapsed: bool) -> &'static str {
-    if collapsed {
-        "h-10"
-    } else {
-        "h-[280px]"
-    }
-}
-
-fn chevron_rotation_class(collapsed: bool) -> &'static str {
-    if collapsed {
-        "-rotate-90"
-    } else {
-        ""
-    }
-}
-
-/// Returns the first 8 hex characters of a UUID for compact display.
 #[must_use]
 pub fn truncate_id(id: &uuid::Uuid) -> String {
     let full = id.to_string();
-    // UUID format: xxxxxxxx-xxxx-..., take first 8 chars (no dash)
     full.chars().filter(|c| *c != '-').take(8).collect()
 }
 
-/// Human-readable status label for a run.
 #[must_use]
-pub const fn format_run_status(success: bool) -> &'static str {
-    if success {
-        "Success"
-    } else {
-        "Failed"
+pub const fn format_run_status(outcome: RunOutcome) -> &'static str {
+    outcome.display_label()
+}
+
+#[must_use]
+pub const fn run_status_badge_class(outcome: RunOutcome) -> &'static str {
+    match outcome {
+        RunOutcome::Success => "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200",
+        RunOutcome::Failure => "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-red-50 text-red-700 border-red-200",
     }
 }
 
-/// Tailwind badge classes for the status pill in the table.
-#[must_use]
-pub const fn run_status_badge_class(success: bool) -> &'static str {
-    if success {
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200"
-    } else {
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold bg-red-50 text-red-700 border-red-200"
-    }
-}
-
-/// Placeholder duration formatter — returns "—" until `RunRecord` carries
-/// timing fields.  Replace with real computation once the struct is richer.
 #[must_use]
 pub fn format_run_duration(_run: &RunRecord) -> String {
     "—".to_string()
 }
-
 
 #[must_use]
 fn truncate_preview(input: &str, max_chars: usize) -> String {
@@ -145,26 +115,23 @@ fn derive_step_counts(run: &RunRecord) -> (usize, usize) {
         })
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 #[cfg(test)]
 mod tests {
     use super::{
         derive_step_counts, format_elapsed, format_run_duration, format_run_status,
         run_status_badge_class, status_badge_classes, truncate_id, truncate_preview,
+        RunOutcome,
     };
     use oya_frontend::graph::{NodeId, RunRecord};
     use std::collections::HashMap;
     use uuid::Uuid;
 
-    fn make_run(success: bool) -> RunRecord {
+    fn make_run(outcome: RunOutcome) -> RunRecord {
         RunRecord {
             id: Uuid::new_v4(),
             timestamp: chrono::Utc::now(),
             results: HashMap::new(),
-            success,
+            success: outcome.is_success(),
         }
     }
 
@@ -181,16 +148,15 @@ mod tests {
     }
 
     #[test]
-    fn given_success_status_when_requesting_badge_classes_then_success_classes_are_returned() {
+    fn given_success_outcome_when_requesting_badge_classes_then_success_classes_are_returned() {
         assert_eq!(
-            status_badge_classes(true),
+            status_badge_classes(RunOutcome::Success),
             "bg-emerald-50 text-emerald-700 border-emerald-200"
         );
     }
 
     #[test]
     fn given_uuid_when_truncating_then_first_8_hex_chars_are_returned() {
-        // xxxxxxxx-yyyy-... → first 8 chars of no-dash form
         let id =
             Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap_or_else(|_| Uuid::nil());
         assert_eq!(truncate_id(&id), "550e8400");
@@ -203,31 +169,30 @@ mod tests {
     }
 
     #[test]
-    fn given_success_true_when_formatting_status_then_success_label_is_returned() {
-        assert_eq!(format_run_status(true), "Success");
+    fn given_success_outcome_when_formatting_status_then_success_label_is_returned() {
+        assert_eq!(format_run_status(RunOutcome::Success), "Success");
     }
 
     #[test]
-    fn given_success_false_when_formatting_status_then_failed_label_is_returned() {
-        assert_eq!(format_run_status(false), "Failed");
+    fn given_failure_outcome_when_formatting_status_then_failed_label_is_returned() {
+        assert_eq!(format_run_status(RunOutcome::Failure), "Failed");
     }
 
     #[test]
-    fn given_success_run_when_requesting_badge_class_then_emerald_classes_are_returned() {
-        assert!(run_status_badge_class(true).contains("emerald"));
+    fn given_success_outcome_when_requesting_badge_class_then_emerald_classes_are_returned() {
+        assert!(run_status_badge_class(RunOutcome::Success).contains("emerald"));
     }
 
     #[test]
-    fn given_failed_run_when_requesting_badge_class_then_red_classes_are_returned() {
-        assert!(run_status_badge_class(false).contains("red"));
+    fn given_failure_outcome_when_requesting_badge_class_then_red_classes_are_returned() {
+        assert!(run_status_badge_class(RunOutcome::Failure).contains("red"));
     }
 
     #[test]
     fn given_run_record_when_formatting_duration_then_placeholder_is_returned() {
-        let run = make_run(true);
+        let run = make_run(RunOutcome::Success);
         assert_eq!(format_run_duration(&run), "—");
     }
-
 
     #[test]
     fn given_multibyte_preview_when_truncating_then_utf8_boundaries_are_preserved() {
@@ -274,16 +239,6 @@ mod tests {
     }
 }
 
-// ---------------------------------------------------------------------------
-// ExecutionHistoryTable
-// ---------------------------------------------------------------------------
-
-/// A standalone full-width table of execution runs.
-///
-/// # Props
-/// - `history` — reactive list of [`RunRecord`] entries (newest first internally)
-/// - `active_run_id` — UUID of the run currently loaded in frozen-replay mode
-/// - `on_run_select` — called with the [`uuid::Uuid`] when a row is clicked
 #[component]
 pub fn ExecutionHistoryTable(
     history: ReadSignal<Vec<RunRecord>>,
@@ -307,10 +262,11 @@ pub fn ExecutionHistoryTable(
                     for run in history.read().iter().rev() {
                         {
                             let run_id = run.id;
+                            let outcome = RunOutcome::from(run.success);
                             let is_active = active_run_id.read().is_some_and(|a| a == run_id);
                             let short_id = truncate_id(&run_id);
-                            let status_label = format_run_status(run.success);
-                            let badge_class = run_status_badge_class(run.success);
+                            let status_label = format_run_status(outcome);
+                            let badge_class = run_status_badge_class(outcome);
                             let start_time = format_timestamp(&run.timestamp);
                             let duration = format_run_duration(run);
                             let (steps_ok, steps_failed) = derive_step_counts(run);
@@ -333,7 +289,7 @@ pub fn ExecutionHistoryTable(
                                     }
                                     td { class: "text-[12px] text-slate-700 px-3 py-2",
                                         span { class: "{badge_class}",
-                                            if run.success {
+                                            if outcome.is_success() {
                                                 crate::ui::icons::CheckIcon { class: "h-2.5 w-2.5" }
                                             } else {
                                                 crate::ui::icons::XCircleIcon { class: "h-2.5 w-2.5" }
@@ -355,11 +311,6 @@ pub fn ExecutionHistoryTable(
     }
 }
 
-// ---------------------------------------------------------------------------
-// FrozenModeBanner
-// ---------------------------------------------------------------------------
-
-/// Banner shown at the top of the panel when a historical run is active.
 #[component]
 fn FrozenModeBanner(
     active_run_id: ReadSignal<Option<uuid::Uuid>>,
@@ -389,48 +340,29 @@ fn FrozenModeBanner(
     }
 }
 
-// ---------------------------------------------------------------------------
-// ExecutionHistoryPanel  (main public component — backward-compatible)
-// ---------------------------------------------------------------------------
-
-/// The collapsible execution history panel rendered at the bottom of the
-/// canvas layout.
-///
-/// # New props (v2)
-/// - `active_run_id` — which run UUID is currently shown in frozen replay
-/// - `on_run_select` — fires when the user clicks a row in the history table
-/// - `on_exit_frozen` — fires when the user clicks "Exit frozen mode"
-///
-/// # Unchanged props
-/// - `history`, `nodes_by_id`, `on_select_node`, `collapsed`
 #[component]
 pub fn ExecutionHistoryPanel(
     history: Memo<Vec<RunRecord>>,
     nodes_by_id: ReadSignal<HashMap<NodeId, oya_frontend::graph::Node>>,
     on_select_node: EventHandler<NodeId>,
     collapsed: Signal<bool>,
-    /// UUID of the run currently shown in frozen-replay mode, if any.
     active_run_id: ReadSignal<Option<uuid::Uuid>>,
-    /// Called when the user clicks a history row.
     on_run_select: EventHandler<uuid::Uuid>,
-    /// Called when the user clicks "Exit frozen mode".
     on_exit_frozen: EventHandler<()>,
 ) -> Element {
-    let mut expanded_runs: Signal<std::collections::HashSet<uuid::Uuid>> =
-        use_signal(std::collections::HashSet::new);
+    let mut expanded_runs: Signal<HashSet<uuid::Uuid>> =
+        use_signal(HashSet::new);
     let history_len = history.read().len();
-    let is_collapsed = *collapsed.read();
-    let height_class = panel_height_class(is_collapsed);
-    let chevron_class = chevron_rotation_class(is_collapsed);
+    let collapse_state = CollapseState::from_bool(*collapsed.read());
+    let height_class = panel_height_class(collapse_state);
+    let chevron_class = chevron_rotation_class(collapse_state);
 
-    // Convert Memo<Vec<RunRecord>> to ReadSignal for the table sub-component.
     let history_signal: ReadSignal<Vec<RunRecord>> = ReadSignal::from(history);
 
     rsx! {
         aside {
             class: "flex flex-col border-t border-slate-200 bg-white/95 transition-all duration-200 {height_class}",
 
-            // ── Header ──────────────────────────────────────────────────────
             div {
                 class: "flex items-center justify-between px-3 py-2 border-b border-slate-100",
                 button {
@@ -447,14 +379,12 @@ pub fn ExecutionHistoryPanel(
                 }
             }
 
-            if !is_collapsed {
-                // ── Frozen-mode banner ───────────────────────────────────────
+            if !collapse_state.is_collapsed() {
                 FrozenModeBanner {
                     active_run_id,
                     on_exit_frozen,
                 }
 
-                // ── Body ─────────────────────────────────────────────────────
                 div { class: "flex-1 overflow-y-auto",
                     if history.read().is_empty() {
                         div { class: "flex flex-col items-center justify-center h-full text-center px-4",
@@ -463,26 +393,24 @@ pub fn ExecutionHistoryPanel(
                             p { class: "text-[10px] text-slate-400 mt-1", "Run the workflow to see history" }
                         }
                     } else {
-                        // ── Table view ────────────────────────────────────────
                         ExecutionHistoryTable {
                             history: history_signal,
                             active_run_id,
                             on_run_select,
                         }
 
-                        // ── Expanded node-detail rows ─────────────────────────
-                        // Kept below the table for detail drill-down (click to expand).
                         div { class: "flex flex-col border-t border-slate-100 mt-1",
                             for run in history.read().iter().rev() {
                                 {
                                     let run_id = run.id;
+                                    let outcome = RunOutcome::from(run.success);
                                     let is_expanded = expanded_runs.read().contains(&run_id);
-                                    let status_class = status_badge_classes(run.success);
-                                    let icon_class = status_icon_classes(run.success);
+                                    let status_class = status_badge_classes(outcome);
+                                    let icon_class = status_icon_classes(outcome);
                                     let timestamp_str = format_timestamp(&run.timestamp);
                                     let elapsed_str = format_elapsed(&run.timestamp);
                                     let node_count = run.results.len();
-                                    let item_chevron_class = chevron_rotation_class(!is_expanded);
+                                    let item_chevron_class = chevron_rotation_class(CollapseState::from_bool(!is_expanded));
 
                                     rsx! {
                                         div {
@@ -513,14 +441,12 @@ pub fn ExecutionHistoryPanel(
                                                 span { class: "text-[10px] text-slate-500", "{node_count} nodes" }
 
                                                 div { class: "flex items-center gap-1 px-1.5 py-0.5 rounded border {status_class}",
-                                                    if run.success {
+                                                    if outcome.is_success() {
                                                         crate::ui::icons::CheckIcon { class: "{icon_class}" }
                                                     } else {
                                                         crate::ui::icons::XCircleIcon { class: "{icon_class}" }
                                                     }
-                                                    span { class: "text-[10px] font-medium",
-                                                        if run.success { "Success" } else { "Failed" }
-                                                    }
+                                                    span { class: "text-[10px] font-medium", "{outcome.display_label()}" }
                                                 }
                                             }
 

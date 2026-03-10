@@ -6,7 +6,7 @@ mod set_a;
 mod set_b;
 mod set_c;
 
-pub use registry::icon_by_name;
+pub use registry::{icon, icon_by_name, IconId};
 pub use set_b::{
     AlertCircleIcon, BoxIcon, CheckCircleIcon, CheckIcon, ClockIcon, MaximizeIcon, PlayIcon,
     RedoIcon, SaveIcon, SearchIcon, UndoIcon, XCircleIcon, ZoomInIcon, ZoomOutIcon,

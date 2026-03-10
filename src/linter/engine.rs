@@ -111,7 +111,13 @@ impl SpecLinter {
         let mut warning_count = 0;
 
         if let Some(rule) = spec_001_rule {
-            for dep in spec.specification.context.system_dependencies.iter().filter(|dep| dep.twin_available) {
+            for dep in spec
+                .specification
+                .context
+                .system_dependencies
+                .iter()
+                .filter(|dep| dep.twin_available)
+            {
                 let has_error_handling = spec.specification.behaviors.iter().any(|behavior| {
                     behavior.edge_cases.as_ref().is_some_and(|edge_cases| {
                         edge_cases.iter().any(|edge_case| {
@@ -133,7 +139,10 @@ impl SpecLinter {
                             rule_id: rule.id.clone(),
                             rule_name: rule.name.clone(),
                             severity: spec_001_severity.clone(),
-                            message: format!("Dependency '{}' has no error handling edge case", dep.service),
+                            message: format!(
+                                "Dependency '{}' has no error handling edge case",
+                                dep.service
+                            ),
                             line: None,
                         });
                         error_count += 1;
@@ -142,7 +151,10 @@ impl SpecLinter {
                             rule_id: rule.id.clone(),
                             rule_name: rule.name.clone(),
                             severity: spec_001_severity.clone(),
-                            message: format!("Dependency '{}' has no error handling edge case", dep.service),
+                            message: format!(
+                                "Dependency '{}' has no error handling edge case",
+                                dep.service
+                            ),
                             line: None,
                         });
                         warning_count += 1;
@@ -160,7 +172,10 @@ impl SpecLinter {
                                 rule_id: rule.id.clone(),
                                 rule_name: rule.name.clone(),
                                 severity: spec_003_severity.clone(),
-                                message: format!("Endpoint {} {} missing authentication specification", endpoint.method, endpoint.path),
+                                message: format!(
+                                    "Endpoint {} {} missing authentication specification",
+                                    endpoint.method, endpoint.path
+                                ),
                                 line: None,
                             });
                             error_count += 1;
@@ -169,7 +184,10 @@ impl SpecLinter {
                                 rule_id: rule.id.clone(),
                                 rule_name: rule.name.clone(),
                                 severity: spec_003_severity.clone(),
-                                message: format!("Endpoint {} {} missing authentication specification", endpoint.method, endpoint.path),
+                                message: format!(
+                                    "Endpoint {} {} missing authentication specification",
+                                    endpoint.method, endpoint.path
+                                ),
                                 line: None,
                             });
                             warning_count += 1;
@@ -182,7 +200,9 @@ impl SpecLinter {
         if let Some(rule) = spec_004_rule {
             for behavior in &spec.specification.behaviors {
                 let has_criterion = spec.specification.acceptance_criteria.iter().any(|ac| {
-                    ac.behavior_ref.as_ref().is_some_and(|ref_id| ref_id == &behavior.id)
+                    ac.behavior_ref
+                        .as_ref()
+                        .is_some_and(|ref_id| ref_id == &behavior.id)
                 });
 
                 if !has_criterion {
@@ -191,7 +211,10 @@ impl SpecLinter {
                             rule_id: rule.id.clone(),
                             rule_name: rule.name.clone(),
                             severity: spec_004_severity.clone(),
-                            message: format!("Behavior '{}' has no acceptance criterion", behavior.id),
+                            message: format!(
+                                "Behavior '{}' has no acceptance criterion",
+                                behavior.id
+                            ),
                             line: None,
                         });
                         error_count += 1;
@@ -200,7 +223,10 @@ impl SpecLinter {
                             rule_id: rule.id.clone(),
                             rule_name: rule.name.clone(),
                             severity: spec_004_severity.clone(),
-                            message: format!("Behavior '{}' has no acceptance criterion", behavior.id),
+                            message: format!(
+                                "Behavior '{}' has no acceptance criterion",
+                                behavior.id
+                            ),
                             line: None,
                         });
                         warning_count += 1;
@@ -210,16 +236,30 @@ impl SpecLinter {
         }
 
         if let Some(rule) = spec_011_rule {
-            let error_terms = ["error", "fail", "exception", "invalid", "unauthorized", "not found"];
+            let error_terms = [
+                "error",
+                "fail",
+                "exception",
+                "invalid",
+                "unauthorized",
+                "not found",
+            ];
             for behavior in &spec.specification.behaviors {
                 let mentions_error = behavior.then.iter().any(|t| {
-                    error_terms.iter().any(|term| t.to_lowercase().contains(term))
+                    error_terms
+                        .iter()
+                        .any(|term| t.to_lowercase().contains(term))
                 });
 
                 let has_concrete_response = behavior.then.iter().any(|t| {
-                    t.contains("HTTP") || t.contains("status") || t.contains("code")
-                        || t.contains("response") || t.contains("400") || t.contains("500")
-                        || t.contains("401") || t.contains("404")
+                    t.contains("HTTP")
+                        || t.contains("status")
+                        || t.contains("code")
+                        || t.contains("response")
+                        || t.contains("400")
+                        || t.contains("500")
+                        || t.contains("401")
+                        || t.contains("404")
                 });
 
                 if mentions_error && !has_concrete_response {
@@ -247,7 +287,11 @@ impl SpecLinter {
         }
 
         let total: usize = error_count + warning_count;
-        let passed = if error_count > 0 || warning_count > 0 { 0 } else { 1 };
+        let passed = if error_count > 0 || warning_count > 0 {
+            0
+        } else {
+            1
+        };
         let score = if total > 0 {
             (passed * 100) / total
         } else {
@@ -286,7 +330,10 @@ impl SpecLinter {
                                 rule_id: "SPEC-010".to_string(),
                                 rule_name: "no-ambiguous-language".to_string(),
                                 severity: severity.clone(),
-                                message: format!("Found ambiguous phrase: '{phrase}' in behavior {}", behavior.id),
+                                message: format!(
+                                    "Found ambiguous phrase: '{phrase}' in behavior {}",
+                                    behavior.id
+                                ),
                                 line: None,
                             })
                         } else {
@@ -357,7 +404,10 @@ impl SpecLinter {
                             rule_id: "SPEC-020".to_string(),
                             rule_name: "enumeration-prevention".to_string(),
                             severity: spec_020_severity.clone(),
-                            message: format!("Endpoint {} may be vulnerable to user enumeration", endpoint.path),
+                            message: format!(
+                                "Endpoint {} may be vulnerable to user enumeration",
+                                endpoint.path
+                            ),
                             line: None,
                         };
                         if issue.severity == "error" {
@@ -369,7 +419,9 @@ impl SpecLinter {
                 }
 
                 let write_methods = ["POST", "PUT", "PATCH", "DELETE"];
-                let has_write_endpoints = endpoints.iter().any(|e| write_methods.contains(&e.method.as_str()));
+                let has_write_endpoints = endpoints
+                    .iter()
+                    .any(|e| write_methods.contains(&e.method.as_str()));
                 if has_write_endpoints {
                     let has_rate_limit = spec.specification.behaviors.iter().any(|b| {
                         b.then.iter().any(|t| {
@@ -392,7 +444,9 @@ impl SpecLinter {
                             rule_id: "SPEC-021".to_string(),
                             rule_name: "rate-limiting-specified".to_string(),
                             severity: spec_021_severity.clone(),
-                            message: "Write endpoints found but no rate limiting behavior specified".to_string(),
+                            message:
+                                "Write endpoints found but no rate limiting behavior specified"
+                                    .to_string(),
                             line: None,
                         };
                         if issue.severity == "error" {
@@ -428,7 +482,8 @@ impl SpecLinter {
                     rule_id: "SPEC-040".to_string(),
                     rule_name: "canvas-behavior-requires-visual-feedback".to_string(),
                     severity: spec_040_severity.clone(),
-                    message: "Canvas behaviors should specify visual feedback for user experience".to_string(),
+                    message: "Canvas behaviors should specify visual feedback for user experience"
+                        .to_string(),
                     line: None,
                 };
                 if issue.severity == "error" {
@@ -474,7 +529,10 @@ impl SpecLinter {
                 rule_id: "SPEC-030".to_string(),
                 rule_name: "behaviors-are-observable".to_string(),
                 severity: severity.clone(),
-                message: format!("{} behaviors may not have observable outcomes", non_observable_count),
+                message: format!(
+                    "{} behaviors may not have observable outcomes",
+                    non_observable_count
+                ),
                 line: None,
             };
             if issue.severity == "error" {

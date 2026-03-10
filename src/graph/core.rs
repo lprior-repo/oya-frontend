@@ -15,11 +15,8 @@ impl Workflow {
                     serde_json::Value::String(status_text.clone()),
                 )))
                 .collect(),
-            None => std::iter::once((
-                "status".to_string(),
-                serde_json::Value::String(status_text),
-            ))
-            .collect(),
+            None => std::iter::once(("status".to_string(), serde_json::Value::String(status_text)))
+                .collect(),
         };
         node.config = serde_json::Value::Object(config_obj);
     }
@@ -47,9 +44,10 @@ impl Workflow {
 
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
-        
-        let workflow_node = WorkflowNode::from_str(node_type)
-            .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default()));
+
+        let workflow_node = WorkflowNode::from_str(node_type).unwrap_or_else(|_| {
+            WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default())
+        });
 
         let mut node = Node::from_workflow_node(name, workflow_node, final_x, final_y);
         node.id = id;
@@ -76,7 +74,7 @@ impl Workflow {
 
     pub fn deselect_all(&mut self) {
         self.nodes.iter_mut().for_each(|node| {
-            node.selected = false;
+            node.set_selected(false);
         });
     }
 
@@ -90,7 +88,7 @@ impl Workflow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::{PortName, WorkflowNode, workflow_node::RunConfig};
+    use crate::graph::{workflow_node::RunConfig, PortName, WorkflowNode};
 
     #[test]
     fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {

@@ -1,4 +1,4 @@
-use crate::ui::workflow_nodes::schema::LoadFromMemoryConfig;
+use crate::ui::workflow_nodes::schema::{LoadFromMemoryConfig, MemoryKey};
 use dioxus::prelude::*;
 
 fn json_to_display(value: &serde_json::Value) -> String {
@@ -24,36 +24,9 @@ fn parse_optional_json_draft(input: &str) -> Result<Option<serde_json::Value>, S
     }
 }
 
-#[derive(Clone)]
-pub struct LoadFromMemoryNode {
-    pub config: Signal<LoadFromMemoryConfig>,
-}
-
-impl LoadFromMemoryNode {
-    pub fn new() -> Self {
-        Self {
-            config: use_signal(|| LoadFromMemoryConfig {
-                key: String::new(),
-                default: None,
-            }),
-        }
-    }
-
-    pub fn from_config(config: LoadFromMemoryConfig) -> Self {
-        Self {
-            config: use_signal(|| config),
-        }
-    }
-}
-
-impl Default for LoadFromMemoryNode {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[component]
-pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
+pub fn LoadFromMemoryForm(config: ReadOnlySignal<LoadFromMemoryConfig>) -> Element {
+    let mut write_config = config.writer();
     let initial_draft = optional_json_to_display(config.read().default.as_ref());
     let draft = use_signal(move || initial_draft);
     let parse_error = use_signal(|| None::<String>);
@@ -77,8 +50,8 @@ pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
                     r#type: "text",
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500",
                     placeholder: "e.g., order_total, user_email",
-                    value: "{config.read().key}",
-                    oninput: move |e| config.write().key = e.value().clone(),
+                    value: "{config.read().key.as_str()}",
+                    oninput: move |e| write_config.write().key = MemoryKey::new(e.value()),
                 }
                 p { class: "text-xs text-gray-500 mt-1", "Name you used when saving" }
             }
@@ -96,7 +69,7 @@ pub fn LoadFromMemoryForm(config: Signal<LoadFromMemoryConfig>) -> Element {
                         match parse_optional_json_draft(next_value.as_str()) {
                             Ok(next_default) => {
                                 parse_error.set(None);
-                                config.write().default = next_default;
+                                write_config.write().default = next_default;
                             }
                             Err(error_text) => parse_error.set(Some(error_text)),
                         }

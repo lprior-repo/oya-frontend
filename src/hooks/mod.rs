@@ -8,10 +8,14 @@ pub mod use_sidebar;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-pub use use_canvas_interaction::{use_canvas_interaction, InteractionMode};
-#[allow(unused_imports)]
-pub use use_frozen_mode::{use_frozen_mode, FrozenModeState};
-pub use use_selection::use_selection;
-pub use use_sidebar::use_sidebar;
-pub use use_ui_panels::use_ui_panels;
+pub use use_canvas_interaction::{
+    CanvasPoint, CursorTool, DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
+    use_canvas_interaction,
+};
+pub use use_frozen_mode::{FrozenMode, FrozenModeState, use_frozen_mode};
+pub use use_selection::{PendingDrag, Selection, use_selection};
+pub use use_sidebar::{DropState, NodeType, SearchQuery, use_sidebar};
+pub use use_ui_panels::{
+    ContextMenuState, InlinePanelState, MenuPosition, PaletteState, PanelState, use_ui_panels,
+};
 pub use use_workflow_state::use_workflow_state;

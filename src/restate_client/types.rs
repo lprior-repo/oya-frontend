@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 //! Restate client types for OYA Frontend integration.
-//! 
+//!
 //! These types map to Restate's introspection API at localhost:9070/query
 
 use chrono::{DateTime, Utc};
@@ -50,6 +50,20 @@ impl InvocationStatus {
                 | Self::BackingOff
                 | Self::Suspended
         )
+    }
+}
+
+/// Filter for listing invocations
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvocationFilter {
+    ActiveOnly,
+    All,
+}
+
+impl InvocationFilter {
+    #[must_use]
+    pub const fn include_completed(self) -> bool {
+        matches!(self, Self::All)
     }
 }
 
@@ -100,11 +114,10 @@ pub struct Invocation {
 impl Invocation {
     #[must_use]
     pub fn started_at(&self) -> DateTime<Utc> {
-        DateTime::from_timestamp_millis(self.created_at)
-            .unwrap_or_else(|| {
-                // Safe unwrap: timestamp 0 is always valid
-                chrono::TimeZone::timestamp_opt(&Utc, 0, 0).unwrap()
-            })
+        DateTime::from_timestamp_millis(self.created_at).unwrap_or_else(|| {
+            // Safe unwrap: timestamp 0 is always valid
+            chrono::TimeZone::timestamp_opt(&Utc, 0, 0).unwrap()
+        })
     }
 
     #[must_use]
@@ -119,7 +132,8 @@ impl Invocation {
 pub struct JournalEntry {
     pub id: String,
     pub index: u32,
-    pub entry_type: String,
+    pub entry_type: JournalEntryType,
+    pub raw_entry_type: String,
     pub name: Option<String>,
     pub completed: bool,
     pub invoked_id: Option<String>,
@@ -188,11 +202,31 @@ pub struct ServiceInfo {
     pub deployment_id: String,
 }
 
+/// Deployment type in Restate
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DeploymentType {
+    Http,
+    Lambda,
+    Unknown,
+}
+
+impl From<&str> for DeploymentType {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "http" => Self::Http,
+            "lambda" => Self::Lambda,
+            _ => Self::Unknown,
+        }
+    }
+}
+
 /// Deployment info from sys_deployment table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeploymentInfo {
     pub id: String,
-    pub ty: String,
+    pub ty: DeploymentType,
+    pub raw_ty: String,
     pub endpoint: String,
     pub created_at: i64,
 }
@@ -337,7 +371,7 @@ mod tests {
         assert!(InvocationStatus::BackingOff.is_active());
         assert!(InvocationStatus::Suspended.is_active());
         assert!(!InvocationStatus::Completed.is_active());
-        
+
         assert!(!InvocationStatus::Pending.is_terminal());
         assert!(!InvocationStatus::Running.is_terminal());
         assert!(InvocationStatus::Completed.is_terminal());
@@ -366,16 +400,43 @@ mod tests {
     #[test]
     fn journal_entry_type_all_variants() {
         assert_eq!(JournalEntryType::from("call"), JournalEntryType::Call);
-        assert_eq!(JournalEntryType::from("onewaycall"), JournalEntryType::OneWayCall);
-        assert_eq!(JournalEntryType::from("one-way-call"), JournalEntryType::OneWayCall);
+        assert_eq!(
+            JournalEntryType::from("onewaycall"),
+            JournalEntryType::OneWayCall
+        );
+        assert_eq!(
+            JournalEntryType::from("one-way-call"),
+            JournalEntryType::OneWayCall
+        );
         assert_eq!(JournalEntryType::from("sleep"), JournalEntryType::Sleep);
-        assert_eq!(JournalEntryType::from("awakeable"), JournalEntryType::Awakeable);
-        assert_eq!(JournalEntryType::from("getpromise"), JournalEntryType::GetPromise);
-        assert_eq!(JournalEntryType::from("peekpromise"), JournalEntryType::PeekPromise);
-        assert_eq!(JournalEntryType::from("completepromise"), JournalEntryType::CompletePromise);
-        assert_eq!(JournalEntryType::from("getstate"), JournalEntryType::GetState);
-        assert_eq!(JournalEntryType::from("setstate"), JournalEntryType::SetState);
-        assert_eq!(JournalEntryType::from("clearstate"), JournalEntryType::ClearState);
+        assert_eq!(
+            JournalEntryType::from("awakeable"),
+            JournalEntryType::Awakeable
+        );
+        assert_eq!(
+            JournalEntryType::from("getpromise"),
+            JournalEntryType::GetPromise
+        );
+        assert_eq!(
+            JournalEntryType::from("peekpromise"),
+            JournalEntryType::PeekPromise
+        );
+        assert_eq!(
+            JournalEntryType::from("completepromise"),
+            JournalEntryType::CompletePromise
+        );
+        assert_eq!(
+            JournalEntryType::from("getstate"),
+            JournalEntryType::GetState
+        );
+        assert_eq!(
+            JournalEntryType::from("setstate"),
+            JournalEntryType::SetState
+        );
+        assert_eq!(
+            JournalEntryType::from("clearstate"),
+            JournalEntryType::ClearState
+        );
         assert_eq!(JournalEntryType::from("custom"), JournalEntryType::Custom);
     }
 
@@ -389,15 +450,15 @@ mod tests {
     #[test]
     fn service_type_serialization() {
         use serde_json;
-        
+
         let service = ServiceType::Service;
         let json = serde_json::to_string(&service).unwrap();
         assert!(json.contains("\"service\""));
-        
+
         let virtual_object = ServiceType::VirtualObject;
         let json = serde_json::to_string(&virtual_object).unwrap();
         assert!(json.contains("\"virtual_object\""));
-        
+
         let workflow = ServiceType::Workflow;
         let json = serde_json::to_string(&workflow).unwrap();
         assert!(json.contains("\"workflow\""));
@@ -406,11 +467,11 @@ mod tests {
     #[test]
     fn invocation_status_serialization() {
         use serde_json;
-        
+
         let status = InvocationStatus::Running;
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("\"running\""));
-        
+
         let status = InvocationStatus::Completed;
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("\"completed\""));
@@ -474,7 +535,8 @@ mod tests {
         let entry = JournalEntry {
             id: "je_123".to_string(),
             index: 0,
-            entry_type: "call".to_string(),
+            entry_type: JournalEntryType::Call,
+            raw_entry_type: "call".to_string(),
             name: None,
             completed: false,
             invoked_id: None,
@@ -487,6 +549,7 @@ mod tests {
         };
         assert_eq!(entry.index, 0);
         assert!(!entry.completed);
+        assert_eq!(entry.entry_type, JournalEntryType::Call);
     }
 
     #[test]
@@ -506,11 +569,12 @@ mod tests {
     fn deployment_info_default() {
         let info = DeploymentInfo {
             id: "dep_123".to_string(),
-            ty: "http".to_string(),
+            ty: DeploymentType::Http,
+            raw_ty: "http".to_string(),
             endpoint: "http://localhost:8080".to_string(),
             created_at: 1000,
         };
-        assert_eq!(info.ty, "http");
+        assert_eq!(info.ty, DeploymentType::Http);
     }
 
     #[test]
@@ -589,16 +653,16 @@ mod tests {
     #[test]
     fn invocation_status_deserialization() {
         use serde_json;
-        
+
         let pending: InvocationStatus = serde_json::from_str("\"pending\"").unwrap();
         assert_eq!(pending, InvocationStatus::Pending);
-        
+
         let running: InvocationStatus = serde_json::from_str("\"running\"").unwrap();
         assert_eq!(running, InvocationStatus::Running);
-        
+
         let completed: InvocationStatus = serde_json::from_str("\"completed\"").unwrap();
         assert_eq!(completed, InvocationStatus::Completed);
-        
+
         let backing_off: InvocationStatus = serde_json::from_str("\"backing-off\"").unwrap();
         assert_eq!(backing_off, InvocationStatus::BackingOff);
     }
@@ -606,13 +670,13 @@ mod tests {
     #[test]
     fn service_type_deserialization() {
         use serde_json;
-        
+
         let service: ServiceType = serde_json::from_str("\"service\"").unwrap();
         assert_eq!(service, ServiceType::Service);
-        
+
         let virtual_object: ServiceType = serde_json::from_str("\"virtual_object\"").unwrap();
         assert_eq!(virtual_object, ServiceType::VirtualObject);
-        
+
         let workflow: ServiceType = serde_json::from_str("\"workflow\"").unwrap();
         assert_eq!(workflow, ServiceType::Workflow);
     }
@@ -620,16 +684,16 @@ mod tests {
     #[test]
     fn invoked_by_deserialization() {
         use serde_json;
-        
+
         let ingress: InvokedBy = serde_json::from_str("\"ingress\"").unwrap();
         assert_eq!(ingress, InvokedBy::Ingress);
-        
+
         let service: InvokedBy = serde_json::from_str("\"service\"").unwrap();
         assert_eq!(service, InvokedBy::Service);
-        
+
         let subscription: InvokedBy = serde_json::from_str("\"subscription\"").unwrap();
         assert_eq!(subscription, InvokedBy::Subscription);
-        
+
         let restart: InvokedBy = serde_json::from_str("\"restart_as_new\"").unwrap();
         assert_eq!(restart, InvokedBy::RestartAsNew);
     }
@@ -637,7 +701,7 @@ mod tests {
     #[test]
     fn invocation_serialization_roundtrip() {
         use serde_json;
-        
+
         let inv = Invocation {
             id: "inv_123".to_string(),
             target: "Service".to_string(),
@@ -658,10 +722,10 @@ mod tests {
             last_failure: Some("error".to_string()),
             last_failure_error_code: Some("ERR_001".to_string()),
         };
-        
+
         let json = serde_json::to_string(&inv).unwrap();
         let restored: Invocation = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(inv.id, restored.id);
         assert_eq!(inv.target_service_key, restored.target_service_key);
         assert_eq!(inv.status, restored.status);
@@ -670,7 +734,7 @@ mod tests {
     #[test]
     fn state_entry_serialization_roundtrip() {
         use serde_json;
-        
+
         let entry = StateEntry {
             service_name: "MyService".to_string(),
             service_key: Some("key1".to_string()),
@@ -678,10 +742,10 @@ mod tests {
             value_utf8: Some("{\"foo\":\"bar\"}".to_string()),
             value: Some(vec![1, 2, 3, 4]),
         };
-        
+
         let json = serde_json::to_string(&entry).unwrap();
         let restored: StateEntry = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(entry.service_name, restored.service_name);
         assert_eq!(entry.key, restored.key);
     }
@@ -689,7 +753,7 @@ mod tests {
     #[test]
     fn journal_entry_type_serialization_roundtrip() {
         use serde_json;
-        
+
         for entry_type in [
             JournalEntryType::Call,
             JournalEntryType::Sleep,
@@ -721,7 +785,7 @@ mod tests {
                 ],
             ],
         };
-        
+
         assert_eq!(resp.columns.len(), 3);
         assert_eq!(resp.rows.len(), 2);
         assert_eq!(resp.rows[0][0].as_str(), Some("inv_1"));
@@ -734,7 +798,7 @@ mod tests {
             columns: vec![],
             rows: vec![],
         };
-        
+
         assert!(resp.columns.is_empty());
         assert!(resp.rows.is_empty());
     }
@@ -744,7 +808,8 @@ mod tests {
         let entry = JournalEntry {
             id: "je_123".to_string(),
             index: 5,
-            entry_type: "call".to_string(),
+            entry_type: JournalEntryType::Call,
+            raw_entry_type: "call".to_string(),
             name: Some("getUser".to_string()),
             completed: true,
             invoked_id: Some("inv_456".to_string()),
@@ -755,10 +820,11 @@ mod tests {
             entry_lite_json: Some("{}".to_string()),
             appended_at: Some(5000),
         };
-        
+
         assert_eq!(entry.index, 5);
         assert!(entry.completed);
         assert!(entry.name.is_some());
+        assert_eq!(entry.entry_type, JournalEntryType::Call);
     }
 
     #[test]
@@ -771,7 +837,7 @@ mod tests {
             completion_success_value: Some(vec![1, 2, 3]),
             completion_failure: None,
         };
-        
+
         assert!(info.completed);
         assert!(info.completion_success_value.is_some());
         assert!(info.completion_failure.is_none());
@@ -787,7 +853,7 @@ mod tests {
             completion_success_value: None,
             completion_failure: Some("Something went wrong".to_string()),
         };
-        
+
         assert!(info.completed);
         assert!(info.completion_failure.is_some());
     }
@@ -814,7 +880,7 @@ mod tests {
             last_failure: None,
             last_failure_error_code: None,
         };
-        
+
         let _ = inv.started_at();
     }
 
@@ -840,7 +906,7 @@ mod tests {
             last_failure: None,
             last_failure_error_code: None,
         };
-        
+
         assert!(inv.finished_at().is_some());
     }
 
@@ -866,7 +932,7 @@ mod tests {
             last_failure: None,
             last_failure_error_code: None,
         };
-        
+
         assert!(inv.finished_at().is_none());
     }
 
@@ -879,7 +945,7 @@ mod tests {
             value_utf8: None,
             value: Some(vec![0x00, 0x01, 0x02, 0xFF]),
         };
-        
+
         assert!(entry.value_utf8.is_none());
         assert!(entry.value.is_some());
         assert_eq!(entry.value.unwrap().len(), 4);
@@ -892,7 +958,7 @@ mod tests {
             service_key: "key".to_string(),
             invocation_id: "".to_string(),
         };
-        
+
         assert_eq!(status.invocation_id, "");
     }
 }

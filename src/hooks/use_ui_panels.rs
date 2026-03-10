@@ -5,281 +5,360 @@
 use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
-fn toggle_palette_state(current_open: bool) -> (bool, bool) {
-    let next_open = !current_open;
-    let should_clear_query = next_open;
-    (next_open, should_clear_query)
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum PanelState {
+    #[default]
+    Closed,
+    Open,
 }
 
-fn toggle_inline_target(current: Option<NodeId>, node_id: NodeId) -> Option<NodeId> {
-    if current == Some(node_id) {
-        None
-    } else {
-        Some(node_id)
+impl PanelState {
+    pub fn is_open(&self) -> bool {
+        matches!(self, PanelState::Open)
+    }
+
+    pub fn toggle(&self) -> Self {
+        match self {
+            PanelState::Closed => PanelState::Open,
+            PanelState::Open => PanelState::Closed,
+        }
     }
 }
 
-/// Context menu state
-#[derive(Clone, Debug, PartialEq, Store)]
-pub struct ContextMenuState {
-    pub open: bool,
+#[derive(Clone, Debug, Default, PartialEq, Store)]
+pub struct ContextMenuData {
+    pub position: MenuPosition,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct MenuPosition {
     pub x: f32,
     pub y: f32,
 }
 
+impl MenuPosition {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ContextMenuState {
+    Hidden,
+    Visible { position: MenuPosition },
+}
+
 impl Default for ContextMenuState {
     fn default() -> Self {
-        Self {
-            open: false,
-            x: 0.0,
-            y: 0.0,
+        Self::Hidden
+    }
+}
+
+impl ContextMenuState {
+    pub fn is_visible(&self) -> bool {
+        matches!(self, ContextMenuState::Visible { .. })
+    }
+
+    pub fn position(&self) -> Option<MenuPosition> {
+        match self {
+            ContextMenuState::Hidden => None,
+            ContextMenuState::Visible { position } => Some(*position),
         }
     }
 }
 
-/// UI panels hook - manages modal and overlay state.
-///
-/// Follows functional reactive pattern with methods for panel control.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum InlinePanelState {
+    #[default]
+    Closed,
+    Open {
+        node_id: NodeId,
+    },
+}
+
+impl InlinePanelState {
+    pub fn is_open(&self) -> bool {
+        matches!(self, InlinePanelState::Open { .. })
+    }
+
+    pub fn is_open_for(&self, node_id: NodeId) -> bool {
+        matches!(self, InlinePanelState::Open { node_id: id } if *id == node_id)
+    }
+
+    pub fn node_id(&self) -> Option<NodeId> {
+        match self {
+            InlinePanelState::Closed => None,
+            InlinePanelState::Open { node_id } => Some(*node_id),
+        }
+    }
+
+    pub fn toggle_for(&self, node_id: NodeId) -> Self {
+        match self {
+            InlinePanelState::Closed => InlinePanelState::Open { node_id },
+            InlinePanelState::Open { node_id: current } if *current == node_id => {
+                InlinePanelState::Closed
+            }
+            InlinePanelState::Open { .. } => InlinePanelState::Open { node_id },
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PaletteState {
+    pub visibility: PanelState,
+    pub query: String,
+}
+
+impl PaletteState {
+    pub fn open() -> Self {
+        Self {
+            visibility: PanelState::Open,
+            query: String::new(),
+        }
+    }
+
+    pub fn close() -> Self {
+        Self::default()
+    }
+
+    pub fn with_query(query: String) -> Self {
+        Self {
+            visibility: PanelState::Open,
+            query,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct UiPanels {
-    settings_open: Signal<bool>,
-    palette_open: Signal<bool>,
-    palette_query: Signal<String>,
-    context_menu: Store<ContextMenuState>,
-    context_menu_state: Memo<ContextMenuState>,
-    inline_panel_node_id: Signal<Option<NodeId>>,
+    settings: Signal<PanelState>,
+    palette: Signal<PaletteState>,
+    context_menu: Signal<ContextMenuState>,
+    inline_panel: Signal<InlinePanelState>,
 }
 
 #[allow(dead_code)]
 impl UiPanels {
-    /// Read-only access to settings panel state
-    pub fn settings_open(&self) -> ReadSignal<bool> {
-        self.settings_open.into()
+    pub fn settings(&self) -> ReadSignal<PanelState> {
+        self.settings.into()
     }
 
-    /// Read-only access to command palette state
-    pub fn palette_open(&self) -> ReadSignal<bool> {
-        self.palette_open.into()
+    pub fn palette(&self) -> ReadSignal<PaletteState> {
+        self.palette.into()
     }
 
-    /// Read-only access to palette query string
-    pub fn palette_query(&self) -> ReadSignal<String> {
-        self.palette_query.into()
-    }
-
-    /// Read-only access to context menu state
     pub fn context_menu(&self) -> ReadSignal<ContextMenuState> {
-        self.context_menu_state.into()
+        self.context_menu.into()
     }
 
-    // === Settings panel ===
+    pub fn inline_panel(&self) -> ReadSignal<InlinePanelState> {
+        self.inline_panel.into()
+    }
 
-    /// Toggle settings panel
     pub fn toggle_settings(mut self) {
-        let current = *self.settings_open.read();
-        self.settings_open.set(!current);
+        let current = *self.settings.read();
+        self.settings.set(current.toggle());
     }
 
-    /// Open settings panel
     pub fn open_settings(mut self) {
-        self.settings_open.set(true);
+        self.settings.set(PanelState::Open);
     }
 
-    /// Close settings panel
     pub fn close_settings(mut self) {
-        self.settings_open.set(false);
+        self.settings.set(PanelState::Closed);
     }
 
-    // === Command palette ===
-
-    /// Toggle command palette
     pub fn toggle_palette(mut self) {
-        let current = *self.palette_open.read();
-        let (next_open, should_clear_query) = toggle_palette_state(current);
-        self.palette_open.set(next_open);
-        if should_clear_query {
-            self.palette_query.set(String::new());
+        let current = self.palette.read().clone();
+        match current.visibility {
+            PanelState::Closed => self.palette.set(PaletteState::open()),
+            PanelState::Open => self.palette.set(PaletteState::close()),
         }
     }
 
-    /// Open command palette
     pub fn open_palette(mut self) {
-        self.palette_open.set(true);
-        self.palette_query.set(String::new());
+        self.palette.set(PaletteState::open());
     }
 
-    /// Close command palette
     pub fn close_palette(mut self) {
-        self.palette_open.set(false);
+        self.palette.set(PaletteState::close());
     }
 
-    /// Set palette query string
     pub fn set_palette_query(mut self, query: String) {
-        self.palette_query.set(query);
+        let mut state = self.palette.read().clone();
+        state.query = query;
+        self.palette.set(state);
     }
 
-    /// Clear palette query
     pub fn clear_palette_query(mut self) {
-        self.palette_query.set(String::new());
+        let mut state = self.palette.read().clone();
+        state.query.clear();
+        self.palette.set(state);
     }
 
-    // === Context menu ===
-
-    /// Show context menu at position
     pub fn show_context_menu(mut self, x: f32, y: f32) {
-        self.context_menu.set(ContextMenuState { open: true, x, y });
+        self.context_menu.set(ContextMenuState::Visible {
+            position: MenuPosition::new(x, y),
+        });
     }
 
-    /// Close context menu
     pub fn close_context_menu(mut self) {
-        self.context_menu.set(ContextMenuState::default());
+        self.context_menu.set(ContextMenuState::Hidden);
     }
 
-    /// Check if context menu is open
-    pub fn is_context_menu_open(&self) -> bool {
-        self.context_menu_state.read().open
+    pub fn is_context_menu_visible(&self) -> bool {
+        self.context_menu.read().is_visible()
     }
 
-    // === Bulk operations ===
-
-    /// Close all panels
     pub fn close_all(mut self) {
-        self.palette_open.set(false);
-        self.settings_open.set(false);
-        self.context_menu.set(ContextMenuState::default());
-        self.inline_panel_node_id.set(None);
+        self.settings.set(PanelState::Closed);
+        self.palette.set(PaletteState::close());
+        self.context_menu.set(ContextMenuState::Hidden);
+        self.inline_panel.set(InlinePanelState::Closed);
     }
 
-    /// Check if any panel is open
     pub fn any_open(&self) -> bool {
-        *self.settings_open.read()
-            || *self.palette_open.read()
-            || self.context_menu_state.read().open
-            || self.inline_panel_node_id.read().is_some()
-    }
-
-    // === Inline panel ===
-
-    pub fn inline_panel_node_id(&self) -> ReadSignal<Option<NodeId>> {
-        self.inline_panel_node_id.into()
+        self.settings.read().is_open()
+            || self.palette.read().visibility.is_open()
+            || self.context_menu.read().is_visible()
+            || self.inline_panel.read().is_open()
     }
 
     pub fn open_inline_panel(mut self, node_id: NodeId) {
-        self.inline_panel_node_id.set(Some(node_id));
+        self.inline_panel.set(InlinePanelState::Open { node_id });
     }
 
     pub fn close_inline_panel(mut self) {
-        self.inline_panel_node_id.set(None);
+        self.inline_panel.set(InlinePanelState::Closed);
     }
 
     pub fn toggle_inline_panel(mut self, node_id: NodeId) {
-        let current = *self.inline_panel_node_id.read();
-        self.inline_panel_node_id
-            .set(toggle_inline_target(current, node_id));
+        let current = self.inline_panel.read().clone();
+        self.inline_panel.set(current.toggle_for(node_id));
     }
 
     pub fn is_inline_panel_open(&self, node_id: NodeId) -> bool {
-        *self.inline_panel_node_id.read() == Some(node_id)
+        self.inline_panel.read().is_open_for(node_id)
+    }
+
+    pub fn inline_panel_node_id(&self) -> Option<NodeId> {
+        self.inline_panel.read().node_id()
     }
 }
 
 pub fn use_ui_panels() -> UiPanels {
-    let settings_open = use_signal(|| false);
-    let palette_open = use_signal(|| false);
-    let palette_query = use_signal(String::new);
-    let context_menu = use_store(ContextMenuState::default);
-    let context_menu_state = use_memo(move || context_menu.cloned());
-    let inline_panel_node_id = use_signal(|| None);
+    let settings = use_signal(PanelState::default);
+    let palette = use_signal(PaletteState::default);
+    let context_menu = use_signal(ContextMenuState::default);
+    let inline_panel = use_signal(InlinePanelState::default);
 
     UiPanels {
-        settings_open,
-        palette_open,
-        palette_query,
+        settings,
+        palette,
         context_menu,
-        context_menu_state,
-        inline_panel_node_id,
+        inline_panel,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{toggle_inline_target, toggle_palette_state, ContextMenuState, UiPanels};
+    use super::{
+        ContextMenuState, InlinePanelState, MenuPosition, PaletteState, PanelState, UiPanels,
+    };
     use dioxus::prelude::*;
     use dioxus::signals::Signal;
     use oya_frontend::graph::NodeId;
 
     fn create_test_state() -> UiPanels {
         UiPanels {
-            settings_open: Signal::new(false),
-            palette_open: Signal::new(false),
-            palette_query: Signal::new(String::new()),
-            context_menu: Store::new(ContextMenuState::default()),
-            context_menu_state: Memo::new(ContextMenuState::default),
-            inline_panel_node_id: Signal::new(None),
+            settings: Signal::new(PanelState::Closed),
+            palette: Signal::new(PaletteState::default()),
+            context_menu: Signal::new(ContextMenuState::Hidden),
+            inline_panel: Signal::new(InlinePanelState::Closed),
         }
     }
 
     #[test]
-    fn given_palette_closed_when_toggling_then_it_opens_and_query_should_clear() {
-        let (open, clear_query) = toggle_palette_state(false);
-        assert!(open);
-        assert!(clear_query);
+    fn given_closed_panel_when_toggle_then_open() {
+        assert_eq!(PanelState::Closed.toggle(), PanelState::Open);
     }
 
     #[test]
-    fn given_palette_open_when_toggling_then_it_closes_and_query_not_forced_clear() {
-        let (open, clear_query) = toggle_palette_state(true);
-        assert!(!open);
-        assert!(!clear_query);
+    fn given_open_panel_when_toggle_then_closed() {
+        assert_eq!(PanelState::Open.toggle(), PanelState::Closed);
     }
 
     #[test]
-    fn given_same_node_when_toggling_inline_panel_then_panel_closes() {
+    fn given_hidden_context_menu_when_showing_then_visible() {
+        let state = ContextMenuState::Visible {
+            position: MenuPosition::new(100.0, 200.0),
+        };
+        assert!(state.is_visible());
+    }
+
+    #[test]
+    fn given_inline_panel_closed_when_toggle_for_then_opens() {
         let id = NodeId::new();
-        let next = toggle_inline_target(Some(id), id);
-        assert_eq!(next, None);
+        let state = InlinePanelState::Closed;
+        let toggled = state.toggle_for(id);
+        assert!(toggled.is_open_for(id));
     }
 
-    // Contract tests for state transitions
+    #[test]
+    fn given_inline_panel_open_for_node_when_toggle_same_node_then_closes() {
+        let id = NodeId::new();
+        let state = InlinePanelState::Open { node_id: id };
+        let toggled = state.toggle_for(id);
+        assert!(matches!(toggled, InlinePanelState::Closed));
+    }
+
+    #[test]
+    fn given_inline_panel_open_for_one_node_when_toggle_different_node_then_switches() {
+        let id1 = NodeId::new();
+        let id2 = NodeId::new();
+        let state = InlinePanelState::Open { node_id: id1 };
+        let toggled = state.toggle_for(id2);
+        assert!(toggled.is_open_for(id2));
+    }
 
     #[test]
     fn test_toggle_settings_opens_from_closed() {
         let mut state = create_test_state();
-        
+
         state.toggle_settings();
-        
-        assert!(*state.settings_open().read());
+
+        assert!(state.settings().read().is_open());
     }
 
     #[test]
     fn test_toggle_settings_closes_from_open() {
         let mut state = create_test_state();
         state.open_settings();
-        
+
         state.toggle_settings();
-        
-        assert!(!*state.settings_open().read());
+
+        assert!(!state.settings().read().is_open());
     }
 
     #[test]
     fn test_toggle_palette_opens_and_clears_query() {
         let mut state = create_test_state();
-        
+
         state.toggle_palette();
-        
-        assert!(*state.palette_open().read());
-        assert!(state.palette_query().read().is_empty());
+
+        assert!(state.palette().read().visibility.is_open());
+        assert!(state.palette().read().query.is_empty());
     }
 
     #[test]
-    fn test_toggle_palette_closes_without_clearing_query() {
+    fn test_context_menu_show_at_position() {
         let mut state = create_test_state();
-        state.open_palette();
-        state.set_palette_query("test query".to_string());
-        
-        state.toggle_palette();
-        
-        assert!(!*state.palette_open().read());
+
+        state.show_context_menu(150.0, 250.0);
+
+        assert!(state.is_context_menu_visible());
+        let pos = state.context_menu().read().position();
+        assert_eq!(pos.map(|p| (p.x, p.y)), Some((150.0, 250.0)));
     }
 
     #[test]
@@ -289,129 +368,35 @@ mod tests {
         state.open_palette();
         state.show_context_menu(100.0, 200.0);
         state.open_inline_panel(NodeId::new());
-        
+
         state.close_all();
-        
-        assert!(!*state.settings_open().read());
-        assert!(!*state.palette_open().read());
-        assert!(!state.is_context_menu_open());
-        assert!(state.inline_panel_node_id().read().is_none());
+
+        assert!(!state.settings().read().is_open());
+        assert!(!state.palette().read().visibility.is_open());
+        assert!(!state.is_context_menu_visible());
+        assert!(!state.inline_panel().read().is_open());
     }
 
     #[test]
-    fn test_context_menu_show_at_position() {
-        let mut state = create_test_state();
-        
-        state.show_context_menu(150.0, 250.0);
-        
-        assert!(state.is_context_menu_open());
-        let ctx_signal = state.context_menu();
-        let ctx = ctx_signal.read();
-        assert_eq!(ctx.x, 150.0);
-        assert_eq!(ctx.y, 250.0);
-    }
-
-    #[test]
-    fn test_context_menu_close() {
-        let mut state = create_test_state();
-        state.show_context_menu(100.0, 100.0);
-        
-        state.close_context_menu();
-        
-        assert!(!state.is_context_menu_open());
-    }
-
-#[cfg(test)]
-mod tests {
-    use super::{toggle_inline_target, toggle_palette_state, UIPPanelsState};
-    use dioxus::prelude::ReadableExt;
-    use dioxus::signals::Signal;
-    use oya_frontend::graph::NodeId;
-
-    fn create_test_state() -> UIPanelsState {
-        UIPanelsState {
-            settings_open: Signal::new(false),
-            palette_open: Signal::new(false),
-            palette_query: Signal::new(String::new()),
-            context_menu: Signal::new(None),
-            inline_panel_node_id: Signal::new(None),
-        }
-    }
-
-    #[test]
-    fn test_any_open_returns_true_when_panel_open() {
+    fn test_any_open_returns_false_when_all_closed() {
         let state = create_test_state();
-        state.settings_open.set(true);
-        
-        assert!(state.any_open());
-    }
-
-    #[test]
-    fn test_close_all_clears_everything() {
-        let mut state = create_test_state();
-        state.settings_open.set(true);
-        state.palette_open.set(true);
-        state.context_menu.set(Some((100.0, 200.0)));
-        state.inline_panel_node_id.set(Some(NodeId::new()));
-        
-        state.close_all();
-        
-        assert!(!*state.settings_open.read());
-        assert!(!*state.palette_open.read());
-        assert!(!state.context_menu.read().is_some());
-        assert!(state.inline_panel_node_id.read().is_none());
-    }
-
-    #[test]
-    fn test_context_menu_show_at_position() {
-        let mut state = create_test_state();
-        
-        state.show_context_menu(150.0, 250.0);
-        
-        assert!(state.is_context_menu_open());
-        let ctx = state.context_menu.read();
-        let ctx = ctx_signal.read();
-        assert_eq!(ctx.x, 150.0);
-        assert_eq!(ctx.y, 250.0);
-    }
-
-    #[test]
-    fn test_context_menu_close() {
-        let mut state = create_test_state();
-        state.show_context_menu(100.0, 100.0);
-        
-        state.close_context_menu();
-
-    #[test]
-    fn test_inline_panel_toggle_closes_existing() {
-        let mut state = create_test_state();
-        let node_id = NodeId::new();
-        state.open_inline_panel(node_id);
-        
-        state.toggle_inline_panel(node_id);
-        
-        assert!(!state.is_inline_panel_open(node_id));
-    }
-
-    #[test]
-    fn test_any_open_returns_true_when_panel_open() {
-        let state = create_test_state();
-        
         assert!(!state.any_open());
-        
-        let mut state2 = create_test_state();
-        state2.open_settings();
-        
-        assert!(state2.any_open());
+    }
+
+    #[test]
+    fn test_any_open_returns_true_when_panel_open() {
+        let mut state = create_test_state();
+        state.open_settings();
+        assert!(state.any_open());
     }
 
     #[test]
     fn test_open_palette_clears_query() {
         let mut state = create_test_state();
         state.set_palette_query("previous".to_string());
-        
+
         state.open_palette();
-        
-        assert!(state.palette_query().read().is_empty());
+
+        assert!(state.palette().read().query.is_empty());
     }
 }

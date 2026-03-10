@@ -2,7 +2,8 @@ use crate::ui::workflow_nodes::schema::DelayConfig;
 use dioxus::prelude::*;
 
 #[component]
-pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
+pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
+    let mut write_config = config.writer();
     let duration_error = use_signal(|| Option::<String>::None);
 
     rsx! {
@@ -30,21 +31,21 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 1000;
+                            write_config.write().duration_ms = 1000;
                         },
                         "1 second"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 5000;
+                            write_config.write().duration_ms = 5000;
                         },
                         "5 seconds"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 30000;
+                            write_config.write().duration_ms = 30000;
                         },
                         "30 seconds"
                     }
@@ -54,21 +55,21 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 60_000;
+                            write_config.write().duration_ms = 60_000;
                         },
                         "1 minute"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 300_000;
+                            write_config.write().duration_ms = 300_000;
                         },
                         "5 minutes"
                     }
                     button {
                         class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
                         onclick: move |_| {
-                            config.write().duration_ms = 3600_000;
+                            write_config.write().duration_ms = 3600_000;
                         },
                         "1 hour"
                     }
@@ -87,7 +88,7 @@ pub fn DelayForm(config: Signal<DelayConfig>) -> Element {
                                 duration_error.set(None);
                             } else if let Ok(v) = value.parse::<u64>() {
                                 if v > 0 {
-                                    config.write().duration_ms = v;
+                                    write_config.write().duration_ms = v;
                                     duration_error.set(None);
                                 } else {
                                     duration_error.set(Some("Duration must be greater than 0 ms".to_string()));

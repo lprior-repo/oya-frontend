@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
-/// Pure helper to detect if a key string represents an Escape key.
-/// Returns true for "Escape" or "Esc" (case-insensitive).
+use super::domain_types::NodeTemplateId;
+
 #[inline]
 pub fn is_escape_key(key: &str) -> bool {
     let key_lower = key.to_lowercase();
@@ -10,98 +10,24 @@ pub fn is_escape_key(key: &str) -> bool {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CommandTemplate {
-    pub node_type: &'static str,
-    pub label: &'static str,
-    pub hint: &'static str,
+    pub node_type: NodeTemplateId,
 }
-
-const COMMAND_TEMPLATES: [CommandTemplate; 14] = [
-    CommandTemplate {
-        node_type: "http-handler",
-        label: "HTTP Handler",
-        hint: "Handle HTTP or gRPC requests",
-    },
-    CommandTemplate {
-        node_type: "kafka-handler",
-        label: "Kafka Consumer",
-        hint: "Consume events from a topic",
-    },
-    CommandTemplate {
-        node_type: "cron-trigger",
-        label: "Cron Trigger",
-        hint: "Schedule periodic workflow runs",
-    },
-    CommandTemplate {
-        node_type: "workflow-submit",
-        label: "Workflow Submit",
-        hint: "Start another workflow instance",
-    },
-    CommandTemplate {
-        node_type: "run",
-        label: "Durable Step",
-        hint: "Run persisted side effects",
-    },
-    CommandTemplate {
-        node_type: "service-call",
-        label: "Service Call",
-        hint: "Request-response service invocation",
-    },
-    CommandTemplate {
-        node_type: "object-call",
-        label: "Object Call",
-        hint: "Invoke a virtual object handler",
-    },
-    CommandTemplate {
-        node_type: "send-message",
-        label: "Send Message",
-        hint: "Fire-and-forget one-way call",
-    },
-    CommandTemplate {
-        node_type: "get-state",
-        label: "Get State",
-        hint: "Read persisted state",
-    },
-    CommandTemplate {
-        node_type: "set-state",
-        label: "Set State",
-        hint: "Write persisted state",
-    },
-    CommandTemplate {
-        node_type: "condition",
-        label: "If / Else",
-        hint: "Branch by condition",
-    },
-    CommandTemplate {
-        node_type: "parallel",
-        label: "Parallel",
-        hint: "Run branches concurrently",
-    },
-    CommandTemplate {
-        node_type: "sleep",
-        label: "Sleep / Timer",
-        hint: "Pause execution durably",
-    },
-    CommandTemplate {
-        node_type: "timeout",
-        label: "Timeout",
-        hint: "Guard a step with deadline",
-    },
-];
 
 pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
     let normalized_query = query.trim().to_lowercase();
+    
     if normalized_query.is_empty() {
-        return COMMAND_TEMPLATES.to_vec();
+        return NodeTemplateId::all().into_iter().map(|id| CommandTemplate { node_type: id }).collect();
     }
 
-    COMMAND_TEMPLATES
-        .iter()
-        .copied()
-        .filter(|template| {
-            template.node_type.contains(&normalized_query)
-                || template.label.to_lowercase().contains(&normalized_query)
-                || template.hint.to_lowercase().contains(&normalized_query)
+    NodeTemplateId::all()
+        .into_iter()
+        .filter(|id| {
+            id.as_str().contains(&normalized_query)
+                || id.label().to_lowercase().contains(&normalized_query)
+                || id.hint().to_lowercase().contains(&normalized_query)
         })
+        .map(|id| CommandTemplate { node_type: id })
         .collect()
 }
 
@@ -121,9 +47,9 @@ mod tests {
         let by_hint = filtered_templates("durably");
         let by_type = filtered_templates("kafka-handler");
 
-        assert!(by_label.iter().any(|t| t.node_type == "http-handler"));
-        assert!(by_hint.iter().any(|t| t.node_type == "sleep"));
-        assert!(by_type.iter().any(|t| t.node_type == "kafka-handler"));
+        assert!(by_label.iter().any(|t| t.node_type == NodeTemplateId::HttpHandler));
+        assert!(by_hint.iter().any(|t| t.node_type == NodeTemplateId::Sleep));
+        assert!(by_type.iter().any(|t| t.node_type == NodeTemplateId::KafkaHandler));
     }
 
     #[test]
@@ -135,9 +61,8 @@ mod tests {
     #[test]
     fn given_query_with_leading_and_trailing_whitespace_then_query_is_trimmed() {
         let templates = filtered_templates("  HTTP  ");
-        // Should match "HTTP Handler" after trimming whitespace
         assert!(!templates.is_empty());
-        assert!(templates.iter().any(|t| t.node_type == "http-handler"));
+        assert!(templates.iter().any(|t| t.node_type == NodeTemplateId::HttpHandler));
     }
 
     #[test]
@@ -169,7 +94,7 @@ pub fn NodeCommandPalette(
     query: ReadSignal<String>,
     on_query_change: EventHandler<String>,
     on_close: EventHandler<()>,
-    on_pick: EventHandler<&'static str>,
+    on_pick: EventHandler<NodeTemplateId>,
 ) -> Element {
     if !*open.read() {
         return rsx! {};
@@ -222,8 +147,8 @@ pub fn NodeCommandPalette(
                                 class: "mb-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-left transition-colors hover:bg-slate-800",
                                 onclick: move |_| on_pick.call(template.node_type),
                                 div { class: "flex min-w-0 flex-col",
-                                    span { class: "truncate text-[13px] font-medium text-slate-100", "{template.label}" }
-                                    span { class: "truncate text-[11px] text-slate-500", "{template.hint}" }
+                                    span { class: "truncate text-[13px] font-medium text-slate-100", "{template.node_type.label()}" }
+                                    span { class: "truncate text-[11px] text-slate-500", "{template.node_type.hint()}" }
                                 }
                                 span { class: "rounded bg-slate-800 px-2 py-0.5 font-mono text-[10px] text-slate-400", "{template.node_type}" }
                             }

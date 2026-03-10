@@ -9,8 +9,8 @@
 
 use crate::restate_client::queries::SqlQueries;
 use crate::restate_client::types::{
-    DeploymentInfo, Invocation, InvocationDetail, JournalEntry, JournalEvent, KeyedServiceStatus,
-    ServiceInfo, SqlQueryResponse, StateEntry,
+    DeploymentInfo, DeploymentType, Invocation, InvocationDetail, InvocationFilter, JournalEntry,
+    JournalEntryType, JournalEvent, KeyedServiceStatus, ServiceInfo, SqlQueryResponse, StateEntry,
 };
 use serde_json::Value;
 use thiserror::Error;
@@ -125,9 +125,9 @@ impl RestateClient {
     /// List invocations.
     pub async fn list_invocations(
         &self,
-        include_completed: bool,
+        filter: InvocationFilter,
     ) -> Result<Vec<Invocation>, ClientError> {
-        let sql = SqlQueries::list_invocations(include_completed);
+        let sql = SqlQueries::list_invocations(filter);
         let response = self.query(&sql).await?;
 
         self.map_rows(
@@ -145,9 +145,13 @@ impl RestateClient {
 
         let invocation = if let Some(row) = inv_response.rows.first() {
             self.row_to_invocation(&inv_response.columns, row)
-                .map_err(|error| ClientError::InvalidResponse(format!("invocation row 0: {error}")))?
+                .map_err(|error| {
+                    ClientError::InvalidResponse(format!("invocation row 0: {error}"))
+                })?
         } else {
-            return Err(ClientError::InvalidResponse("Invocation not found".to_string()));
+            return Err(ClientError::InvalidResponse(
+                "Invocation not found".to_string(),
+            ));
         };
 
         let journal_sql = SqlQueries::journal(id);
@@ -170,9 +174,12 @@ impl RestateClient {
         let sql = SqlQueries::journal(id);
         let response = self.query(&sql).await?;
 
-        self.map_rows("journal", &response.columns, &response.rows, |columns, row| {
-            self.row_to_journal_entry(columns, row)
-        })
+        self.map_rows(
+            "journal",
+            &response.columns,
+            &response.rows,
+            |columns, row| self.row_to_journal_entry(columns, row),
+        )
     }
 
     /// Get journal events since index.
@@ -200,9 +207,12 @@ impl RestateClient {
         let sql = SqlQueries::service_state(service_name);
         let response = self.query(&sql).await?;
 
-        self.map_rows("state", &response.columns, &response.rows, |columns, row| {
-            self.row_to_state_entry(columns, row)
-        })
+        self.map_rows(
+            "state",
+            &response.columns,
+            &response.rows,
+            |columns, row| self.row_to_state_entry(columns, row),
+        )
     }
 
     /// List services.
@@ -210,9 +220,12 @@ impl RestateClient {
         let sql = SqlQueries::services();
         let response = self.query(&sql).await?;
 
-        self.map_rows("service", &response.columns, &response.rows, |columns, row| {
-            self.row_to_service_info(columns, row)
-        })
+        self.map_rows(
+            "service",
+            &response.columns,
+            &response.rows,
+            |columns, row| self.row_to_service_info(columns, row),
+        )
     }
 
     /// List deployments.
@@ -229,9 +242,7 @@ impl RestateClient {
     }
 
     /// Get keyed service status (blocking invocations).
-    pub async fn get_keyed_service_status(
-        &self,
-    ) -> Result<Vec<KeyedServiceStatus>, ClientError> {
+    pub async fn get_keyed_service_status(&self) -> Result<Vec<KeyedServiceStatus>, ClientError> {
         let sql = SqlQueries::keyed_service_status();
         let response = self.query(&sql).await?;
 
@@ -295,11 +306,19 @@ impl RestateClient {
                 .map_err(|_| format!("journal_size out of range: {journal_size_raw}"))?,
             retry_count: Self::required_u64(columns, row, "retry_count")?,
             invoked_by: Self::parse_invoked_by(&invoked_by_raw)?,
-            invoked_by_service_name: Self::optional_string(columns, row, "invoked_by_service_name")?,
+            invoked_by_service_name: Self::optional_string(
+                columns,
+                row,
+                "invoked_by_service_name",
+            )?,
             invoked_by_id: Self::optional_string(columns, row, "invoked_by_id")?,
             trace_id: Self::optional_string(columns, row, "trace_id")?,
             last_failure: Self::optional_string(columns, row, "last_failure")?,
-            last_failure_error_code: Self::optional_string(columns, row, "last_failure_error_code")?,
+            last_failure_error_code: Self::optional_string(
+                columns,
+                row,
+                "last_failure_error_code",
+            )?,
         })
     }
 
@@ -310,12 +329,14 @@ impl RestateClient {
         row: &[Value],
     ) -> Result<JournalEntry, String> {
         let index_raw = Self::required_u64(columns, row, "index")?;
+        let raw_entry_type = Self::required_string(columns, row, "entry_type")?;
 
         Ok(JournalEntry {
             id: Self::required_string(columns, row, "id")?,
             index: u32::try_from(index_raw)
                 .map_err(|_| format!("index out of range: {index_raw}"))?,
-            entry_type: Self::required_string(columns, row, "entry_type")?,
+            entry_type: JournalEntryType::from(raw_entry_type.as_str()),
+            raw_entry_type,
             name: Self::optional_string(columns, row, "name")?,
             completed: Self::required_bool(columns, row, "completed")?,
             invoked_id: Self::optional_string(columns, row, "invoked_id")?,
@@ -380,9 +401,12 @@ impl RestateClient {
         columns: &[String],
         row: &[Value],
     ) -> Result<DeploymentInfo, String> {
+        let raw_ty = Self::required_string(columns, row, "ty")?;
+
         Ok(DeploymentInfo {
             id: Self::required_string(columns, row, "id")?,
-            ty: Self::required_string(columns, row, "ty")?,
+            ty: DeploymentType::from(raw_ty.as_str()),
+            raw_ty,
             endpoint: Self::required_string(columns, row, "endpoint")?,
             created_at: Self::required_i64(columns, row, "created_at")?,
         })
@@ -401,7 +425,11 @@ impl RestateClient {
         })
     }
 
-    fn required_value<'a>(columns: &[String], row: &'a [Value], name: &str) -> Result<&'a Value, String> {
+    fn required_value<'a>(
+        columns: &[String],
+        row: &'a [Value],
+        name: &str,
+    ) -> Result<&'a Value, String> {
         let index = columns
             .iter()
             .position(|column| column == name)
@@ -445,7 +473,11 @@ impl RestateClient {
             .ok_or_else(|| format!("column '{name}' is not a string"))
     }
 
-    fn optional_string(columns: &[String], row: &[Value], name: &str) -> Result<Option<String>, String> {
+    fn optional_string(
+        columns: &[String],
+        row: &[Value],
+        name: &str,
+    ) -> Result<Option<String>, String> {
         let Some(value) = Self::optional_value(columns, row, name)? else {
             return Ok(None);
         };

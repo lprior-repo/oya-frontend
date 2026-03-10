@@ -230,7 +230,8 @@ mod tests {
     }
 
     #[test]
-    fn given_type_mismatch_ports_when_adding_checked_connection_then_type_mismatch_error_is_returned() {
+    fn given_type_mismatch_ports_when_adding_checked_connection_then_type_mismatch_error_is_returned(
+    ) {
         let mut workflow = Workflow::new();
         let source = workflow.add_node("condition", 0.0, 0.0);
         let target = workflow.add_node("signal-handler", 100.0, 0.0);
@@ -257,7 +258,10 @@ mod tests {
         let missing_source = NodeId(Uuid::new_v4());
         let result = workflow.add_connection_checked(missing_source, target, &main, &main);
 
-        assert_eq!(result, Err(ConnectionError::MissingSourceNode(missing_source)));
+        assert_eq!(
+            result,
+            Err(ConnectionError::MissingSourceNode(missing_source))
+        );
     }
 
     #[test]
@@ -270,7 +274,10 @@ mod tests {
         let missing_target = NodeId(Uuid::new_v4());
         let result = workflow.add_connection_checked(source, missing_target, &main, &main);
 
-        assert_eq!(result, Err(ConnectionError::MissingTargetNode(missing_target)));
+        assert_eq!(
+            result,
+            Err(ConnectionError::MissingTargetNode(missing_target))
+        );
     }
 
     #[test]
