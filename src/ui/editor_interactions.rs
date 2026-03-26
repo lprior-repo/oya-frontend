@@ -169,9 +169,10 @@ mod tests {
         let mut workflow = Workflow::new();
         let _ = workflow.add_node("node", 100.0, 100.0);
 
-        // At zoom 1.0: cursor at (123, 109) is ~23 pixels from source handle (320, 134)
-        // At zoom 0.5: cursor at (210, 117) should snap to same handle (same visual distance)
-        // At zoom 2.0: cursor at (246, 121) should snap to same handle (same visual distance)
+        // Source handle is at (320, 134) in canvas space
+        // At zoom 1.0: cursor at (318, 134) → canvas (318, 134) → distance 2
+        // At zoom 0.5: cursor at (159, 67) → canvas (318, 134) → distance 2
+        // At zoom 2.0: cursor at (240, 118) → canvas (120, 59) → distance ~214 (exceeds threshold)
 
         let viewport_1x = Viewport {
             x: 0.0,
@@ -185,14 +186,17 @@ mod tests {
             y: 0.0,
             zoom: 0.5,
         };
-        let snapped_05x = snap_handle(&workflow.nodes, 209.0, 117.0, &viewport_05x);
+        // Corrected: screen_x = canvas_x * zoom = 318 * 0.5 = 159
+        let snapped_05x = snap_handle(&workflow.nodes, 159.0, 67.0, &viewport_05x);
 
         let viewport_2x = Viewport {
             x: 0.0,
             y: 0.0,
             zoom: 2.0,
         };
-        let snapped_2x = snap_handle(&workflow.nodes, 246.0, 121.0, &viewport_2x);
+        // Corrected: screen = canvas * zoom to achieve same canvas position (318, 134)
+        // canvas_x = mx / 2.0 = 318 → mx = 636
+        let snapped_2x = snap_handle(&workflow.nodes, 636.0, 268.0, &viewport_2x);
 
         // All should snap to the same handle (source handle at x=320, y=134)
         assert!(snapped_1x.is_some());
@@ -220,9 +224,11 @@ mod tests {
     #[test]
     fn given_equal_distance_candidates_when_snapping_then_selection_is_deterministic() {
         let mut workflow = Workflow::new();
-        // Add two nodes with handles at the same distance from cursor
+        // Add two nodes with source handles close together (40 canvas units apart)
+        // Node A at x=100 → source at (320, 134)
+        // Node B at x=140 → source at (360, 134)
         let _ = workflow.add_node("node-a", 100.0, 100.0);
-        let _ = workflow.add_node("node-b", 300.0, 100.0);
+        let _ = workflow.add_node("node-b", 140.0, 100.0);
 
         let viewport = Viewport {
             x: 0.0,
@@ -230,24 +236,27 @@ mod tests {
             zoom: 1.0,
         };
 
-        // Cursor at x=200 is equidistant from both source handles (x=100 and x=300)
-        // With deterministic tie-breaking, node-a should always win
-        let snapped = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+        // Cursor at (340, 134) is equidistant (20 units) from both source handles
+        // This is within the snap threshold (24 canvas units)
+        let snapped = snap_handle(&workflow.nodes, 340.0, 134.0, &viewport);
 
         assert!(snapped.is_some());
 
         // The selection should be deterministic based on node id ordering
         // Run multiple times to verify consistency
-        let first_result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+        let first_result = snap_handle(&workflow.nodes, 340.0, 134.0, &viewport);
         assert!(first_result.is_some());
         let (first_id, _, _) = first_result.unwrap();
-        
+
         for _ in 0..10 {
-            let result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
+            let result = snap_handle(&workflow.nodes, 340.0, 134.0, &viewport);
             assert!(result.is_some());
             let (node_id, _, _) = result.unwrap();
             // All results should be identical due to deterministic ordering
-            assert_eq!(node_id, first_id, "deterministic tie-break should always return same node");
+            assert_eq!(
+                node_id, first_id,
+                "deterministic tie-break should always return same node"
+            );
         }
     }
 

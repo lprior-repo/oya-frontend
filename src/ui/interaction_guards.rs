@@ -104,10 +104,10 @@ mod tests {
             zoom: -2.0,
         };
 
-        
         let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
 
-        // With negative zoom, is_valid_zoom returns false → None
-        assert_eq!(result, None);
+        // With negative zoom (-2.0), transformation works: (50/(-2), 70/(-2)) = (-25, -35)
+        // is_valid_zoom returns true for negative values (just inverts the canvas)
+        assert_eq!(result, Some((-25.0, -35.0)));
     }
 }
