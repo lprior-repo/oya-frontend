@@ -4,6 +4,8 @@
 pub mod feedback;
 pub mod flow_extender;
 pub mod graph;
+pub mod restate_client;
+pub mod restate_sync;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod agent_feedback;

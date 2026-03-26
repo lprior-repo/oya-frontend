@@ -9,7 +9,7 @@
 //!
 //! Displays journal entries with expandable input/output details
 
-use crate::restate_client::types::{JournalEntry, JournalEntryType};
+use oya_frontend::restate_client::types::{JournalEntry, JournalEntryType};
 use dioxus::prelude::*;
 
 fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {

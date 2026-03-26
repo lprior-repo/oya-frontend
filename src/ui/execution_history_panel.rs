@@ -132,6 +132,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             results: HashMap::new(),
             success: outcome.is_success(),
+            restate_invocation_id: None,
         }
     }
 
@@ -216,6 +217,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             results,
             success: false,
+            restate_invocation_id: None,
         };
 
         assert_eq!(derive_step_counts(&run), (1, 0));
@@ -233,6 +235,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             results,
             success: false,
+            restate_invocation_id: None,
         };
 
         assert_eq!(derive_step_counts(&run), (1, 2));
@@ -256,6 +259,7 @@ pub fn ExecutionHistoryTable(
                         th { class: "text-[11px] font-semibold text-slate-500 uppercase tracking-wide px-3 py-2 border-b border-slate-200", "Duration" }
                         th { class: "text-[11px] font-semibold text-slate-500 uppercase tracking-wide px-3 py-2 border-b border-slate-200", "Steps OK" }
                         th { class: "text-[11px] font-semibold text-slate-500 uppercase tracking-wide px-3 py-2 border-b border-slate-200", "Steps Failed" }
+                        th { class: "text-[11px] font-semibold text-slate-500 uppercase tracking-wide px-3 py-2 border-b border-slate-200", "Restate" }
                     }
                 }
                 tbody {
@@ -270,6 +274,7 @@ pub fn ExecutionHistoryTable(
                             let start_time = format_timestamp(&run.timestamp);
                             let duration = format_run_duration(run);
                             let (steps_ok, steps_failed) = derive_step_counts(run);
+                            let restate_id = run.restate_invocation_id.clone();
 
                             let row_base = "cursor-pointer transition-colors border-b border-slate-100 last:border-b-0";
                             let row_class = if is_active {
@@ -301,6 +306,17 @@ pub fn ExecutionHistoryTable(
                                     td { class: "text-[12px] text-slate-700 px-3 py-2", "{duration}" }
                                     td { class: "text-[12px] text-slate-700 px-3 py-2", "{steps_ok}" }
                                     td { class: "text-[12px] text-slate-700 px-3 py-2", "{steps_failed}" }
+                                    td { class: "text-[12px] text-slate-700 px-3 py-2",
+                                        if let Some(inv_id) = &restate_id {
+                                            span {
+                                                class: "font-mono text-indigo-600 text-[11px] bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5",
+                                                title: "{inv_id}",
+                                                "{&inv_id[..inv_id.len().min(12)]}…"
+                                            }
+                                        } else {
+                                            span { class: "text-slate-400", "—" }
+                                        }
+                                    }
                                 }
                             }
                         }

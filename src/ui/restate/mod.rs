@@ -11,7 +11,8 @@
 
 pub mod details_panel;
 pub mod journal_viewer;
+pub mod panel;
 
-#[cfg(not(target_arch = "wasm32"))]
 pub use details_panel::RestateInvocationDetails;
 pub use journal_viewer::RestateJournalViewer;
+pub use panel::RestateInvocationsPanel;

@@ -19,6 +19,7 @@ pub mod node;
 pub mod parallel_group_overlay;
 pub mod payload_preview_panel;
 pub mod prototype_palette;
+pub mod restate;
 pub mod run_status_bar;
 pub mod selected_node_panel;
 pub mod sidebar;

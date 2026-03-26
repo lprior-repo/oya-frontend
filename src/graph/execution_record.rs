@@ -674,6 +674,7 @@ mod tests {
             timestamp: utc(2_000),
             results,
             success: false,
+            restate_invocation_id: None,
         };
 
         let record = from_run_record(&run);
@@ -694,6 +695,7 @@ mod tests {
             timestamp: utc(0),
             results: HashMap::new(),
             success: true,
+            restate_invocation_id: None,
         };
 
         let record = from_run_record(&run);

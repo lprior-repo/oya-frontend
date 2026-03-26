@@ -1,0 +1,193 @@
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![warn(clippy::pedantic)]
+#![forbid(unsafe_code)]
+
+//! Collapsible side-panel showing live Restate invocations.
+//!
+//! - Toggle button enables/disables polling.
+//! - Green/red dot shows connection health.
+//! - Clicking a row opens `RestateInvocationDetails`.
+
+use crate::hooks::RestateSyncHandle;
+use crate::ui::restate::RestateInvocationDetails;
+use dioxus::prelude::*;
+use oya_frontend::restate_client::types::{Invocation, InvocationStatus};
+
+fn status_dot_class(connected: bool) -> &'static str {
+    if connected {
+        "w-2 h-2 rounded-full bg-emerald-500"
+    } else {
+        "w-2 h-2 rounded-full bg-red-400"
+    }
+}
+
+fn invocation_status_label(status: InvocationStatus) -> &'static str {
+    match status {
+        InvocationStatus::Pending => "pending",
+        InvocationStatus::Scheduled => "scheduled",
+        InvocationStatus::Ready => "ready",
+        InvocationStatus::Running => "running",
+        InvocationStatus::Paused => "paused",
+        InvocationStatus::BackingOff => "retrying",
+        InvocationStatus::Suspended => "suspended",
+        InvocationStatus::Completed => "done",
+    }
+}
+
+fn status_badge_class(status: InvocationStatus) -> &'static str {
+    match status {
+        InvocationStatus::Running | InvocationStatus::BackingOff => {
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200"
+        }
+        InvocationStatus::Completed => {
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200"
+        }
+        InvocationStatus::Paused => {
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-red-50 text-red-700 border-red-200"
+        }
+        _ => "text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200",
+    }
+}
+
+fn truncate_inv_id(id: &str) -> String {
+    let clean: String = id.chars().filter(|c| *c != '-').take(10).collect();
+    clean
+}
+
+#[component]
+pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
+    let mut collapsed = use_signal(|| true);
+    let mut selected_inv: Signal<Option<Invocation>> = use_signal(|| None);
+
+    let state = handle.state.read();
+    let connected = state.connected;
+    let invocations = state.invocations.clone();
+    let last_error = state.last_error.clone();
+    let enabled = *handle.enabled.read();
+    let count = invocations.len();
+    drop(state);
+
+    rsx! {
+        div { class: "border-t border-slate-200 shrink-0",
+
+            // Panel header
+            button {
+                class: "flex w-full items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors",
+                onclick: move |_| { collapsed.set(!*collapsed.read()); },
+
+                div { class: "flex items-center gap-2",
+                    // Collapse chevron
+                    span {
+                        class: "text-slate-400 transition-transform",
+                        style: if *collapsed.read() { "transform: rotate(-90deg);" } else { "" },
+                        "▾"
+                    }
+                    span { class: "text-[11px] font-semibold text-slate-600 uppercase tracking-wide",
+                        "Restate"
+                    }
+                    // Connection dot
+                    if enabled {
+                        span { class: status_dot_class(connected) }
+                    }
+                    if count > 0 {
+                        span { class: "text-[10px] text-slate-400", "({count})" }
+                    }
+                }
+
+                // Enable/disable toggle - stop propagation so it doesn't collapse the panel
+                div {
+                    onclick: move |evt| { evt.stop_propagation(); },
+                    button {
+                        class: if enabled {
+                            "text-[10px] px-2 py-0.5 rounded border font-medium bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 transition-colors"
+                        } else {
+                            "text-[10px] px-2 py-0.5 rounded border font-medium bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 transition-colors"
+                        },
+                        onclick: move |_| {
+                            handle.enabled.set(!enabled);
+                        },
+                        if enabled { "On" } else { "Off" }
+                    }
+                }
+            }
+
+            // Panel body
+            if !*collapsed.read() {
+                div { class: "max-h-[220px] overflow-y-auto",
+
+                    // Error message
+                    if let Some(err) = &last_error {
+                        div { class: "mx-3 mb-2 rounded bg-red-50 border border-red-200 px-2 py-1 text-[10px] text-red-700",
+                            "Connection error: {err}"
+                        }
+                    }
+
+                    if !enabled {
+                        div { class: "px-3 py-3 text-[11px] text-slate-400 text-center",
+                            "Enable polling to see live invocations."
+                        }
+                    } else if invocations.is_empty() {
+                        div { class: "px-3 py-3 text-[11px] text-slate-400 text-center",
+                            if connected {
+                                "No active invocations."
+                            } else {
+                                "Connecting to Restate…"
+                            }
+                        }
+                    } else {
+                        table { class: "w-full border-collapse text-left",
+                            thead {
+                                tr { class: "bg-slate-50 border-b border-slate-200",
+                                    th { class: "text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-3 py-1.5", "ID" }
+                                    th { class: "text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-3 py-1.5", "Target" }
+                                    th { class: "text-[10px] font-semibold text-slate-400 uppercase tracking-wide px-3 py-1.5", "Status" }
+                                }
+                            }
+                            tbody {
+                                for inv in &invocations {
+                                    {
+                                        let inv_clone = inv.clone();
+                                        let inv_id_short = truncate_inv_id(&inv.id);
+                                        let target = inv.target.clone();
+                                        let status = inv.status;
+                                        let badge_class = status_badge_class(status);
+                                        let status_label = invocation_status_label(status);
+
+                                        rsx! {
+                                            tr {
+                                                key: "{inv.id}",
+                                                class: "cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition-colors",
+                                                onclick: move |_| { selected_inv.set(Some(inv_clone.clone())); },
+
+                                                td { class: "px-3 py-1.5 font-mono text-[10px] text-slate-600",
+                                                    "{inv_id_short}"
+                                                }
+                                                td { class: "px-3 py-1.5 text-[10px] text-slate-600 max-w-[120px] truncate",
+                                                    "{target}"
+                                                }
+                                                td { class: "px-3 py-1.5",
+                                                    span { class: "{badge_class}", "{status_label}" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Details modal — rendered outside the panel so it floats over everything
+        if let Some(inv) = &*selected_inv.read() {
+            RestateInvocationDetails {
+                invocation: inv.clone(),
+                journal: vec![],
+                on_close: move |()| { selected_inv.set(None); }
+            }
+        }
+    }
+}

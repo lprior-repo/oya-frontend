@@ -12,7 +12,7 @@
 //! - Journal entries list
 //! - State changes
 
-use crate::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
+use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 use dioxus::prelude::*;
 
 fn status_to_ui_string(status: InvocationStatus) -> &'static str {

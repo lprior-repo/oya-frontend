@@ -11,7 +11,9 @@ async fn sleep_ms(ms: u32) {
 }
 
 #[cfg(target_arch = "wasm32")]
-async fn sleep_ms(_ms: u32) {}
+async fn sleep_ms(ms: u32) {
+    gloo_timers::future::TimeoutFuture::new(ms).await;
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +36,7 @@ pub enum InvocationEvent {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum InvocationStatus {
     Pending,

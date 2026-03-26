@@ -10,6 +10,7 @@ use crate::ui::{
     ParallelGroupOverlay, PayloadPreviewPanel, PrototypePalette, RunStatusBar, SelectedNodePanel,
     ValidationPanel,
 };
+use crate::ui::restate::RestateInvocationsPanel;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
@@ -99,6 +100,7 @@ fn App() -> Element {
     let canvas = crate::hooks::use_canvas_interaction();
     let panels = crate::hooks::use_ui_panels();
     let sidebar = crate::hooks::use_sidebar();
+    let restate = crate::hooks::use_restate_sync();
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -1209,6 +1211,7 @@ fn App() -> Element {
                                     let _ = frozen_run_id.try_write().map(|mut v| *v = None);
                                 },
                             }
+                            RestateInvocationsPanel { handle: restate }
                         }
                     }
                 }
