@@ -9,10 +9,11 @@
 //!
 //! Displays journal entries with expandable input/output details
 
-use oya_frontend::restate_client::types::{JournalEntry, JournalEntryType};
 use dioxus::prelude::*;
+use oya_frontend::restate_client::types::{JournalEntry, JournalEntryType};
 
-fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
+#[allow(dead_code)]
+const fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
     match entry_type {
         JournalEntryType::Call | JournalEntryType::OneWayCall => " bg-blue-100 text-blue-800",
         JournalEntryType::Sleep => " bg-purple-100 text-purple-800",
@@ -28,7 +29,7 @@ fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
     }
 }
 
-#[derive(Props, Clone, PartialEq)]
+#[derive(Props, Clone, PartialEq, Eq)]
 pub struct RestateJournalViewerProps {
     pub journal: Vec<JournalEntry>,
 }
@@ -50,9 +51,9 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                         class: {
                             let base = "flex items-center gap-3 p-3 cursor-pointer ";
                             if expanded.read().contains(&entry.index) {
-                                format!("{} bg-gray-50 dark:bg-gray-800", base)
+                                format!("{base} bg-gray-50 dark:bg-gray-800")
                             } else {
-                                format!("{} hover:bg-gray-50 dark:hover:bg-gray-800", base)
+                                format!("{base} hover:bg-gray-50 dark:hover:bg-gray-800")
                             }
                         },
                         onclick: {
@@ -94,9 +95,9 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                             class: {
                                 let base = "px-2 py-0.5 rounded text-xs ";
                                 if entry.completed {
-                                    format!("{} bg-green-100 text-green-800", base)
+                                    format!("{base} bg-green-100 text-green-800")
                                 } else {
-                                    format!("{} bg-yellow-100 text-yellow-800", base)
+                                    format!("{base} bg-yellow-100 text-yellow-800")
                                 }
                             },
                             if entry.completed { "✓" } else { "○" }
@@ -161,10 +162,10 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
     }
 }
 
+#[allow(dead_code)]
 fn format_time(ts: i64) -> String {
-    if let Some(dt) = chrono::DateTime::from_timestamp_millis(ts) {
-        dt.format("%Y-%m-%d %H:%M:%S%.3f UTC").to_string()
-    } else {
-        ts.to_string()
-    }
+    chrono::DateTime::from_timestamp_millis(ts).map_or_else(
+        || ts.to_string(),
+        |dt| dt.format("%Y-%m-%d %H:%M:%S%.3f UTC").to_string(),
+    )
 }

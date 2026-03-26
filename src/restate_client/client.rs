@@ -737,7 +737,7 @@ mod tests {
 
     #[test]
     fn row_to_invocation_rejects_unknown_status() {
-        let client = RestateClient::local();
+        let _client = RestateClient::local();
         let columns = invocation_columns();
         let row = invocation_row("unknown-status", 10);
 
@@ -750,7 +750,7 @@ mod tests {
 
     #[test]
     fn row_to_invocation_rejects_journal_size_overflow() {
-        let client = RestateClient::local();
+        let _client = RestateClient::local();
         let columns = invocation_columns();
         let row = invocation_row("running", u64::from(u32::MAX) + 1);
 
@@ -763,7 +763,7 @@ mod tests {
 
     #[test]
     fn row_to_state_entry_parses_binary_value() {
-        let client = RestateClient::local();
+        let _client = RestateClient::local();
         let columns = vec![
             "service_name".to_string(),
             "service_key".to_string(),
@@ -792,7 +792,7 @@ mod tests {
 
     #[test]
     fn map_rows_reports_invalid_row_index() {
-        let client = RestateClient::local();
+        let _client = RestateClient::local();
         let columns = invocation_columns();
         let rows = vec![invocation_row("running", 1), invocation_row("invalid", 1)];
 

@@ -39,6 +39,7 @@ pub enum DropState {
 }
 
 impl DropState {
+    #[allow(dead_code)]
     pub fn idle() -> Self {
         Self::Idle
     }
@@ -71,10 +72,12 @@ impl SearchQuery {
         &self.0
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.0.clear();
     }

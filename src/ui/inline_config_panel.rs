@@ -59,7 +59,7 @@ fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> E
             let method = parse_http_method(config, "method");
             let config_clone = config.clone();
             rsx! {
-                {text_field("Path", "path", config, "/orders/{order_id}", on_change.clone())}
+                {text_field("Path", "path", config, "/orders/{order_id}", on_change)}
                 div { class: "flex flex-col gap-0.5",
                     label { class: "text-[9px] font-medium uppercase tracking-wide text-slate-500", "Method" }
                     select {
@@ -84,7 +84,13 @@ fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> E
         }
         "clock" => text_field("Schedule", "schedule", config, "0 */5 * * *", on_change),
         "kafka" => text_field("Topic", "topic", config, "orders-topic", on_change),
-        "play" => text_field("Workflow Name", "workflow_name", config, "SignupWorkflow", on_change),
+        "play" => text_field(
+            "Workflow Name",
+            "workflow_name",
+            config,
+            "SignupWorkflow",
+            on_change,
+        ),
         _ => rsx! { div { class: "text-[10px] italic text-slate-400", "No quick config" } },
     }
 }
@@ -192,7 +198,7 @@ fn timing_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> 
 
 fn signal_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
     match icon {
-        "target" => text_field(
+        "target" | "check-circle" => text_field(
             "Promise Name",
             "promise_name",
             config,
@@ -204,13 +210,6 @@ fn signal_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> 
             "awakeable_id",
             config,
             "payment-callback",
-            on_change,
-        ),
-        "check-circle" => text_field(
-            "Promise Name",
-            "promise_name",
-            config,
-            "payment-completed",
             on_change,
         ),
         "bell" => text_field(

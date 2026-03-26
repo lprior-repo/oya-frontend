@@ -147,9 +147,9 @@ fn remove_nodes_transaction(
     }
 
     let snapshot = workflow.clone();
-    node_ids
-        .iter()
-        .for_each(|node_id| workflow.remove_node(*node_id));
+    for node_id in node_ids {
+        workflow.remove_node(*node_id);
+    }
     push_undo_snapshot(undo_stack, snapshot, 60);
     redo_stack.clear();
     Ok(())
@@ -211,11 +211,13 @@ impl WorkflowState {
     }
 
     /// Access to undo stack signal
+    #[allow(dead_code)]
     pub fn undo_stack(&self) -> ReadSignal<Vec<Workflow>> {
         self.undo_stack.into()
     }
 
     /// Access to redo stack signal
+    #[allow(dead_code)]
     pub fn redo_stack(&self) -> ReadSignal<Vec<Workflow>> {
         self.redo_stack.into()
     }
@@ -234,6 +236,7 @@ impl WorkflowState {
     }
 
     /// Add a node at the viewport center
+    #[allow(dead_code)]
     pub fn add_node_at_viewport_center(self, node_type: &str) -> NodeId {
         self.add_node_at_viewport_center_with_canvas(node_type, 1280.0, 760.0)
     }
@@ -255,6 +258,7 @@ impl WorkflowState {
     }
 
     /// Remove a node by ID - returns error if not found
+    #[allow(dead_code)]
     pub fn remove_node(self, node_id: NodeId) -> WorkflowResult<()> {
         self.remove_nodes(&[node_id])
     }

@@ -303,7 +303,7 @@ fn UnscheduledSection(
             p { class: "text-[10px] font-semibold text-amber-800 uppercase tracking-wide", "Unscheduled" }
             p { class: "text-[10px] text-amber-700 mt-0.5", "Cycle or blocked dependency detected." }
             div { class: "mt-1 space-y-1",
-                for node_id in unscheduled.iter().cloned() {
+                for node_id in unscheduled.iter().copied() {
                     {
                         let label = nodes_by_id
                             .read()

@@ -24,14 +24,9 @@ pub fn clamp_menu_position(
 
 /// Generates viewport-safe CSS style string for menu positioning.
 #[inline]
-pub fn generate_menu_style(
-    x: f32,
-    y: f32,
-    viewport_width: f32,
-    viewport_height: f32,
-) -> String {
+pub fn generate_menu_style(x: f32, y: f32, viewport_width: f32, viewport_height: f32) -> String {
     let (clamped_x, clamped_y) = clamp_menu_position(x, y, viewport_width, viewport_height);
-    format!("left: {}px; top: {}px;", clamped_x, clamped_y)
+    format!("left: {clamped_x}px; top: {clamped_y}px;")
 }
 
 #[component]
@@ -49,10 +44,12 @@ pub fn CanvasContextMenu(
     }
 
     // Use window dimensions for viewport-safe clamping
+    #[allow(clippy::cast_possible_truncation)]
     let viewport_width = window()
         .and_then(|w| w.inner_width().ok())
         .and_then(|v| v.as_f64())
         .unwrap_or(1920.0) as f32;
+    #[allow(clippy::cast_possible_truncation)]
     let viewport_height = window()
         .and_then(|w| w.inner_height().ok())
         .and_then(|v| v.as_f64())

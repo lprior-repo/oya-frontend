@@ -12,10 +12,10 @@
 //! - Journal entries list
 //! - State changes
 
-use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 use dioxus::prelude::*;
+use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 
-fn status_to_ui_string(status: InvocationStatus) -> &'static str {
+const fn status_to_ui_string(status: InvocationStatus) -> &'static str {
     match status {
         InvocationStatus::Pending => "pending",
         InvocationStatus::Scheduled => "scheduled",
@@ -95,10 +95,10 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                                 class: {
                                     let base = "px-2 py-1 rounded text-sm ";
                                     match inv.status {
-                                        InvocationStatus::Completed => format!("{} bg-green-100 text-green-800", base),
-                                        InvocationStatus::Running => format!("{} bg-blue-100 text-blue-800", base),
-                                        InvocationStatus::Paused | InvocationStatus::BackingOff => format!("{} bg-red-100 text-red-800", base),
-                                        _ => format!("{} bg-gray-100 text-gray-800", base),
+                                        InvocationStatus::Completed => format!("{base} bg-green-100 text-green-800"),
+                                        InvocationStatus::Running => format!("{base} bg-blue-100 text-blue-800"),
+                                        InvocationStatus::Paused | InvocationStatus::BackingOff => format!("{base} bg-red-100 text-red-800"),
+                                        _ => format!("{base} bg-gray-100 text-gray-800"),
                                     }
                                 },
                                 {status_str}
@@ -160,9 +160,9 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                                             class: {
                                                 let base = "px-2 py-0.5 rounded text-xs ";
                                                 if entry.completed {
-                                                    format!("{} bg-green-100 text-green-800", base)
+                                                    format!("{base} bg-green-100 text-green-800")
                                                 } else {
-                                                    format!("{} bg-yellow-100 text-yellow-800", base)
+                                                    format!("{base} bg-yellow-100 text-yellow-800")
                                                 }
                                             },
                                             {entry.raw_entry_type.clone()}
@@ -184,9 +184,8 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
 }
 
 fn format_time(ts: i64) -> String {
-    if let Some(dt) = chrono::DateTime::from_timestamp_millis(ts) {
-        dt.format("%Y-%m-%d %H:%M:%S UTC").to_string()
-    } else {
-        ts.to_string()
-    }
+    chrono::DateTime::from_timestamp_millis(ts).map_or_else(
+        || ts.to_string(),
+        |dt| dt.format("%Y-%m-%d %H:%M:%S UTC").to_string(),
+    )
 }

@@ -72,7 +72,6 @@ impl InvocationStatus {
             "failed" => Some(Self::Failed),
             "skipped" => Some(Self::Skipped),
             "retrying" => Some(Self::Retrying),
-            "" => None,
             _ => None,
         }
     }
@@ -250,6 +249,7 @@ impl StatusBadgeStyle {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub fn to_classes(self) -> String {
         format!("{} {} {}", self.bg, self.text, self.border)
     }
@@ -258,61 +258,47 @@ impl StatusBadgeStyle {
 #[must_use]
 pub const fn invocation_badge_style(status: InvocationStatus) -> StatusBadgeStyle {
     match status {
-        InvocationStatus::Queued => StatusBadgeStyle::new(
-            "bg-cyan-500/15",
-            "text-cyan-400",
-            "border-cyan-500/30",
-        ),
+        InvocationStatus::Queued => {
+            StatusBadgeStyle::new("bg-cyan-500/15", "text-cyan-400", "border-cyan-500/30")
+        }
         InvocationStatus::Running => StatusBadgeStyle::new(
             "bg-indigo-500/15",
             "text-indigo-400",
             "border-indigo-500/30",
         ),
-        InvocationStatus::Suspended => StatusBadgeStyle::new(
-            "bg-pink-500/15",
-            "text-pink-400",
-            "border-pink-500/30",
-        ),
+        InvocationStatus::Suspended => {
+            StatusBadgeStyle::new("bg-pink-500/15", "text-pink-400", "border-pink-500/30")
+        }
         InvocationStatus::Completed => StatusBadgeStyle::new(
             "bg-emerald-500/15",
             "text-emerald-400",
             "border-emerald-500/30",
         ),
-        InvocationStatus::Failed => StatusBadgeStyle::new(
-            "bg-red-500/15",
-            "text-red-400",
-            "border-red-500/30",
-        ),
-        InvocationStatus::Skipped => StatusBadgeStyle::new(
-            "bg-slate-500/15",
-            "text-slate-300",
-            "border-slate-500/30",
-        ),
-        InvocationStatus::Retrying => StatusBadgeStyle::new(
-            "bg-amber-500/15",
-            "text-amber-400",
-            "border-amber-500/30",
-        ),
+        InvocationStatus::Failed => {
+            StatusBadgeStyle::new("bg-red-500/15", "text-red-400", "border-red-500/30")
+        }
+        InvocationStatus::Skipped => {
+            StatusBadgeStyle::new("bg-slate-500/15", "text-slate-300", "border-slate-500/30")
+        }
+        InvocationStatus::Retrying => {
+            StatusBadgeStyle::new("bg-amber-500/15", "text-amber-400", "border-amber-500/30")
+        }
     }
 }
 
 #[must_use]
+#[allow(dead_code)]
 pub const fn outcome_badge_style(outcome: RunOutcome) -> StatusBadgeStyle {
     match outcome {
-        RunOutcome::Success => StatusBadgeStyle::new(
-            "bg-emerald-50",
-            "text-emerald-700",
-            "border-emerald-200",
-        ),
-        RunOutcome::Failure => StatusBadgeStyle::new(
-            "bg-red-50",
-            "text-red-700",
-            "border-red-200",
-        ),
+        RunOutcome::Success => {
+            StatusBadgeStyle::new("bg-emerald-50", "text-emerald-700", "border-emerald-200")
+        }
+        RunOutcome::Failure => StatusBadgeStyle::new("bg-red-50", "text-red-700", "border-red-200"),
     }
 }
 
 #[must_use]
+#[allow(dead_code)]
 pub const fn outcome_icon_class(outcome: RunOutcome) -> &'static str {
     match outcome {
         RunOutcome::Success => "h-3 w-3 text-emerald-500",
@@ -423,6 +409,7 @@ impl CollapseState {
         matches!(self, Self::Collapsed)
     }
 
+    #[allow(dead_code)]
     pub fn toggle(&mut self) {
         *self = match self {
             Self::Collapsed => Self::Expanded,
@@ -468,8 +455,14 @@ mod tests {
 
     #[test]
     fn invocation_status_parse_handles_variants() {
-        assert_eq!(InvocationStatus::parse("queued"), Some(InvocationStatus::Queued));
-        assert_eq!(InvocationStatus::parse("RUNNING"), Some(InvocationStatus::Running));
+        assert_eq!(
+            InvocationStatus::parse("queued"),
+            Some(InvocationStatus::Queued)
+        );
+        assert_eq!(
+            InvocationStatus::parse("RUNNING"),
+            Some(InvocationStatus::Running)
+        );
         assert_eq!(InvocationStatus::parse(""), None);
         assert_eq!(InvocationStatus::parse("unknown"), None);
     }
@@ -489,9 +482,18 @@ mod tests {
 
     #[test]
     fn output_origin_from_flags() {
-        assert_eq!(OutputOrigin::from_flags(true, true), OutputOrigin::LiveOutput);
-        assert_eq!(OutputOrigin::from_flags(false, true), OutputOrigin::PinnedSample);
-        assert_eq!(OutputOrigin::from_flags(false, false), OutputOrigin::NoOutput);
+        assert_eq!(
+            OutputOrigin::from_flags(true, true),
+            OutputOrigin::LiveOutput
+        );
+        assert_eq!(
+            OutputOrigin::from_flags(false, true),
+            OutputOrigin::PinnedSample
+        );
+        assert_eq!(
+            OutputOrigin::from_flags(false, false),
+            OutputOrigin::NoOutput
+        );
     }
 
     #[test]

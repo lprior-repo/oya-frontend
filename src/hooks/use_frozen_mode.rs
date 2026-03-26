@@ -10,8 +10,9 @@ use oya_frontend::graph::{NodeId, RunRecord};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub enum FrozenMode {
+    #[default]
     Live,
     Frozen {
         run_id: Uuid,
@@ -19,36 +20,33 @@ pub enum FrozenMode {
     },
 }
 
-impl Default for FrozenMode {
-    fn default() -> Self {
-        Self::Live
-    }
-}
-
 impl FrozenMode {
-    pub fn live() -> Self {
+    #[allow(dead_code)]
+    pub const fn live() -> Self {
         Self::Live
     }
 
+    #[allow(clippy::missing_const_for_fn)]
     pub fn frozen(run_id: Uuid, results: HashMap<NodeId, serde_json::Value>) -> Self {
         Self::Frozen { run_id, results }
     }
 
-    pub fn is_frozen(&self) -> bool {
-        matches!(self, FrozenMode::Frozen { .. })
+    pub const fn is_frozen(&self) -> bool {
+        matches!(self, Self::Frozen { .. })
     }
 
+    #[allow(clippy::missing_const_for_fn)]
     pub fn run_id(&self) -> Option<Uuid> {
         match self {
-            FrozenMode::Live => None,
-            FrozenMode::Frozen { run_id, .. } => Some(*run_id),
+            Self::Live => None,
+            Self::Frozen { run_id, .. } => Some(*run_id),
         }
     }
 
     pub fn result_for_node(&self, node_id: NodeId) -> Option<serde_json::Value> {
         match self {
-            FrozenMode::Live => None,
-            FrozenMode::Frozen { results, .. } => results.get(&node_id).cloned(),
+            Self::Live => None,
+            Self::Frozen { results, .. } => results.get(&node_id).cloned(),
         }
     }
 }

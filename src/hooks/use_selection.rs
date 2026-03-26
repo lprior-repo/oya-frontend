@@ -94,7 +94,10 @@ impl Selection {
         match self {
             Selection::None => 0,
             Selection::Single { .. } => 1,
-            Selection::Multiple { primary: _, secondary } => 1 + secondary.len(),
+            Selection::Multiple {
+                primary: _,
+                secondary,
+            } => 1 + secondary.len(),
         }
     }
 }
@@ -109,6 +112,7 @@ pub enum PendingDrag {
 }
 
 impl PendingDrag {
+    #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
     }
@@ -117,10 +121,12 @@ impl PendingDrag {
         Self::Ready { node_ids }
     }
 
+    #[allow(dead_code)]
     pub fn is_ready(&self) -> bool {
         matches!(self, PendingDrag::Ready { .. })
     }
 
+    #[allow(dead_code)]
     pub fn node_ids(&self) -> Option<&[NodeId]> {
         match self {
             PendingDrag::None => None,
@@ -270,8 +276,8 @@ pub fn use_selection() -> SelectionState {
 #[cfg(test)]
 mod tests {
     use super::{
-        PendingDrag, Selection, add_unique_selection, reconcile_primary_selection,
-        toggle_selection_ids,
+        add_unique_selection, reconcile_primary_selection, toggle_selection_ids, PendingDrag,
+        Selection,
     };
     use oya_frontend::graph::NodeId;
 

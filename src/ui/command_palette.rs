@@ -37,7 +37,7 @@ pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
 #[cfg(test)]
 mod tests {
     use super::{filtered_templates, is_escape_key};
-    use crate::domain_types::NodeTemplateId;
+    use crate::ui::domain_types::NodeTemplateId;
 
     #[test]
     fn given_empty_query_when_filtering_templates_then_all_templates_are_returned() {

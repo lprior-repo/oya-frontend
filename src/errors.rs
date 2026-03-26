@@ -2,8 +2,10 @@ use thiserror::Error;
 
 use oya_frontend::graph::NodeId;
 
+#[allow(dead_code)]
 pub type AppResult<T> = Result<T, AppError>;
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Workflow error: {0}")]
@@ -80,6 +82,7 @@ pub enum WorkflowError {
     InvalidConnection(String),
 
     #[error("Port not found: {0}")]
+    #[allow(dead_code)]
     PortNotFound(String),
 
     #[error("Cannot connect node to itself")]

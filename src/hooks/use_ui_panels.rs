@@ -13,10 +13,12 @@ pub enum PanelState {
 }
 
 impl PanelState {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn is_open(&self) -> bool {
         matches!(self, PanelState::Open)
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn toggle(&self) -> Self {
         match self {
             PanelState::Closed => PanelState::Open,
@@ -26,6 +28,7 @@ impl PanelState {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Store)]
+#[allow(dead_code)]
 pub struct ContextMenuData {
     pub position: MenuPosition,
 }
@@ -42,16 +45,13 @@ impl MenuPosition {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum ContextMenuState {
+    #[default]
     Hidden,
-    Visible { position: MenuPosition },
-}
-
-impl Default for ContextMenuState {
-    fn default() -> Self {
-        Self::Hidden
-    }
+    Visible {
+        position: MenuPosition,
+    },
 }
 
 impl ContextMenuState {
@@ -94,11 +94,10 @@ impl InlinePanelState {
 
     pub fn toggle_for(&self, node_id: NodeId) -> Self {
         match self {
-            InlinePanelState::Closed => InlinePanelState::Open { node_id },
             InlinePanelState::Open { node_id: current } if *current == node_id => {
                 InlinePanelState::Closed
             }
-            InlinePanelState::Open { .. } => InlinePanelState::Open { node_id },
+            _ => InlinePanelState::Open { node_id },
         }
     }
 }
@@ -121,6 +120,7 @@ impl PaletteState {
         Self::default()
     }
 
+    #[allow(dead_code)]
     pub fn with_query(query: String) -> Self {
         Self {
             visibility: PanelState::Open,
@@ -299,6 +299,7 @@ mod tests {
     use super::{
         ContextMenuState, InlinePanelState, MenuPosition, PaletteState, PanelState, UiPanels,
     };
+    use dioxus::prelude::ReadableExt;
     use oya_frontend::graph::NodeId;
 
     fn create_test_state() -> UiPanels {

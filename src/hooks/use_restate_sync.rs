@@ -32,12 +32,12 @@ pub struct RestateState {
 #[derive(Clone, Copy, PartialEq)]
 pub struct RestateSyncHandle {
     /// Read-only view of the latest Restate state.
-    pub state: ReadOnlySignal<RestateState>,
+    pub state: ReadSignal<RestateState>,
     /// Toggle to start/stop polling. Write `true` to enable, `false` to pause.
     pub enabled: Signal<bool>,
-    /// Admin API base URL (default: "http://localhost:9070"). Changing this restarts the client.
+    /// Admin API base URL (default: <http://localhost:9070>). Changing this restarts the client.
     pub admin_url: Signal<String>,
-    /// Ingress base URL (default: "http://localhost:8080"). Used when running workflows.
+    /// Ingress base URL (default: <http://localhost:8080>). Used when running workflows.
     pub ingress_url: Signal<String>,
 }
 

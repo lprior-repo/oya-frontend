@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
+use oya_frontend::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
 
-use crate::ui::editor_interactions::{NODE_WIDTH, NODE_HEIGHT};
+use crate::ui::editor_interactions::{NODE_HEIGHT, NODE_WIDTH};
 use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox, ParallelGroup};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -111,15 +111,13 @@ fn resolve_edge_anchors_with_parallel(
             let from = get_source_point(source);
             let to = get_target_point(target);
 
-            let group = parallel_groups
-                .iter()
-                .find(|g| {
-                    g.parallel_node_id == edge.source
-                        && g.branch_node_ids.iter().any(|id| *id == edge.target)
-                });
+            let group = parallel_groups.iter().find(|g| {
+                g.parallel_node_id == edge.source && g.branch_node_ids.contains(&edge.target)
+            });
 
             let adjusted_to = group.map_or(to, |g| {
-                let branch_nodes: Vec<Node> = g.branch_node_ids
+                let branch_nodes: Vec<Node> = g
+                    .branch_node_ids
                     .iter()
                     .filter_map(|id| node_by_id.get(id).cloned())
                     .collect();
@@ -234,6 +232,7 @@ fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
     input.clamp(-BEND_CLAMP, BEND_CLAMP)
 }
 
+#[allow(dead_code)]
 fn normalize_bend_delta(page_delta: f32, zoom: f32) -> f32 {
     if !zoom.is_finite() || zoom <= 0.0 {
         return 0.0;
@@ -241,6 +240,7 @@ fn normalize_bend_delta(page_delta: f32, zoom: f32) -> f32 {
     page_delta / zoom
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Rect {
     x: f32,
@@ -253,8 +253,7 @@ struct Rect {
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
-        resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup,
-        Rect,
+        resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup, Rect,
     };
     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
@@ -296,7 +295,7 @@ mod tests {
             target_port: PortName::from("in"),
         }
     }
-    
+
     fn build_node_with_id(id: NodeId, x: f32, y: f32) -> Node {
         let mut node = build_node(id, x, y);
         node.id = id;
@@ -944,7 +943,9 @@ mod tests {
         let target_b1 = build_node(target_b1_id, 300.0, 300.0);
         let target_b2 = build_node(target_b2_id, 300.0, 400.0);
 
-        let nodes = vec![source_a, source_b, target_a1, target_a2, target_b1, target_b2];
+        let nodes = vec![
+            source_a, source_b, target_a1, target_a2, target_b1, target_b2,
+        ];
 
         let conn_a1 = build_connection(Uuid::new_v4(), source_a_id, target_a1_id);
         let conn_a2 = build_connection(Uuid::new_v4(), source_a_id, target_a2_id);
@@ -1034,11 +1035,7 @@ mod tests {
         let source_b = build_parallel_node(source_b_id, 100.0, 300.0);
         let shared_target = build_node(shared_target_id, 300.0, 200.0);
 
-        let nodes = vec![
-            source_a.clone(),
-            source_b.clone(),
-            shared_target.clone(),
-        ];
+        let nodes = vec![source_a.clone(), source_b.clone(), shared_target.clone()];
 
         let conn_a = build_connection(Uuid::new_v4(), source_a_id, shared_target_id);
         let conn_b = build_connection(Uuid::new_v4(), source_b_id, shared_target_id);

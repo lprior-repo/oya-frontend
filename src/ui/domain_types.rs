@@ -1,8 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum HttpMethod {
+    #[default]
     Get,
     Post,
     Put,
@@ -21,10 +22,10 @@ impl HttpMethod {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_str_ignore_case(s: &str) -> Self {
         match s.to_uppercase().as_str() {
             "GET" => Self::Get,
-            "POST" => Self::Post,
             "PUT" => Self::Put,
             "DELETE" => Self::Delete,
             "PATCH" => Self::Patch,
@@ -54,19 +55,15 @@ impl FromStr for HttpMethod {
     }
 }
 
-impl Default for HttpMethod {
-    fn default() -> Self {
-        Self::Post
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum HandleKind {
     Source,
     Target,
 }
 
 impl HandleKind {
+    #[allow(dead_code)]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Source => "source",
@@ -74,6 +71,7 @@ impl HandleKind {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "source" => Some(Self::Source),
@@ -240,7 +238,10 @@ mod tests {
 
     #[test]
     fn given_invalid_http_method_when_parsing_then_defaults_to_post() {
-        assert_eq!(HttpMethod::from_str_ignore_case("invalid"), HttpMethod::Post);
+        assert_eq!(
+            HttpMethod::from_str_ignore_case("invalid"),
+            HttpMethod::Post
+        );
     }
 
     #[test]

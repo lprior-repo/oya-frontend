@@ -633,7 +633,7 @@ fn App() -> Element {
                         if key == "tab" {
                             evt.prevent_default();
                             let shift = evt.modifiers().shift();
-                            if let Some(current_id) = *selection.selected_id().read() {
+                            match *selection.selected_id().read() { Some(current_id) => {
                                 let next_id = if shift {
                                     workflow.upstream_nodes(current_id).first().copied()
                                 } else {
@@ -642,9 +642,9 @@ fn App() -> Element {
                                 if let Some(id) = next_id {
                                     selection.select_single(id);
                                 }
-                            } else if let Some(first_id) = workflow.first_node_id() {
+                            } _ => if let Some(first_id) = workflow.first_node_id() {
                                 selection.select_single(first_id);
-                            }
+                            }}
                             return;
                         }
 

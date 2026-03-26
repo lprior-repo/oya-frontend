@@ -10,14 +10,14 @@
 //! - Green/red dot shows connection health.
 //! - Clicking a row opens `RestateInvocationDetails`.
 
+use crate::hooks::build_restate_config_from_url;
 use crate::hooks::RestateSyncHandle;
 use crate::ui::restate::RestateInvocationDetails;
 use dioxus::prelude::*;
 use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 use oya_frontend::restate_client::RestateClient;
-use crate::hooks::build_restate_config_from_url;
 
-fn status_dot_class(connected: bool) -> &'static str {
+const fn status_dot_class(connected: bool) -> &'static str {
     if connected {
         "w-2 h-2 rounded-full bg-emerald-500"
     } else {
@@ -25,7 +25,7 @@ fn status_dot_class(connected: bool) -> &'static str {
     }
 }
 
-fn invocation_status_label(status: InvocationStatus) -> &'static str {
+const fn invocation_status_label(status: InvocationStatus) -> &'static str {
     match status {
         InvocationStatus::Pending => "pending",
         InvocationStatus::Scheduled => "scheduled",
@@ -38,7 +38,7 @@ fn invocation_status_label(status: InvocationStatus) -> &'static str {
     }
 }
 
-fn status_badge_class(status: InvocationStatus) -> &'static str {
+const fn status_badge_class(status: InvocationStatus) -> &'static str {
     match status {
         InvocationStatus::Running | InvocationStatus::BackingOff => {
             "text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-blue-50 text-blue-700 border-blue-200"

@@ -32,10 +32,10 @@ fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> InteractionMo
     }
 }
 
-fn cursor_class_for(mode: &InteractionMode, cursor_tool: &CursorTool) -> &'static str {
+fn cursor_class_for(mode: &InteractionMode, cursor_tool: CursorTool) -> &'static str {
     match mode {
         InteractionMode::Panning => "cursor-grabbing",
-        InteractionMode::Idle if *cursor_tool == CursorTool::SpaceHand => "cursor-grab",
+        InteractionMode::Idle if cursor_tool == CursorTool::SpaceHand => "cursor-grab",
         _ => "cursor-default",
     }
 }
@@ -123,6 +123,7 @@ impl DragAnchor {
         Self::Active { x, y }
     }
 
+    #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
     }
@@ -150,6 +151,7 @@ impl TempEdge {
         Self::Active { source, target }
     }
 
+    #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
     }
@@ -157,7 +159,7 @@ impl TempEdge {
     pub fn as_positions(&self) -> Option<(FlowPosition, FlowPosition)> {
         match self {
             TempEdge::None => None,
-            TempEdge::Active { source, target } => Some((source.clone(), target.clone())),
+            TempEdge::Active { source, target } => Some((*source, *target)),
         }
     }
 }
@@ -177,6 +179,7 @@ impl HoveredHandle {
         Self::Active { node_id, handle }
     }
 
+    #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
     }
@@ -339,8 +342,8 @@ impl CanvasInteraction {
 
     pub fn cursor_class(&self) -> &'static str {
         let mode = self.mode.read().clone();
-        let cursor_tool = self.cursor_tool.read().clone();
-        cursor_class_for(&mode, &cursor_tool)
+        let cursor_tool = *self.cursor_tool.read();
+        cursor_class_for(&mode, cursor_tool)
     }
 
     pub fn dragging_node_ids(&self) -> Option<Vec<NodeId>> {
@@ -396,8 +399,8 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
 #[cfg(test)]
 mod tests {
     use super::{
-        CanvasPoint, CursorTool, DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
-        cursor_class_for, drag_mode_from_selection, update_marquee_mode,
+        cursor_class_for, drag_mode_from_selection, update_marquee_mode, CanvasPoint, CursorTool,
+        DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
     };
     use oya_frontend::graph::NodeId;
 
@@ -427,7 +430,7 @@ mod tests {
 
     #[test]
     fn given_space_hand_enabled_and_idle_when_getting_cursor_class_then_cursor_grab_is_returned() {
-        let class = cursor_class_for(&InteractionMode::Idle, &CursorTool::SpaceHand);
+        let class = cursor_class_for(&InteractionMode::Idle, CursorTool::SpaceHand);
         assert_eq!(class, "cursor-grab");
     }
 
