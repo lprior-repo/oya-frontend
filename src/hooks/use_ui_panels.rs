@@ -129,7 +129,7 @@ impl PaletteState {
     }
 }
 
-/// Pure state struct for UiPanels - does not require Dioxus runtime.
+/// Pure state struct for `UiPanels` - does not require Dioxus runtime.
 /// All methods are pure state transformations.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiPanelsState {
@@ -139,6 +139,7 @@ pub struct UiPanelsState {
     pub inline_panel: InlinePanelState,
 }
 
+#[allow(dead_code)]
 impl UiPanelsState {
     pub fn settings_open(&self) -> bool {
         self.settings.is_open()
@@ -276,12 +277,12 @@ impl UiPanels {
         }
     }
 
-    fn to_state(&self) -> UiPanelsState {
+    fn as_state(&self) -> UiPanelsState {
         UiPanelsState {
-            settings: (*self.settings.read()).clone(),
-            palette: (*self.palette.read()).clone(),
-            context_menu: (*self.context_menu.read()).clone(),
-            inline_panel: (*self.inline_panel.read()).clone(),
+            settings: *self.settings.read(),
+            palette: self.palette.read().clone(),
+            context_menu: self.context_menu.read().clone(),
+            inline_panel: self.inline_panel.read().clone(),
         }
     }
 
