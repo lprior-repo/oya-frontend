@@ -32,6 +32,8 @@ fn status_to_ui_string(status: InvocationStatus) -> &'static str {
 pub struct RestateInvocationDetailsProps {
     pub invocation: Invocation,
     pub journal: Vec<JournalEntry>,
+    #[props(default)]
+    pub loading: bool,
     pub on_close: EventHandler<()>,
 }
 
@@ -132,7 +134,12 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                             "Journal Entries"
                         }
 
-                        if journal.is_empty() {
+                        if props.loading {
+                            div {
+                                class: "text-gray-500 text-sm",
+                                "Loading journal\u{2026}"
+                            }
+                        } else if journal.is_empty() {
                             div {
                                 class: "text-gray-500 text-sm",
                                 "No journal entries"

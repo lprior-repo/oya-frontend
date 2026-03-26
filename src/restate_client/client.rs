@@ -93,15 +93,20 @@ impl RestateClient {
         let url = format!("{}/query", self.base_url);
         let body = serde_json::json!({ "query": sql });
 
-        let response = self
+        let req = self
             .http_client
             .post(&url)
-            .timeout(std::time::Duration::from_secs(self.timeout_secs))
             .header("Content-Type", "application/json")
-            .json(&body)
+            .json(&body);
+
+        // Browser fetch API does not support per-request timeouts.
+        #[cfg(not(target_arch = "wasm32"))]
+        let req = req.timeout(std::time::Duration::from_secs(self.timeout_secs));
+
+        let response: reqwest::Response = req
             .send()
             .await
-            .map_err(|error: reqwest::Error| {
+            .map_err(|error| {
                 if error.is_timeout() {
                     ClientError::Timeout
                 } else {
@@ -111,7 +116,7 @@ impl RestateClient {
 
         let status = response.status();
         if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
+            let message: String = response.text().await.unwrap_or_default();
             return Err(ClientError::HttpError {
                 status: status.as_u16(),
                 message,

@@ -3,11 +3,9 @@ use crate::restate_client::{InvocationFilter, RestateClient};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
-
 #[cfg(not(target_arch = "wasm32"))]
 async fn sleep_ms(ms: u32) {
-    tokio::time::sleep(Duration::from_millis(ms as u64)).await;
+    tokio::time::sleep(std::time::Duration::from_millis(ms as u64)).await;
 }
 
 #[cfg(target_arch = "wasm32")]

@@ -13,7 +13,8 @@
 use crate::hooks::RestateSyncHandle;
 use crate::ui::restate::RestateInvocationDetails;
 use dioxus::prelude::*;
-use oya_frontend::restate_client::types::{Invocation, InvocationStatus};
+use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
+use oya_frontend::restate_client::{RestateClient, RestateClientConfig};
 
 fn status_dot_class(connected: bool) -> &'static str {
     if connected {
@@ -60,6 +61,8 @@ fn truncate_inv_id(id: &str) -> String {
 pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
     let mut collapsed = use_signal(|| true);
     let mut selected_inv: Signal<Option<Invocation>> = use_signal(|| None);
+    let mut journal: Signal<Vec<JournalEntry>> = use_signal(Vec::new);
+    let mut journal_loading = use_signal(|| false);
 
     let state = handle.state.read();
     let connected = state.connected;
@@ -159,7 +162,20 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
                                             tr {
                                                 key: "{inv.id}",
                                                 class: "cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition-colors",
-                                                onclick: move |_| { selected_inv.set(Some(inv_clone.clone())); },
+                                                onclick: move |_| {
+                                            selected_inv.set(Some(inv_clone.clone()));
+                                            journal.set(vec![]);
+                                            journal_loading.set(true);
+                                            let id = inv_clone.id.clone();
+                                            spawn(async move {
+                                                let client = RestateClient::new(RestateClientConfig::default());
+                                                match client.get_journal(&id).await {
+                                                    Ok(entries) => journal.set(entries),
+                                                    Err(_) => journal.set(vec![]),
+                                                }
+                                                journal_loading.set(false);
+                                            });
+                                        },
 
                                                 td { class: "px-3 py-1.5 font-mono text-[10px] text-slate-600",
                                                     "{inv_id_short}"
@@ -185,8 +201,12 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
         if let Some(inv) = &*selected_inv.read() {
             RestateInvocationDetails {
                 invocation: inv.clone(),
-                journal: vec![],
-                on_close: move |()| { selected_inv.set(None); }
+                journal: journal.read().clone(),
+                loading: *journal_loading.read(),
+                on_close: move |()| {
+                    selected_inv.set(None);
+                    journal.set(vec![]);
+                }
             }
         }
     }
