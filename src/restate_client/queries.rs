@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn list_invocations_query_contains_projection() {
-        let query = SqlQueries::list_invocations(false);
+        let query = SqlQueries::list_invocations(InvocationFilter::ActiveOnly);
         assert!(query.contains("SELECT"));
         assert!(query.contains("target_service_name"));
         assert!(query.contains("last_failure_error_code"));
@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn invocation_queries_share_projection_columns() {
         let queries = [
-            SqlQueries::list_invocations(true),
+            SqlQueries::list_invocations(InvocationFilter::All),
             SqlQueries::invocations_by_status(InvocationStatus::Pending),
             SqlQueries::invocations_for_service("svc"),
             SqlQueries::retrying_invocations(),

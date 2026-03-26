@@ -409,7 +409,8 @@ fn App() -> Element {
                     if result.has_errors() {
                         validation_collapsed.set(false);
                     } else {
-                        workflow.run();
+                        let ingress = restate.ingress_url.read().clone();
+                        workflow.run(ingress);
                     }
                 },
                 on_undo: move |_| {

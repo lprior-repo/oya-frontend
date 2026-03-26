@@ -27,11 +27,11 @@ impl FeedbackLevel {
     }
 
     pub fn is_minimal(&self) -> bool {
-        self.0 == Self::MINIMAL
+        self.0 == Self::MINIMAL.0
     }
 
     pub fn is_transparent(&self) -> bool {
-        self.0 == Self::TRANSPARENT
+        self.0 == Self::TRANSPARENT.0
     }
 
     pub fn name(&self) -> &'static str {

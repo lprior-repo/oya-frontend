@@ -289,6 +289,14 @@ pub struct Workflow {
     pub history: Vec<RunRecord>,
     #[serde(default)]
     pub execution_records: Vec<ExecutionRecord>,
+    /// Base URL for Restate ingress (e.g., "http://localhost:8080").
+    /// Populated at runtime before `run()`; not part of the saved workflow definition.
+    #[serde(default = "default_restate_ingress_url", skip_serializing)]
+    pub restate_ingress_url: String,
+}
+
+fn default_restate_ingress_url() -> String {
+    "http://localhost:8080".to_string()
 }
 
 impl Default for Workflow {

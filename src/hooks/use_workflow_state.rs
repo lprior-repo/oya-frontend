@@ -173,7 +173,8 @@ pub struct WorkflowState {
     viewport: Memo<Viewport>,
 }
 
-async fn run_workflow_detached(mut workflow: Workflow) -> Workflow {
+async fn run_workflow_detached(mut workflow: Workflow, ingress_url: String) -> Workflow {
+    workflow.restate_ingress_url = ingress_url;
     workflow.run().await;
     workflow
 }
@@ -356,13 +357,13 @@ impl WorkflowState {
         self.workflow.write().update_node_position(node_id, dx, dy);
     }
 
-    /// Run the workflow asynchronously
-    pub fn run(self) {
+    /// Run the workflow asynchronously, using `ingress_url` for Restate service calls.
+    pub fn run(self, ingress_url: String) {
         let mut workflow_signal = self.workflow;
         let workflow_snapshot = workflow_signal.read().clone();
 
         spawn(async move {
-            let workflow_result = run_workflow_detached(workflow_snapshot).await;
+            let workflow_result = run_workflow_detached(workflow_snapshot, ingress_url).await;
             let merged = merge_run_result(workflow_signal.read().clone(), workflow_result);
             workflow_signal.set(merged);
         });
@@ -484,7 +485,7 @@ mod tests {
         let mut workflow = Workflow::new();
         let _ = workflow.add_node("http-handler", 0.0, 0.0);
 
-        let updated = run_workflow_detached(workflow).await;
+        let updated = run_workflow_detached(workflow, "http://localhost:8080".to_string()).await;
 
         assert_eq!(updated.history.len(), 1);
         assert!(updated.history[0].success);

@@ -22,7 +22,7 @@ impl Workflow {
     }
 
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
             connections: Vec::new(),
@@ -35,6 +35,7 @@ impl Workflow {
             current_step: 0,
             history: Vec::new(),
             execution_records: Vec::new(),
+            restate_ingress_url: "http://localhost:8080".to_string(),
         }
     }
 

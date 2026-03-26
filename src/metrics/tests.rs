@@ -1,3 +1,4 @@
+use super::model::{SpecId, SpecVersion, SuggestionKey};
 use super::{MetricsStore, SpecValidationMetrics, SuggestionDecision, SuggestionDecisionMetrics};
 use chrono::Utc;
 use std::collections::HashMap;
@@ -17,8 +18,8 @@ fn test_metrics_store_new() {
 fn test_spec_validation_metrics() -> anyhow::Result<()> {
     let metrics = SpecValidationMetrics {
         timestamp: Utc::now(),
-        spec_id: "test-spec".to_string(),
-        spec_version: "1.0.0".to_string(),
+        spec_id: SpecId::new("test-spec"),
+        spec_version: SpecVersion::new("1.0.0"),
         overall_score: 90,
         passed: true,
         category_scores: HashMap::new(),
@@ -40,7 +41,7 @@ fn test_spec_validation_metrics() -> anyhow::Result<()> {
 fn test_suggestion_decision_metrics_roundtrip() -> anyhow::Result<()> {
     let metrics = SuggestionDecisionMetrics {
         timestamp: Utc::now(),
-        suggestion_key: "add-timeout-guard".to_string(),
+        suggestion_key: SuggestionKey::new("add-timeout-guard"),
         decision: SuggestionDecision::Accepted,
         source: "single-apply".to_string(),
     };
@@ -60,7 +61,7 @@ fn test_record_suggestion_decision_persists() -> anyhow::Result<()> {
     let store = MetricsStore::new(temp.path());
     let metrics = SuggestionDecisionMetrics {
         timestamp: Utc::now(),
-        suggestion_key: "add-compensation-branch".to_string(),
+        suggestion_key: SuggestionKey::new("add-compensation-branch"),
         decision: SuggestionDecision::Rejected,
         source: "bulk-clear".to_string(),
     };

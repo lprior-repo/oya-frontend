@@ -131,21 +131,21 @@ pub struct ActionResult {
     pub response_time_ms: u64,
 }
 
-#[derive(Debug, Error, Clone, PartialEq)]
+#[derive(Debug, Error)]
 pub enum ScenarioError {
     #[error("Failed to read scenario file: {0}")]
-    ReadError(#[source] std::io::Error),
+    ReadError(#[from] std::io::Error),
     #[error("Failed to parse YAML: {0}")]
-    ParseError(#[source] serde_yaml::Error),
+    ParseError(#[from] serde_yaml::Error),
     #[error("HTTP request failed: {0}")]
-    HttpError(#[source] reqwest::Error),
+    HttpError(#[from] reqwest::Error),
     #[error("Assertion failed: {0}")]
     AssertionFailed(String),
     #[error("Setup failed: {0}")]
     SetupFailed(String),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ScenarioCategory(String);
 
 impl ScenarioCategory {
@@ -176,7 +176,7 @@ impl std::fmt::Display for ScenarioCategory {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct HttpMethod(String);
 
 impl HttpMethod {

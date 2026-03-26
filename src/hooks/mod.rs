@@ -14,7 +14,7 @@ pub use use_canvas_interaction::{
     use_canvas_interaction,
 };
 pub use use_frozen_mode::{FrozenMode, FrozenModeState, use_frozen_mode};
-pub use use_restate_sync::{RestateState, RestateSyncHandle, use_restate_sync};
+pub use use_restate_sync::{RestateState, RestateSyncHandle, build_restate_config_from_url, use_restate_sync};
 pub use use_selection::{PendingDrag, Selection, use_selection};
 pub use use_sidebar::{DropState, NodeType, SearchQuery, use_sidebar};
 pub use use_ui_panels::{

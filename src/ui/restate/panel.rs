@@ -14,7 +14,8 @@ use crate::hooks::RestateSyncHandle;
 use crate::ui::restate::RestateInvocationDetails;
 use dioxus::prelude::*;
 use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
-use oya_frontend::restate_client::{RestateClient, RestateClientConfig};
+use oya_frontend::restate_client::RestateClient;
+use crate::hooks::build_restate_config_from_url;
 
 fn status_dot_class(connected: bool) -> &'static str {
     if connected {
@@ -118,7 +119,27 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
 
             // Panel body
             if !*collapsed.read() {
-                div { class: "max-h-[220px] overflow-y-auto",
+                // URL config row
+                div { class: "px-3 py-1.5 border-b border-slate-100 flex gap-2 items-center",
+                    div { class: "flex flex-col gap-0.5 flex-1",
+                        label { class: "text-[9px] font-semibold uppercase tracking-wide text-slate-400", "Admin" }
+                        input {
+                            class: "text-[10px] border border-slate-200 rounded px-1.5 py-0.5 w-full font-mono bg-white",
+                            value: "{handle.admin_url.read()}",
+                            oninput: move |e| handle.admin_url.set(e.value()),
+                        }
+                    }
+                    div { class: "flex flex-col gap-0.5 flex-1",
+                        label { class: "text-[9px] font-semibold uppercase tracking-wide text-slate-400", "Ingress" }
+                        input {
+                            class: "text-[10px] border border-slate-200 rounded px-1.5 py-0.5 w-full font-mono bg-white",
+                            value: "{handle.ingress_url.read()}",
+                            oninput: move |e| handle.ingress_url.set(e.value()),
+                        }
+                    }
+                }
+
+                div { class: "max-h-[200px] overflow-y-auto",
 
                     // Error message
                     if let Some(err) = &last_error {
@@ -167,8 +188,10 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
                                             journal.set(vec![]);
                                             journal_loading.set(true);
                                             let id = inv_clone.id.clone();
+                                            let admin_url = handle.admin_url.read().clone();
                                             spawn(async move {
-                                                let client = RestateClient::new(RestateClientConfig::default());
+                                                let config = build_restate_config_from_url(&admin_url);
+                                                let client = RestateClient::new(config);
                                                 match client.get_journal(&id).await {
                                                     Ok(entries) => journal.set(entries),
                                                     Err(_) => journal.set(vec![]),

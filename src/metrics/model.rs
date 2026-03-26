@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 
 use super::errors::MetricsError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpecId(pub String);
 
 impl SpecId {
@@ -57,7 +57,7 @@ impl<'de> Deserialize<'de> for SpecId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SpecVersion(pub String);
 
 impl SpecVersion {
@@ -99,7 +99,7 @@ impl<'de> Deserialize<'de> for SpecVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CategoryName(pub String);
 
 impl CategoryName {
@@ -163,7 +163,7 @@ impl<'de> Deserialize<'de> for CategoryName {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SessionId(pub String);
 
 impl SessionId {
@@ -208,7 +208,7 @@ impl<'de> Deserialize<'de> for SessionId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SuggestionKey(pub String);
 
 impl SuggestionKey {
@@ -371,7 +371,7 @@ impl Default for IterationNumber {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FailureCategoryName(pub String);
 
 impl FailureCategoryName {
@@ -390,7 +390,7 @@ impl std::fmt::Display for FailureCategoryName {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SpecRef(pub String);
 
 impl SpecRef {

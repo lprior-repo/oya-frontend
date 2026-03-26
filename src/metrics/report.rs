@@ -74,7 +74,7 @@ impl MetricsStore {
             for iteration in &session.iterations {
                 if !iteration.overall_passed {
                     if let Some(category) = &iteration.failure_category {
-                        *failure_counts.entry(category.clone()).or_insert(0) += 1;
+                        *failure_counts.entry(category.to_string()).or_insert(0) += 1;
                     }
                 }
             }

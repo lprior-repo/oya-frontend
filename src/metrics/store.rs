@@ -5,7 +5,7 @@ use std::path::Path;
 
 use super::model::{
     MetricsData, MetricsStore, QualityGateIteration, QualityGateSession, ScenarioValidationMetrics,
-    SessionStatus, SpecValidationMetrics, SuggestionDecisionMetrics,
+    SessionId, SessionStatus, SpecId, SpecVersion, SpecValidationMetrics, SuggestionDecisionMetrics,
 };
 
 impl MetricsStore {
@@ -120,7 +120,8 @@ impl MetricsStore {
         spec_id: &str,
         spec_version: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let session_id = uuid::Uuid::new_v4().to_string();
+        let session_id = SessionId::new();
+        let session_id_str = session_id.to_string();
         let timestamp = Utc::now();
 
         {
@@ -130,9 +131,9 @@ impl MetricsStore {
                 .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
             let session = QualityGateSession {
-                session_id: session_id.clone(),
-                spec_id: spec_id.to_string(),
-                spec_version: spec_version.to_string(),
+                session_id,
+                spec_id: SpecId::new(spec_id),
+                spec_version: SpecVersion::new(spec_version),
                 started_at: timestamp,
                 completed_at: None,
                 iterations: Vec::new(),
@@ -145,7 +146,7 @@ impl MetricsStore {
         }
         self.save_data()?;
 
-        Ok(session_id)
+        Ok(session_id_str)
     }
 
     /// Record a quality gate iteration.
@@ -166,7 +167,7 @@ impl MetricsStore {
             if let Some(session) = data
                 .sessions
                 .iter_mut()
-                .find(|s| s.session_id == session_id)
+                .find(|s| s.session_id.as_str() == session_id)
             {
                 let passed = iteration.overall_passed;
                 session.iterations.push(iteration);
@@ -190,7 +191,7 @@ impl MetricsStore {
         let data = self.data.read().ok()?;
         data.sessions
             .iter()
-            .find(|s| s.session_id == session_id)
+            .find(|s| s.session_id.as_str() == session_id)
             .cloned()
     }
 }
