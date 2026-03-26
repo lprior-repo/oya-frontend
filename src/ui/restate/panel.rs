@@ -79,7 +79,10 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
             // Panel header
             button {
                 class: "flex w-full items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors",
-                onclick: move |_| { collapsed.set(!*collapsed.read()); },
+                onclick: move |_| {
+                    let current = *collapsed.read();
+                    collapsed.set(!current);
+                },
 
                 div { class: "flex items-center gap-2",
                     // Collapse chevron

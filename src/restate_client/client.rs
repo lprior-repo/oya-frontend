@@ -66,6 +66,7 @@ pub struct RestateClient {
 }
 
 impl RestateClient {
+    #[must_use]
     pub fn new(config: RestateClientConfig) -> Self {
         let host = if config.host.contains(':')
             && !config.host.starts_with('[')
@@ -84,11 +85,15 @@ impl RestateClient {
         }
     }
 
+    #[must_use]
     pub fn local() -> Self {
         Self::new(RestateClientConfig::default())
     }
 
     /// Execute a raw SQL query.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the response cannot be parsed.
     pub async fn query(&self, sql: &str) -> Result<SqlQueryResponse, ClientError> {
         let url = format!("{}/query", self.base_url);
         let body = serde_json::json!({ "query": sql });
@@ -128,6 +133,9 @@ impl RestateClient {
     }
 
     /// List invocations.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn list_invocations(
         &self,
         filter: InvocationFilter,
@@ -135,21 +143,24 @@ impl RestateClient {
         let sql = SqlQueries::list_invocations(filter);
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "invocation",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_invocation(columns, row),
+            Self::row_to_invocation,
         )
     }
 
     /// Get single invocation detail with journal.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or the invocation is not found.
     pub async fn get_invocation(&self, id: &str) -> Result<InvocationDetail, ClientError> {
         let inv_sql = SqlQueries::invocation(id);
         let inv_response = self.query(&inv_sql).await?;
 
         let invocation = if let Some(row) = inv_response.rows.first() {
-            self.row_to_invocation(&inv_response.columns, row)
+            Self::row_to_invocation(&inv_response.columns, row)
                 .map_err(|error| {
                     ClientError::InvalidResponse(format!("invocation row 0: {error}"))
                 })?
@@ -161,11 +172,11 @@ impl RestateClient {
 
         let journal_sql = SqlQueries::journal(id);
         let journal_response = self.query(&journal_sql).await?;
-        let journal = self.map_rows(
+        let journal = Self::map_rows(
             "journal",
             &journal_response.columns,
             &journal_response.rows,
-            |columns, row| self.row_to_journal_entry(columns, row),
+            Self::row_to_journal_entry,
         )?;
 
         Ok(InvocationDetail {
@@ -175,19 +186,25 @@ impl RestateClient {
     }
 
     /// Get journal entries for an invocation.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn get_journal(&self, id: &str) -> Result<Vec<JournalEntry>, ClientError> {
         let sql = SqlQueries::journal(id);
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "journal",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_journal_entry(columns, row),
+            Self::row_to_journal_entry,
         )
     }
 
     /// Get journal events since index.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn get_journal_events(
         &self,
         id: &str,
@@ -196,15 +213,18 @@ impl RestateClient {
         let sql = SqlQueries::journal_events_since(id, since_index);
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "journal_event",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_journal_event(columns, row),
+            Self::row_to_journal_event,
         )
     }
 
     /// Get service state.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn get_service_state(
         &self,
         service_name: &str,
@@ -212,54 +232,66 @@ impl RestateClient {
         let sql = SqlQueries::service_state(service_name);
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "state",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_state_entry(columns, row),
+            Self::row_to_state_entry,
         )
     }
 
     /// List services.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn list_services(&self) -> Result<Vec<ServiceInfo>, ClientError> {
         let sql = SqlQueries::services();
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "service",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_service_info(columns, row),
+            Self::row_to_service_info,
         )
     }
 
     /// List deployments.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn list_deployments(&self) -> Result<Vec<DeploymentInfo>, ClientError> {
         let sql = SqlQueries::deployments();
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "deployment",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_deployment_info(columns, row),
+            Self::row_to_deployment_info,
         )
     }
 
     /// Get keyed service status (blocking invocations).
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
     pub async fn get_keyed_service_status(&self) -> Result<Vec<KeyedServiceStatus>, ClientError> {
         let sql = SqlQueries::keyed_service_status();
         let response = self.query(&sql).await?;
 
-        self.map_rows(
+        Self::map_rows(
             "keyed_status",
             &response.columns,
             &response.rows,
-            |columns, row| self.row_to_keyed_status(columns, row),
+            Self::row_to_keyed_status,
         )
     }
 
     /// Health check - try to query the API.
+    ///
+    /// # Errors
+    /// Returns an error if the server returns an unexpected error response.
     pub async fn health_check(&self) -> Result<bool, ClientError> {
         let sql = "SELECT 1";
         match self.query(sql).await {
@@ -270,7 +302,6 @@ impl RestateClient {
     }
 
     fn map_rows<T, F>(
-        &self,
         entity: &str,
         columns: &[String],
         rows: &[Vec<Value>],
@@ -290,7 +321,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to Invocation.
-    fn row_to_invocation(&self, columns: &[String], row: &[Value]) -> Result<Invocation, String> {
+    fn row_to_invocation(columns: &[String], row: &[Value]) -> Result<Invocation, String> {
         let target_service_ty_raw = Self::required_string(columns, row, "target_service_ty")?;
         let status_raw = Self::required_string(columns, row, "status")?;
         let invoked_by_raw = Self::required_string(columns, row, "invoked_by")?;
@@ -329,7 +360,6 @@ impl RestateClient {
 
     // Helper: Convert row to JournalEntry.
     fn row_to_journal_entry(
-        &self,
         columns: &[String],
         row: &[Value],
     ) -> Result<JournalEntry, String> {
@@ -356,7 +386,6 @@ impl RestateClient {
 
     // Helper: Convert row to JournalEvent.
     fn row_to_journal_event(
-        &self,
         columns: &[String],
         row: &[Value],
     ) -> Result<JournalEvent, String> {
@@ -373,7 +402,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to StateEntry.
-    fn row_to_state_entry(&self, columns: &[String], row: &[Value]) -> Result<StateEntry, String> {
+    fn row_to_state_entry(columns: &[String], row: &[Value]) -> Result<StateEntry, String> {
         Ok(StateEntry {
             service_name: Self::required_string(columns, row, "service_name")?,
             service_key: Self::optional_string(columns, row, "service_key")?,
@@ -385,7 +414,6 @@ impl RestateClient {
 
     // Helper: Convert row to ServiceInfo.
     fn row_to_service_info(
-        &self,
         columns: &[String],
         row: &[Value],
     ) -> Result<ServiceInfo, String> {
@@ -402,7 +430,6 @@ impl RestateClient {
 
     // Helper: Convert row to DeploymentInfo.
     fn row_to_deployment_info(
-        &self,
         columns: &[String],
         row: &[Value],
     ) -> Result<DeploymentInfo, String> {
@@ -419,7 +446,6 @@ impl RestateClient {
 
     // Helper: Convert row to KeyedServiceStatus.
     fn row_to_keyed_status(
-        &self,
         columns: &[String],
         row: &[Value],
     ) -> Result<KeyedServiceStatus, String> {
@@ -715,7 +741,7 @@ mod tests {
         let columns = invocation_columns();
         let row = invocation_row("unknown-status", 10);
 
-        let parsed = client.row_to_invocation(&columns, &row);
+        let parsed = RestateClient::row_to_invocation(&columns, &row);
         assert!(matches!(
             parsed,
             Err(message) if message.contains("unknown invocation status")
@@ -728,7 +754,7 @@ mod tests {
         let columns = invocation_columns();
         let row = invocation_row("running", u64::from(u32::MAX) + 1);
 
-        let parsed = client.row_to_invocation(&columns, &row);
+        let parsed = RestateClient::row_to_invocation(&columns, &row);
         assert!(matches!(
             parsed,
             Err(message) if message.contains("journal_size out of range")
@@ -757,7 +783,7 @@ mod tests {
             ]),
         ];
 
-        let parsed = client.row_to_state_entry(&columns, &row);
+        let parsed = RestateClient::row_to_state_entry(&columns, &row);
         assert!(matches!(
             parsed,
             Ok(entry) if entry.value == Some(vec![0_u8, 127_u8, 255_u8])
@@ -771,9 +797,7 @@ mod tests {
         let rows = vec![invocation_row("running", 1), invocation_row("invalid", 1)];
 
         let parsed: Result<Vec<Invocation>, ClientError> =
-            client.map_rows("invocation", &columns, &rows, |row_columns, row| {
-                client.row_to_invocation(row_columns, row)
-            });
+            RestateClient::map_rows("invocation", &columns, &rows, RestateClient::row_to_invocation);
 
         assert!(matches!(
             parsed,

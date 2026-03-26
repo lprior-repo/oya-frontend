@@ -1,4 +1,4 @@
-use oya_frontend::graph::{ExecutionState, Node, NodeCategory, NodeId, Viewport, Workflow};
+use oya_frontend::graph::{Node, Viewport, Workflow};
 use oya_frontend::graph::workflow_node::{WorkflowNode, HttpHandlerConfig, RunConfig, ConditionConfig};
 
 pub fn default_workflow() -> Workflow {
@@ -41,6 +41,7 @@ pub fn default_workflow() -> Workflow {
         current_step: 0,
         history: vec![],
         execution_records: vec![],
+        restate_ingress_url: "http://localhost:8080".to_string(),
     }
 }
 

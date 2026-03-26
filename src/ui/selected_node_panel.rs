@@ -814,7 +814,7 @@ fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_jso
 #[cfg(not(target_arch = "wasm32"))]
 fn record_suggestion_decision(key: &str, accepted: bool, source: &str) {
     use chrono::Utc;
-    use oya_frontend::metrics::{SuggestionDecision, SuggestionDecisionMetrics};
+    use oya_frontend::metrics::{SuggestionDecision, SuggestionDecisionMetrics, SuggestionKey};
     use oya_frontend::MetricsStore;
     use std::path::Path;
 
@@ -825,7 +825,7 @@ fn record_suggestion_decision(key: &str, accepted: bool, source: &str) {
     };
     let metrics = SuggestionDecisionMetrics {
         timestamp: Utc::now(),
-        suggestion_key: key.to_string(),
+        suggestion_key: SuggestionKey(key.to_string()),
         decision,
         source: source.to_string(),
     };
@@ -891,11 +891,7 @@ fn push_timeline(
         message,
         metadata,
     }];
-    new_timeline.extend(
-        timeline
-            .into_iter()
-            .take(11),
-    );
+    new_timeline.extend(timeline.into_iter().take(11));
     new_timeline
 }
 
@@ -949,11 +945,7 @@ fn remember_extension_snapshot(
         workflow_before,
     };
     let mut new_snapshots = vec![snapshot];
-    new_snapshots.extend(
-        snapshots
-            .into_iter()
-            .take(23),
-    );
+    new_snapshots.extend(snapshots.into_iter().take(23));
 
     (
         new_snapshots,

@@ -118,13 +118,11 @@ impl Workflow {
         source: NodeId,
         target: NodeId,
     ) -> Result<(), ConnectionError> {
-        let source_node = match nodes.iter().find(|n| n.id == source) {
-            Some(node) => node,
-            None => return Err(ConnectionError::MissingSourceNode(source)),
+        let Some(source_node) = nodes.iter().find(|n| n.id == source) else {
+            return Err(ConnectionError::MissingSourceNode(source));
         };
-        let target_node = match nodes.iter().find(|n| n.id == target) {
-            Some(node) => node,
-            None => return Err(ConnectionError::MissingTargetNode(target)),
+        let Some(target_node) = nodes.iter().find(|n| n.id == target) else {
+            return Err(ConnectionError::MissingTargetNode(target));
         };
 
         let source_type = Self::get_node_output_port_type(source_node);

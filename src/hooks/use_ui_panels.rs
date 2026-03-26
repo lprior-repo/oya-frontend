@@ -135,10 +135,38 @@ pub struct UiPanels {
     palette: Signal<PaletteState>,
     context_menu: Signal<ContextMenuState>,
     inline_panel: Signal<InlinePanelState>,
+    settings_open_memo: Memo<bool>,
+    palette_open_memo: Memo<bool>,
+    palette_query_memo: Memo<String>,
 }
 
 #[allow(dead_code)]
 impl UiPanels {
+    #[cfg(test)]
+    pub fn new_for_test() -> Self {
+        Self {
+            settings: Signal::new(PanelState::Closed),
+            palette: Signal::new(PaletteState::default()),
+            context_menu: Signal::new(ContextMenuState::Hidden),
+            inline_panel: Signal::new(InlinePanelState::Closed),
+            settings_open_memo: Memo::new(|| false),
+            palette_open_memo: Memo::new(|| false),
+            palette_query_memo: Memo::new(|| String::new()),
+        }
+    }
+
+    pub fn settings_open(&self) -> ReadSignal<bool> {
+        self.settings_open_memo.into()
+    }
+
+    pub fn palette_open(&self) -> ReadSignal<bool> {
+        self.palette_open_memo.into()
+    }
+
+    pub fn palette_query(&self) -> ReadSignal<String> {
+        self.palette_query_memo.into()
+    }
+
     pub fn settings(&self) -> ReadSignal<PanelState> {
         self.settings.into()
     }
@@ -251,12 +279,18 @@ pub fn use_ui_panels() -> UiPanels {
     let palette = use_signal(PaletteState::default);
     let context_menu = use_signal(ContextMenuState::default);
     let inline_panel = use_signal(InlinePanelState::default);
+    let settings_open_memo = use_memo(move || settings.read().is_open());
+    let palette_open_memo = use_memo(move || palette.read().visibility.is_open());
+    let palette_query_memo = use_memo(move || palette.read().query.clone());
 
     UiPanels {
         settings,
         palette,
         context_menu,
         inline_panel,
+        settings_open_memo,
+        palette_open_memo,
+        palette_query_memo,
     }
 }
 
@@ -265,17 +299,10 @@ mod tests {
     use super::{
         ContextMenuState, InlinePanelState, MenuPosition, PaletteState, PanelState, UiPanels,
     };
-    use dioxus::prelude::*;
-    use dioxus::signals::Signal;
     use oya_frontend::graph::NodeId;
 
     fn create_test_state() -> UiPanels {
-        UiPanels {
-            settings: Signal::new(PanelState::Closed),
-            palette: Signal::new(PaletteState::default()),
-            context_menu: Signal::new(ContextMenuState::Hidden),
-            inline_panel: Signal::new(InlinePanelState::Closed),
-        }
+        UiPanels::new_for_test()
     }
 
     #[test]

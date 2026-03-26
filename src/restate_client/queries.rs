@@ -16,6 +16,7 @@ pub struct SqlQueries;
 
 impl SqlQueries {
     /// List all invocations.
+    #[must_use]
     pub fn list_invocations(filter: InvocationFilter) -> String {
         if filter.include_completed() {
             format!("SELECT {INVOCATION_PROJECTION} FROM sys_invocation ORDER BY created_at DESC")
@@ -27,6 +28,7 @@ impl SqlQueries {
     }
 
     /// Get single invocation by ID.
+    #[must_use]
     pub fn invocation(id: &str) -> String {
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE id = '{}'",
@@ -35,6 +37,7 @@ impl SqlQueries {
     }
 
     /// Get invocations by status.
+    #[must_use]
     pub fn invocations_by_status(status: InvocationStatus) -> String {
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status = '{}' ORDER BY created_at DESC",
@@ -43,6 +46,7 @@ impl SqlQueries {
     }
 
     /// Get journal entries for an invocation (ordered by index).
+    #[must_use]
     pub fn journal(invocation_id: &str) -> String {
         format!(
             "SELECT id, index, entry_type, name, completed, invoked_id, invoked_target, sleep_wakeup_at, promise_name, entry_json, entry_lite_json, appended_at FROM sys_journal WHERE id = '{}' ORDER BY index",
@@ -51,6 +55,7 @@ impl SqlQueries {
     }
 
     /// Get journal events since a given index.
+    #[must_use]
     pub fn journal_events_since(invocation_id: &str, since_index: u32) -> String {
         format!(
             "SELECT id, after_journal_entry_index, appended_at, event_type, event_json FROM sys_journal_events WHERE id = '{}' AND after_journal_entry_index > {} ORDER BY appended_at",
@@ -60,6 +65,7 @@ impl SqlQueries {
     }
 
     /// Get all state for a service.
+    #[must_use]
     pub fn service_state(service_name: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, value_utf8, value FROM state WHERE service_name = '{}'",
@@ -68,6 +74,7 @@ impl SqlQueries {
     }
 
     /// Get state for a specific key.
+    #[must_use]
     pub fn keyed_state(service_name: &str, service_key: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, value_utf8, value FROM state WHERE service_name = '{}' AND service_key = '{}'",
@@ -77,23 +84,27 @@ impl SqlQueries {
     }
 
     /// List all services.
+    #[must_use]
     pub fn services() -> String {
         "SELECT name, ty, revision, public, deployment_id FROM sys_service ORDER BY name"
             .to_string()
     }
 
     /// List all deployments.
+    #[must_use]
     pub fn deployments() -> String {
         "SELECT id, ty, endpoint, created_at FROM sys_deployment ORDER BY created_at DESC"
             .to_string()
     }
 
     /// Get keyed service status (blocking invocations).
+    #[must_use]
     pub fn keyed_service_status() -> String {
         "SELECT service_name, service_key, invocation_id FROM sys_keyed_service_status".to_string()
     }
 
     /// Get promises for a workflow.
+    #[must_use]
     pub fn promises(service_name: &str, service_key: &str) -> String {
         format!(
             "SELECT service_name, service_key, key, completed, completion_success_value, completion_failure FROM sys_promise WHERE service_name = '{}' AND service_key = '{}'",
@@ -103,6 +114,7 @@ impl SqlQueries {
     }
 
     /// Get invocations for a specific service.
+    #[must_use]
     pub fn invocations_for_service(service_name: &str) -> String {
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE target_service_name = '{}' ORDER BY created_at DESC",
@@ -111,6 +123,7 @@ impl SqlQueries {
     }
 
     /// Get invocations in backing-off status (retries).
+    #[must_use]
     pub fn retrying_invocations() -> String {
         format!(
             "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status = 'backing-off' ORDER BY modified_at"
@@ -118,17 +131,10 @@ impl SqlQueries {
     }
 
     /// Get oldest stuck invocations using an absolute cutoff timestamp in epoch ms.
-    /// Panics if cutoff_epoch_ms is negative.
-    pub fn stuck_invocations(cutoff_epoch_ms: i64) -> String {
-        if cutoff_epoch_ms < 0 {
-            panic!(
-                "cutoff_epoch_ms must be non-negative, got {}",
-                cutoff_epoch_ms
-            );
-        }
+    #[must_use]
+    pub fn stuck_invocations(cutoff_epoch_ms: u64) -> String {
         format!(
-            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {} ORDER BY modified_at, created_at",
-            cutoff_epoch_ms
+            "SELECT {INVOCATION_PROJECTION} FROM sys_invocation WHERE status IN ('pending', 'scheduled', 'suspended') AND modified_at <= {cutoff_epoch_ms} ORDER BY modified_at, created_at"
         )
     }
 }

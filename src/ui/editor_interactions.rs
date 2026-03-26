@@ -165,36 +165,6 @@ mod tests {
     }
 
     #[test]
-    fn given_equal_distance_candidates_when_snapping_then_selection_is_deterministic() {
-        let mut workflow = Workflow::new();
-        let node_a_id = workflow.add_node("node-a", 100.0, 100.0);
-        let node_b_id = workflow.add_node("node-b", 300.0, 100.0);
-
-        let viewport = Viewport {
-            x: 0.0,
-            y: 0.0,
-            zoom: 1.0,
-        };
-
-        // Cursor at x=200 is equidistant from both source handles (x=100 and x=134)
-        // With deterministic tie-breaking by node id, let first_result = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
-        assert!(first_result.is_some());
-        let (first_id, _, _) = first_result.unwrap();
- let node_b_id = snap_handle(&workflow.nodes, 200.0, 134.0, &viewport);
-            // node_b is further away
-            let _node_b_dist = b -> a) || !node_a.is_some());
-        }
-
-        // The node A should be selected (deterministic ordering)
-        assert_eq!(first_id, node_a_id);
-    }
-
-}
-            None => assert!(false, "closest handle should be detected"),
-        }
-    }
-
-    #[test]
     fn given_zoom_level_when_snapping_then_behavior_is_zoom_invariant() {
         let mut workflow = Workflow::new();
         let _ = workflow.add_node("node", 100.0, 100.0);

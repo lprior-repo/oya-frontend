@@ -5,8 +5,7 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::panel_types::{
-    CollapseState, InvocationStatus,
-    chevron_rotation_class, panel_height_class,
+    chevron_rotation_class, panel_height_class, CollapseState, InvocationStatus,
 };
 use dioxus::prelude::*;
 use oya_frontend::graph::{ExecutionState, Node, NodeId, Workflow};
@@ -222,7 +221,9 @@ fn QueueItem(
     let label = node
         .as_ref()
         .map_or_else(|| "Unknown".to_string(), |n| n.name.clone());
-    let status = node.as_ref().map_or(InvocationStatus::Queued, node_invocation_status);
+    let status = node
+        .as_ref()
+        .map_or(InvocationStatus::Queued, node_invocation_status);
     let active_class = if is_current {
         "ring-1 ring-indigo-300 bg-indigo-50"
     } else {
@@ -275,7 +276,9 @@ fn LayerNodeItem(
     let label = node
         .as_ref()
         .map_or_else(|| "Unknown".to_string(), |n| n.name.clone());
-    let status = node.as_ref().map_or(InvocationStatus::Queued, node_invocation_status);
+    let status = node
+        .as_ref()
+        .map_or(InvocationStatus::Queued, node_invocation_status);
     let badge = status_badge_classes(status);
 
     rsx! {
@@ -300,18 +303,18 @@ fn UnscheduledSection(
             p { class: "text-[10px] font-semibold text-amber-800 uppercase tracking-wide", "Unscheduled" }
             p { class: "text-[10px] text-amber-700 mt-0.5", "Cycle or blocked dependency detected." }
             div { class: "mt-1 space-y-1",
-                for node_id in &unscheduled {
+                for node_id in unscheduled.iter().cloned() {
                     {
                         let label = nodes_by_id
                             .read()
-                            .get(node_id)
+                            .get(&node_id)
                             .map_or_else(|| "Unknown".to_string(), |n| n.name.clone());
 
                         rsx! {
                             button {
                                 class: "w-full rounded bg-white/70 px-2 py-1 text-left text-[10px] text-amber-900 hover:bg-white",
                                 key: "unsched-{node_id}",
-                                onclick: move |_| on_select_node.call(*node_id),
+                                onclick: move |_| on_select_node.call(node_id),
                                 "{label}"
                             }
                         }

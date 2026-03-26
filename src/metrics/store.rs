@@ -5,7 +5,8 @@ use std::path::Path;
 
 use super::model::{
     MetricsData, MetricsStore, QualityGateIteration, QualityGateSession, ScenarioValidationMetrics,
-    SessionId, SessionStatus, SpecId, SpecVersion, SpecValidationMetrics, SuggestionDecisionMetrics,
+    SessionId, SessionStatus, SpecId, SpecValidationMetrics, SpecVersion,
+    SuggestionDecisionMetrics,
 };
 
 impl MetricsStore {
@@ -132,8 +133,9 @@ impl MetricsStore {
 
             let session = QualityGateSession {
                 session_id,
-                spec_id: SpecId::new(spec_id),
-                spec_version: SpecVersion::new(spec_version),
+                spec_id: SpecId::new(spec_id).map_err(|e| format!("Invalid spec_id: {e}"))?,
+                spec_version: SpecVersion::new(spec_version)
+                    .map_err(|e| format!("Invalid spec_version: {e}"))?,
                 started_at: timestamp,
                 completed_at: None,
                 iterations: Vec::new(),

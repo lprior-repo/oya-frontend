@@ -5,8 +5,8 @@
 #![forbid(unsafe_code)]
 
 use crate::ui::panel_types::{
-    CollapseState, RunOutcome, PayloadShape,
-    chevron_rotation_class, outcome_badge_style, outcome_icon_class, panel_height_class,
+    CollapseState, RunOutcome,
+    chevron_rotation_class, panel_height_class,
 };
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, RunRecord};

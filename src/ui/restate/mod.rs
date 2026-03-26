@@ -14,5 +14,4 @@ pub mod journal_viewer;
 pub mod panel;
 
 pub use details_panel::RestateInvocationDetails;
-pub use journal_viewer::RestateJournalViewer;
 pub use panel::RestateInvocationsPanel;

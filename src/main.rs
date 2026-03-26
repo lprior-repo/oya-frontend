@@ -8,7 +8,7 @@ use crate::ui::{
     CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap,
     FlowNodeComponent, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar,
     ParallelGroupOverlay, PayloadPreviewPanel, PrototypePalette, RunStatusBar, SelectedNodePanel,
-    ValidationPanel,
+    ValidationPanel, NodeTemplateId,
 };
 use crate::ui::restate::RestateInvocationsPanel;
 use dioxus::html::input_data::MouseButton;
@@ -272,11 +272,11 @@ fn App() -> Element {
     let temp_edge = use_memo(move || {
         let mode = canvas.mode().read().clone();
         if let crate::hooks::InteractionMode::Connecting { from, handle } = mode {
-            let to = *canvas.temp_edge_to().read();
+            let to = canvas.temp_edge().read().as_positions();
             if let Some((to_pos, _)) = to {
                 let node = nodes_by_id.read().get(&from).cloned();
                 node.map(|n| {
-                    let from_pos = if handle == "source" {
+                    let from_pos = if handle.as_str() == "source" {
                         FlowPosition {
                             x: n.x + 220.0,
                             y: n.y + 34.0,
@@ -471,10 +471,10 @@ fn App() -> Element {
                 query: panels.palette_query(),
                 on_query_change: move |value| panels.set_palette_query(value),
                 on_close: move |()| panels.close_palette(),
-                on_pick: move |node_type| {
+                on_pick: move |node_type: NodeTemplateId| {
                     let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
                         .map_or((1280.0, 760.0), std::convert::identity);
-                    workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
+                    workflow.add_node_at_viewport_center_with_canvas(node_type.as_str(), canvas_w, canvas_h);
                     panels.close_palette();
                 }
             }
@@ -482,18 +482,18 @@ fn App() -> Element {
             PrototypePalette {
                 open: ReadSignal::from(use_memo(move || *prototype_open.read())),
                 on_close: move |()| prototype_open.set(false),
-                on_add_node: move |node_type| {
+                on_add_node: move |node_type: NodeTemplateId| {
                     let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
                         .map_or((1280.0, 760.0), std::convert::identity);
-                    workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
+                    workflow.add_node_at_viewport_center_with_canvas(node_type.as_str(), canvas_w, canvas_h);
                     prototype_open.set(false);
                 }
             }
 
             CanvasContextMenu {
-                open: panels.context_menu().read().open,
-                x: panels.context_menu().read().x,
-                y: panels.context_menu().read().y,
+                open: ReadSignal::from(use_memo(move || panels.context_menu().read().is_visible())),
+                x: ReadSignal::from(use_memo(move || panels.context_menu().read().position().map_or(0.0, |p| p.x))),
+                y: ReadSignal::from(use_memo(move || panels.context_menu().read().position().map_or(0.0, |p| p.y))),
                 on_close: move |_| panels.close_context_menu(),
                 on_add_node: move |_| {
                     panels.close_context_menu();
@@ -511,7 +511,7 @@ fn App() -> Element {
 
             div { class: "flex flex-1 overflow-hidden",
                 NodeSidebar {
-                    search: sidebar.search(),
+                    search: ReadSignal::from(use_memo(move || sidebar.search().read().as_str().to_string())),
                     on_search_change: move |value| sidebar.set_search(value),
                     on_pickup_node: move |node_type: &'static str| {
                         sidebar.pickup_node(node_type);
@@ -698,7 +698,9 @@ fn App() -> Element {
                     onwheel: move |evt| {
                         evt.prevent_default();
                         let page = evt.page_coordinates();
-                        let (origin_x, origin_y) = *canvas.canvas_origin().read();
+                        let origin = *canvas.canvas_origin().read();
+                        let origin_x = origin.x;
+                        let origin_y = origin.y;
                         #[allow(clippy::cast_possible_truncation)]
                         let delta = -evt.delta().strip_units().y as f32 * 0.001;
                         #[allow(clippy::cast_possible_truncation)]
@@ -711,13 +713,17 @@ fn App() -> Element {
                     },
                     onmousemove: move |evt| {
                         let page = evt.page_coordinates();
-                        let (origin_x, origin_y) = *canvas.canvas_origin().read();
+                        let origin = *canvas.canvas_origin().read();
+                        let origin_x = origin.x;
+                        let origin_y = origin.y;
                         #[allow(clippy::cast_possible_truncation)]
                         let (mx, my) = (page.x as f32 - origin_x, page.y as f32 - origin_y);
                         if !mx.is_finite() || !my.is_finite() {
                             return;
                         }
-                        let (lx, ly) = *canvas.mouse_pos().read();
+                        let mouse_pos = *canvas.mouse_pos().read();
+                        let lx = mouse_pos.x;
+                        let ly = mouse_pos.y;
                         let dx = mx - lx;
                         let dy = my - ly;
                         canvas.update_mouse((mx, my));
@@ -844,9 +850,9 @@ fn App() -> Element {
                     },
                     onmouseup: move |evt| {
                         let from = canvas.connecting_from();
-                        let over = canvas.hovered_handle().read().clone();
+                        let over = canvas.hovered_handle().read().as_tuple();
                         let is_dragging = canvas.is_dragging();
-                        let pending_drop = sidebar.pending_drop().read().clone();
+                        let pending_drop = sidebar.pending_drop();
                         let mut should_clear_selection = false;
 
                         if let Some((start, end)) = canvas.marquee_rect() {
@@ -878,7 +884,9 @@ fn App() -> Element {
                         } else if !is_dragging && !canvas.is_marquee() {
                             if let Some(node_type) = pending_drop {
                                 let coords = evt.page_coordinates();
-                                let (origin_x, origin_y) = *canvas.canvas_origin().read();
+                        let origin = *canvas.canvas_origin().read();
+                        let origin_x = origin.x;
+                        let origin_y = origin.y;
                                 #[allow(clippy::cast_possible_truncation)]
                                 let mx = coords.x as f32 - origin_x;
                                 #[allow(clippy::cast_possible_truncation)]
@@ -888,7 +896,7 @@ fn App() -> Element {
                                     if crate::ui::interaction_guards::is_valid_zoom(current_vp.zoom) {
                                         let canvas_x = (mx - current_vp.x) / current_vp.zoom - 110.0;
                                         let canvas_y = (my - current_vp.y) / current_vp.zoom - 34.0;
-                                        workflow.add_node(&node_type, canvas_x, canvas_y);
+                                        workflow.add_node(node_type.as_str(), canvas_x, canvas_y);
                                     }
                                 }
                             }
@@ -940,7 +948,7 @@ fn App() -> Element {
                             let has_pending_drop = sidebar.has_pending_drop();
                             if matches!(trigger_button, Some(MouseButton::Auxiliary))
                                 || (matches!(trigger_button, Some(MouseButton::Primary))
-                                    && *canvas.is_space_hand().read())
+                                    && canvas.is_space_hand_active())
                             {
                                 canvas.start_pan();
                             } else if matches!(trigger_button, Some(MouseButton::Primary))
@@ -1032,7 +1040,7 @@ fn App() -> Element {
                                              if evt.trigger_button() != Some(MouseButton::Primary) {
                                                  return;
                                              }
-                                             if *canvas_clone.is_space_hand().read() {
+                                              if canvas_clone.is_space_hand_active() {
                                                  return;
                                              }
                                              evt.stop_propagation();
@@ -1228,6 +1236,7 @@ fn App() -> Element {
                     selected_node_id: selection.selected_id(),
                     nodes_by_id,
                     workflow: workflow.workflow(),
+                    on_close: move |_| selection.clear(),
                 }
             }
 
@@ -1276,6 +1285,7 @@ pub struct KeyModifiers {
 
 /// Parse a keyboard event into an optional editor command.
 /// Returns `None` for keys that don't map to editor commands or lack required modifiers.
+#[must_use]
 pub fn parse_key_event(key: &str, modifiers: &KeyModifiers) -> Option<EditorCommand> {
     match key {
         // Zoom commands - no modifiers required

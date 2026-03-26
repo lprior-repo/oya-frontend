@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
+use oya_frontend::graph::{Connection, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
 

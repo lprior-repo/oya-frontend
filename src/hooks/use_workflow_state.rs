@@ -390,7 +390,7 @@ impl WorkflowState {
     }
 
     /// Move a node by a delta amount (for keyboard navigation)
-    pub fn move_node_by(mut self, node_id: NodeId, dx: f32, dy: f32) {
+    pub fn move_node_by(self, node_id: NodeId, dx: f32, dy: f32) {
         self.update_node_position(node_id, dx, dy);
     }
 

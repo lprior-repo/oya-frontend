@@ -4,7 +4,7 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-use crate::ui::panel_types::{CollapseState, PayloadShape, chevron_rotation_class};
+use crate::ui::panel_types::PayloadShape;
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, Workflow};
 use std::collections::HashMap;
@@ -69,9 +69,10 @@ fn PayloadItem(payload: serde_json::Value, index: usize, label: String) -> Eleme
 
 #[component]
 pub fn PayloadPreviewPanel(
-    selected_node_id: Signal<Option<NodeId>>,
+    selected_node_id: ReadSignal<Option<NodeId>>,
     nodes_by_id: ReadSignal<HashMap<NodeId, oya_frontend::graph::Node>>,
     workflow: Signal<Workflow>,
+    on_close: EventHandler<MouseEvent>,
 ) -> Element {
     let mut active_tab: Signal<PayloadTab> = use_signal(|| PayloadTab::Input);
 
@@ -109,7 +110,7 @@ pub fn PayloadPreviewPanel(
                 }
                 button {
                     class: "flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900",
-                    onclick: move |_| selected_node_id.set(None),
+                    onclick: move |evt| on_close.call(evt),
                     crate::ui::icons::XIcon { class: "h-3.5 w-3.5" }
                 }
             }

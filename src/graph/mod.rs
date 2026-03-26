@@ -154,7 +154,7 @@ impl Node {
     }
 
     fn should_apply_alias(config_object: &Map<String, Value>, target: &str) -> bool {
-        config_object.get(target).map_or(true, Value::is_null)
+        config_object.get(target).is_none_or(Value::is_null)
     }
 
     fn normalize_config_aliases(config: &Value) -> Value {
@@ -241,7 +241,7 @@ impl Node {
         }
     }
 
-    pub fn set_selected(&mut self, selected: bool) {
+    pub const fn set_selected(&mut self, selected: bool) {
         self.selected = selected;
     }
 }
@@ -289,7 +289,7 @@ pub struct Workflow {
     pub history: Vec<RunRecord>,
     #[serde(default)]
     pub execution_records: Vec<ExecutionRecord>,
-    /// Base URL for Restate ingress (e.g., "http://localhost:8080").
+    /// Base URL for Restate ingress (e.g., `<http://localhost:8080>`).
     /// Populated at runtime before `run()`; not part of the saved workflow definition.
     #[serde(default = "default_restate_ingress_url", skip_serializing)]
     pub restate_ingress_url: String,

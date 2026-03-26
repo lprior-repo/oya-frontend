@@ -2,7 +2,6 @@ use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
 use oya_frontend::graph::workflow_node::WorkflowNode;
 use std::collections::HashMap;
-use std::str::FromStr;
 
 const NODE_WIDTH: f32 = 220.0;
 const NODE_HEIGHT: f32 = 68.0;

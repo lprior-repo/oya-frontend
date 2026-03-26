@@ -1,44 +1,48 @@
 use thiserror::Error;
 
-use crate::graph::NodeId;
+use oya_frontend::graph::NodeId;
 
 pub type AppResult<T> = Result<T, AppError>;
 
-#[derive(Debug, Error, Clone, PartialEq)]
+#[derive(Debug, Error)]
 pub enum AppError {
     #[error("Workflow error: {0}")]
     Workflow(#[source] WorkflowError),
-    
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Linter error: {0}")]
-    Linter(#[source] crate::linter::LintError),
-    
+    Linter(#[source] oya_frontend::linter::LintError),
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Scenario runner error: {0}")]
-    ScenarioRunner(#[source] crate::scenario_runner::ScenarioError),
-    
+    ScenarioRunner(#[source] oya_frontend::scenario_runner::ScenarioError),
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Metrics error: {0}")]
-    Metrics(#[source] crate::metrics::MetricsError),
-    
+    Metrics(#[source] oya_frontend::metrics::MetricsError),
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Coverage error: {0}")]
-    Coverage(#[source] crate::coverage::CoverageError),
-    
+    Coverage(#[source] oya_frontend::coverage::CoverageError),
+
     #[error("Feedback error: {0}")]
     Feedback(String),
-    
+
     #[error("Flow extension error: {0}")]
     FlowExtension(String),
-    
+
     #[error("IO error: {0}")]
     Io(#[source] std::io::Error),
-    
+
     #[error("JSON error: {0}")]
     Json(#[source] serde_json::Error),
-    
+
     #[error("YAML error: {0}")]
     Yaml(#[source] serde_yaml::Error),
-    
+
     #[error("HTTP request error: {0}")]
     Http(#[source] reqwest::Error),
-    
+
     #[error("Lock acquisition failed")]
     LockAcquisition,
 }
@@ -61,7 +65,7 @@ impl From<serde_yaml::Error> for AppError {
     }
 }
 
-#[derive(Debug, Error, Clone, PartialEq)]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum WorkflowError {
     #[error("Node {0} not found")]
     NodeNotFound(NodeId),

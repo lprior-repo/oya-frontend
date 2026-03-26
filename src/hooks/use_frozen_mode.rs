@@ -102,7 +102,7 @@ pub fn find_run_by_id(history: &[RunRecord], id: Uuid) -> Option<&RunRecord> {
 
 #[cfg(test)]
 mod tests {
-    use super::{FrozenMode, find_run_by_id};
+    use super::{find_run_by_id, FrozenMode};
     use oya_frontend::graph::RunRecord;
     use std::collections::HashMap;
     use uuid::Uuid;
@@ -113,6 +113,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             results: HashMap::new(),
             success: true,
+            restate_invocation_id: None,
         }
     }
 

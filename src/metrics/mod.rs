@@ -10,5 +10,5 @@ pub use errors::MetricsError;
 pub use model::{
     CategoryStats, MetricsStore, MetricsSummary, QualityGateIteration, QualityGateSession,
     ScenarioValidationMetrics, SessionStatus, SpecValidationMetrics, SuggestionDecision,
-    SuggestionDecisionMetrics,
+    SuggestionDecisionMetrics, SuggestionKey,
 };

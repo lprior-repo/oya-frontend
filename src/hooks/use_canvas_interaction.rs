@@ -26,7 +26,7 @@ fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> InteractionMo
     match mode {
         InteractionMode::Marquee { start, .. } => InteractionMode::Marquee {
             start: *start,
-            current: pos,
+            current: pos.into(),
         },
         _ => mode.clone(),
     }

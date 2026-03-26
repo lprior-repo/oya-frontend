@@ -79,13 +79,13 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                         div {
                             class: "space-y-2",
                             div { class: "text-sm text-gray-500", "Invocation ID" }
-                            div { class: "font-mono text-sm break-all", {&inv.id} }
+                            div { class: "font-mono text-sm break-all", {inv.id.clone()} }
                         }
 
                         div {
                             class: "space-y-2",
                             div { class: "text-sm text-gray-500", "Workflow" }
-                            div { class: "font-medium", {&inv.target} }
+                            div { class: "font-medium", {inv.target.clone()} }
                         }
 
                         div {
@@ -122,7 +122,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                         div {
                             class: "space-y-2",
                             div { class: "text-sm text-gray-500", "Journal Size" }
-                            div { class: "text-sm", {inv.journal_size} }
+                            div { class: "text-sm", {inv.journal_size.to_string()} }
                         }
                     }
 
@@ -153,7 +153,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
 
                                         span {
                                             class: "font-mono text-sm text-gray-500 w-8",
-                                            {entry.index}
+                                            {entry.index.to_string()}
                                         }
 
                                         span {
@@ -165,7 +165,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                                                     format!("{} bg-yellow-100 text-yellow-800", base)
                                                 }
                                             },
-                                            {&entry.raw_entry_type}
+                                            {entry.raw_entry_type.clone()}
                                         }
 
                                         span {

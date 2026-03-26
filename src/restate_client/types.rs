@@ -12,10 +12,11 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Invocation status from Restate's sys_invocation table
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Invocation status from Restate's `sys_invocation` table
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum InvocationStatus {
+    #[default]
     Pending,
     Scheduled,
     Ready,
@@ -25,12 +26,6 @@ pub enum InvocationStatus {
     BackingOff,
     Suspended,
     Completed,
-}
-
-impl Default for InvocationStatus {
-    fn default() -> Self {
-        Self::Pending
-    }
 }
 
 impl InvocationStatus {
@@ -88,8 +83,8 @@ pub enum ServiceType {
     Workflow,
 }
 
-/// Invocation from sys_invocation table
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Invocation from `sys_invocation` table
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Invocation {
     pub id: String,
     pub target: String,
@@ -122,13 +117,12 @@ impl Invocation {
 
     #[must_use]
     pub fn finished_at(&self) -> Option<DateTime<Utc>> {
-        self.completed_at
-            .and_then(|ts| DateTime::from_timestamp_millis(ts))
+        self.completed_at.and_then(DateTime::from_timestamp_millis)
     }
 }
 
-/// Journal entry from sys_journal table
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Journal entry from `sys_journal` table
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JournalEntry {
     pub id: String,
     pub index: u32,
@@ -192,7 +186,7 @@ pub struct StateEntry {
     pub value: Option<Vec<u8>>,
 }
 
-/// Service info from sys_service table
+/// Service info from `sys_service` table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceInfo {
     pub name: String,
@@ -221,7 +215,7 @@ impl From<&str> for DeploymentType {
     }
 }
 
-/// Deployment info from sys_deployment table
+/// Deployment info from `sys_deployment` table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeploymentInfo {
     pub id: String,
@@ -231,7 +225,7 @@ pub struct DeploymentInfo {
     pub created_at: i64,
 }
 
-/// Virtual object status from sys_keyed_service_status
+/// Virtual object status from `sys_keyed_service_status`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyedServiceStatus {
     pub service_name: String,
@@ -239,7 +233,7 @@ pub struct KeyedServiceStatus {
     pub invocation_id: String,
 }
 
-/// Promise info from sys_promise
+/// Promise info from `sys_promise`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromiseInfo {
     pub service_name: String,
@@ -250,7 +244,7 @@ pub struct PromiseInfo {
     pub completion_failure: Option<String>,
 }
 
-/// Journal event from sys_journal_events
+/// Journal event from `sys_journal_events`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JournalEvent {
     pub id: String,
@@ -260,16 +254,17 @@ pub struct JournalEvent {
     pub event_json: Option<String>,
 }
 
-/// Map Restate's InvocationStatus to OYA's ExecutionState
+/// Map Restate's `InvocationStatus` to OYA's `ExecutionState`
 impl From<crate::graph::ExecutionState> for InvocationStatus {
     fn from(state: crate::graph::ExecutionState) -> Self {
         match state {
             crate::graph::ExecutionState::Idle => Self::Pending,
             crate::graph::ExecutionState::Queued => Self::Scheduled,
             crate::graph::ExecutionState::Running => Self::Running,
-            crate::graph::ExecutionState::Completed => Self::Completed,
+            crate::graph::ExecutionState::Completed | crate::graph::ExecutionState::Skipped => {
+                Self::Completed
+            }
             crate::graph::ExecutionState::Failed => Self::Paused,
-            crate::graph::ExecutionState::Skipped => Self::Completed,
         }
     }
 }
@@ -277,13 +272,13 @@ impl From<crate::graph::ExecutionState> for InvocationStatus {
 impl From<InvocationStatus> for crate::graph::ExecutionState {
     fn from(status: InvocationStatus) -> Self {
         match status {
-            InvocationStatus::Pending => Self::Queued,
-            InvocationStatus::Scheduled => Self::Queued,
-            InvocationStatus::Ready => Self::Queued,
-            InvocationStatus::Running => Self::Running,
+            InvocationStatus::Pending | InvocationStatus::Scheduled | InvocationStatus::Ready => {
+                Self::Queued
+            }
+            InvocationStatus::Running
+            | InvocationStatus::BackingOff
+            | InvocationStatus::Suspended => Self::Running,
             InvocationStatus::Paused => Self::Failed,
-            InvocationStatus::BackingOff => Self::Running,
-            InvocationStatus::Suspended => Self::Running,
             InvocationStatus::Completed => Self::Completed,
         }
     }

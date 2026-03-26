@@ -233,13 +233,8 @@ fn workflow_node_from_persisted(node: &Node) -> Result<WorkflowNode, String> {
         serde_json::Value::String(resolved_type.clone()),
     );
 
-    match serde_json::from_value::<WorkflowNode>(serde_json::Value::Object(config_object)) {
-        Ok(workflow_node) => Ok(workflow_node),
-        Err(_) => match resolved_type.parse::<WorkflowNode>() {
-            Ok(workflow_node) => Ok(workflow_node),
-            Err(_) => Err(resolved_type),
-        },
-    }
+    serde_json::from_value::<WorkflowNode>(serde_json::Value::Object(config_object))
+        .or_else(|_| resolved_type.parse::<WorkflowNode>().map_err(|_| resolved_type))
 }
 
 #[allow(clippy::too_many_lines)]
@@ -551,13 +546,11 @@ fn validate_connection_validity(workflow: &Workflow, issues: &mut Vec<Validation
 
 fn validate_connection_types(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
     for conn in &workflow.connections {
-        let source_node = match workflow.nodes.iter().find(|n| n.id == conn.source) {
-            Some(n) => n,
-            None => continue,
+        let Some(source_node) = workflow.nodes.iter().find(|n| n.id == conn.source) else {
+            continue;
         };
-        let target_node = match workflow.nodes.iter().find(|n| n.id == conn.target) {
-            Some(n) => n,
-            None => continue,
+        let Some(target_node) = workflow.nodes.iter().find(|n| n.id == conn.target) else {
+            continue;
         };
 
         let source_type = get_output_port_type(source_node);
@@ -568,8 +561,7 @@ fn validate_connection_types(workflow: &Workflow, issues: &mut Vec<ValidationIss
                 if !types_compatible(src, tgt) {
                     issues.push(ValidationIssue::error_for_node(
                         format!(
-                            "Incompatible connection: output port type '{}' cannot connect to input port type '{}'",
-                            src, tgt
+                            "Incompatible connection: output port type '{src}' cannot connect to input port type '{tgt}'"
                         ),
                         conn.source,
                     ));

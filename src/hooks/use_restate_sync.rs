@@ -29,7 +29,7 @@ pub struct RestateState {
 }
 
 /// Handle returned by `use_restate_sync`.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct RestateSyncHandle {
     /// Read-only view of the latest Restate state.
     pub state: ReadOnlySignal<RestateState>,
@@ -129,39 +129,39 @@ async fn poll_sleep_ms(ms: u32) {
 
 #[cfg(test)]
 mod tests {
-    use super::build_config_from_url;
+    use super::build_restate_config_from_url;
 
     #[test]
     fn given_default_url_when_parsing_then_localhost_9070_is_used() {
-        let config = build_config_from_url("http://localhost:9070");
+        let config = build_restate_config_from_url("http://localhost:9070");
         assert_eq!(config.host, "localhost");
         assert_eq!(config.port, 9070);
     }
 
     #[test]
     fn given_custom_host_and_port_when_parsing_then_both_are_captured() {
-        let config = build_config_from_url("http://192.168.1.100:9999");
+        let config = build_restate_config_from_url("http://192.168.1.100:9999");
         assert_eq!(config.host, "192.168.1.100");
         assert_eq!(config.port, 9999);
     }
 
     #[test]
     fn given_url_without_port_when_parsing_then_default_port_is_used() {
-        let config = build_config_from_url("http://myhost");
+        let config = build_restate_config_from_url("http://myhost");
         assert_eq!(config.host, "myhost");
         assert_eq!(config.port, 9070);
     }
 
     #[test]
     fn given_url_with_trailing_slash_when_parsing_then_slash_is_stripped() {
-        let config = build_config_from_url("http://localhost:9070/");
+        let config = build_restate_config_from_url("http://localhost:9070/");
         assert_eq!(config.host, "localhost");
         assert_eq!(config.port, 9070);
     }
 
     #[test]
     fn given_empty_url_when_parsing_then_defaults_are_used() {
-        let config = build_config_from_url("");
+        let config = build_restate_config_from_url("");
         assert_eq!(config.host, "localhost");
         assert_eq!(config.port, 9070);
     }

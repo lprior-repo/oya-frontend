@@ -182,7 +182,7 @@ impl InvocationPoller {
                     events.push(InvocationEvent::StatusChanged {
                         invocation_id: id.clone(),
                         old_status,
-                        new_status: new_status.clone(),
+                        new_status,
                     });
 
                     if new_status == InvocationStatus::Completed {

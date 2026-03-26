@@ -412,10 +412,12 @@ impl WorkflowNode {
     #[must_use]
     pub fn required_context_types(&self) -> Vec<ContextType> {
         match self {
-            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) => {
-                vec![ContextType::Synchronous]
-            }
-            Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
+            Self::GetState(_)
+            | Self::SetState(_)
+            | Self::ClearState(_)
+            | Self::DurablePromise(_)
+            | Self::Awakeable(_)
+            | Self::ResolvePromise(_) => {
                 vec![ContextType::Synchronous]
             }
             _ => vec![ContextType::Synchronous, ContextType::Asynchronous],
@@ -431,7 +433,7 @@ impl WorkflowNode {
     }
 
     #[must_use]
-    pub fn description(&self) -> &'static str {
+    pub const fn description(&self) -> &'static str {
         match self {
             Self::HttpHandler(_) => "HTTP Handler",
             Self::KafkaHandler(_) => "Kafka Consumer",
@@ -485,7 +487,7 @@ impl WorkflowNode {
     pub fn set_metadata(&mut self, _key: &str, _value: serde_json::Value) {}
 
     #[must_use]
-    pub fn get_metadata(&self) -> serde_json::Value {
+    pub const fn get_metadata(&self) -> serde_json::Value {
         serde_json::Value::Null
     }
 }

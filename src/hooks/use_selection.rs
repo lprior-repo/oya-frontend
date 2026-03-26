@@ -94,7 +94,7 @@ impl Selection {
         match self {
             Selection::None => 0,
             Selection::Single { .. } => 1,
-            Selection::Multiple { primary, secondary } => 1 + secondary.len(),
+            Selection::Multiple { primary: _, secondary } => 1 + secondary.len(),
         }
     }
 }
@@ -133,12 +133,22 @@ impl PendingDrag {
 pub struct SelectionState {
     selection: Signal<Selection>,
     pending_drag: Signal<PendingDrag>,
+    primary_memo: Memo<Option<NodeId>>,
+    all_ids_memo: Memo<Vec<NodeId>>,
 }
 
 #[allow(dead_code)]
 impl SelectionState {
     pub fn selection(&self) -> ReadSignal<Selection> {
         self.selection.into()
+    }
+
+    pub fn selected_id(&self) -> ReadSignal<Option<NodeId>> {
+        self.primary_memo.into()
+    }
+
+    pub fn selected_ids(&self) -> ReadSignal<Vec<NodeId>> {
+        self.all_ids_memo.into()
     }
 
     pub fn primary_id(&self) -> Option<NodeId> {
@@ -216,13 +226,14 @@ impl SelectionState {
     }
 
     pub fn take_pending_drag(mut self) -> Option<Vec<NodeId>> {
-        match self.pending_drag.read().clone() {
+        let result = match self.pending_drag.read().clone() {
             PendingDrag::None => None,
-            PendingDrag::Ready { node_ids } => {
-                self.pending_drag.set(PendingDrag::None);
-                Some(node_ids)
-            }
+            PendingDrag::Ready { node_ids } => Some(node_ids),
+        };
+        if result.is_some() {
+            self.pending_drag.set(PendingDrag::None);
         }
+        result
     }
 
     pub fn pending_drag(&self) -> ReadSignal<PendingDrag> {
@@ -245,10 +256,14 @@ impl SelectionState {
 pub fn use_selection() -> SelectionState {
     let selection = use_signal(Selection::default);
     let pending_drag = use_signal(PendingDrag::default);
+    let primary_memo = use_memo(move || selection.read().primary());
+    let all_ids_memo = use_memo(move || selection.read().all_ids());
 
     SelectionState {
         selection,
         pending_drag,
+        primary_memo,
+        all_ids_memo,
     }
 }
 

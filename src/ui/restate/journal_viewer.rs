@@ -35,25 +35,13 @@ pub struct RestateJournalViewerProps {
 
 #[component]
 pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
-    let expanded = use_signal(std::collections::HashSet::<u32>::new);
-
-    let toggle = |index: u32| {
-        let mut set = expanded.read().clone();
-        if set.contains(&index) {
-            set.remove(&index);
-        } else {
-            set.insert(index);
-        }
-        expanded.set(set);
-    };
+    let mut expanded = use_signal(std::collections::HashSet::<u32>::new);
 
     rsx! {
         div {
             class: "flex flex-col gap-2",
 
             for entry in &props.journal {
-                let is_expanded = expanded.read().contains(&entry.index);
-
                 div {
                     class: "border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden",
 
@@ -61,18 +49,29 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                     div {
                         class: {
                             let base = "flex items-center gap-3 p-3 cursor-pointer ";
-                            if is_expanded {
+                            if expanded.read().contains(&entry.index) {
                                 format!("{} bg-gray-50 dark:bg-gray-800", base)
                             } else {
                                 format!("{} hover:bg-gray-50 dark:hover:bg-gray-800", base)
                             }
                         },
-                        onclick: move |_| toggle(entry.index),
+                        onclick: {
+                            let idx = entry.index;
+                            move |_| {
+                                let mut set = expanded.read().clone();
+                                if set.contains(&idx) {
+                                    set.remove(&idx);
+                                } else {
+                                    set.insert(idx);
+                                }
+                                expanded.set(set);
+                            }
+                        },
 
                         // Index
                         span {
                             class: "font-mono text-sm text-gray-500 w-8",
-                            {entry.index}
+                            {entry.index.to_string()}
                         }
 
                         // Entry type badge
@@ -81,7 +80,7 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                                 let base = "px-2 py-0.5 rounded text-xs font-medium ";
                                 format!("{}{}", base, entry_type_color(&entry.entry_type))
                             },
-                            {&entry.raw_entry_type}
+                            {entry.raw_entry_type.clone()}
                         }
 
                         // Name
@@ -106,12 +105,12 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                         // Expand indicator
                         span {
                             class: "text-gray-400",
-                            if is_expanded { "▼" } else { "▶" }
+                            if expanded.read().contains(&entry.index) { "▼" } else { "▶" }
                         }
                     }
 
                     // Expanded details
-                    if is_expanded {
+                    if expanded.read().contains(&entry.index) {
                         div {
                             class: "p-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 space-y-3",
 
@@ -121,7 +120,7 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                                     div { class: "text-sm font-medium text-gray-500 mb-1", "Input" }
                                     pre {
                                         class: "text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-x-auto font-mono",
-                                        {input}
+                                        {input.clone()}
                                     }
                                 }
                             }
@@ -130,21 +129,21 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                             if let Some(target) = &entry.invoked_target {
                                 div {
                                     div { class: "text-sm font-medium text-gray-500 mb-1", "Target" }
-                                    div { class: "text-sm font-mono", {target} }
+                                    div { class: "text-sm font-mono", {target.clone()} }
                                 }
                             }
 
                             if let Some(id) = &entry.invoked_id {
                                 div {
                                     div { class: "text-sm font-medium text-gray-500 mb-1", "Invocation ID" }
-                                    div { class: "text-sm font-mono", {id} }
+                                    div { class: "text-sm font-mono", {id.clone()} }
                                 }
                             }
 
                             if let Some(promise) = &entry.promise_name {
                                 div {
                                     div { class: "text-sm font-medium text-gray-500 mb-1", "Promise" }
-                                    div { class: "text-sm", {promise} }
+                                    div { class: "text-sm", {promise.clone()} }
                                 }
                             }
 

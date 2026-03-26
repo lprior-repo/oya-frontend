@@ -10,12 +10,14 @@ use super::errors::MetricsError;
 pub struct SpecId(pub String);
 
 impl SpecId {
-    pub fn new(id: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<String>) -> Result<Self, MetricsError> {
         let id = id.into();
         if id.trim().is_empty() {
-            panic!("SpecId cannot be empty");
+            return Err(MetricsError::InvalidSessionId(
+                "SpecId cannot be empty".into(),
+            ));
         }
-        Self(id)
+        Ok(Self(id))
     }
 
     pub fn as_str(&self) -> &str {
@@ -61,12 +63,14 @@ impl<'de> Deserialize<'de> for SpecId {
 pub struct SpecVersion(pub String);
 
 impl SpecVersion {
-    pub fn new(version: impl Into<String>) -> Self {
+    pub fn new(version: impl Into<String>) -> Result<Self, MetricsError> {
         let version = version.into();
         if version.trim().is_empty() {
-            panic!("SpecVersion cannot be empty");
+            return Err(MetricsError::InvalidSessionId(
+                "SpecVersion cannot be empty".into(),
+            ));
         }
-        Self(version)
+        Ok(Self(version))
     }
 
     pub fn as_str(&self) -> &str {
@@ -348,7 +352,7 @@ impl Default for Priority {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IterationNumber(u32);
 
 impl IterationNumber {
@@ -362,12 +366,6 @@ impl IterationNumber {
 
     pub fn increment(&self) -> Self {
         Self(self.0 + 1)
-    }
-}
-
-impl Default for IterationNumber {
-    fn default() -> Self {
-        Self(0)
     }
 }
 

@@ -18,8 +18,8 @@ fn test_metrics_store_new() {
 fn test_spec_validation_metrics() -> anyhow::Result<()> {
     let metrics = SpecValidationMetrics {
         timestamp: Utc::now(),
-        spec_id: SpecId::new("test-spec"),
-        spec_version: SpecVersion::new("1.0.0"),
+        spec_id: SpecId::new("test-spec").expect("test spec id is valid"),
+        spec_version: SpecVersion::new("1.0.0").expect("test spec version is valid"),
         overall_score: 90,
         passed: true,
         category_scores: HashMap::new(),

@@ -119,8 +119,20 @@ impl SidebarState {
         self.drop_state.set(DropState::Idle);
     }
 
+    pub fn clear_pending_drop(self) {
+        self.clear_drop();
+    }
+
     pub fn is_dragging(&self) -> bool {
         self.drop_state.read().is_dragging()
+    }
+
+    pub fn has_pending_drop(&self) -> bool {
+        self.is_dragging()
+    }
+
+    pub fn pending_drop(&self) -> Option<NodeType> {
+        self.drop_state.read().node_type().cloned()
     }
 
     pub fn dragged_node_type(&self) -> Option<String> {

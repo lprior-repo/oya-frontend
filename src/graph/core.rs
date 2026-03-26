@@ -12,7 +12,7 @@ impl Workflow {
                 .into_iter()
                 .chain(std::iter::once((
                     "status".to_string(),
-                    serde_json::Value::String(status_text.clone()),
+                    serde_json::Value::String(status_text),
                 )))
                 .collect(),
             None => std::iter::once(("status".to_string(), serde_json::Value::String(status_text)))

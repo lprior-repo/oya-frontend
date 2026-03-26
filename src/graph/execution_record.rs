@@ -168,7 +168,7 @@ impl ExecutionRecordId {
     }
 
     #[must_use]
-    pub fn as_uuid(&self) -> Uuid {
+    pub const fn as_uuid(&self) -> Uuid {
         self.0
     }
 }
@@ -191,7 +191,7 @@ impl From<ExecutionRecordId> for Uuid {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct WorkflowName(String);
 
@@ -213,11 +213,6 @@ impl fmt::Display for WorkflowName {
     }
 }
 
-impl Default for WorkflowName {
-    fn default() -> Self {
-        Self(String::new())
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]

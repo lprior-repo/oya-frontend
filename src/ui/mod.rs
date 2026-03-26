@@ -29,7 +29,7 @@ pub mod validation_panel;
 pub use canvas_context_menu::CanvasContextMenu;
 pub use command_palette::NodeCommandPalette;
 pub use config_panel::NodeConfigEditor;
-pub use domain_types::{HandleKind, HttpMethod, NodeTemplateId};
+pub use domain_types::NodeTemplateId;
 pub use edges::{FlowEdges, Position as FlowPosition};
 pub use execution_history_panel::ExecutionHistoryPanel;
 pub use execution_plan_panel::ExecutionPlanPanel;

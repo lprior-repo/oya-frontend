@@ -76,30 +76,36 @@ pub struct FailedState;
 pub struct SkippedState;
 
 impl IdleState {
+    #[must_use]
     pub const fn queue(self) -> QueuedState {
         QueuedState
     }
 
+    #[must_use]
     pub const fn skip(self) -> SkippedState {
         SkippedState
     }
 }
 
 impl QueuedState {
+    #[must_use]
     pub const fn start(self) -> RunningState {
         RunningState
     }
 
+    #[must_use]
     pub const fn skip(self) -> SkippedState {
         SkippedState
     }
 }
 
 impl RunningState {
+    #[must_use]
     pub const fn complete(self) -> CompletedState {
         CompletedState
     }
 
+    #[must_use]
     pub const fn fail(self) -> FailedState {
         FailedState
     }
@@ -130,19 +136,18 @@ pub enum StateTransition {
 
 impl StateTransition {
     #[must_use]
-    pub fn apply(self) -> ExecutionState {
+    pub const fn apply(self) -> ExecutionState {
         match self {
             Self::IdleToQueued => ExecutionState::Queued,
-            Self::IdleToSkipped => ExecutionState::Skipped,
+            Self::IdleToSkipped | Self::QueuedToSkipped => ExecutionState::Skipped,
             Self::QueuedToRunning => ExecutionState::Running,
-            Self::QueuedToSkipped => ExecutionState::Skipped,
             Self::RunningToCompleted => ExecutionState::Completed,
             Self::RunningToFailed => ExecutionState::Failed,
         }
     }
 
     #[must_use]
-    pub fn from_states(self) -> (ExecutionState, ExecutionState) {
+    pub const fn from_states(self) -> (ExecutionState, ExecutionState) {
         match self {
             Self::IdleToQueued => (ExecutionState::Idle, ExecutionState::Queued),
             Self::IdleToSkipped => (ExecutionState::Idle, ExecutionState::Skipped),
@@ -155,7 +160,7 @@ impl StateTransition {
 }
 
 #[must_use]
-pub fn try_transition(from: ExecutionState, to: ExecutionState) -> Option<StateTransition> {
+pub const fn try_transition(from: ExecutionState, to: ExecutionState) -> Option<StateTransition> {
     match (from, to) {
         (ExecutionState::Idle, ExecutionState::Queued) => Some(StateTransition::IdleToQueued),
         (ExecutionState::Idle, ExecutionState::Skipped) => Some(StateTransition::IdleToSkipped),
@@ -165,18 +170,12 @@ pub fn try_transition(from: ExecutionState, to: ExecutionState) -> Option<StateT
             Some(StateTransition::RunningToCompleted)
         }
         (ExecutionState::Running, ExecutionState::Failed) => Some(StateTransition::RunningToFailed),
-        (ExecutionState::Idle, ExecutionState::Idle)
-        | (ExecutionState::Queued, ExecutionState::Queued)
-        | (ExecutionState::Running, ExecutionState::Running)
-        | (ExecutionState::Completed, ExecutionState::Completed)
-        | (ExecutionState::Failed, ExecutionState::Failed)
-        | (ExecutionState::Skipped, ExecutionState::Skipped) => None,
         _ => None,
     }
 }
 
 #[must_use]
-pub fn can_transition(from: ExecutionState, to: ExecutionState) -> bool {
+pub const fn can_transition(from: ExecutionState, to: ExecutionState) -> bool {
     try_transition(from, to).is_some()
 }
 

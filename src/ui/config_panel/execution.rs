@@ -6,7 +6,7 @@
 use super::get_str_val;
 use crate::ui::icons::{icon_by_name, CopyIcon};
 use crate::ui::panel_types::{
-    ExecutionEventCategory, InvocationStatus, OutputOrigin, PayloadShape, StatusBadgeStyle,
+    ExecutionEventCategory, InvocationStatus, OutputOrigin, PayloadShape,
     invocation_badge_style,
 };
 use dioxus::prelude::*;
@@ -116,7 +116,7 @@ fn PayloadPreview(payload: Value, label: String, shape: PayloadShape, max_lines:
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 struct ExecutionTimelineEvent {
     category: ExecutionEventCategory,
     label: String,
