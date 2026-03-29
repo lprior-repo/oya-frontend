@@ -5,33 +5,40 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
-use std::fmt;
-use uuid::Uuid;
-
 pub mod calc;
 mod connectivity;
 mod core;
+mod core_types;
 mod domain_types;
 mod execution;
 pub mod execution_record;
+pub mod execution_record_types;
+pub mod execution_runtime;
 pub mod execution_state;
 mod metadata;
+mod primitives;
 mod view;
 
 pub mod expressions;
 pub mod layout;
+pub mod node_icon;
+pub mod node_ui_state;
+pub mod port_types;
 pub mod restate_types;
-pub mod validation;
+pub mod service_kinds;
+mod validation;
+mod validation_checks;
+pub mod value_objects;
 pub mod workflow_node;
 
 pub use connectivity::{ConnectionError, ConnectionResult};
+pub use core_types::{Node, RunRecord, Viewport, Workflow};
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
-    RunOutcome, ServiceName, StateKey, UnknownIconError,
+    RunOutcome, ServiceName, StateKey,
 };
-pub use execution_record::{
+pub use execution_record::from_run_record;
+pub use execution_record_types::{
     AttemptNumber, EmptyErrorMessage, ExecutionError, ExecutionOverallStatus, ExecutionRecord,
     ExecutionRecordId, StepCount, StepName, StepOutput, StepRecord, StepType, WorkflowName,
 };
@@ -39,271 +46,12 @@ pub use execution_state::{
     can_transition, try_transition, CompletedState, ExecutionState, FailedState, IdleState,
     InvalidTransition, QueuedState, RunningState, SkippedState, StateTransition, TerminalState,
 };
+pub use primitives::{Connection, NodeCategory, NodeId, PortName};
 pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
-pub use workflow_node::{
-    ConditionResult, HttpMethod, RunConfig, UnknownHttpMethodError, WorkflowNode,
+pub use workflow_node::configs::{
+    ConditionConfig, HttpHandlerConfig, RunConfig, SendMessageConfig, SetStateConfig,
 };
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct NodeId(pub Uuid);
-
-impl NodeId {
-    #[must_use]
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-}
-
-impl Default for NodeId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl fmt::Display for NodeId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct PortName(pub String);
-
-impl<S: Into<String>> From<S> for PortName {
-    fn from(s: S) -> Self {
-        Self(s.into())
-    }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
-#[serde(rename_all = "lowercase")]
-pub enum NodeCategory {
-    Entry,
-    Durable,
-    State,
-    Flow,
-    Timing,
-    Signal,
-}
-
-impl fmt::Display for NodeCategory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Entry => "entry",
-            Self::Durable => "durable",
-            Self::State => "state",
-            Self::Flow => "flow",
-            Self::Timing => "timing",
-            Self::Signal => "signal",
-        };
-        write!(f, "{s}")
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Node {
-    pub id: NodeId,
-    pub name: String,
-    #[serde(skip)]
-    pub node: WorkflowNode,
-    pub category: NodeCategory,
-    pub icon: String,
-    pub x: f32,
-    pub y: f32,
-    pub last_output: Option<serde_json::Value>,
-    #[serde(default)]
-    pub selected: bool,
-    #[serde(default)]
-    pub executing: bool,
-    #[serde(default)]
-    pub skipped: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-    #[serde(default, skip)]
-    pub execution_state: ExecutionState,
-    #[serde(default, skip)]
-    pub metadata: serde_json::Value,
-    #[serde(default, skip)]
-    pub execution_data: serde_json::Value,
-    #[serde(default)]
-    pub node_type: String,
-    #[serde(default)]
-    pub description: String,
-    #[serde(default)]
-    pub config: serde_json::Value,
-}
-
-impl Node {
-    fn alias_target_for_config_key(key: &str) -> Option<&'static str> {
-        match key {
-            "stateKey" => Some("key"),
-            "conditionExpression" => Some("expression"),
-            "durableStepName" => Some("durable_step_name"),
-            "targetService" | "service_name" => Some("target"),
-            "handler_name" => Some("handler"),
-            "loopIterator" => Some("iterator"),
-            "compensationHandler" => Some("target_step"),
-            "cronExpression" => Some("schedule"),
-            "workflowKey" => Some("workflow_name"),
-            "promiseName" => Some("promise_name"),
-            "awakeableId" => Some("awakeable_id"),
-            "signalName" => Some("signal_name"),
-            "timeoutMs" => Some("timeout_ms"),
-            _ => None,
-        }
-    }
-
-    fn should_apply_alias(config_object: &Map<String, Value>, target: &str) -> bool {
-        config_object.get(target).is_none_or(Value::is_null)
-    }
-
-    fn normalize_config_aliases(config: &Value) -> Value {
-        let Value::Object(config_object) = config else {
-            return config.clone();
-        };
-
-        let mut normalized = config_object.clone();
-        for (key, value) in config_object {
-            if let Some(target) = Self::alias_target_for_config_key(key) {
-                if Self::should_apply_alias(&normalized, target) {
-                    normalized.insert(target.to_string(), value.clone());
-                }
-            }
-        }
-
-        Value::Object(normalized)
-    }
-
-    fn merged_node_json(&self, config: &Value) -> Option<Value> {
-        let Value::Object(base_object) = serde_json::to_value(&self.node).ok()? else {
-            return None;
-        };
-
-        let Value::Object(config_object) = config else {
-            return None;
-        };
-
-        let mut merged = base_object.clone();
-        for (key, value) in config_object {
-            merged.insert(key.clone(), value.clone());
-        }
-
-        if let Some(base_type) = base_object.get("type").cloned() {
-            merged.insert("type".to_string(), base_type);
-        }
-
-        Some(Value::Object(merged))
-    }
-
-    pub fn apply_config_update(&mut self, new_config: &Value) {
-        let normalized_config = Self::normalize_config_aliases(new_config);
-        self.config = normalized_config.clone();
-
-        if let Some(updated_node) = self
-            .merged_node_json(&normalized_config)
-            .and_then(|json| serde_json::from_value::<WorkflowNode>(json).ok())
-        {
-            self.node = updated_node;
-            self.node_type = self.node.to_string();
-            self.category = self.node.category();
-            self.icon = self.node.icon().to_string();
-            self.description = self.node.description().to_string();
-        }
-    }
-
-    #[must_use]
-    pub fn from_workflow_node(name: String, node: WorkflowNode, x: f32, y: f32) -> Self {
-        let category = node.category();
-        let icon = node.icon().to_string();
-        let node_type = node.to_string();
-        let description = node.description().to_string();
-        let config = serde_json::to_value(&node).unwrap_or_default();
-
-        Self {
-            id: NodeId::new(),
-            name,
-            node,
-            category,
-            icon,
-            x,
-            y,
-            last_output: None,
-            selected: false,
-            executing: false,
-            skipped: false,
-            error: None,
-            execution_state: ExecutionState::default(),
-            metadata: Value::default(),
-            execution_data: Value::default(),
-            node_type,
-            description,
-            config,
-        }
-    }
-
-    pub const fn set_selected(&mut self, selected: bool) {
-        self.selected = selected;
-    }
-}
-
-impl Default for Node {
-    fn default() -> Self {
-        Self::from_workflow_node(String::new(), WorkflowNode::default(), 0.0, 0.0)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Connection {
-    pub id: Uuid,
-    pub source: NodeId,
-    pub target: NodeId,
-    pub source_port: PortName,
-    pub target_port: PortName,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Viewport {
-    pub x: f32,
-    pub y: f32,
-    pub zoom: f32,
-}
-
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct RunRecord {
-    pub id: Uuid,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
-    pub results: std::collections::HashMap<NodeId, serde_json::Value>,
-    pub success: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub restate_invocation_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Workflow {
-    pub nodes: Vec<Node>,
-    pub connections: Vec<Connection>,
-    pub viewport: Viewport,
-    pub execution_queue: Vec<NodeId>,
-    pub current_step: usize,
-    pub history: Vec<RunRecord>,
-    #[serde(default)]
-    pub execution_records: Vec<ExecutionRecord>,
-    /// Base URL for Restate ingress (e.g., `<http://localhost:8080>`).
-    /// Populated at runtime before `run()`; not part of the saved workflow definition.
-    #[serde(default = "default_restate_ingress_url", skip_serializing)]
-    pub restate_ingress_url: String,
-}
-
-fn default_restate_ingress_url() -> String {
-    "http://localhost:8080".to_string()
-}
-
-impl Default for Workflow {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub use workflow_node::{ConditionResult, HttpMethod, UnknownHttpMethodError, WorkflowNode};
 
 #[cfg(test)]
 mod tests {

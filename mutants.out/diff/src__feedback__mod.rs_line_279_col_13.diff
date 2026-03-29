@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ delete match arm "Server Error" in FeedbackSanitizer::sanitize_description
+@@ -271,17 +271,17 @@
+     }
+ 
+     fn sanitize_description(category: &FailureCategoryName) -> String {
+         match category.as_str() {
+             "Security Violation" => "The system does not properly enforce security constraints.".to_string(),
+             "Error Handling" => "The system does not gracefully handle error conditions.".to_string(),
+             "Happy Path" => "The primary workflow does not produce expected results.".to_string(),
+             "Resource Not Found" => "The system returns incorrect HTTP status codes for missing resources.".to_string(),
+-            "Server Error" => "The system returns internal server errors instead of handling the request properly.".to_string(),
++             /* ~ changed by cargo-mutants ~ */
+             "Timeout" => "The system does not complete operations within expected time limits.".to_string(),
+             _ => "A behavioral requirement is not satisfied.".to_string(),
+         }
+     }
+ 
+     fn generate_hint(category: &FailureCategoryName) -> String {
+         match category.as_str() {
+             "Security Violation" => {

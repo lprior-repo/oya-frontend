@@ -65,7 +65,10 @@ scenario:
     );
 
     let stdout = String::from_utf8(output.stdout)?;
-    assert!(serde_json::from_str::<serde_json::Value>(&stdout).is_ok());
+    match serde_json::from_str::<serde_json::Value>(&stdout) {
+        Ok(_) => {}
+        Err(e) => panic!("Expected valid JSON, got error: {e}"),
+    }
     assert!(!stdout.contains("Analyzing scenario coverage"));
 
     fs::remove_dir_all(root)?;

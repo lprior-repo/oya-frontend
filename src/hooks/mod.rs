@@ -9,11 +9,8 @@ pub mod use_sidebar;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-pub use use_canvas_interaction::{
-    InteractionMode,
-    use_canvas_interaction,
-};
-pub use use_restate_sync::{RestateSyncHandle, build_restate_config_from_url, use_restate_sync};
+pub use use_canvas_interaction::{use_canvas_interaction, InteractionMode};
+pub use use_restate_sync::{build_restate_config_from_url, use_restate_sync, RestateSyncHandle};
 pub use use_selection::use_selection;
 pub use use_sidebar::use_sidebar;
 pub use use_ui_panels::use_ui_panels;

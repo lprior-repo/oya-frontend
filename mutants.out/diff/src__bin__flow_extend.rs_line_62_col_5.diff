@@ -1,0 +1,72 @@
+--- src/bin/flow_extend.rs
++++ replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+@@ -54,68 +54,13 @@
+ fn write_workflow(path: &PathBuf, workflow: &Workflow) -> Result<(), Box<dyn std::error::Error>> {
+     let content = serde_json::to_string_pretty(workflow)?;
+     std::fs::write(path, content)?;
+     Ok(())
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+-    let cli = Cli::parse();
+-
+-    match cli.command {
+-        Command::Suggest { workflow_path } => {
+-            let workflow = parse_workflow(&workflow_path)?;
+-            let suggestions = suggest_extensions(&workflow);
+-
+-            if suggestions.is_empty() {
+-                println!("No extension suggestions. Workflow already covers current principles.");
+-            } else {
+-                for item in &suggestions {
+-                    println!("- {} ({:?}): {}", item.key, item.priority, item.rationale);
+-                }
+-            }
+-        }
+-        Command::Preview {
+-            workflow_path,
+-            extension_key,
+-        } => {
+-            let workflow = parse_workflow(&workflow_path)?;
+-            let preview = preview_extension(&workflow, &extension_key).map_err(|message| {
+-                std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
+-            })?;
+-
+-            match preview {
+-                Some(patch) => {
+-                    println!("{}", serde_json::to_string_pretty(&patch)?);
+-                }
+-                None => {
+-                    println!("No preview changes for extension '{}'.", extension_key);
+-                }
+-            }
+-        }
+-        Command::Apply {
+-            workflow_path,
+-            extension_key,
+-            output,
+-        } => {
+-            let mut workflow = parse_workflow(&workflow_path)?;
+-            let applied = apply_extension(&mut workflow, &extension_key).map_err(|message| {
+-                std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
+-            })?;
+-
+-            let target_path = output.as_ref().unwrap_or(&workflow_path);
+-            write_workflow(target_path, &workflow)?;
+-
+-            println!(
+-                "Applied {} and created {} node(s). Saved to {}",
+-                applied.key,
+-                applied.created_nodes.len(),
+-                target_path.display()
+-            );
+-        }
+-    }
+-
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(target_arch = "wasm32")]
+ fn main() {}

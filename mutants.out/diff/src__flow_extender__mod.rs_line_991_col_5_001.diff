@@ -1,0 +1,41 @@
+--- src/flow_extender/mod.rs
++++ replace extension_fingerprint -> String with "xyzzy".into()
+@@ -983,37 +983,17 @@
+ const fn remap_endpoint(endpoint: PatchEndpoint, offset: usize) -> PatchEndpoint {
+     match endpoint {
+         PatchEndpoint::Existing(node_id) => PatchEndpoint::Existing(node_id),
+         PatchEndpoint::Proposed(index) => PatchEndpoint::Proposed(index + offset),
+     }
+ }
+ 
+ fn extension_fingerprint(key: ExtensionKey, patch: &PatchPlan) -> String {
+-    let node_parts = patch
+-        .nodes
+-        .iter()
+-        .map(|node| format!("{}@{:.2}:{:.2}", node.node_type, node.x, node.y))
+-        .collect::<Vec<_>>()
+-        .join("|");
+-    let connection_parts = patch
+-        .connections
+-        .iter()
+-        .map(|connection| {
+-            format!(
+-                "{}>{}:{}->{}",
+-                endpoint_signature(connection.source),
+-                endpoint_signature(connection.target),
+-                connection.source_port,
+-                connection.target_port
+-            )
+-        })
+-        .collect::<Vec<_>>()
+-        .join("|");
+-    format!("{}::{node_parts}::{connection_parts}", key.as_str())
++    "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn endpoint_signature(endpoint: PatchEndpoint) -> String {
+     match endpoint {
+         PatchEndpoint::Existing(node_id) => format!("e:{node_id}"),
+         PatchEndpoint::Proposed(index) => format!("p:{index}"),
+     }
+ }

@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete match arm "-" | "_" | "subtract" in parse_key_event
+@@ -1289,17 +1289,17 @@
+ 
+ /// Parse a keyboard event into an optional editor command.
+ /// Returns `None` for keys that don't map to editor commands or lack required modifiers.
+ #[must_use]
+ pub fn parse_key_event(key: &str, modifiers: &KeyModifiers) -> Option<EditorCommand> {
+     match key {
+         // Zoom commands - no modifiers required
+         "+" | "=" | "add" => Some(EditorCommand::ZoomIn),
+-        "-" | "_" | "subtract" => Some(EditorCommand::ZoomOut),
++         /* ~ changed by cargo-mutants ~ */
+         "0" => Some(EditorCommand::FitView),
+ 
+         // Undo/Redo - require Ctrl/Cmd modifier (security requirement)
+         // Plain 'z'/'y' should NOT mutate history
+         // Note: More specific patterns must come first
+         "y" | "z" if modifiers.ctrl && modifiers.shift => Some(EditorCommand::Redo),
+         "z" if modifiers.ctrl => Some(EditorCommand::Undo),
+         "y" if modifiers.ctrl => Some(EditorCommand::Redo),

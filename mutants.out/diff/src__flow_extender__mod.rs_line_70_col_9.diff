@@ -1,0 +1,34 @@
+--- src/flow_extender/mod.rs
++++ replace ExtensionPresetKey::extension_keys -> &'static[ExtensionKey] with Vec::leak(Vec::new())
+@@ -62,30 +62,17 @@
+             Self::RetrySaga => {
+                 "Builds retry-oriented saga safety with timeout, checkpointing, and compensation paths."
+             }
+         }
+     }
+ 
+     #[must_use]
+     pub const fn extension_keys(self) -> &'static [ExtensionKey] {
+-        match self {
+-            Self::Webhook => &[
+-                ExtensionKey::AddTimeoutGuard,
+-                ExtensionKey::AddDurableCheckpoint,
+-            ],
+-            Self::Approval => &[
+-                ExtensionKey::AddSignalResolution,
+-                ExtensionKey::AddCompensationBranch,
+-            ],
+-            Self::RetrySaga => &[
+-                ExtensionKey::AddDurableCheckpoint,
+-                ExtensionKey::AddCompensationBranch,
+-            ],
+-        }
++        Vec::leak(Vec::new()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl FromStr for ExtensionPresetKey {
+     type Err = String;
+ 
+     fn from_str(value: &str) -> Result<Self, Self::Err> {
+         match value {

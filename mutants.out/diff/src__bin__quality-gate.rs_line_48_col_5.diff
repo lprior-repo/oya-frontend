@@ -1,0 +1,60 @@
+--- src/bin/quality-gate.rs
++++ replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+@@ -40,56 +40,17 @@
+         #[arg(long, default_value = "3")]
+         level: u8,
+     },
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ #[tokio::main]
+ async fn main() -> Result<(), Box<dyn std::error::Error>> {
+-    let cli = Cli::parse();
+-
+-    match cli.command {
+-        Commands::LintSpec {
+-            spec_path,
+-            rules_path,
+-        } => {
+-            println!("🔍 Linting spec: {}", spec_path.display());
+-            let linter = SpecLinter::new(&rules_path)?;
+-            let report = linter.lint(&spec_path)?;
+-            print_report(&report);
+-            if report.passed {
+-                println!("\n✅ SPEC APPROVED");
+-                Ok(())
+-            } else {
+-                eprintln!("\n❌ SPEC REJECTED");
+-                std::process::exit(1);
+-            }
+-        }
+-
+-        Commands::Validate {
+-            scenarios_path,
+-            app_endpoint,
+-            level,
+-        } => {
+-            println!("🎭 Running holdout scenarios...");
+-            let twins = std::collections::HashMap::new();
+-            let results = run_validation(&scenarios_path, &app_endpoint, twins).await?;
+-            print_validation_results(&results);
+-
+-            if results.failed_scenarios == 0 {
+-                println!("\n✅ VALIDATION PASSED");
+-                Ok(())
+-            } else {
+-                let feedback = sanitize_results(&results.results, 1, level);
+-                println!("\n❌ VALIDATION FAILED: {}", feedback.summary);
+-                std::process::exit(1);
+-            }
+-        }
+-    }
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn print_report(report: &LintReport) {
+     println!(
+         "Spec: {} v{} | Score: {}/100",
+         report.spec_id, report.spec_version, report.overall_score
+     );

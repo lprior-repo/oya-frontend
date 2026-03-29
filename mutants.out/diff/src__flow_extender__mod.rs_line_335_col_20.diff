@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ delete ! in suggest_extensions
+@@ -327,17 +327,17 @@
+ }
+ 
+ #[must_use]
+ pub fn suggest_extensions(workflow: &Workflow) -> Vec<FlowExtension> {
+     hide_isolated_reliability_hints(
+         rules()
+             .into_iter()
+             .filter_map(|rule| {
+-                if !key_is_compatible_with_workflow(workflow, rule.key) {
++                if  /* ~ changed by cargo-mutants ~ */key_is_compatible_with_workflow(workflow, rule.key) {
+                     return None;
+                 }
+                 (rule.plan)(workflow).map(|rule_plan| FlowExtension {
+                     key: rule.key.as_str().to_string(),
+                     title: rule.title.to_string(),
+                     rationale: rule_plan.rationale,
+                     priority: rule.priority,
+                     contract: rule.contract,

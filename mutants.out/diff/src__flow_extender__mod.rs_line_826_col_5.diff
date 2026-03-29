@@ -1,0 +1,46 @@
+--- src/flow_extender/mod.rs
++++ replace plan_unbalanced_condition -> Option<RulePlan> with None
+@@ -818,42 +818,17 @@
+                 source_port: "out",
+                 target_port: "in",
+             }],
+         },
+     })
+ }
+ 
+ fn plan_unbalanced_condition(workflow: &Workflow) -> Option<RulePlan> {
+-    let condition_node = workflow
+-        .nodes
+-        .iter()
+-        .find(|node| {
+-            matches!(node.node, WorkflowNode::Condition(_))
+-                && missing_condition_branch(workflow, node.id)
+-        })
+-        .cloned()?;
+-
+-    Some(RulePlan {
+-        rationale:
+-            "At least one condition node is missing a true/false branch. Add compensation logic for failure paths.".to_string(),
+-        patch: PatchPlan {
+-            nodes: vec![PatchNode {
+-                node_type: "compensate",
+-                x: condition_node.x + 240.0,
+-                y: condition_node.y + 140.0,
+-            }],
+-            connections: vec![PatchConnection {
+-                source: PatchEndpoint::Existing(condition_node.id),
+-                target: PatchEndpoint::Proposed(0),
+-                source_port: "false",
+-                target_port: "in",
+-            }],
+-        },
+-    })
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn plan_missing_signal_resolution(workflow: &Workflow) -> Option<RulePlan> {
+     let has_resolver = workflow
+         .nodes
+         .iter()
+         .any(|node| matches!(node.node, WorkflowNode::ResolvePromise(_)));
+ 

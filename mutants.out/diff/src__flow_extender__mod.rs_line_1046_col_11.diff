@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace || with && in infer_workflow_service_kinds
+@@ -1038,17 +1038,17 @@
+     !inferred_kinds.is_disjoint(&compatible_kinds)
+ }
+ 
+ fn infer_workflow_service_kinds(workflow: &Workflow) -> HashSet<RestateServiceKind> {
+     let has_promise_semantics = workflow.nodes.iter().any(|node| {
+         matches!(
+             node.node,
+             WorkflowNode::DurablePromise(_) | WorkflowNode::ResolvePromise(_)
+-        ) || is_signal_wait_anchor(workflow, node)
++        ) && /* ~ changed by cargo-mutants ~ */ is_signal_wait_anchor(workflow, node)
+     });
+     let has_state_semantics = workflow.nodes.iter().any(|node| {
+         matches!(
+             node.node,
+             WorkflowNode::GetState(_) | WorkflowNode::SetState(_) | WorkflowNode::ClearState(_)
+         )
+     });
+ 

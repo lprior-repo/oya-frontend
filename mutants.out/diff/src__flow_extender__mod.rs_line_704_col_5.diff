@@ -1,0 +1,37 @@
+--- src/flow_extender/mod.rs
++++ replace plan_missing_entry -> Option<RulePlan> with None
+@@ -696,33 +696,17 @@
+                 invariants: vec!["Signal wait path keeps deterministic node ordering.".to_string()],
+             },
+             plan: plan_missing_signal_resolution,
+         },
+     ]
+ }
+ 
+ fn plan_missing_entry(workflow: &Workflow) -> Option<RulePlan> {
+-    (!workflow
+-        .nodes
+-        .iter()
+-        .any(|node| node.category == NodeCategory::Entry))
+-    .then(|| RulePlan {
+-        rationale:
+-            "Workflow has no entry node. Add an HTTP trigger so execution has a clear start."
+-                .to_string(),
+-        patch: PatchPlan {
+-            nodes: vec![PatchNode {
+-                node_type: "http-handler",
+-                x: 120.0,
+-                y: 100.0,
+-            }],
+-            connections: Vec::new(),
+-        },
+-    })
++    None /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn plan_missing_timeout_guard(workflow: &Workflow) -> Option<RulePlan> {
+     let has_durable = workflow
+         .nodes
+         .iter()
+         .any(|node| node.category == NodeCategory::Durable);
+     let has_timeout = workflow

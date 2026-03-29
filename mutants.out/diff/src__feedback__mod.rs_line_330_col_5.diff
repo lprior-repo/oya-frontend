@@ -1,0 +1,15 @@
+--- src/feedback/mod.rs
++++ replace sanitize_results -> SanitizedFeedback with Default::default()
+@@ -322,11 +322,10 @@
+ }
+ 
+ #[must_use]
+ pub fn sanitize_results(
+     raw_results: &[super::scenario_runner::ScenarioResult],
+     iteration: u32,
+     level: u8,
+ ) -> SanitizedFeedback {
+-    let sanitizer = FeedbackSanitizer::new(level);
+-    sanitizer.sanitize(raw_results, iteration)
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }

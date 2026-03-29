@@ -526,17 +526,17 @@ pub fn generate_compound_plan(
     for key in &ordered {
         let key_str = key.as_str();
         if let Some(preview) = preview_extension(&simulation, key_str)? {
-            let analysis = analyses
+            let analysis_data = analyses
                 .get(key_str)
                 .cloned()
                 .unwrap_or_else(|| fallback_analysis(key_str, &simulation, key));
             let _ = apply_extension(&mut simulation, key_str)?;
             steps.push(CompoundPlanStep {
                 key: key_str.to_string(),
-                confidence_score: analysis.score,
-                rationale_class: analysis.rationale_class,
-                fingerprint: analysis.fingerprint,
-                semantics: analysis.semantics,
+                confidence_score: analysis_data.score,
+                rationale_class: analysis_data.rationale_class,
+                fingerprint: analysis_data.fingerprint,
+                semantics: analysis_data.semantics,
                 preview,
             });
         }

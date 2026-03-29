@@ -1,0 +1,116 @@
+--- src/flow_extender/mod.rs
++++ replace rules -> Vec<RuleDefinition> with vec![]
+@@ -597,112 +597,17 @@
+                 .collect(),
+         },
+         ordered_keys,
+         conflicts,
+     })
+ }
+ 
+ fn rules() -> Vec<RuleDefinition> {
+-    vec![
+-        RuleDefinition {
+-            key: ExtensionKey::AddEntryTrigger,
+-            title: "Add entry trigger",
+-            priority: ExtensionPriority::High,
+-            contract: RuleContract {
+-                preconditions: vec!["Workflow has no Entry category node.".to_string()],
+-                postconditions: vec!["An HTTP entry trigger exists in workflow nodes.".to_string()],
+-                invariants: vec![
+-                    "Existing user-authored graph topology remains intact.".to_string()
+-                ],
+-            },
+-            plan: plan_missing_entry,
+-        },
+-        RuleDefinition {
+-            key: ExtensionKey::AddReliabilityBundle,
+-            title: "Add reliability bundle",
+-            priority: ExtensionPriority::High,
+-            contract: RuleContract {
+-                preconditions: vec![
+-                    "Workflow contains side-effecting durable steps and is missing one or more reliability protections.".to_string(),
+-                ],
+-                postconditions: vec![
+-                    "A coherent bundle is generated across timeout, state checkpoint, and compensation recommendations where applicable.".to_string(),
+-                ],
+-                invariants: vec![
+-                    "Bundle planning stays deterministic and idempotent across repeated applies.".to_string(),
+-                ],
+-            },
+-            plan: plan_reliability_bundle,
+-        },
+-        RuleDefinition {
+-            key: ExtensionKey::AddTimeoutGuard,
+-            title: "Add timeout guard",
+-            priority: ExtensionPriority::High,
+-            contract: RuleContract {
+-                preconditions: vec![
+-                    "Workflow has at least one Durable node and no timeout node.".to_string(),
+-                ],
+-                postconditions: vec![
+-                    "A timeout node is created and connected from a durable anchor.".to_string(),
+-                ],
+-                invariants: vec!["No self-connections are introduced.".to_string()],
+-            },
+-            plan: plan_missing_timeout_guard,
+-        },
+-        RuleDefinition {
+-            key: ExtensionKey::AddDurableCheckpoint,
+-            title: "Add state checkpoint",
+-            priority: ExtensionPriority::Medium,
+-            contract: RuleContract {
+-                preconditions: vec![
+-                    "Workflow has at least one Durable node and no set-state node.".to_string(),
+-                ],
+-                postconditions: vec![
+-                    "A set-state node is created and connected from a durable anchor.".to_string(),
+-                ],
+-                invariants: vec!["Existing nodes are not removed implicitly.".to_string()],
+-            },
+-            plan: plan_missing_checkpoint,
+-        },
+-        RuleDefinition {
+-            key: ExtensionKey::AddCompensationBranch,
+-            title: "Add compensation branch",
+-            priority: ExtensionPriority::Medium,
+-            contract: RuleContract {
+-                preconditions: vec![
+-                    "At least one condition node is missing true/false branch coverage."
+-                        .to_string(),
+-                ],
+-                postconditions: vec![
+-                    "A compensate node exists on the false branch of the condition anchor."
+-                        .to_string(),
+-                ],
+-                invariants: vec!["Condition branch wiring remains explicit.".to_string()],
+-            },
+-            plan: plan_unbalanced_condition,
+-        },
+-        RuleDefinition {
+-            key: ExtensionKey::AddSignalResolution,
+-            title: "Add signal resolution",
+-            priority: ExtensionPriority::Medium,
+-            contract: RuleContract {
+-                preconditions: vec![
+-                    "Workflow waits on awakeable/promise but has no resolve-promise node."
+-                        .to_string(),
+-                ],
+-                postconditions: vec![
+-                    "A resolve-promise node is created and connected to the wait anchor."
+-                        .to_string(),
+-                ],
+-                invariants: vec!["Signal wait path keeps deterministic node ordering.".to_string()],
+-            },
+-            plan: plan_missing_signal_resolution,
+-        },
+-    ]
++    vec![] /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn plan_missing_entry(workflow: &Workflow) -> Option<RulePlan> {
+     (!workflow
+         .nodes
+         .iter()
+         .any(|node| node.category == NodeCategory::Entry))
+     .then(|| RulePlan {

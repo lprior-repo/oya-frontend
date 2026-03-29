@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ delete match arm 4 in FeedbackLevel::name
+@@ -34,17 +34,17 @@
+         self.0 == Self::TRANSPARENT.0
+     }
+ 
+     pub fn name(&self) -> &'static str {
+         match self.0 {
+             1 => "minimal",
+             2 => "categorical",
+             3 => "guided",
+-            4 => "diagnostic",
++             /* ~ changed by cargo-mutants ~ */
+             5 => "transparent",
+             _ => "unknown",
+         }
+     }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+ pub struct FailureCategoryName(String);

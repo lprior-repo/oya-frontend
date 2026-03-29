@@ -108,16 +108,13 @@ impl RestateClient {
         #[cfg(not(target_arch = "wasm32"))]
         let req = req.timeout(std::time::Duration::from_secs(self.timeout_secs));
 
-        let response: reqwest::Response = req
-            .send()
-            .await
-            .map_err(|error| {
-                if error.is_timeout() {
-                    ClientError::Timeout
-                } else {
-                    ClientError::ConnectionFailed(error.to_string())
-                }
-            })?;
+        let response: reqwest::Response = req.send().await.map_err(|error| {
+            if error.is_timeout() {
+                ClientError::Timeout
+            } else {
+                ClientError::ConnectionFailed(error.to_string())
+            }
+        })?;
 
         let status = response.status();
         if !status.is_success() {
@@ -160,10 +157,9 @@ impl RestateClient {
         let inv_response = self.query(&inv_sql).await?;
 
         let invocation = if let Some(row) = inv_response.rows.first() {
-            Self::row_to_invocation(&inv_response.columns, row)
-                .map_err(|error| {
-                    ClientError::InvalidResponse(format!("invocation row 0: {error}"))
-                })?
+            Self::row_to_invocation(&inv_response.columns, row).map_err(|error| {
+                ClientError::InvalidResponse(format!("invocation row 0: {error}"))
+            })?
         } else {
             return Err(ClientError::InvalidResponse(
                 "Invocation not found".to_string(),
@@ -359,10 +355,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to JournalEntry.
-    fn row_to_journal_entry(
-        columns: &[String],
-        row: &[Value],
-    ) -> Result<JournalEntry, String> {
+    fn row_to_journal_entry(columns: &[String], row: &[Value]) -> Result<JournalEntry, String> {
         let index_raw = Self::required_u64(columns, row, "index")?;
         let raw_entry_type = Self::required_string(columns, row, "entry_type")?;
 
@@ -385,10 +378,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to JournalEvent.
-    fn row_to_journal_event(
-        columns: &[String],
-        row: &[Value],
-    ) -> Result<JournalEvent, String> {
+    fn row_to_journal_event(columns: &[String], row: &[Value]) -> Result<JournalEvent, String> {
         let index_raw = Self::required_u64(columns, row, "after_journal_entry_index")?;
 
         Ok(JournalEvent {
@@ -413,10 +403,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to ServiceInfo.
-    fn row_to_service_info(
-        columns: &[String],
-        row: &[Value],
-    ) -> Result<ServiceInfo, String> {
+    fn row_to_service_info(columns: &[String], row: &[Value]) -> Result<ServiceInfo, String> {
         let ty_raw = Self::required_string(columns, row, "ty")?;
 
         Ok(ServiceInfo {
@@ -429,10 +416,7 @@ impl RestateClient {
     }
 
     // Helper: Convert row to DeploymentInfo.
-    fn row_to_deployment_info(
-        columns: &[String],
-        row: &[Value],
-    ) -> Result<DeploymentInfo, String> {
+    fn row_to_deployment_info(columns: &[String], row: &[Value]) -> Result<DeploymentInfo, String> {
         let raw_ty = Self::required_string(columns, row, "ty")?;
 
         Ok(DeploymentInfo {
@@ -796,8 +780,12 @@ mod tests {
         let columns = invocation_columns();
         let rows = vec![invocation_row("running", 1), invocation_row("invalid", 1)];
 
-        let parsed: Result<Vec<Invocation>, ClientError> =
-            RestateClient::map_rows("invocation", &columns, &rows, RestateClient::row_to_invocation);
+        let parsed: Result<Vec<Invocation>, ClientError> = RestateClient::map_rows(
+            "invocation",
+            &columns,
+            &rows,
+            RestateClient::row_to_invocation,
+        );
 
         assert!(matches!(
             parsed,

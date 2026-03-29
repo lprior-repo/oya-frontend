@@ -72,7 +72,10 @@ async fn given_app_loaded_when_adding_node_then_node_appears_on_canvas(
             .await?;
     }
 
-    assert!(result.is_ok(), "Node should appear after clicking Add Node");
+    match result {
+        Ok(_) => {}
+        Err(e) => panic!("Node should appear after clicking Add Node: {e}"),
+    }
 
     browser.close().await?;
     Ok(())
@@ -138,8 +141,8 @@ async fn given_app_when_right_clicking_canvas_then_context_menu_appears(
         .click()
         .await?;
 
-    // Give time for menu to appear
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    // Use explicit wait instead of sleep
+    page.wait_for_timeout(500.0).await;
 
     page.screenshot_builder()
         .path(Path::new("test_context_menu.png").to_path_buf())
@@ -217,7 +220,7 @@ async fn given_app_when_typing_in_search_then_filters_results(
     page.keyboard.press("T", None).await?;
     page.keyboard.press("P", None).await?;
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    page.wait_for_timeout(500.0).await;
 
     // Should see HTTP Trigger
     let http = page.query_selector("text=HTTP Trigger").await?;
@@ -254,7 +257,10 @@ async fn given_app_url_when_loading_then_all_ui_elements_present(
         .timeout(30000.0)
         .wait_for_selector()
         .await;
-    assert!(sidebar.is_ok(), "Sidebar should be present");
+    match sidebar {
+        Ok(_) => {}
+        Err(e) => panic!("Sidebar should be present: {e}"),
+    }
 
     // Check for search input
     let search = page
@@ -262,7 +268,10 @@ async fn given_app_url_when_loading_then_all_ui_elements_present(
         .timeout(10000.0)
         .wait_for_selector()
         .await;
-    assert!(search.is_ok(), "Search input should be present");
+    match search {
+        Ok(_) => {}
+        Err(e) => panic!("Search input should be present: {e}"),
+    }
 
     // Check for Add Node button
     let sidebar_item = page.query_selector("text=HTTP Trigger").await?;
@@ -278,7 +287,10 @@ async fn given_app_url_when_loading_then_all_ui_elements_present(
         .timeout(10000.0)
         .wait_for_selector()
         .await;
-    assert!(http.is_ok(), "HTTP Trigger should be in sidebar");
+    match http {
+        Ok(_) => {}
+        Err(e) => panic!("HTTP Trigger should be in sidebar: {e}"),
+    }
 
     browser.close().await?;
     Ok(())

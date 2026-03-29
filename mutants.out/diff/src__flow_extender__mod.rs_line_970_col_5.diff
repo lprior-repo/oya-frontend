@@ -1,0 +1,31 @@
+--- src/flow_extender/mod.rs
++++ replace append_patch_plan with ()
+@@ -962,27 +962,17 @@
+             .and_then(serde_json::Value::as_object)
+             .and_then(|ext| ext.get("fingerprint"))
+             .and_then(serde_json::Value::as_str)
+             .is_some_and(|value| value == fingerprint)
+     })
+ }
+ 
+ fn append_patch_plan(target: &mut PatchPlan, patch: &PatchPlan) {
+-    let offset = target.nodes.len();
+-    target.nodes.extend(patch.nodes.iter().cloned());
+-
+-    target
+-        .connections
+-        .extend(patch.connections.iter().map(|connection| PatchConnection {
+-            source: remap_endpoint(connection.source, offset),
+-            target: remap_endpoint(connection.target, offset),
+-            source_port: connection.source_port,
+-            target_port: connection.target_port,
+-        }));
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ const fn remap_endpoint(endpoint: PatchEndpoint, offset: usize) -> PatchEndpoint {
+     match endpoint {
+         PatchEndpoint::Existing(node_id) => PatchEndpoint::Existing(node_id),
+         PatchEndpoint::Proposed(index) => PatchEndpoint::Proposed(index + offset),
+     }
+ }

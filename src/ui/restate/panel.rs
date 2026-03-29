@@ -109,9 +109,7 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
                     button {
                         class: if enabled {
                             "text-[10px] px-2 py-0.5 rounded border font-medium bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 transition-colors"
-                        } else {
-                            "text-[10px] px-2 py-0.5 rounded border font-medium bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 transition-colors"
-                        },
+                        } else { "text-[10px] px-2 py-0.5 rounded border font-medium bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 transition-colors" },
                         onclick: move |_| {
                             handle.enabled.set(!enabled);
                         },

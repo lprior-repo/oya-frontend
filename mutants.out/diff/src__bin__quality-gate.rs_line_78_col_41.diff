@@ -1,0 +1,21 @@
+--- src/bin/quality-gate.rs
++++ replace == with != in main
+@@ -70,17 +70,17 @@
+             app_endpoint,
+             level,
+         } => {
+             println!("🎭 Running holdout scenarios...");
+             let twins = std::collections::HashMap::new();
+             let results = run_validation(&scenarios_path, &app_endpoint, twins).await?;
+             print_validation_results(&results);
+ 
+-            if results.failed_scenarios == 0 {
++            if results.failed_scenarios != /* ~ changed by cargo-mutants ~ */ 0 {
+                 println!("\n✅ VALIDATION PASSED");
+                 Ok(())
+             } else {
+                 let feedback = sanitize_results(&results.results, 1, level);
+                 println!("\n❌ VALIDATION FAILED: {}", feedback.summary);
+                 std::process::exit(1);
+             }
+         }

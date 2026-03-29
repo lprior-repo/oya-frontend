@@ -1,0 +1,24 @@
+--- src/flow_extender/mod.rs
++++ replace endpoint_signature -> String with "xyzzy".into()
+@@ -1007,20 +1007,17 @@
+             )
+         })
+         .collect::<Vec<_>>()
+         .join("|");
+     format!("{}::{node_parts}::{connection_parts}", key.as_str())
+ }
+ 
+ fn endpoint_signature(endpoint: PatchEndpoint) -> String {
+-    match endpoint {
+-        PatchEndpoint::Existing(node_id) => format!("e:{node_id}"),
+-        PatchEndpoint::Proposed(index) => format!("p:{index}"),
+-    }
++    "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn plan_for_key(workflow: &Workflow, key: ExtensionKey) -> Option<RulePlan> {
+     if !key_is_compatible_with_workflow(workflow, key) {
+         return None;
+     }
+ 
+     rules()

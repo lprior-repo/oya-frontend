@@ -4,13 +4,13 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::ui::restate::RestateInvocationsPanel;
 use crate::ui::{
     CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap,
     FlowNodeComponent, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar,
-    ParallelGroupOverlay, PayloadPreviewPanel, PrototypePalette, RunStatusBar, SelectedNodePanel,
-    ValidationPanel, NodeTemplateId,
+    NodeTemplateId, ParallelGroupOverlay, PayloadPreviewPanel, PrototypePalette, RunStatusBar,
+    SelectedNodePanel, ValidationPanel,
 };
-use crate::ui::restate::RestateInvocationsPanel;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
@@ -189,8 +189,12 @@ fn App() -> Element {
             .any(|n| n.execution_state == ExecutionState::Failed)
         {
             ExecutionState::Failed
-        } else if nodes.iter().all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
-            && nodes.iter().any(|n| n.execution_state == ExecutionState::Completed)
+        } else if nodes
+            .iter()
+            .all(|n| n.execution_state.is_terminal() || n.execution_state == ExecutionState::Idle)
+            && nodes
+                .iter()
+                .any(|n| n.execution_state == ExecutionState::Completed)
         {
             ExecutionState::Completed
         } else {
@@ -1356,21 +1360,31 @@ mod command_tests {
 
     #[test]
     fn given_ctrl_z_key_when_parsing_then_returns_undo() {
-        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let mods = KeyModifiers {
+            ctrl: true,
+            ..Default::default()
+        };
         let result = parse_key_event("z", &mods);
         assert_eq!(result, Some(EditorCommand::Undo));
     }
 
     #[test]
     fn given_ctrl_shift_z_key_when_parsing_then_returns_redo() {
-        let mods = KeyModifiers { ctrl: true, shift: true, ..Default::default() };
+        let mods = KeyModifiers {
+            ctrl: true,
+            shift: true,
+            ..Default::default()
+        };
         let result = parse_key_event("z", &mods);
         assert_eq!(result, Some(EditorCommand::Redo));
     }
 
     #[test]
     fn given_ctrl_y_key_when_parsing_then_returns_redo() {
-        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let mods = KeyModifiers {
+            ctrl: true,
+            ..Default::default()
+        };
         let result = parse_key_event("y", &mods);
         assert_eq!(result, Some(EditorCommand::Redo));
     }
@@ -1405,7 +1419,10 @@ mod command_tests {
 
     #[test]
     fn given_ctrl_l_key_when_parsing_then_returns_auto_layout() {
-        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let mods = KeyModifiers {
+            ctrl: true,
+            ..Default::default()
+        };
         let result = parse_key_event("l", &mods);
         assert_eq!(result, Some(EditorCommand::AutoLayout));
     }
@@ -1421,7 +1438,10 @@ mod command_tests {
     #[test]
     fn given_meta_key_as_ctrl_when_parsing_then_interprets_as_ctrl() {
         // On macOS, meta (Cmd) should be treated like ctrl
-        let mods = KeyModifiers { ctrl: true, ..Default::default() };
+        let mods = KeyModifiers {
+            ctrl: true,
+            ..Default::default()
+        };
         let result = parse_key_event("z", &mods);
         assert_eq!(result, Some(EditorCommand::Undo));
     }

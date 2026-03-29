@@ -1,0 +1,42 @@
+--- src/flow_extender/mod.rs
++++ replace execute_patch -> Vec<NodeId> with vec![]
+@@ -879,38 +879,17 @@
+ }
+ 
+ fn execute_patch(
+     workflow: &mut Workflow,
+     key: ExtensionKey,
+     fingerprint: &str,
+     patch: &PatchPlan,
+ ) -> Vec<NodeId> {
+-    let created_nodes = patch
+-        .nodes
+-        .iter()
+-        .map(|node| workflow.add_node(node.node_type, node.x, node.y))
+-        .collect::<Vec<_>>();
+-
+-    annotate_extension_nodes(workflow, key, fingerprint, &created_nodes);
+-
+-    patch.connections.iter().for_each(|connection| {
+-        let source = resolve_patch_endpoint(connection.source, &created_nodes);
+-        let target = resolve_patch_endpoint(connection.target, &created_nodes);
+-        if let (Some(source_id), Some(target_id)) = (source, target) {
+-            let _ = workflow.add_connection(
+-                source_id,
+-                target_id,
+-                &PortName::from(connection.source_port),
+-                &PortName::from(connection.target_port),
+-            );
+-        }
+-    });
+-
+-    created_nodes
++    vec![] /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn apply_reliability_bundle(
+     workflow: &mut Workflow,
+     key: &str,
+ ) -> Result<AppliedExtension, String> {
+     let mut created_nodes = Vec::new();
+     for part in reliability_bundle_members() {

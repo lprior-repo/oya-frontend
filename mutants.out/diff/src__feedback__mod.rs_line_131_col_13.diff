@@ -1,0 +1,30 @@
+--- src/feedback/mod.rs
++++ delete match arm 2 in FeedbackConfig::from_level
+@@ -123,26 +123,17 @@
+                 name: "minimal".to_string(),
+                 includes_status_codes: false,
+                 includes_bodies: false,
+                 includes_timing: false,
+                 includes_scenario_ids: false,
+                 includes_step_sequences: false,
+                 includes_exact_assertions: false,
+             },
+-            2 => Self {
+-                level: FeedbackLevel::CATEGORICAL,
+-                name: "categorical".to_string(),
+-                includes_status_codes: false,
+-                includes_bodies: false,
+-                includes_timing: false,
+-                includes_scenario_ids: false,
+-                includes_step_sequences: false,
+-                includes_exact_assertions: false,
+-            },
++             /* ~ changed by cargo-mutants ~ */
+             3 => Self {
+                 level: FeedbackLevel::GUIDED,
+                 name: "guided".to_string(),
+                 includes_status_codes: false,
+                 includes_bodies: false,
+                 includes_timing: false,
+                 includes_scenario_ids: false,
+                 includes_step_sequences: false,

@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ delete match arm "retry-saga" in <impl FromStr for ExtensionPresetKey>::from_str
+@@ -86,17 +86,17 @@
+ 
+ impl FromStr for ExtensionPresetKey {
+     type Err = String;
+ 
+     fn from_str(value: &str) -> Result<Self, Self::Err> {
+         match value {
+             "webhook" => Ok(Self::Webhook),
+             "approval" => Ok(Self::Approval),
+-            "retry-saga" => Ok(Self::RetrySaga),
++             /* ~ changed by cargo-mutants ~ */
+             _ => Err(format!("Unknown extension preset key: {value}")),
+         }
+     }
+ }
+ 
+ impl ExtensionKey {
+     #[must_use]
+     pub const fn as_str(self) -> &'static str {

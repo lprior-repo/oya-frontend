@@ -9,7 +9,7 @@ fn bead_required_unknown_extension_returns_structured_error() {
 
     let result = preview_extension(&workflow, "not-a-real-extension");
 
-    assert!(result.is_err());
+    assert!(matches!(result, Err(_)));
     if let Err(err) = result {
         assert!(err.contains("Unknown extension key"));
     }
@@ -41,21 +41,19 @@ fn bead_required_repeated_apply_is_idempotent() {
     let _ = workflow.add_node("run", 20.0, 20.0);
 
     let first = apply_extension(&mut workflow, "add-timeout-guard");
-    assert!(first.is_ok());
-    let first = first.ok();
-    assert!(first
-        .as_ref()
-        .is_some_and(|applied| !applied.created_nodes.is_empty()));
+    match first {
+        Ok(applied) => assert!(!applied.created_nodes.is_empty()),
+        Err(e) => panic!("Expected Ok, got Err: {e}"),
+    }
 
     let node_count_after_first = workflow.nodes.len();
     let connection_count_after_first = workflow.connections.len();
 
     let second = apply_extension(&mut workflow, "add-timeout-guard");
-    assert!(second.is_ok());
-    let second = second.ok();
-    assert!(second
-        .as_ref()
-        .is_some_and(|applied| applied.created_nodes.is_empty()));
+    match second {
+        Ok(applied) => assert!(applied.created_nodes.is_empty()),
+        Err(e) => panic!("Expected Ok, got Err: {e}"),
+    }
 
     assert_eq!(workflow.nodes.len(), node_count_after_first);
     assert_eq!(workflow.connections.len(), connection_count_after_first);

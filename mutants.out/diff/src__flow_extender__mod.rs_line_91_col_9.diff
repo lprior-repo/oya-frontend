@@ -1,0 +1,26 @@
+--- src/flow_extender/mod.rs
++++ replace <impl FromStr for ExtensionPresetKey>::from_str -> Result<Self, Self::Err> with Ok(Default::default())
+@@ -83,22 +83,17 @@
+         }
+     }
+ }
+ 
+ impl FromStr for ExtensionPresetKey {
+     type Err = String;
+ 
+     fn from_str(value: &str) -> Result<Self, Self::Err> {
+-        match value {
+-            "webhook" => Ok(Self::Webhook),
+-            "approval" => Ok(Self::Approval),
+-            "retry-saga" => Ok(Self::RetrySaga),
+-            _ => Err(format!("Unknown extension preset key: {value}")),
+-        }
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl ExtensionKey {
+     #[must_use]
+     pub const fn as_str(self) -> &'static str {
+         match self {
+             Self::AddEntryTrigger => "add-entry-trigger",

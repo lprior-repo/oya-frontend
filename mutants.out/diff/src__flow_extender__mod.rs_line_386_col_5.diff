@@ -1,0 +1,40 @@
+--- src/flow_extender/mod.rs
++++ replace apply_extension -> Result<AppliedExtension, String> with Ok(Default::default())
+@@ -378,36 +378,17 @@
+ ) -> Result<Option<ExtensionPatchPreview>, String> {
+     let parsed_key = ExtensionKey::from_str(key)?;
+ 
+     Ok(plan_for_key(workflow, parsed_key)
+         .map(|plan| preview_from_patch(key.to_string(), &plan.patch)))
+ }
+ 
+ pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExtension, String> {
+-    let parsed_key = ExtensionKey::from_str(key)?;
+-    if parsed_key == ExtensionKey::AddReliabilityBundle {
+-        return apply_reliability_bundle(workflow, key);
+-    }
+-
+-    let created_nodes = plan_for_key(workflow, parsed_key)
+-        .map(|plan| {
+-            let fingerprint = extension_fingerprint(parsed_key, &plan.patch);
+-            if has_extension_fingerprint(workflow, &fingerprint) {
+-                Vec::new()
+-            } else {
+-                execute_patch(workflow, parsed_key, &fingerprint, &plan.patch)
+-            }
+-        })
+-        .unwrap_or_default();
+-
+-    Ok(AppliedExtension {
+-        key: key.to_string(),
+-        created_nodes,
+-    })
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn detect_extension_conflicts(
+     workflow: &Workflow,
+     keys: &[String],
+ ) -> Result<Vec<ExtensionConflict>, String> {
+     let mut conflicts = Vec::new();
+     let mut seen: HashSet<ExtensionKey> = HashSet::new();

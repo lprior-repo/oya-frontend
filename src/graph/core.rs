@@ -1,11 +1,22 @@
-use super::{ExecutionState, Node, NodeId, Viewport, Workflow};
+use super::{can_transition, ExecutionState, Node, NodeId, Viewport, Workflow};
 use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
 
 impl Workflow {
-    pub(super) fn set_node_status(node: &mut Node, status: ExecutionState) {
-        node.execution_state = status;
-        let status_text = status.to_string();
+    pub(super) fn set_node_status(
+        node: &mut Node,
+        proposed_status: ExecutionState,
+    ) -> Result<(), super::InvalidTransition> {
+        // Validate state transition using the state machine
+        if !can_transition(node.execution_state, proposed_status) {
+            return Err(super::InvalidTransition {
+                from: node.execution_state,
+                to: proposed_status,
+            });
+        }
+
+        node.execution_state = proposed_status;
+        let status_text = proposed_status.to_string();
 
         let config_obj = match node.config.as_object().cloned() {
             Some(obj) => obj
@@ -19,6 +30,39 @@ impl Workflow {
                 .collect(),
         };
         node.config = serde_json::Value::Object(config_obj);
+        Ok(())
+    }
+
+    pub(super) fn set_node_pending_status(node: &mut Node) -> Result<(), super::InvalidTransition> {
+        // Validate state transition: Idle -> Queued or Queued -> Skipped
+        if !can_transition(node.execution_state, ExecutionState::Queued) {
+            return Err(super::InvalidTransition {
+                from: node.execution_state,
+                to: ExecutionState::Queued,
+            });
+        }
+
+        node.execution_state = ExecutionState::Queued;
+        let status_text = "pending";
+        let config_obj = node.config.as_object().cloned().map_or_else(
+            || {
+                std::iter::once((
+                    "status".to_string(),
+                    serde_json::Value::String(status_text.to_string()),
+                ))
+                .collect::<serde_json::Map<_, _>>()
+            },
+            |obj| {
+                obj.into_iter()
+                    .chain(std::iter::once((
+                        "status".to_string(),
+                        serde_json::Value::String(status_text.to_string()),
+                    )))
+                    .collect()
+            },
+        );
+        node.config = serde_json::Value::Object(config_obj);
+        Ok(())
     }
 
     #[must_use]
@@ -46,9 +90,8 @@ impl Workflow {
         let id = NodeId::new();
         let name = format!("{node_type} {}", self.nodes.len() + 1);
 
-        let workflow_node = WorkflowNode::from_str(node_type).unwrap_or_else(|_| {
-            WorkflowNode::Run(crate::graph::workflow_node::RunConfig::default())
-        });
+        let workflow_node = WorkflowNode::from_str(node_type)
+            .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::RunConfig::default()));
 
         let mut node = Node::from_workflow_node(name, workflow_node, final_x, final_y);
         node.id = id;
@@ -89,7 +132,7 @@ impl Workflow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::{workflow_node::RunConfig, PortName, WorkflowNode};
+    use crate::graph::{PortName, RunConfig, WorkflowNode};
 
     #[test]
     fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
@@ -153,7 +196,11 @@ mod tests {
             0.0,
         );
 
-        Workflow::set_node_status(&mut node, ExecutionState::Running);
+        // Node starts in Idle state, need to transition to Queued first
+        let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+
+        // Now we can transition from Queued to Running
+        let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
 
         // execution_state should be updated
         assert_eq!(node.execution_state, ExecutionState::Running);

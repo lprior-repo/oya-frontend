@@ -35,7 +35,7 @@ async fn regression_node_should_not_disappear_when_drag_starts(
     page.goto_builder(&app_url).goto().await?;
 
     // Take diagnostic screenshot after initial load
-    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+    page.wait_for_timeout(10000.0).await;
     page.screenshot_builder()
         .path(Path::new("regression_1_initial.png").to_path_buf())
         .screenshot()
@@ -186,7 +186,7 @@ async fn regression_node_should_not_disappear_when_drag_starts(
     println!("After mousedown via JS: {:?}", result);
 
     // Give time for any reactivity to process
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    page.wait_for_timeout(500.0).await;
 
     // Check if node still exists
     let node_after = page.query_selector("div[data-node-id]").await?;
@@ -349,7 +349,7 @@ async fn node_should_be_visible_after_click() -> Result<(), Box<dyn std::error::
 
     page.click_builder("div[data-node-id]").click().await?;
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    page.wait_for_timeout(200.0).await;
 
     let node = page.query_selector("div[data-node-id]").await?;
     assert!(node.is_some(), "Node should exist after click");

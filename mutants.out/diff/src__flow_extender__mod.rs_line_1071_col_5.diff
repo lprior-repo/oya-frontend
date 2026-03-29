@@ -1,0 +1,29 @@
+--- src/flow_extender/mod.rs
++++ replace have_shared_service_kind -> bool with true
+@@ -1063,25 +1063,17 @@
+             RestateServiceKind::Workflow,
+         ])
+     } else {
+         HashSet::from([RestateServiceKind::Handler])
+     }
+ }
+ 
+ fn have_shared_service_kind(left: ExtensionKey, right: ExtensionKey) -> bool {
+-    let left_kinds = extension_semantics(left)
+-        .compatible_service_kinds
+-        .into_iter()
+-        .collect::<HashSet<_>>();
+-    let right_kinds = extension_semantics(right)
+-        .compatible_service_kinds
+-        .into_iter()
+-        .collect::<HashSet<_>>();
+-    !left_kinds.is_disjoint(&right_kinds)
++    true /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn extension_semantics(key: ExtensionKey) -> ExtensionSemantics {
+     match key {
+         ExtensionKey::AddEntryTrigger => ExtensionSemantics {
+             compatible_service_kinds: vec![
+                 RestateServiceKind::Handler,
+                 RestateServiceKind::Actor,

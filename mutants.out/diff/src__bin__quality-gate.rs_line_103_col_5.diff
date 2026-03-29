@@ -1,0 +1,23 @@
+--- src/bin/quality-gate.rs
++++ replace print_validation_results with ()
+@@ -95,19 +95,13 @@
+     );
+     for (cat, score) in &report.categories {
+         println!("  - {}: {} ({})", cat, score.score, score.details);
+     }
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn print_validation_results(results: &ValidationReport) {
+-    println!(
+-        "Report: {} | Total: {} | Passed: {} | Failed: {}",
+-        results.spec_id,
+-        results.total_scenarios,
+-        results.passed_scenarios,
+-        results.failed_scenarios
+-    );
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(target_arch = "wasm32")]
+ fn main() {}

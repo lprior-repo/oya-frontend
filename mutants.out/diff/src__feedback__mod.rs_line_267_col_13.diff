@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ delete match arm "error-handling" in FeedbackSanitizer::categorize_failure
+@@ -259,17 +259,17 @@
+             }
+             if step.error.as_ref().is_some_and(|e| e.contains("timeout")) {
+                 return FailureCategoryName::new("Timeout");
+             }
+         }
+ 
+         match result.category.as_str() {
+             "security" => FailureCategoryName::new("Security Violation"),
+-            "error-handling" => FailureCategoryName::new("Error Handling"),
++             /* ~ changed by cargo-mutants ~ */
+             "happy-path" => FailureCategoryName::new("Happy Path"),
+             _ => FailureCategoryName::new("Unknown"),
+         }
+     }
+ 
+     fn sanitize_description(category: &FailureCategoryName) -> String {
+         match category.as_str() {
+             "Security Violation" => "The system does not properly enforce security constraints.".to_string(),

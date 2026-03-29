@@ -1,0 +1,41 @@
+--- src/flow_extender/mod.rs
++++ replace suggest_extensions_with_analysis -> Vec<ExtensionSuggestionAnalysis> with vec![]
+@@ -344,37 +344,17 @@
+                 })
+             })
+             .collect(),
+     )
+ }
+ 
+ #[must_use]
+ pub fn suggest_extensions_with_analysis(workflow: &Workflow) -> Vec<ExtensionSuggestionAnalysis> {
+-    hide_isolated_reliability_analysis(
+-        rules()
+-            .into_iter()
+-            .filter_map(|rule| {
+-                if !key_is_compatible_with_workflow(workflow, rule.key) {
+-                    return None;
+-                }
+-                (rule.plan)(workflow).map(|plan| ExtensionSuggestionAnalysis {
+-                    key: rule.key.as_str().to_string(),
+-                    score: confidence_score_for(rule.key, workflow),
+-                    rationale_class: rationale_class_for(rule.key),
+-                    fingerprint: extension_fingerprint(rule.key, &plan.patch),
+-                    dependencies: extension_dependencies(rule.key)
+-                        .iter()
+-                        .map(|dependency| dependency.as_str().to_string())
+-                        .collect(),
+-                    semantics: extension_semantics(rule.key),
+-                })
+-            })
+-            .collect(),
+-    )
++    vec![] /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn preview_extension(
+     workflow: &Workflow,
+     key: &str,
+ ) -> Result<Option<ExtensionPatchPreview>, String> {
+     let parsed_key = ExtensionKey::from_str(key)?;
+ 

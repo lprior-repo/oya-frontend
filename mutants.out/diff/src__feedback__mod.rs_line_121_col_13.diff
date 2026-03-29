@@ -1,0 +1,30 @@
+--- src/feedback/mod.rs
++++ delete match arm 1 in FeedbackConfig::from_level
+@@ -113,26 +113,17 @@
+     pub includes_step_sequences: bool,
+     pub includes_exact_assertions: bool,
+ }
+ 
+ impl FeedbackConfig {
+     #[must_use]
+     pub fn from_level(level: u8) -> Self {
+         match level {
+-            1 => Self {
+-                level: FeedbackLevel::MINIMAL,
+-                name: "minimal".to_string(),
+-                includes_status_codes: false,
+-                includes_bodies: false,
+-                includes_timing: false,
+-                includes_scenario_ids: false,
+-                includes_step_sequences: false,
+-                includes_exact_assertions: false,
+-            },
++             /* ~ changed by cargo-mutants ~ */
+             2 => Self {
+                 level: FeedbackLevel::CATEGORICAL,
+                 name: "categorical".to_string(),
+                 includes_status_codes: false,
+                 includes_bodies: false,
+                 includes_timing: false,
+                 includes_scenario_ids: false,
+                 includes_step_sequences: false,

@@ -278,7 +278,7 @@ mod tests {
     fn make_node(x: f32, y: f32) -> Node {
         Node::from_workflow_node(
             String::new(),
-            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
+            WorkflowNode::Run(oya_frontend::graph::RunConfig::default()),
             x,
             y,
         )

@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ replace FailureCategoryName::as_str -> &str with "xyzzy"
+@@ -50,17 +50,17 @@
+ pub struct FailureCategoryName(String);
+ 
+ impl FailureCategoryName {
+     pub fn new(name: impl Into<String>) -> Self {
+         Self(name.into())
+     }
+ 
+     pub fn as_str(&self) -> &str {
+-        &self.0
++        "xyzzy" /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     pub fn categorize(error_message: &str) -> Self {
+         if error_message.contains("404") {
+             Self("Resource Not Found".into())
+         } else if error_message.contains("500") {
+             Self("Server Error".into())
+         } else if error_message.contains("timeout") {

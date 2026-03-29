@@ -1,0 +1,48 @@
+--- src/flow_extender/mod.rs
++++ replace plan_missing_timeout_guard -> Option<RulePlan> with Some(Default::default())
+@@ -716,44 +716,17 @@
+                 y: 100.0,
+             }],
+             connections: Vec::new(),
+         },
+     })
+ }
+ 
+ fn plan_missing_timeout_guard(workflow: &Workflow) -> Option<RulePlan> {
+-    let has_durable = workflow
+-        .nodes
+-        .iter()
+-        .any(|node| node.category == NodeCategory::Durable);
+-    let has_timeout = workflow
+-        .nodes
+-        .iter()
+-        .any(|node| matches!(node.node, WorkflowNode::Timeout(_)));
+-    let anchor = first_node_by_type(workflow, |node| node.category == NodeCategory::Durable)?;
+-
+-    (has_durable && !has_timeout).then(|| RulePlan {
+-        rationale:
+-            "Durable calls are present without timeout nodes. Add a timeout guard for safer execution."
+-                .to_string(),
+-        patch: PatchPlan {
+-            nodes: vec![PatchNode {
+-                node_type: "timeout",
+-                x: anchor.x + 220.0,
+-                y: anchor.y,
+-            }],
+-            connections: vec![PatchConnection {
+-                source: PatchEndpoint::Existing(anchor.id),
+-                target: PatchEndpoint::Proposed(0),
+-                source_port: "out",
+-                target_port: "in",
+-            }],
+-        },
+-    })
++    Some(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn plan_reliability_bundle(workflow: &Workflow) -> Option<RulePlan> {
+     if !workflow.nodes.iter().any(is_side_effecting_durable) {
+         return None;
+     }
+ 
+     let timeout = plan_missing_timeout_guard(workflow).map(|plan| ("timeout", plan));

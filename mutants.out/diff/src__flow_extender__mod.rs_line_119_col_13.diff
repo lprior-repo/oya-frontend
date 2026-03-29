@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ delete match arm "add-entry-trigger" in <impl FromStr for ExtensionKey>::from_str
+@@ -111,17 +111,17 @@
+     }
+ }
+ 
+ impl FromStr for ExtensionKey {
+     type Err = String;
+ 
+     fn from_str(value: &str) -> Result<Self, Self::Err> {
+         match value {
+-            "add-entry-trigger" => Ok(Self::AddEntryTrigger),
++             /* ~ changed by cargo-mutants ~ */
+             "add-reliability-bundle" => Ok(Self::AddReliabilityBundle),
+             "add-timeout-guard" => Ok(Self::AddTimeoutGuard),
+             "add-durable-checkpoint" => Ok(Self::AddDurableCheckpoint),
+             "add-compensation-branch" => Ok(Self::AddCompensationBranch),
+             "add-signal-resolution" => Ok(Self::AddSignalResolution),
+             _ => Err(format!("Unknown extension key: {value}")),
+         }
+     }

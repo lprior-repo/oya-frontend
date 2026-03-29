@@ -1,0 +1,24 @@
+--- src/bin/coverage.rs
++++ delete match arm "text" in main
+@@ -27,20 +27,17 @@
+     let analyzer = CoverageAnalyzer::new(&args.specs_dir, &args.scenarios_dir);
+     let report = analyzer.analyze()?;
+ 
+     match args.format.as_str() {
+         "json" => {
+             let json = serde_json::to_string_pretty(&report)?;
+             println!("{json}");
+         }
+-        "text" => {
+-            println!("Analyzing scenario coverage...");
+-            print_text_report(&report);
+-        }
++         /* ~ changed by cargo-mutants ~ */
+         _ => {
+             eprintln!("Unsupported format: {}", args.format);
+             return Err("Use 'json' or 'text'".into());
+         }
+     }
+ 
+     Ok(())
+ }

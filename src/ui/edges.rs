@@ -142,7 +142,7 @@ fn resolve_edge_anchors_with_parallel(
 #[allow(clippy::cast_precision_loss)]
 fn calculate_parallel_offset(target_id: &NodeId, targets: &[Node], node_height: f32) -> f32 {
     let mut sorted: Vec<_> = targets.iter().enumerate().collect();
-    sorted.sort_by(|a, b| a.1.id.0.cmp(&b.1.id.0));
+    sorted.sort_by_key(|a| a.1.id.0);
 
     let idx = sorted
         .iter()
@@ -188,7 +188,7 @@ fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<Par
                 .filter_map(|id| node_by_id.get(&id).cloned())
                 .collect();
 
-            target_nodes.sort_by(|a, b| a.id.0.cmp(&b.id.0));
+            target_nodes.sort_by_key(|a| a.id.0);
 
             let min_y = target_nodes
                 .iter()
@@ -266,7 +266,7 @@ mod tests {
     fn build_node(id: NodeId, x: f32, y: f32) -> Node {
         let mut node = Node::from_workflow_node(
             format!("Node {}", id),
-            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default()),
+            WorkflowNode::Run(oya_frontend::graph::RunConfig::default()),
             x,
             y,
         );

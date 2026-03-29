@@ -270,9 +270,9 @@ mod tests {
     use uuid::Uuid;
 
     fn make_node(id: Uuid, node_type: &str, x: f32, y: f32) -> Node {
-        let wfn = node_type.parse::<WorkflowNode>().unwrap_or_else(|_| {
-            WorkflowNode::Run(oya_frontend::graph::workflow_node::RunConfig::default())
-        });
+        let wfn = node_type
+            .parse::<WorkflowNode>()
+            .unwrap_or_else(|_| WorkflowNode::Run(oya_frontend::graph::RunConfig::default()));
         let mut node = Node::from_workflow_node(format!("{node_type} node"), wfn, x, y);
         node.id = NodeId(id);
         node

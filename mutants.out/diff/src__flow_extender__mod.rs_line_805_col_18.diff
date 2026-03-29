@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace && with || in plan_missing_checkpoint
+@@ -797,17 +797,17 @@
+         .iter()
+         .any(|node| node.category == NodeCategory::Durable);
+     let has_state_write = workflow
+         .nodes
+         .iter()
+         .any(|node| matches!(node.node, WorkflowNode::SetState(_)));
+     let anchor = first_node_by_type(workflow, |node| node.category == NodeCategory::Durable)?;
+ 
+-    (has_durable && !has_state_write).then(|| RulePlan {
++    (has_durable || /* ~ changed by cargo-mutants ~ */ !has_state_write).then(|| RulePlan {
+         rationale:
+             "No state write step found after durable actions. Add a checkpoint to persist progress."
+                 .to_string(),
+         patch: PatchPlan {
+             nodes: vec![PatchNode {
+                 node_type: "set-state",
+                 x: anchor.x + 220.0,
+                 y: anchor.y + 80.0,

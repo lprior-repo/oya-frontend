@@ -1,0 +1,31 @@
+--- src/flow_extender/mod.rs
++++ replace ExtensionPresetKey::description -> &'static str with "xyzzy"
+@@ -47,27 +47,17 @@
+             Self::Webhook => "Webhook Reliability",
+             Self::Approval => "Approval Gate",
+             Self::RetrySaga => "Retry Saga",
+         }
+     }
+ 
+     #[must_use]
+     pub const fn description(self) -> &'static str {
+-        match self {
+-            Self::Webhook => {
+-                "Bootstraps webhook entry with timeout and durable checkpoint safeguards."
+-            }
+-            Self::Approval => {
+-                "Adds explicit approval orchestration with signal resolution and compensation fallback."
+-            }
+-            Self::RetrySaga => {
+-                "Builds retry-oriented saga safety with timeout, checkpointing, and compensation paths."
+-            }
+-        }
++        "xyzzy" /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn extension_keys(self) -> &'static [ExtensionKey] {
+         match self {
+             Self::Webhook => &[
+                 ExtensionKey::AddTimeoutGuard,
+                 ExtensionKey::AddDurableCheckpoint,

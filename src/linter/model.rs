@@ -195,7 +195,7 @@ impl LintReport {
                 (total + category.score, count + 1)
             });
 
-        self.overall_score = if count > 0 { total / count } else { 0 };
+        self.overall_score = total / count.max(1);
         self.passed = self.errors.is_empty() && self.overall_score >= 80;
     }
 }

@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ delete ! in FeedbackSanitizer::sanitize
+@@ -211,17 +211,17 @@
+         iteration: u32,
+     ) -> SanitizedFeedback {
+         let total_count = raw_results.len();
+         let passed_count = raw_results.iter().filter(|r| r.passed).count();
+         let failed_count = total_count - passed_count;
+ 
+         let failures: Vec<SanitizedFailure> = raw_results
+             .iter()
+-            .filter(|r| !r.passed)
++            .filter(|r|  /* ~ changed by cargo-mutants ~ */r.passed)
+             .map(Self::sanitize_failure)
+             .collect();
+ 
+         let summary = format!("{failed_count} of {total_count} behavioral tests failed");
+ 
+         SanitizedFeedback {
+             iteration,
+             passed_count,

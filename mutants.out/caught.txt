@@ -1,0 +1,74 @@
+src/bin/coverage.rs:31:9: delete match arm "json" in main
+src/bin/coverage.rs:25:5: replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/main.rs:32:5: replace should_end_canvas_interaction -> bool with false
+src/main.rs:32:31: replace || with && in should_end_canvas_interaction
+src/main.rs:32:5: replace should_end_canvas_interaction -> bool with true
+src/main.rs:32:17: replace || with && in should_end_canvas_interaction
+src/main.rs:1294:5: replace parse_key_event -> Option<EditorCommand> with None
+src/main.rs:1296:9: delete match arm "+" | "=" | "add" in parse_key_event
+src/main.rs:1297:9: delete match arm "-" | "_" | "subtract" in parse_key_event
+src/main.rs:1298:9: delete match arm "0" in parse_key_event
+src/main.rs:1303:22: replace match guard modifiers.ctrl && modifiers.shift with true in parse_key_event
+src/main.rs:1303:22: replace match guard modifiers.ctrl && modifiers.shift with false in parse_key_event
+src/main.rs:1304:16: replace match guard modifiers.ctrl with true in parse_key_event
+src/main.rs:1304:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1305:16: replace match guard modifiers.ctrl with true in parse_key_event
+src/main.rs:1305:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1308:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1303:37: replace && with || in parse_key_event
+src/flow_extender/mod.rs:37:9: replace ExtensionPresetKey::as_str -> &'static str with ""
+src/flow_extender/mod.rs:37:9: replace ExtensionPresetKey::as_str -> &'static str with "xyzzy"
+src/flow_extender/mod.rs:92:13: delete match arm "webhook" in <impl FromStr for ExtensionPresetKey>::from_str
+src/flow_extender/mod.rs:94:13: delete match arm "retry-saga" in <impl FromStr for ExtensionPresetKey>::from_str
+src/flow_extender/mod.rs:103:9: replace ExtensionKey::as_str -> &'static str with ""
+src/flow_extender/mod.rs:103:9: replace ExtensionKey::as_str -> &'static str with "xyzzy"
+src/flow_extender/mod.rs:119:13: delete match arm "add-entry-trigger" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:120:13: delete match arm "add-reliability-bundle" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:121:13: delete match arm "add-timeout-guard" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:123:13: delete match arm "add-compensation-branch" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:122:13: delete match arm "add-durable-checkpoint" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:124:13: delete match arm "add-signal-resolution" in <impl FromStr for ExtensionKey>::from_str
+src/flow_extender/mod.rs:331:5: replace suggest_extensions -> Vec<FlowExtension> with vec![]
+src/flow_extender/mod.rs:335:20: delete ! in suggest_extensions
+src/flow_extender/mod.rs:356:20: delete ! in suggest_extensions_with_analysis
+src/flow_extender/mod.rs:352:5: replace suggest_extensions_with_analysis -> Vec<ExtensionSuggestionAnalysis> with vec![]
+src/flow_extender/mod.rs:379:5: replace preview_extension -> Result<Option<ExtensionPatchPreview>, String> with Ok(None)
+src/flow_extender/mod.rs:387:19: replace == with != in apply_extension
+src/flow_extender/mod.rs:412:5: replace detect_extension_conflicts -> Result<Vec<ExtensionConflict>, String> with Ok(vec![])
+src/flow_extender/mod.rs:418:12: delete ! in detect_extension_conflicts
+src/flow_extender/mod.rs:443:40: replace + with - in detect_extension_conflicts
+src/flow_extender/mod.rs:446:16: delete ! in detect_extension_conflicts
+src/flow_extender/mod.rs:557:5: replace extension_presets -> Vec<ExtensionPreset> with vec![]
+src/flow_extender/mod.rs:704:5: replace plan_missing_entry -> Option<RulePlan> with None
+src/flow_extender/mod.rs:605:5: replace rules -> Vec<RuleDefinition> with vec![]
+src/flow_extender/mod.rs:704:6: delete ! in plan_missing_entry
+src/flow_extender/mod.rs:724:5: replace plan_missing_timeout_guard -> Option<RulePlan> with None
+src/flow_extender/mod.rs:707:35: replace == with != in plan_missing_entry
+src/flow_extender/mod.rs:732:68: replace == with != in plan_missing_timeout_guard
+src/flow_extender/mod.rs:727:35: replace == with != in plan_missing_timeout_guard
+src/flow_extender/mod.rs:734:21: delete ! in plan_missing_timeout_guard
+src/flow_extender/mod.rs:755:8: delete ! in plan_reliability_bundle
+src/flow_extender/mod.rs:755:5: replace plan_reliability_bundle -> Option<RulePlan> with None
+src/flow_extender/mod.rs:795:5: replace plan_missing_checkpoint -> Option<RulePlan> with None
+src/flow_extender/mod.rs:803:68: replace == with != in plan_missing_checkpoint
+src/flow_extender/mod.rs:805:21: delete ! in plan_missing_checkpoint
+src/flow_extender/mod.rs:826:5: replace plan_unbalanced_condition -> Option<RulePlan> with None
+src/flow_extender/mod.rs:831:17: replace && with || in plan_unbalanced_condition
+src/flow_extender/mod.rs:855:5: replace plan_missing_signal_resolution -> Option<RulePlan> with None
+src/flow_extender/mod.rs:862:6: delete ! in plan_missing_signal_resolution
+src/flow_extender/mod.rs:887:5: replace execute_patch -> Vec<NodeId> with vec![]
+src/flow_extender/mod.rs:887:5: replace execute_patch -> Vec<NodeId> with vec![Default::default()]
+src/flow_extender/mod.rs:937:44: replace == with != in annotate_extension_nodes
+src/flow_extender/mod.rs:933:5: replace annotate_extension_nodes with ()
+src/flow_extender/mod.rs:958:5: replace has_extension_fingerprint -> bool with true
+src/flow_extender/mod.rs:965:40: replace == with != in has_extension_fingerprint
+src/flow_extender/mod.rs:970:5: replace append_patch_plan with ()
+src/flow_extender/mod.rs:986:73: replace + with - in remap_endpoint
+src/flow_extender/mod.rs:991:5: replace extension_fingerprint -> String with String::new()
+src/flow_extender/mod.rs:991:5: replace extension_fingerprint -> String with "xyzzy".into()
+src/flow_extender/mod.rs:1022:5: replace plan_for_key -> Option<RulePlan> with None
+src/flow_extender/mod.rs:1022:8: delete ! in plan_for_key
+src/flow_extender/mod.rs:1028:41: replace == with != in plan_for_key
+src/flow_extender/mod.rs:1033:5: replace key_is_compatible_with_workflow -> bool with true
+src/flow_extender/mod.rs:1033:5: replace key_is_compatible_with_workflow -> bool with false
+src/flow_extender/mod.rs:1038:5: delete ! in key_is_compatible_with_workflow

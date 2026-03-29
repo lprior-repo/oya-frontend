@@ -1,0 +1,42 @@
+--- src/flow_extender/mod.rs
++++ replace annotate_extension_nodes with ()
+@@ -925,38 +925,17 @@
+ }
+ 
+ fn annotate_extension_nodes(
+     workflow: &mut Workflow,
+     key: ExtensionKey,
+     fingerprint: &str,
+     node_ids: &[NodeId],
+ ) {
+-    for node_id in node_ids {
+-        if let Some(node) = workflow
+-            .nodes
+-            .iter_mut()
+-            .find(|candidate| candidate.id == *node_id)
+-        {
+-            let mut metadata = serde_json::Map::new();
+-            metadata.insert(
+-                "extension_key".to_string(),
+-                serde_json::Value::String(key.as_str().to_string()),
+-            );
+-            metadata.insert(
+-                "fingerprint".to_string(),
+-                serde_json::Value::String(fingerprint.to_string()),
+-            );
+-            metadata.insert(
+-                "restate_semantics".to_string(),
+-                serde_json::to_value(extension_semantics(key)).unwrap_or(serde_json::Value::Null),
+-            );
+-            node.metadata = serde_json::json!({ "flow_extender": metadata });
+-        }
+-    }
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn has_extension_fingerprint(workflow: &Workflow, fingerprint: &str) -> bool {
+     workflow.nodes.iter().any(|node| {
+         node.metadata
+             .as_object()
+             .and_then(|meta| meta.get("flow_extender"))
+             .and_then(serde_json::Value::as_object)

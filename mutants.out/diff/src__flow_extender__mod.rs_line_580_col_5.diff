@@ -1,0 +1,42 @@
+--- src/flow_extender/mod.rs
++++ replace resolve_extension_preset -> Result<ResolvedExtensionPreset, String> with Ok(Default::default())
+@@ -572,38 +572,17 @@
+     })
+     .collect()
+ }
+ 
+ pub fn resolve_extension_preset(
+     workflow: &Workflow,
+     preset_key: &str,
+ ) -> Result<ResolvedExtensionPreset, String> {
+-    let parsed_preset = ExtensionPresetKey::from_str(preset_key)?;
+-    let expanded_keys = expand_keys_with_dependencies(parsed_preset.extension_keys());
+-    let ordered_keys = order_keys_with_dependencies(&expanded_keys)?
+-        .into_iter()
+-        .map(|key| key.as_str().to_string())
+-        .collect::<Vec<_>>();
+-    let conflicts = detect_extension_conflicts(workflow, &ordered_keys)?;
+-
+-    Ok(ResolvedExtensionPreset {
+-        preset: ExtensionPreset {
+-            key: parsed_preset.as_str().to_string(),
+-            title: parsed_preset.title().to_string(),
+-            description: parsed_preset.description().to_string(),
+-            extension_keys: parsed_preset
+-                .extension_keys()
+-                .iter()
+-                .map(|key| key.as_str().to_string())
+-                .collect(),
+-        },
+-        ordered_keys,
+-        conflicts,
+-    })
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn rules() -> Vec<RuleDefinition> {
+     vec![
+         RuleDefinition {
+             key: ExtensionKey::AddEntryTrigger,
+             title: "Add entry trigger",
+             priority: ExtensionPriority::High,

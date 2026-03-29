@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace + with - in App
+@@ -345,17 +345,17 @@
+                             PreviewEndpoint::Proposed(temp_id) => proposed_lookup
+                                 .get(&format!("p{patch_idx}-{temp_id}"))
+                                 .copied()
+                                 .map(|(x, y)| (x + 220.0, y + 34.0)),
+                         };
+                         let target = match &edge.target {
+                             PreviewEndpoint::Existing(node_id) => existing_nodes
+                                 .get(node_id)
+-                                .map(|node| (node.x, node.y + 34.0)),
++                                .map(|node| (node.x, node.y - /* ~ changed by cargo-mutants ~ */ 34.0)),
+                             PreviewEndpoint::Proposed(temp_id) => proposed_lookup
+                                 .get(&format!("p{patch_idx}-{temp_id}"))
+                                 .copied()
+                                 .map(|(x, y)| (x, y + 34.0)),
+                         };
+ 
+                         source.and_then(|(sx, sy)| {
+                             target.map(|(tx, ty)| {

@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ delete ! in detect_extension_conflicts
+@@ -438,17 +438,17 @@
+             }
+         }
+     }
+ 
+     for left_index in 0..keys.len() {
+         for right_index in (left_index + 1)..keys.len() {
+             let left_key = ExtensionKey::from_str(&keys[left_index])?;
+             let right_key = ExtensionKey::from_str(&keys[right_index])?;
+-            if !have_shared_service_kind(left_key, right_key) {
++            if  /* ~ changed by cargo-mutants ~ */have_shared_service_kind(left_key, right_key) {
+                 conflicts.push(ExtensionConflict {
+                     left_key: keys[left_index].clone(),
+                     right_key: keys[right_index].clone(),
+                     kind: ConflictKind::SemanticIncompatibility,
+                     reason: "Requested extensions target incompatible Restate service kinds."
+                         .to_string(),
+                 });
+             }

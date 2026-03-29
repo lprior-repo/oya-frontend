@@ -1,0 +1,24 @@
+--- src/flow_extender/mod.rs
++++ replace remap_endpoint -> PatchEndpoint with Default::default()
+@@ -976,20 +976,17 @@
+             source: remap_endpoint(connection.source, offset),
+             target: remap_endpoint(connection.target, offset),
+             source_port: connection.source_port,
+             target_port: connection.target_port,
+         }));
+ }
+ 
+ const fn remap_endpoint(endpoint: PatchEndpoint, offset: usize) -> PatchEndpoint {
+-    match endpoint {
+-        PatchEndpoint::Existing(node_id) => PatchEndpoint::Existing(node_id),
+-        PatchEndpoint::Proposed(index) => PatchEndpoint::Proposed(index + offset),
+-    }
++    Default::default() /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ fn extension_fingerprint(key: ExtensionKey, patch: &PatchPlan) -> String {
+     let node_parts = patch
+         .nodes
+         .iter()
+         .map(|node| format!("{}@{:.2}:{:.2}", node.node_type, node.x, node.y))
+         .collect::<Vec<_>>()

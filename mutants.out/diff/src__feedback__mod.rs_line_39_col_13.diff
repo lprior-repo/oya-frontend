@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ delete match arm 1 in FeedbackLevel::name
+@@ -31,17 +31,17 @@
+     }
+ 
+     pub fn is_transparent(&self) -> bool {
+         self.0 == Self::TRANSPARENT.0
+     }
+ 
+     pub fn name(&self) -> &'static str {
+         match self.0 {
+-            1 => "minimal",
++             /* ~ changed by cargo-mutants ~ */
+             2 => "categorical",
+             3 => "guided",
+             4 => "diagnostic",
+             5 => "transparent",
+             _ => "unknown",
+         }
+     }
+ }

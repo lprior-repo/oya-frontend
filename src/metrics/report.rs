@@ -81,7 +81,7 @@ impl MetricsStore {
         }
 
         let mut failures: Vec<_> = failure_counts.into_iter().collect();
-        failures.sort_by(|a, b| b.1.cmp(&a.1));
+        failures.sort_by_key(|b| std::cmp::Reverse(b.1));
 
         MetricsSummary {
             total_sessions,

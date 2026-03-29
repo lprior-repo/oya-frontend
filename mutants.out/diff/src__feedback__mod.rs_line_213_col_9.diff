@@ -1,0 +1,40 @@
+--- src/feedback/mod.rs
++++ replace FeedbackSanitizer::sanitize -> SanitizedFeedback with Default::default()
+@@ -205,36 +205,17 @@
+     }
+ 
+     #[must_use]
+     pub fn sanitize(
+         &self,
+         raw_results: &[super::scenario_runner::ScenarioResult],
+         iteration: u32,
+     ) -> SanitizedFeedback {
+-        let total_count = raw_results.len();
+-        let passed_count = raw_results.iter().filter(|r| r.passed).count();
+-        let failed_count = total_count - passed_count;
+-
+-        let failures: Vec<SanitizedFailure> = raw_results
+-            .iter()
+-            .filter(|r| !r.passed)
+-            .map(Self::sanitize_failure)
+-            .collect();
+-
+-        let summary = format!("{failed_count} of {total_count} behavioral tests failed");
+-
+-        SanitizedFeedback {
+-            iteration,
+-            passed_count,
+-            failed_count,
+-            total_count,
+-            failures,
+-            summary,
+-        }
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn sanitize_failure(result: &super::scenario_runner::ScenarioResult) -> SanitizedFailure {
+         let category = Self::categorize_failure(result);
+         let description = Self::sanitize_description(&category);
+         let hint = Self::generate_hint(&category);
+         let spec_text = Self::get_spec_text_reference(&category);
+ 

@@ -1,0 +1,32 @@
+--- src/feedback/mod.rs
++++ replace FeedbackSanitizer::sanitize_failure -> SanitizedFailure with Default::default()
+@@ -228,28 +228,17 @@
+             failed_count,
+             total_count,
+             failures,
+             summary,
+         }
+     }
+ 
+     fn sanitize_failure(result: &super::scenario_runner::ScenarioResult) -> SanitizedFailure {
+-        let category = Self::categorize_failure(result);
+-        let description = Self::sanitize_description(&category);
+-        let hint = Self::generate_hint(&category);
+-        let spec_text = Self::get_spec_text_reference(&category);
+-
+-        SanitizedFailure {
+-            category,
+-            spec_ref: SpecRef::new(result.spec_ref.clone()),
+-            description,
+-            hint,
+-            spec_text,
+-        }
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn categorize_failure(result: &super::scenario_runner::ScenarioResult) -> FailureCategoryName {
+         let failed_step = result.steps.iter().find(|s| !s.passed);
+ 
+         if let Some(step) = failed_step {
+             if step.error.as_ref().is_some_and(|e| e.contains("404")) {
+                 return FailureCategoryName::new("Resource Not Found");

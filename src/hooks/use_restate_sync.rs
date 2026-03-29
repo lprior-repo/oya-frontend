@@ -14,8 +14,8 @@
 //! ```
 
 use dioxus::prelude::*;
-use oya_frontend::restate_client::{RestateClient, RestateClientConfig};
 use oya_frontend::restate_client::types::{Invocation, InvocationFilter};
+use oya_frontend::restate_client::{RestateClient, RestateClientConfig};
 
 /// Live state surfaced from the Restate introspection poll.
 #[derive(Clone, Debug, Default)]

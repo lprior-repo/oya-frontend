@@ -1,0 +1,24 @@
+--- src/feedback/mod.rs
++++ delete match arm "Error Handling" in FeedbackSanitizer::generate_hint
+@@ -283,20 +283,17 @@
+     }
+ 
+     fn generate_hint(category: &FailureCategoryName) -> String {
+         match category.as_str() {
+             "Security Violation" => {
+                 "Review the spec's security requirements and ensure all invariants are enforced."
+                     .to_string()
+             }
+-            "Error Handling" => {
+-                "Review edge cases in the spec and ensure proper error responses are returned."
+-                    .to_string()
+-            }
++             /* ~ changed by cargo-mutants ~ */
+             "Happy Path" => "Review the spec's acceptance criteria for this behavior.".to_string(),
+             "Resource Not Found" => {
+                 "Ensure API endpoints return correct HTTP status codes per the spec.".to_string()
+             }
+             "Server Error" => {
+                 "Check that all error conditions are handled before reaching internal logic."
+                     .to_string()
+             }

@@ -107,7 +107,7 @@ impl CoverageAnalyzer {
         }
 
         let mut sorted_gaps: Vec<_> = gap_counts.into_iter().collect();
-        sorted_gaps.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted_gaps.sort_by_key(|b| std::cmp::Reverse(b.1));
         let common_gaps: Vec<String> = sorted_gaps.into_iter().take(10).map(|(s, _)| s).collect();
 
         Ok(CoverageReport {

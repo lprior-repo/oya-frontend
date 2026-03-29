@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace == with != in plan_missing_timeout_guard
+@@ -719,17 +719,17 @@
+         },
+     })
+ }
+ 
+ fn plan_missing_timeout_guard(workflow: &Workflow) -> Option<RulePlan> {
+     let has_durable = workflow
+         .nodes
+         .iter()
+-        .any(|node| node.category == NodeCategory::Durable);
++        .any(|node| node.category != /* ~ changed by cargo-mutants ~ */ NodeCategory::Durable);
+     let has_timeout = workflow
+         .nodes
+         .iter()
+         .any(|node| matches!(node.node, WorkflowNode::Timeout(_)));
+     let anchor = first_node_by_type(workflow, |node| node.category == NodeCategory::Durable)?;
+ 
+     (has_durable && !has_timeout).then(|| RulePlan {
+         rationale:

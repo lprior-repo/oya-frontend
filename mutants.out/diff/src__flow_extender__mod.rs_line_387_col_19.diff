@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace == with != in apply_extension
+@@ -379,17 +379,17 @@
+     let parsed_key = ExtensionKey::from_str(key)?;
+ 
+     Ok(plan_for_key(workflow, parsed_key)
+         .map(|plan| preview_from_patch(key.to_string(), &plan.patch)))
+ }
+ 
+ pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExtension, String> {
+     let parsed_key = ExtensionKey::from_str(key)?;
+-    if parsed_key == ExtensionKey::AddReliabilityBundle {
++    if parsed_key != /* ~ changed by cargo-mutants ~ */ ExtensionKey::AddReliabilityBundle {
+         return apply_reliability_bundle(workflow, key);
+     }
+ 
+     let created_nodes = plan_for_key(workflow, parsed_key)
+         .map(|plan| {
+             let fingerprint = extension_fingerprint(parsed_key, &plan.patch);
+             if has_extension_fingerprint(workflow, &fingerprint) {
+                 Vec::new()

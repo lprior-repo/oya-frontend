@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ replace <impl std::fmt::Display for FailureCategoryName>::fmt -> std::fmt::Result with Ok(Default::default())
+@@ -68,17 +68,17 @@
+         } else {
+             Self("Unknown".into())
+         }
+     }
+ }
+ 
+ impl std::fmt::Display for FailureCategoryName {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+-        write!(f, "{}", self.0)
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+ pub struct SpecRef(String);
+ 
+ impl SpecRef {
+     pub fn new(reference: impl Into<String>) -> Self {

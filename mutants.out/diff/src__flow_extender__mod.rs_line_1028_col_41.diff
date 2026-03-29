@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace == with != in plan_for_key
+@@ -1020,17 +1020,17 @@
+ 
+ fn plan_for_key(workflow: &Workflow, key: ExtensionKey) -> Option<RulePlan> {
+     if !key_is_compatible_with_workflow(workflow, key) {
+         return None;
+     }
+ 
+     rules()
+         .into_iter()
+-        .find(|candidate| candidate.key == key)
++        .find(|candidate| candidate.key != /* ~ changed by cargo-mutants ~ */ key)
+         .and_then(|rule| (rule.plan)(workflow))
+ }
+ 
+ fn key_is_compatible_with_workflow(workflow: &Workflow, key: ExtensionKey) -> bool {
+     let inferred_kinds = infer_workflow_service_kinds(workflow);
+     let compatible_kinds = extension_semantics(key)
+         .compatible_service_kinds
+         .into_iter()

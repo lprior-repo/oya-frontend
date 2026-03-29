@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in App
+@@ -275,17 +275,17 @@
+     // Temp edge computation for connecting mode
+     let temp_edge = use_memo(move || {
+         let mode = canvas.mode().read().clone();
+         if let crate::hooks::InteractionMode::Connecting { from, handle } = mode {
+             let to = canvas.temp_edge().read().as_positions();
+             if let Some((to_pos, _)) = to {
+                 let node = nodes_by_id.read().get(&from).cloned();
+                 node.map(|n| {
+-                    let from_pos = if handle.as_str() == "source" {
++                    let from_pos = if handle.as_str() != /* ~ changed by cargo-mutants ~ */ "source" {
+                         FlowPosition {
+                             x: n.x + 220.0,
+                             y: n.y + 34.0,
+                         }
+                     } else {
+                         FlowPosition {
+                             x: n.x,
+                             y: n.y + 34.0,

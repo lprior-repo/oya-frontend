@@ -1,0 +1,21 @@
+--- src/flow_extender/mod.rs
++++ replace + with - in remap_endpoint
+@@ -978,17 +978,17 @@
+             source_port: connection.source_port,
+             target_port: connection.target_port,
+         }));
+ }
+ 
+ const fn remap_endpoint(endpoint: PatchEndpoint, offset: usize) -> PatchEndpoint {
+     match endpoint {
+         PatchEndpoint::Existing(node_id) => PatchEndpoint::Existing(node_id),
+-        PatchEndpoint::Proposed(index) => PatchEndpoint::Proposed(index + offset),
++        PatchEndpoint::Proposed(index) => PatchEndpoint::Proposed(index - /* ~ changed by cargo-mutants ~ */ offset),
+     }
+ }
+ 
+ fn extension_fingerprint(key: ExtensionKey, patch: &PatchPlan) -> String {
+     let node_parts = patch
+         .nodes
+         .iter()
+         .map(|node| format!("{}@{:.2}:{:.2}", node.node_type, node.x, node.y))

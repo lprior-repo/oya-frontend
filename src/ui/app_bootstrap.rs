@@ -1,5 +1,5 @@
+use oya_frontend::graph::{ConditionConfig, HttpHandlerConfig, RunConfig, WorkflowNode};
 use oya_frontend::graph::{Node, Viewport, Workflow};
-use oya_frontend::graph::workflow_node::{WorkflowNode, HttpHandlerConfig, RunConfig, ConditionConfig};
 
 pub fn default_workflow() -> Workflow {
     Workflow {
@@ -18,6 +18,7 @@ pub fn default_workflow() -> Workflow {
                 WorkflowNode::Run(RunConfig {
                     durable_step_name: Some("create-user".to_string()),
                     code: None,
+                    mapping: None,
                 }),
                 350.0,
                 170.0,

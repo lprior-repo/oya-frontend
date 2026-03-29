@@ -1,0 +1,23 @@
+--- src/feedback/mod.rs
++++ delete match arm "Resource Not Found" in FeedbackSanitizer::generate_hint
+@@ -288,19 +288,17 @@
+                 "Review the spec's security requirements and ensure all invariants are enforced."
+                     .to_string()
+             }
+             "Error Handling" => {
+                 "Review edge cases in the spec and ensure proper error responses are returned."
+                     .to_string()
+             }
+             "Happy Path" => "Review the spec's acceptance criteria for this behavior.".to_string(),
+-            "Resource Not Found" => {
+-                "Ensure API endpoints return correct HTTP status codes per the spec.".to_string()
+-            }
++             /* ~ changed by cargo-mutants ~ */
+             "Server Error" => {
+                 "Check that all error conditions are handled before reaching internal logic."
+                     .to_string()
+             }
+             "Timeout" => {
+                 "Review performance requirements in the spec's constraints section.".to_string()
+             }
+             _ => "Review the spec for the relevant behavior.".to_string(),

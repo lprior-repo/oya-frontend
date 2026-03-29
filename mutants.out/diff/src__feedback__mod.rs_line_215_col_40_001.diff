@@ -1,0 +1,21 @@
+--- src/feedback/mod.rs
++++ replace - with / in FeedbackSanitizer::sanitize
+@@ -207,17 +207,17 @@
+     #[must_use]
+     pub fn sanitize(
+         &self,
+         raw_results: &[super::scenario_runner::ScenarioResult],
+         iteration: u32,
+     ) -> SanitizedFeedback {
+         let total_count = raw_results.len();
+         let passed_count = raw_results.iter().filter(|r| r.passed).count();
+-        let failed_count = total_count - passed_count;
++        let failed_count = total_count / /* ~ changed by cargo-mutants ~ */ passed_count;
+ 
+         let failures: Vec<SanitizedFailure> = raw_results
+             .iter()
+             .filter(|r| !r.passed)
+             .map(Self::sanitize_failure)
+             .collect();
+ 
+         let summary = format!("{failed_count} of {total_count} behavioral tests failed");

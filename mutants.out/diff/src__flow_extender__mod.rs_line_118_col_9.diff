@@ -1,0 +1,29 @@
+--- src/flow_extender/mod.rs
++++ replace <impl FromStr for ExtensionKey>::from_str -> Result<Self, Self::Err> with Ok(Default::default())
+@@ -110,25 +110,17 @@
+         }
+     }
+ }
+ 
+ impl FromStr for ExtensionKey {
+     type Err = String;
+ 
+     fn from_str(value: &str) -> Result<Self, Self::Err> {
+-        match value {
+-            "add-entry-trigger" => Ok(Self::AddEntryTrigger),
+-            "add-reliability-bundle" => Ok(Self::AddReliabilityBundle),
+-            "add-timeout-guard" => Ok(Self::AddTimeoutGuard),
+-            "add-durable-checkpoint" => Ok(Self::AddDurableCheckpoint),
+-            "add-compensation-branch" => Ok(Self::AddCompensationBranch),
+-            "add-signal-resolution" => Ok(Self::AddSignalResolution),
+-            _ => Err(format!("Unknown extension key: {value}")),
+-        }
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+ pub struct RuleContract {
+     pub preconditions: Vec<String>,
+     pub postconditions: Vec<String>,
+     pub invariants: Vec<String>,

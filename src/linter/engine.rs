@@ -292,11 +292,7 @@ impl SpecLinter {
         } else {
             1
         };
-        let score = if total > 0 {
-            (passed * 100) / total
-        } else {
-            100
-        };
+        let score = passed * 100 / total.max(1);
         let score: u32 = score.try_into().map_or(100, |score| score);
         report.categories.insert(
             "Completeness".to_string(),

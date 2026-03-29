@@ -1,0 +1,23 @@
+--- src/feedback/mod.rs
++++ delete match arm "Security Violation" in FeedbackSanitizer::get_spec_text_reference
+@@ -304,19 +304,17 @@
+                 "Review performance requirements in the spec's constraints section.".to_string()
+             }
+             _ => "Review the spec for the relevant behavior.".to_string(),
+         }
+     }
+ 
+     fn get_spec_text_reference(category: &FailureCategoryName) -> String {
+         match category.as_str() {
+-            "Security Violation" => {
+-                "Review context.invariants for security constraints.".to_string()
+-            }
++             /* ~ changed by cargo-mutants ~ */
+             "Error Handling" => {
+                 "Review behaviors[].edge_cases for required error handling.".to_string()
+             }
+             "Happy Path" => "Review acceptance_criteria for the expected behavior.".to_string(),
+             _ => "Review the relevant behavior in the spec.".to_string(),
+         }
+     }
+ }

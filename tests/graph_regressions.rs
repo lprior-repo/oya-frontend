@@ -168,11 +168,19 @@ async fn given_more_than_ten_runs_when_recording_history_then_history_is_capped(
     let mut workflow = Workflow::new();
     let _ = workflow.add_node("single", 0.0, 0.0);
 
-    for _ in 0..12 {
+    let run_count = 12;
+    let history_limit = 10;
+
+    for i in 0..run_count {
         workflow.run().await;
+        assert_eq!(
+            workflow.history.len(),
+            (i + 1).min(history_limit),
+            "History should grow until reaching limit"
+        );
     }
 
-    assert_eq!(workflow.history.len(), 10);
+    assert_eq!(workflow.history.len(), history_limit);
 }
 
 #[tokio::test]
