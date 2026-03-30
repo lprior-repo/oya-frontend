@@ -73,7 +73,7 @@ impl Workflow {
     ///
     /// # Examples
     /// ```
-    /// use oya_frontend::graph::{Workflow, ExecutionConfig};
+    /// use oya_frontend::graph::{Workflow, execution_types::ExecutionConfig};
     ///
     /// let mut workflow = Workflow::new();
     /// workflow = workflow.with_memory_limit(1024);

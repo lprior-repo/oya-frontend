@@ -162,6 +162,22 @@ impl Node {
     pub const fn set_selected(&mut self, selected: bool) {
         self.selected = selected;
     }
+
+    /// Check if a state transition is possible.
+    ///
+    /// This is a convenience wrapper around `try_transition` for testing.
+    #[must_use]
+    pub const fn can_transition(&self, to: ExecutionState) -> bool {
+        super::can_transition(self.execution_state, to)
+    }
+
+    /// Try to transition to a new state without modifying the node.
+    ///
+    /// This is a convenience wrapper around `try_transition` for testing.
+    #[must_use]
+    pub const fn try_transition(&self, to: ExecutionState) -> Option<super::StateTransition> {
+        super::try_transition(self.execution_state, to)
+    }
 }
 
 impl Default for Node {

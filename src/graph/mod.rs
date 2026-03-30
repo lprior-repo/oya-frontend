@@ -7,10 +7,12 @@
 
 pub mod calc;
 pub mod connectivity;
-mod core;
+pub mod core;
 mod core_types;
 mod domain_types;
 mod execution;
+#[cfg(test)]
+mod cycle_detection_tests;
 pub mod execution_errors;
 pub mod execution_record;
 pub mod execution_record_types;

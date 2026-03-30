@@ -4,7 +4,15 @@ use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
 
 impl Workflow {
-    pub(super) fn set_node_status(
+    /// Set the status of a node, validating the state transition.
+    ///
+    /// This function is the primary public API for state transitions.
+    /// It validates that the transition is allowed by the state machine
+    /// and updates both the `execution_state` and `config["status"]` fields.
+    ///
+    /// # Errors
+    /// Returns `InvalidTransition` if the state transition is not allowed.
+    pub fn set_node_status(
         node: &mut Node,
         proposed_status: ExecutionState,
     ) -> Result<(), super::InvalidTransition> {
@@ -34,9 +42,18 @@ impl Workflow {
         Ok(())
     }
 
-    pub(super) fn set_node_pending_status(node: &mut Node) -> Result<(), super::InvalidTransition> {
-        // Validate state transition: Idle -> Queued or Queued -> Skipped
-        if !can_transition(node.execution_state, ExecutionState::Queued) {
+    /// Set a node's pending status, transitioning `Idle` -> `Queued` or `Queued` -> `Queued`.
+    ///
+    /// This is a specialized function for setting pending status on nodes.
+    /// It validates that the transition is allowed and updates `config["status"]` to "pending".
+    ///
+    /// # Errors
+    /// Returns `InvalidTransition` if the node is not in `Idle` or `Queued` state.
+    pub fn set_node_pending_status(node: &mut Node) -> Result<(), super::InvalidTransition> {
+        // Validate state transition: Idle -> Queued or Queued -> Queued (self-transition allowed)
+        let is_valid_transition = can_transition(node.execution_state, ExecutionState::Queued)
+            || (node.execution_state == ExecutionState::Queued);
+        if !is_valid_transition {
             return Err(super::InvalidTransition {
                 from: node.execution_state,
                 to: ExecutionState::Queued,
