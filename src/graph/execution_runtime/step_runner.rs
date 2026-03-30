@@ -112,6 +112,22 @@ impl Workflow {
                 .execute_node_type(&node_type, &resolved_config, &parent_outputs)
                 .await;
 
+            // Check memory limit after node execution
+            if let Err(memory_error) = self.check_and_update_memory(&output) {
+                // Update node status to failed due to memory limit
+                if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                    n.error = Some(memory_error.to_string());
+                    let _ = Self::set_node_status(n, ExecutionState::Failed);
+                    n.executing = false;
+                    n.last_output = Some(output);
+                }
+                // Set error flag to stop execution
+                self.execution_failed = true;
+                // Continue to next step to maintain queue consistency
+                self.current_step += 1;
+                return true;
+            }
+
             if node_type == "condition" {
                 self.execute_condition_and_skip_branches(node_id, &output);
             }

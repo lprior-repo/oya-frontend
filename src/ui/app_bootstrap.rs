@@ -1,5 +1,5 @@
+use oya_frontend::graph::{execution_types::ExecutionConfig, Node, Viewport, Workflow};
 use oya_frontend::graph::{ConditionConfig, HttpHandlerConfig, RunConfig, WorkflowNode};
-use oya_frontend::graph::{Node, Viewport, Workflow};
 
 pub fn default_workflow() -> Workflow {
     Workflow {
@@ -43,6 +43,9 @@ pub fn default_workflow() -> Workflow {
         history: vec![],
         execution_records: vec![],
         restate_ingress_url: "http://localhost:8080".to_string(),
+        current_memory_bytes: 0,
+        execution_config: ExecutionConfig::default(),
+        execution_failed: false,
     }
 }
 

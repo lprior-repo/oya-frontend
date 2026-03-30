@@ -420,6 +420,9 @@ fn map_connection_error(error: ConnectivityConnectionError) -> WorkflowError {
         } => WorkflowError::InvalidConnection(format!(
             "Type mismatch: {source_type} is not compatible with {target_type}"
         )),
+        ConnectivityConnectionError::ParseError(_) => {
+            WorkflowError::InvalidConnection("Parse error".to_string())
+        }
     }
 }
 
@@ -484,6 +487,7 @@ mod tests {
         viewport_center_node_origin,
     };
     use crate::errors::WorkflowError;
+    use oya_frontend::graph::restate_types::PortType;
     use oya_frontend::graph::{NodeId, PortName, Viewport, Workflow};
     use serde_json::json;
 
@@ -512,8 +516,8 @@ mod tests {
         use oya_frontend::graph::ConnectivityConnectionError;
 
         let mismatch = map_connection_error(ConnectivityConnectionError::TypeMismatch {
-            source_type: "event".to_string(),
-            target_type: "signal".to_string(),
+            source_type: PortType::Event,
+            target_type: PortType::Signal,
         });
         assert!(matches!(mismatch, WorkflowError::InvalidConnection(_)));
 

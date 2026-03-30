@@ -31,7 +31,7 @@ impl Workflow {
             return;
         }
 
-        while self.step().await {
+        while !self.execution_failed && self.step().await {
             if let Some(id) = self
                 .execution_queue
                 .get(self.current_step.saturating_sub(1))

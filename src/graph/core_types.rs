@@ -214,6 +214,18 @@ pub struct Workflow {
     /// Populated at runtime before `run()`; not part of the saved workflow definition.
     #[serde(default = "default_restate_ingress_url", skip_serializing)]
     pub restate_ingress_url: String,
+    /// Current memory usage in bytes during execution.
+    /// Reset to 0 at the start of each execution.
+    #[serde(default, skip)]
+    pub current_memory_bytes: u64,
+    /// Execution configuration for this workflow run.
+    /// Contains memory limits, timeouts, and other runtime constraints.
+    #[serde(skip)]
+    pub execution_config: super::execution_types::ExecutionConfig,
+    /// Flag indicating execution failed due to memory limit or other error.
+    /// Used to stop the execution loop when limits are exceeded.
+    #[serde(skip)]
+    pub execution_failed: bool,
 }
 
 fn default_restate_ingress_url() -> String {

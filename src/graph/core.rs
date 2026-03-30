@@ -1,3 +1,4 @@
+use super::execution_types::ExecutionConfig;
 use super::{can_transition, ExecutionState, Node, NodeId, Viewport, Workflow};
 use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
@@ -80,6 +81,9 @@ impl Workflow {
             history: Vec::new(),
             execution_records: Vec::new(),
             restate_ingress_url: "http://localhost:8080".to_string(),
+            current_memory_bytes: 0,
+            execution_config: ExecutionConfig::default(),
+            execution_failed: false,
         }
     }
 
@@ -175,8 +179,8 @@ mod tests {
         let c = workflow.add_node("run", 200.0, 0.0);
         let main = PortName::from("main");
 
-        let _ = workflow.add_connection(a, b, &main, &main);
-        let _ = workflow.add_connection(b, c, &main, &main);
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+        let _ = workflow.add_connection_checked(b, c, &main, &main);
 
         workflow.remove_node(b);
 

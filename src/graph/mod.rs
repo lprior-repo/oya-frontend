@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod calc;
-mod connectivity;
+pub mod connectivity;
 mod core;
 mod core_types;
 mod domain_types;
@@ -16,6 +16,7 @@ pub mod execution_record;
 pub mod execution_record_types;
 pub mod execution_runtime;
 pub mod execution_state;
+pub mod execution_types;
 mod metadata;
 mod primitives;
 mod view;
@@ -34,7 +35,10 @@ pub mod value_objects;
 pub mod workflow_node;
 
 pub use connection_errors::{get_node_by_id, ConnectionError as RestateConnectionError};
-pub use connectivity::{ConnectionError as GraphConnectionError, ConnectionError as ConnectivityConnectionError, ConnectionResult};
+pub use connectivity::{
+    ConnectionError as GraphConnectionError, ConnectionError as ConnectivityConnectionError,
+    ConnectionResult,
+};
 
 // Re-export ConnectionError for backward compatibility
 // Tests expect connection_errors::ConnectionError to be available

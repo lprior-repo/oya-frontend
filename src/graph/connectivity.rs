@@ -1,7 +1,8 @@
 use uuid::Uuid;
 
 use super::{Connection, NodeId, PortName, Workflow};
-use crate::graph::restate_types::types_compatible;
+use crate::graph::restate_types::PortType;
+use crate::graph::restate_types::{types_compatible, ParsePortTypeError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionError {
@@ -11,9 +12,10 @@ pub enum ConnectionError {
     WouldCreateCycle,
     Duplicate,
     TypeMismatch {
-        source_type: String,
-        target_type: String,
+        source_type: PortType,
+        target_type: PortType,
     },
+    ParseError(ParsePortTypeError),
 }
 
 impl std::fmt::Display for ConnectionError {
@@ -35,6 +37,7 @@ impl std::fmt::Display for ConnectionError {
                 f,
                 "Type mismatch: {source_type} is not compatible with {target_type}"
             ),
+            Self::ParseError(err) => write!(f, "Parse error: {err}"),
         }
     }
 }
@@ -46,7 +49,23 @@ pub enum ConnectionResult {
     Created,
 }
 
+/// Internal state representing a validated connection ready for mutation.
+#[derive(Debug, Clone)]
+struct ValidationState {
+    source: NodeId,
+    target: NodeId,
+    source_port: PortName,
+    target_port: PortName,
+}
+
 impl Workflow {
+    /// Adds a connection with full type checking.
+    ///
+    /// Returns `true` if the connection was successfully added, `false` otherwise.
+    ///
+    /// # See Also
+    ///
+    /// Use `add_connection_checked` for detailed error information.
     pub fn add_connection(
         &mut self,
         source: NodeId,
@@ -75,23 +94,53 @@ impl Workflow {
         source_port: &PortName,
         target_port: &PortName,
     ) -> Result<ConnectionResult, ConnectionError> {
+        let validation = Self::validate_connection(
+            &self.nodes,
+            &self.connections,
+            source,
+            target,
+            source_port,
+            target_port,
+        )?;
+        Self::commit_connection(&mut self.connections, validation);
+        Ok(ConnectionResult::Created)
+    }
+
+    /// Validates that a connection can be added without mutating state.
+    ///
+    /// # Errors
+    ///
+    /// Returns `ConnectionError` if validation fails:
+    /// - Self-connection detected
+    /// - Source or target node missing
+    /// - Cycle would be created
+    /// - Connection already exists
+    /// - Port types incompatible
+    fn validate_connection(
+        nodes: &[super::Node],
+        connections: &[Connection],
+        source: NodeId,
+        target: NodeId,
+        source_port: &PortName,
+        target_port: &PortName,
+    ) -> Result<ValidationState, ConnectionError> {
         if source == target {
             return Err(ConnectionError::SelfConnection);
         }
 
-        if !self.nodes.iter().any(|node| node.id == source) {
+        if !nodes.iter().any(|node| node.id == source) {
             return Err(ConnectionError::MissingSourceNode(source));
         }
 
-        if !self.nodes.iter().any(|node| node.id == target) {
+        if !nodes.iter().any(|node| node.id == target) {
             return Err(ConnectionError::MissingTargetNode(target));
         }
 
-        if Self::path_exists(&self.connections, target, source) {
+        if Self::path_exists(connections, target, source) {
             return Err(ConnectionError::WouldCreateCycle);
         }
 
-        if self.connections.iter().any(|c| {
+        if connections.iter().any(|c| {
             c.source == source
                 && c.target == target
                 && c.source_port == *source_port
@@ -100,17 +149,41 @@ impl Workflow {
             return Err(ConnectionError::Duplicate);
         }
 
-        Self::check_port_type_compatibility(&self.nodes, source, target)?;
+        Self::check_port_type_compatibility(nodes, source, target)?;
 
-        self.connections.push(Connection {
-            id: Uuid::new_v4(),
+        Ok(ValidationState {
             source,
             target,
             source_port: source_port.clone(),
             target_port: target_port.clone(),
-        });
+        })
+    }
 
-        Ok(ConnectionResult::Created)
+    /// Commits a validated connection to the graph.
+    ///
+    /// # Safety
+    ///
+    /// Only call this after `validate_connection` has succeeded.
+    fn commit_connection(connections: &mut Vec<Connection>, validation: ValidationState) {
+        connections.push(Connection {
+            id: Uuid::new_v4(),
+            source: validation.source,
+            target: validation.target,
+            source_port: validation.source_port,
+            target_port: validation.target_port,
+        });
+    }
+
+    /// Returns the validated connection state for mutation.
+    #[must_use]
+    fn new_connection(validation: &ValidationState) -> Connection {
+        Connection {
+            id: Uuid::new_v4(),
+            source: validation.source,
+            target: validation.target,
+            source_port: validation.source_port.clone(),
+            target_port: validation.target_port.clone(),
+        }
     }
 
     fn check_port_type_compatibility(
@@ -118,47 +191,51 @@ impl Workflow {
         source: NodeId,
         target: NodeId,
     ) -> Result<(), ConnectionError> {
-        let Some(source_node) = nodes.iter().find(|n| n.id == source) else {
-            return Err(ConnectionError::MissingSourceNode(source));
-        };
-        let Some(target_node) = nodes.iter().find(|n| n.id == target) else {
-            return Err(ConnectionError::MissingTargetNode(target));
-        };
+        let source_node = nodes
+            .iter()
+            .find(|n| n.id == source)
+            .ok_or(ConnectionError::MissingSourceNode(source))?;
+        let target_node = nodes
+            .iter()
+            .find(|n| n.id == target)
+            .ok_or(ConnectionError::MissingTargetNode(target))?;
 
-        let source_type = Self::get_node_output_port_type(source_node);
-        let target_type = Self::get_node_input_port_type(target_node);
+        let source_type = Self::get_node_output_port_type(source_node)?;
+        let target_type = Self::get_node_input_port_type(target_node)?;
 
-        if let (Some(src), Some(tgt)) = (source_type, target_type) {
-            if !types_compatible(src, tgt) {
-                return Err(ConnectionError::TypeMismatch {
-                    source_type: src.to_string(),
-                    target_type: tgt.to_string(),
-                });
-            }
+        if !types_compatible(source_type, target_type) {
+            return Err(ConnectionError::TypeMismatch {
+                source_type,
+                target_type,
+            });
         }
 
         Ok(())
     }
 
-    fn get_node_output_port_type(
-        node: &super::Node,
-    ) -> Option<crate::graph::restate_types::PortType> {
+    fn get_node_output_port_type(node: &super::Node) -> Result<PortType, ConnectionError> {
         node.node_type
-            .parse::<crate::graph::workflow_node::WorkflowNode>()
-            .ok()
+            .parse::<super::workflow_node::WorkflowNode>()
+            .map_err(|_| ConnectionError::ParseError(ParsePortTypeError(node.node_type.clone())))
             .map(|workflow_node| workflow_node.output_port_type())
     }
 
-    fn get_node_input_port_type(
-        node: &super::Node,
-    ) -> Option<crate::graph::restate_types::PortType> {
+    fn get_node_input_port_type(node: &super::Node) -> Result<PortType, ConnectionError> {
         node.node_type
-            .parse::<crate::graph::workflow_node::WorkflowNode>()
-            .ok()
+            .parse::<super::workflow_node::WorkflowNode>()
+            .map_err(|_| ConnectionError::ParseError(ParsePortTypeError(node.node_type.clone())))
             .map(|workflow_node| workflow_node.input_port_type())
     }
 
-    fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
+    #[must_use]
+    pub fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
+        // If from == to, only return true if there's a self-loop
+        if from == to {
+            return connections
+                .iter()
+                .any(|conn| conn.source == from && conn.target == from);
+        }
+
         let mut visited = std::collections::HashSet::new();
         let mut stack = vec![from];
 
@@ -177,6 +254,27 @@ impl Workflow {
 
         false
     }
+}
+
+/// Helper function for tests to access `path_exists` directly
+#[must_use]
+pub fn path_exists_internal(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
+    Workflow::path_exists(connections, from, to)
+}
+
+/// Helper function for tests to access `check_port_type_compatibility` directly
+///
+/// # Errors
+///
+/// Returns `ConnectionError::MissingSourceNode` if source not found.
+/// Returns `ConnectionError::MissingTargetNode` if target not found.
+/// Returns `ConnectionError::TypeMismatch` if types incompatible.
+pub fn check_port_type_compatibility_internal(
+    nodes: &[super::Node],
+    source: NodeId,
+    target: NodeId,
+) -> Result<(), ConnectionError> {
+    Workflow::check_port_type_compatibility(nodes, source, target)
 }
 
 #[cfg(test)]
@@ -240,8 +338,8 @@ mod tests {
         assert_eq!(
             result,
             Err(ConnectionError::TypeMismatch {
-                source_type: "flow-control".to_string(),
-                target_type: "signal".to_string(),
+                source_type: PortType::FlowControl,
+                target_type: PortType::Signal,
             })
         );
     }
