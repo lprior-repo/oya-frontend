@@ -1,0 +1,175 @@
+{
+  "bead_id": "bd-mul",
+  "phase": "SCOUT",
+  "agent_id": "scout-agent-001",
+  "findings": {
+    "run_record_structure": {
+      "struct_name": "RunRecord",
+      "location": "src/graph/mod.rs:121-126",
+      "fields": [
+        { "name": "id", "type": "Uuid", "description": "Unique identifier for the run record" },
+        { "name": "timestamp", "type": "chrono::DateTime<chrono::Utc>", "description": "When the run started" },
+        { "name": "results", "type": "HashMap<NodeId, serde_json::Value>", "description": "Map of node IDs to their output values" },
+        { "name": "success", "type": "bool", "description": "Whether the run completed successfully" }
+      ],
+      "notes": "History is capped at 10 records. Each record captures the final state after a full workflow run, not per-node events."
+    },
+    "history_tracking": {
+      "storage_location": "Workflow.history: Vec<RunRecord>",
+      "how_recorded": "After workflow.run() completes (src/graph/execution.rs:236-274), a RunRecord is pushed to history array",
+      "capped_at": 10,
+      "capping_logic": "if self.history.len() > 10 { let _ = self.history.remove(0); }",
+      "limitation": "Current RunRecord captures only aggregate results, NOT per-node timestamps or durations. To implement timeline, need to track individual node execution events with start/end times.",
+      "execution_flow": [
+        "1. Workflow.run() calls prepare_run() to build execution_queue",
+        "2. While step() returns true, nodes execute sequentially",
+        "3. Each step() updates node.executing, node.last_output, node.error",
+        "4. After all steps, RunRecord is created with aggregate results"
+      ]
+    },
+    "panel_patterns": [
+      {
+        "name": "SelectedNodePanel",
+        "location": "src/ui/selected_node_panel.rs",
+        "pattern": "Right-side collapsible panel (320px width)",
+        "structure": {
+          "container": "aside with class 'animate-slide-in-right z-30 flex w-[320px] shrink-0 flex-col border-l border-slate-200 bg-white/95'",
+          "header": "div with title, icon, close button",
+          "content": "div with 'flex-1 overflow-y-auto p-4' for scrollable content",
+          "sections": "Multiple div sections with borders between"
+        },
+        "state_management": "Uses Signal<T> and ReadSignal<T> for props, use_signal for local state"
+      },
+      {
+        "name": "NodeSidebar",
+        "location": "src/ui/sidebar/presentation.rs",
+        "pattern": "Left-side fixed panel (280px width) with collapsible categories",
+        "structure": {
+          "container": "aside with class 'flex h-full w-[280px] shrink-0 flex-col border-r border-slate-200 bg-slate-50/95'",
+          "header": "Icon + title + description",
+          "search": "Input with SearchIcon",
+          "categories": "Collapsible sections using Signal<HashSet<Category>> for collapsed state"
+        },
+        "collapse_pattern": "Uses chevron_class(collapsed: bool) helper, onclick toggles category in HashSet"
+      },
+      {
+        "name": "SettingsPanel",
+        "location": "src/main.rs:313-332",
+        "pattern": "Floating dropdown panel (absolute positioned)",
+        "structure": "div with 'absolute right-4 top-14 z-40 w-[280px]' classes"
+      }
+    ],
+    "layout_structure": {
+      "main_layout": "src/main.rs App component",
+      "hierarchy": [
+        "div.flex.h-screen.w-screen",
+        "  FlowToolbar (header)",
+        "  div.flex.flex-1.overflow-hidden",
+        "    NodeSidebar (left, 280px)",
+        "    main.canvas-area (flex-1)",
+        "    SelectedNodePanel (right, 320px)"
+      ],
+      "how_to_add_new_panel": "Add new component inside the 'div.flex.flex-1.overflow-hidden' container alongside NodeSidebar, main, and SelectedNodePanel. Can be positioned on left (border-r) or right (border-l).",
+      "signal_access": "Panel needs access to workflow.history via WorkflowState.workflow().read().history, and selection state via SelectionState"
+    },
+    "icons_available": [
+      "ChevronDownIcon (for collapse/expand)",
+      "XIcon (for close button)",
+      "PlayIcon (for run indicator)",
+      "LayersIcon",
+      "BoxIcon",
+      "SearchIcon",
+      "SettingsIcon"
+    ],
+    "execution_state_enum": {
+      "location": "src/graph/execution_state.rs",
+      "variants": ["Idle", "Waiting", "Running", "Succeeded", "Failed", "Skipped"],
+      "display": "Lowercase strings via Display trait",
+      "useful_for": "Showing status badges on timeline events"
+    },
+    "recommended_approach": {
+      "summary": "Create a new ExecutionHistoryPanel component that displays workflow history as a collapsible timeline",
+      "implementation_steps": [
+        "1. Create new file: src/ui/execution_history_panel.rs",
+        "2. Add module to src/ui/mod.rs and export",
+        "3. Extend RunRecord to include per-node event data (optional: create ExecutionEvent struct)",
+        "4. Create ExecutionHistoryPanel component with:",
+        "   - Collapsible header with 'History' title and count badge",
+        "   - List of RunRecord items showing timestamp, success status",
+        "   - Expandable details showing node-by-node results",
+        "   - Click on event to select/highlight associated node on canvas",
+        "5. Add to main.rs layout between main canvas and SelectedNodePanel",
+        "6. Wire up selection callback to navigate to nodes"
+      ],
+      "component_interface": {
+        "props": [
+          "history: ReadSignal<Vec<RunRecord>>",
+          "nodes_by_id: ReadSignal<HashMap<NodeId, Node>>",
+          "selected_node_id: Signal<Option<NodeId>>",
+          "on_select_node: EventHandler<NodeId>"
+        ],
+        "internal_state": [
+          "collapsed: Signal<bool>",
+          "expanded_run_id: Signal<Option<Uuid>>"
+        ]
+      },
+      "styling_approach": "Follow existing patterns: use Tailwind classes, match SelectedNodePanel styling (border-l, bg-white/95, animate-slide-in-right)",
+      "aws_step_functions_similarity": "Show events in chronological order with status indicators (success/failure), timestamps, and node names. Allow drill-down into individual node results."
+    },
+    "data_requirements": {
+      "current_gap": "RunRecord only stores final aggregate results, not per-node execution timestamps",
+      "enhancement_needed": "To show duration per node and timeline view, need to track:",
+      "suggested_new_struct": {
+        "name": "NodeExecutionEvent",
+        "fields": [
+          "node_id: NodeId",
+          "node_name: String",
+          "started_at: DateTime<Utc>",
+          "completed_at: Option<DateTime<Utc>>",
+          "status: ExecutionState",
+          "output: Option<serde_json::Value>",
+          "error: Option<String>"
+        ]
+      },
+      "alternative_minimal_approach": "Use existing Node fields (executing, last_output, error) during run, but these reset after each run. For persistent timeline, enhance RunRecord."
+    },
+    "wireframe": {
+      "collapsed": "Header bar: [ChevronDown] 'Execution History' [badge: '3']",
+      "expanded": [
+        "Header: [ChevronDown] 'Execution History' [badge: '3'] [X close]",
+        "Event 1: [CheckIcon green] '2024-02-22 14:32:01' 'Succeeded' (3 nodes)",
+        "Event 2: [XIcon red] '2024-02-22 14:30:15' 'Failed' (click to expand)",
+        "  Expanded: Node list with timestamps and status",
+        "Event 3: [CheckIcon green] '2024-02-22 13:45:22' 'Succeeded' (2 nodes)"
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "type": "source_reference",
+      "path": "src/graph/mod.rs",
+      "relevance": "Defines RunRecord and Workflow.history"
+    },
+    {
+      "type": "source_reference",
+      "path": "src/graph/execution.rs",
+      "relevance": "Workflow execution logic, history recording"
+    },
+    {
+      "type": "source_reference",
+      "path": "src/ui/selected_node_panel.rs",
+      "relevance": "Pattern for right-side panel component"
+    },
+    {
+      "type": "source_reference",
+      "path": "src/ui/sidebar/presentation.rs",
+      "relevance": "Pattern for collapsible categories"
+    },
+    {
+      "type": "source_reference",
+      "path": "src/hooks/use_workflow_state.rs",
+      "relevance": "WorkflowState provides access to history"
+    }
+  ],
+  "timestamp_utc": "2026-02-22T15:30:00Z"
+}

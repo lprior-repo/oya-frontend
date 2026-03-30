@@ -11,6 +11,7 @@ mod core;
 mod core_types;
 mod domain_types;
 mod execution;
+pub mod execution_errors;
 pub mod execution_record;
 pub mod execution_record_types;
 pub mod execution_runtime;
@@ -32,13 +33,14 @@ mod validation_checks;
 pub mod value_objects;
 pub mod workflow_node;
 
-pub use connection_errors::{get_node_by_id, ConnectionError};
-pub use connectivity::{ConnectionError as ConnectivityConnectionError, ConnectionResult};
+pub use connection_errors::{get_node_by_id, ConnectionError as RestateConnectionError};
+pub use connectivity::{ConnectionError as GraphConnectionError, ConnectionResult};
 pub use core_types::{Node, RunRecord, Viewport, Workflow};
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
     RunOutcome, ServiceName, StateKey,
 };
+pub use execution_errors::WorkflowExecutionError;
 pub use execution_record::from_run_record;
 pub use execution_record_types::{
     AttemptNumber, EmptyErrorMessage, ExecutionError, ExecutionOverallStatus, ExecutionRecord,

@@ -1,0 +1,33 @@
+{
+  "bead_id": "bd-1k0",
+  "phase": "implement",
+  "status": "success",
+  "tests_passed": 144,
+  "tests_failed": 0,
+  "implementations": {
+    "restate_types": {
+      "file": "src/graph/restate_types.rs",
+      "implementations": [
+        "ServiceKind::Display - returns capitalized names (Service, VirtualObject, Workflow)",
+        "ServiceKind::FromStr - case-insensitive parsing, supports kebab-case and PascalCase",
+        "ContextType::Display - returns capitalized variant names",
+        "ContextType::FromStr - case-insensitive parsing, supports kebab-case",
+        "ContextType::is_exclusive() - true for ObjectExclusive, WorkflowExclusive",
+        "ContextType::is_shared() - true for ObjectShared, WorkflowShared"
+      ],
+      "tests": 72
+    },
+    "workflow_node": {
+      "file": "src/graph/workflow_node.rs",
+      "implementations": [
+        "compatible_service_kinds() - Entry nodes: all 3; State nodes: VirtualObject+Workflow; Promise nodes: Workflow only",
+        "required_context_types() - Entry nodes: all 5; State nodes: ObjectExclusive+WorkflowExclusive; Promise nodes: WorkflowExclusive"
+      ],
+      "tests": 72
+    }
+  },
+  "verification": {
+    "command": "cargo test --lib -- graph::restate_types && cargo test --lib -- graph::workflow_node",
+    "result": "ok. 144 passed; 0 failed"
+  }
+}

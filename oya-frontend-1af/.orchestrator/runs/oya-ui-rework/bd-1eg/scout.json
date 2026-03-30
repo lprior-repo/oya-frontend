@@ -1,0 +1,113 @@
+{
+  "bead_id": "bd-1eg",
+  "phase": "SCOUT",
+  "agent_id": "scout-agent-001",
+  "findings": {
+    "expression_system": {
+      "syntax": "$node[\"NodeName\"].json.path.to.field",
+      "note": "Current system uses N8n-style $node syntax, NOT {{mustache}} syntax as mentioned in task. ExpressionContext::resolve() handles path resolution.",
+      "implementation": "src/graph/expressions.rs - ExpressionContext takes &[Node], resolve() parses $node[\"name\"] syntax",
+      "features": [
+        "Node path resolution: $node[\"Name\"].json.path",
+        "Constant math: a + b, a - b",
+        "String methods: .to_uppercase(), .len()",
+        "Literals: numbers, strings, booleans"
+      ]
+    },
+    "config_inputs": {
+      "locations": [
+        "src/ui/config_panel/config_sections.rs - EntryConfig, DurableConfig, StateConfig, FlowConfig, TimingConfig, SignalConfig",
+        "src/ui/config_panel/common.rs - CommonConfig (maxRetries, backoffMs, idempotencyKey)"
+      ],
+      "input_styling": "INPUT_CLASS constant: h-8 w-full rounded-md border border-slate-700 bg-slate-950 px-3 font-mono text-[12px]",
+      "handler_pattern": "oninput: move |e| update_str.call((\"key\".to_string(), e.value()))",
+      "text_fields_by_category": {
+        "Entry": ["cronExpression", "topic", "workflowKey"],
+        "Durable": ["durableStepName", "targetService", "targetHandler", "sleepDuration"],
+        "State": ["stateKey"],
+        "Flow": ["conditionExpression", "loopIterator", "compensationHandler"],
+        "Timing": ["sleepDuration", "timeoutMs"],
+        "Signal": ["promiseName"],
+        "Common": ["idempotencyKey"]
+      }
+    },
+    "node_output_structure": {
+      "field": "Node.last_output: Option<serde_json::Value>",
+      "access_pattern": "nodes.iter().find(|n| n.name == node_name).and_then(|n| n.last_output.as_ref())",
+      "json_pointer": "out.pointer(&format!(\"/{}\", path.replace('.', '/\")))",
+      "display": "ExecutionTab shows PayloadPreview with json_preview() and payload_shape()"
+    },
+    "autocomplete_patterns": {
+      "existing_ui_patterns": [
+        {
+          "pattern": "CommandPalette",
+          "file": "src/ui/command_palette.rs",
+          "features": "Search input + filtered list, backdrop blur, keyboard escape, on_pick event"
+        },
+        {
+          "pattern": "CanvasContextMenu",
+          "file": "src/ui/canvas_context_menu.rs",
+          "features": "Fixed position floating menu, click-outside-to-close, z-50 overlay"
+        },
+        {
+          "pattern": "NodeSidebar search",
+          "file": "src/ui/sidebar/presentation.rs",
+          "features": "SearchIcon prefix, live filtering, visible_indices() calculation"
+        }
+      ],
+      "dioxus_07_patterns": {
+        "signals": "use_signal for local state (show_dropdown, filtered_items)",
+        "read_only_props": "ReadSignal<T> for input props like open, query",
+        "event_handlers": "EventHandler<T> for callbacks like on_select, on_close",
+        "positioning": "CSS absolute/relative positioning with style attribute for dynamic coords"
+      }
+    },
+    "recommended_approach": {
+      "summary": "Create ExpressionAutocomplete component that detects $node[ trigger and shows filtered node names, then JSON path suggestions",
+      "architecture": [
+        {
+          "component": "ExpressionInput",
+          "purpose": "Wrap standard input with autocomplete trigger detection",
+          "implementation": "Detect $node[ pattern in oninput, show/hide autocomplete dropdown"
+        },
+        {
+          "component": "AutocompleteDropdown",
+          "purpose": "Floating list of suggestions",
+          "implementation": "Use absolute positioning, filter by typed prefix, handle keyboard navigation"
+        },
+        {
+          "data_source": "Workflow context",
+          "purpose": "Provide available nodes and their output schemas",
+          "implementation": "Pass workflow.nodes to autocomplete, extract last_output structure for path hints"
+        }
+      ],
+      "trigger_sequence": [
+        "1. User types $node[ in any config text field",
+        "2. Dropdown appears showing all available node names from workflow",
+        "3. User filters by typing or selects from list",
+        "4. On select, insert $node[\"SelectedNode\"] into input",
+        "5. After .json., show path suggestions from node's last_output fields"
+      ],
+      "implementation_files": [
+        "Create: src/ui/components/expression_autocomplete.rs",
+        "Modify: src/ui/config_panel/config_sections.rs - replace input with ExpressionInput",
+        "Modify: src/ui/config_panel/common.rs - same replacement",
+        "Export: src/ui/components/mod.rs"
+      ],
+      "edge_cases": [
+        "No nodes in workflow - show 'No nodes available' message",
+        "Node has no last_output - skip path suggestions after name",
+        "Cyclic node references - not applicable (read-only)",
+        "Special characters in node names - escape quotes in $node[\"name\"]"
+      ],
+      "n8n_comparison": {
+        "n8n_trigger": "{{ triggers autocomplete",
+        "oya_trigger": "$node[ triggers autocomplete",
+        "both_show": "Node names, then output fields",
+        "difference": "n8n uses mustache {{}}, oya uses $node[] bracket notation"
+      }
+    }
+  },
+  "artifacts": [],
+  "timestamp_utc": "2026-02-22T15:30:00Z"
+}

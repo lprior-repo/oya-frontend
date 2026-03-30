@@ -1,0 +1,200 @@
+{
+  "bead_id": "bd-39q",
+  "gate_type": "ATDD_HIDDEN",
+  "version": "1.0.0",
+  "description": "Hidden quality gate tests for WorkflowNode enum implementation. These tests validate contracts without revealing exact expected values.",
+  "tests": [
+    {
+      "id": "HG-001",
+      "name": "variant_count_exact",
+      "category": "contract",
+      "description": "WorkflowNode enum has exactly the correct number of variants",
+      "validation": {
+        "method": "compile_time_count",
+        "hint": "Check that the enum variant count matches NODE_TEMPLATES array length"
+      },
+      "failure_message": "WorkflowNode variant count does not match expected count"
+    },
+    {
+      "id": "HG-002", 
+      "name": "all_node_types_parseable",
+      "category": "happy_path",
+      "description": "All valid node_type strings parse to a variant",
+      "validation": {
+        "method": "runtime_test",
+        "inputs": ["REDACTED_LIST_OF_24_TYPES"],
+        "hint": "Each NODE_TEMPLATES entry should parse successfully"
+      },
+      "failure_message": "One or more valid node_type strings failed to parse"
+    },
+    {
+      "id": "HG-003",
+      "name": "invalid_type_returns_error",
+      "category": "error_path",
+      "description": "Invalid node_type strings return Err, not panic",
+      "validation": {
+        "method": "runtime_test",
+        "inputs": ["REDACTED_INVALID_TYPES"],
+        "expected": "Err(UnknownNodeType)",
+        "hint": "Invalid strings should return Err with descriptive message"
+      },
+      "failure_message": "Invalid node_type did not return expected error type"
+    },
+    {
+      "id": "HG-004",
+      "name": "category_matches_template",
+      "category": "contract",
+      "description": "Each variant's category() matches its NODE_TEMPLATES category",
+      "validation": {
+        "method": "property_test",
+        "hint": "For each variant, category() should return the same category as in sidebar/model.rs"
+      },
+      "failure_message": "Category mismatch detected between variant and template"
+    },
+    {
+      "id": "HG-005",
+      "name": "icon_matches_metadata",
+      "category": "contract",
+      "description": "Each variant's icon() matches its node_metadata icon",
+      "validation": {
+        "method": "property_test",
+        "hint": "For each variant, icon() should return the same icon as in metadata.rs"
+      },
+      "failure_message": "Icon mismatch detected between variant and metadata"
+    },
+    {
+      "id": "HG-006",
+      "name": "serde_type_field",
+      "category": "serialization",
+      "description": "Serialized JSON uses 'type' field, not 'node_type'",
+      "validation": {
+        "method": "json_inspection",
+        "hint": "Check that serde tag is configured correctly"
+      },
+      "failure_message": "Serialized JSON does not have expected type field name"
+    },
+    {
+      "id": "HG-007",
+      "name": "serde_kebab_case",
+      "category": "serialization",
+      "description": "Serialized type values are kebab-case",
+      "validation": {
+        "method": "json_inspection",
+        "hint": "HttpHandler should serialize to type='http-handler', not 'HttpHandler'"
+      },
+      "failure_message": "Serialized type values are not in kebab-case format"
+    },
+    {
+      "id": "HG-008",
+      "name": "roundtrip_no_data_loss",
+      "category": "serialization",
+      "description": "Round-trip serialization preserves all data",
+      "validation": {
+        "method": "property_test",
+        "hint": "deserialize(serialize(node)) should equal original node"
+      },
+      "failure_message": "Data loss detected in serialization round-trip"
+    },
+    {
+      "id": "HG-009",
+      "name": "display_outputs_kebab",
+      "category": "contract",
+      "description": "Display trait outputs kebab-case node_type string",
+      "validation": {
+        "method": "runtime_test",
+        "hint": "format!(\"{}\", variant) should equal the original kebab-case string"
+      },
+      "failure_message": "Display output does not match expected kebab-case format"
+    },
+    {
+      "id": "HG-010",
+      "name": "try_from_str_exists",
+      "category": "contract",
+      "description": "TryFrom<&str> is implemented",
+      "validation": {
+        "method": "compile_check",
+        "hint": "WorkflowNode should implement TryFrom<&str>"
+      },
+      "failure_message": "TryFrom<&str> not implemented for WorkflowNode"
+    },
+    {
+      "id": "HG-011",
+      "name": "config_no_runtime_fields",
+      "category": "contract",
+      "description": "Config structs do not contain runtime state fields",
+      "validation": {
+        "method": "source_inspection",
+        "forbidden_fields": ["executing", "skipped", "last_output", "error"],
+        "hint": "Runtime fields should be in separate NodeRuntimeState struct"
+      },
+      "failure_message": "Config struct contains runtime state fields"
+    },
+    {
+      "id": "HG-012",
+      "name": "config_default_impl",
+      "category": "contract",
+      "description": "All config structs implement Default",
+      "validation": {
+        "method": "compile_check",
+        "hint": "Each config struct should derive or implement Default"
+      },
+      "failure_message": "One or more config structs do not implement Default"
+    },
+    {
+      "id": "HG-013",
+      "name": "error_is_descriptive",
+      "category": "error_path",
+      "description": "Error messages contain the invalid input",
+      "validation": {
+        "method": "runtime_test",
+        "hint": "UnknownNodeType error should contain the unknown string"
+      },
+      "failure_message": "Error message does not contain sufficient context"
+    },
+    {
+      "id": "HG-014",
+      "name": "no_panic_on_invalid_input",
+      "category": "safety",
+      "description": "Invalid inputs never cause panic",
+      "validation": {
+        "method": "fuzz_test",
+        "hint": "All parsing paths should return Result, never panic"
+      },
+      "failure_message": "Panic detected when handling invalid input"
+    },
+    {
+      "id": "HG-015",
+      "name": "variant_names_pascal_case",
+      "category": "contract",
+      "description": "Variant names follow PascalCase convention",
+      "validation": {
+        "method": "source_inspection",
+        "hint": "http-handler -> HttpHandler, not HTTP_HANDLER or httpHandler"
+      },
+      "failure_message": "Variant naming does not follow PascalCase convention"
+    }
+  ],
+  "execution_order": [
+    "HG-001",
+    "HG-010", 
+    "HG-015",
+    "HG-002",
+    "HG-003",
+    "HG-013",
+    "HG-014",
+    "HG-004",
+    "HG-005",
+    "HG-006",
+    "HG-007",
+    "HG-008",
+    "HG-009",
+    "HG-011",
+    "HG-012"
+  ],
+  "pass_criteria": {
+    "minimum_passing": 15,
+    "blocking_failures": ["HG-001", "HG-002", "HG-008", "HG-014"]
+  },
+  "created_at": "2026-02-22T14:30:00Z",
+  "created_by": "atdd-agent-001"
+}

@@ -5,6 +5,7 @@
 //! - NodeOutput
 //! - SharedContext
 //! - ExecutionMetadata
+//! - ExecutionConfig
 //! - NodeExecutionConfig
 //! - ExecutionContext
 //! - ExecutionPlan
@@ -16,7 +17,7 @@ pub mod context_state;
 pub mod output;
 pub mod plan;
 
-pub use config::NodeExecutionConfig;
+pub use config::{ExecutionConfig, NodeExecutionConfig};
 pub use context::{ExecutionMetadata, SharedContext};
 pub use context_state::ExecutionContext;
 pub use output::{ExecutionOutcome, ExecutionResult, NodeOutput};

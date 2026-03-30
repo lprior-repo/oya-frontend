@@ -1,7 +1,125 @@
 //! Node execution configuration types.
 
 // ===========================================================================
-// Execution Configuration
+// Global Execution Configuration
+// ===========================================================================
+
+/// Global configuration for workflow execution.
+///
+/// This configuration applies to the entire workflow execution and defines
+/// global constraints such as timeouts, memory limits, and execution policies.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionConfig {
+    /// Global timeout in milliseconds for the entire workflow.
+    /// If None, no timeout is enforced.
+    pub timeout_ms: Option<u64>,
+    /// Memory limit in bytes for the entire workflow execution.
+    /// If None, no memory limit is enforced.
+    pub memory_limit_bytes: Option<u64>,
+    /// Maximum number of execution iterations.
+    /// If None, no iteration limit is enforced.
+    pub max_iterations: Option<usize>,
+    /// Whether to continue execution after node failures.
+    pub continue_on_error: bool,
+    /// Whether to skip failed nodes and continue with dependents.
+    pub skip_failed_nodes: bool,
+    /// Maximum expression resolution depth to prevent stack overflow.
+    pub max_expression_depth: usize,
+}
+
+impl Default for ExecutionConfig {
+    fn default() -> Self {
+        Self {
+            timeout_ms: None,
+            memory_limit_bytes: None,
+            max_iterations: None,
+            continue_on_error: false,
+            skip_failed_nodes: false,
+            max_expression_depth: 100,
+        }
+    }
+}
+
+impl ExecutionConfig {
+    /// Create new config with default values.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set global timeout.
+    #[must_use]
+    pub fn with_timeout(self, timeout_ms: u64) -> Self {
+        Self {
+            timeout_ms: Some(timeout_ms),
+            ..self
+        }
+    }
+
+    /// Set memory limit.
+    #[must_use]
+    pub fn with_memory_limit(self, memory_limit_bytes: u64) -> Self {
+        Self {
+            memory_limit_bytes: Some(memory_limit_bytes),
+            ..self
+        }
+    }
+
+    /// Set maximum iterations.
+    #[must_use]
+    pub fn with_max_iterations(self, max_iterations: usize) -> Self {
+        Self {
+            max_iterations: Some(max_iterations),
+            ..self
+        }
+    }
+
+    /// Enable continue on error.
+    #[must_use]
+    pub fn with_continue_on_error(self) -> Self {
+        Self {
+            continue_on_error: true,
+            ..self
+        }
+    }
+
+    /// Enable skip failed nodes.
+    #[must_use]
+    pub fn with_skip_failed_nodes(self) -> Self {
+        Self {
+            skip_failed_nodes: true,
+            ..self
+        }
+    }
+
+    /// Set maximum expression resolution depth.
+    #[must_use]
+    pub fn with_max_expression_depth(self, depth: usize) -> Self {
+        Self {
+            max_expression_depth: depth,
+            ..self
+        }
+    }
+
+    /// Check if timeout is exceeded.
+    #[must_use]
+    pub fn is_timeout_exceeded(&self, elapsed_ms: u64) -> bool {
+        self.timeout_ms
+            .map(|limit| elapsed_ms >= limit)
+            .unwrap_or(false)
+    }
+
+    /// Check if memory limit is exceeded.
+    #[must_use]
+    pub fn is_memory_limit_exceeded(&self, bytes_used: u64) -> bool {
+        self.memory_limit_bytes
+            .map(|limit| bytes_used >= limit)
+            .unwrap_or(false)
+    }
+}
+
+// ===========================================================================
+// Node Execution Configuration
 // ===========================================================================
 
 /// Configuration for a single node execution.

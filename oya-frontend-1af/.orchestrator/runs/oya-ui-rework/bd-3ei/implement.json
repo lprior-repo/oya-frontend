@@ -1,0 +1,66 @@
+{
+  "bead_id": "bd-3ei",
+  "phase": "implement",
+  "status": "completed",
+  "timestamp": "2026-02-22T18:55:00Z",
+  "summary": "Added workflow-level validation panel with validation engine and UI integration",
+  "implementation": {
+    "files_created": [
+      "src/graph/validation.rs",
+      "src/ui/validation_panel.rs"
+    ],
+    "files_modified": [
+      "src/graph/mod.rs",
+      "src/ui/mod.rs",
+      "src/ui/icons/set_c.rs",
+      "src/ui/icons/mod.rs",
+      "src/main.rs"
+    ]
+  },
+  "features": {
+    "validation_engine": {
+      "description": "Core validation logic for workflow analysis",
+      "checks": [
+        "Empty workflow detection",
+        "Missing entry point detection (HTTP Handler, Kafka Handler, Cron Trigger, Workflow Submit)",
+        "Node reachability from entry points",
+        "Orphan/disconnected node detection",
+        "Required configuration validation for all 24 node types",
+        "Connection validity checks"
+      ],
+      "api": {
+        "validate_workflow": "Validates a workflow and returns ValidationResult",
+        "ValidationResult": "Contains issues list with error/warning counts and validity status",
+        "ValidationIssue": "Holds severity, message, and optional node_id for navigation"
+      }
+    },
+    "validation_panel": {
+      "description": "Collapsible UI panel showing validation results",
+      "features": [
+        "Collapsible panel with expand/collapse toggle",
+        "Error/warning count display with colored indicators",
+        "Clickable issues that navigate to problematic nodes",
+        "Color-coded severity icons (red for errors, amber for warnings)",
+        "Empty state showing 'All checks passed' when valid"
+      ]
+    },
+    "run_button_integration": {
+      "description": "Run button blocks execution on validation errors",
+      "behavior": "Clicking Run with validation errors expands the panel instead of executing"
+    }
+  },
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed (1 acceptable warning: too_many_lines)",
+    "cargo_test": "passed (324 tests)"
+  },
+  "test_coverage": {
+    "unit_tests": [
+      "Empty workflow validation",
+      "Entry point detection",
+      "Reachability analysis",
+      "Configuration validation for HTTP Handler, Kafka Handler, Cron Trigger",
+      "ValidationResult methods (is_valid, has_errors, has_warnings, counts)"
+    ]
+  }
+}

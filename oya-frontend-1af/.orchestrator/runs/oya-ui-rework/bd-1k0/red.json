@@ -1,0 +1,144 @@
+{
+  "bead_id": "bd-1k0",
+  "phase": "red",
+  "timestamp": "2026-02-22T00:00:00Z",
+  "status": "tests_failing",
+  "summary": {
+    "total_tests_written": 112,
+    "passing": 39,
+    "failing": 73,
+    "compilation_errors": 0
+  },
+  "files_created": [
+    "src/graph/restate_types.rs"
+  ],
+  "files_modified": [
+    "src/graph/mod.rs",
+    "src/graph/workflow_node.rs"
+  ],
+  "test_categories": {
+    "service_kind": {
+      "variants": 4,
+      "derives": 10,
+      "display": 3,
+      "from_str": 8,
+      "serialization": 6,
+      "subtotal": 31
+    },
+    "context_type": {
+      "variants": 6,
+      "derives": 10,
+      "display": 5,
+      "from_str": 7,
+      "is_exclusive": 5,
+      "is_shared": 5,
+      "serialization": 5,
+      "subtotal": 43
+    },
+    "workflow_node": {
+      "compatible_service_kinds": 24,
+      "required_context_types": 13,
+      "entry_nodes": 1,
+      "state_nodes": 2,
+      "promise_nodes": 1,
+      "subtotal": 41
+    }
+  },
+  "failing_tests": {
+    "service_kind": [
+      "display::service_variant_displays_as_capitalized",
+      "display::virtual_object_variant_displays_as_capitalized",
+      "display::workflow_variant_displays_as_capitalized",
+      "from_str::parses_service_lowercase",
+      "from_str::parses_service_uppercase",
+      "from_str::parses_virtual_object_lowercase",
+      "from_str::parses_virtual_object_uppercase",
+      "from_str::parses_workflow_lowercase",
+      "from_str::parses_workflow_uppercase",
+      "from_str::rejects_empty_string",
+      "from_str::rejects_invalid_input"
+    ],
+    "context_type": [
+      "display::service_variant_displays_as_capitalized",
+      "display::object_exclusive_variant_displays_as_capitalized",
+      "display::object_shared_variant_displays_as_capitalized",
+      "display::workflow_exclusive_variant_displays_as_capitalized",
+      "display::workflow_shared_variant_displays_as_capitalized",
+      "from_str::parses_service",
+      "from_str::parses_object_exclusive_kebab",
+      "from_str::parses_object_shared_kebab",
+      "from_str::parses_workflow_exclusive_kebab",
+      "from_str::parses_workflow_shared_kebab",
+      "from_str::rejects_empty_string",
+      "from_str::rejects_invalid_input",
+      "is_exclusive::service_is_not_exclusive",
+      "is_exclusive::object_exclusive_is_exclusive",
+      "is_exclusive::object_shared_is_not_exclusive",
+      "is_exclusive::workflow_exclusive_is_exclusive",
+      "is_exclusive::workflow_shared_is_not_exclusive",
+      "is_shared::service_is_not_shared",
+      "is_shared::object_exclusive_is_not_shared",
+      "is_shared::object_shared_is_shared",
+      "is_shared::workflow_exclusive_is_not_shared",
+      "is_shared::workflow_shared_is_shared"
+    ],
+    "workflow_node": [
+      "all 40 tests in restate_service_kinds module"
+    ]
+  },
+  "passing_tests": {
+    "service_kind": [
+      "variants::service_kind_has_service_variant",
+      "variants::service_kind_has_virtual_object_variant",
+      "variants::service_kind_has_workflow_variant",
+      "variants::service_kind_has_exactly_three_variants",
+      "derives::service_kind_impls_copy",
+      "derives::service_kind_impls_clone",
+      "derives::service_kind_impls_debug",
+      "derives::service_kind_impls_partial_eq",
+      "derives::service_kind_impls_eq",
+      "derives::service_kind_impls_hash",
+      "derives::service_kind_clones_correctly",
+      "derives::service_kind_copies_correctly",
+      "derives::service_kind_equality_works",
+      "serialization::serializes_service_as_kebab_case",
+      "serialization::serializes_virtual_object_as_kebab_case",
+      "serialization::serializes_workflow_as_kebab_case",
+      "serialization::roundtrip_preserves_service",
+      "serialization::roundtrip_preserves_virtual_object",
+      "serialization::roundtrip_preserves_workflow"
+    ],
+    "context_type": [
+      "variants::context_type_has_service_variant",
+      "variants::context_type_has_object_exclusive_variant",
+      "variants::context_type_has_object_shared_variant",
+      "variants::context_type_has_workflow_exclusive_variant",
+      "variants::context_type_has_workflow_shared_variant",
+      "variants::context_type_has_exactly_five_variants",
+      "derives::context_type_impls_copy",
+      "derives::context_type_impls_clone",
+      "derives::context_type_impls_debug",
+      "derives::context_type_impls_partial_eq",
+      "derives::context_type_impls_eq",
+      "derives::context_type_impls_hash",
+      "derives::context_type_clones_correctly",
+      "derives::context_type_copies_correctly",
+      "derives::context_type_equality_works",
+      "serialization::serializes_service_as_kebab_case",
+      "serialization::serializes_object_exclusive_as_kebab_case",
+      "serialization::serializes_object_shared_as_kebab_case",
+      "serialization::roundtrip_preserves_service",
+      "serialization::roundtrip_preserves_object_exclusive"
+    ]
+  },
+  "failure_reason": "todo!() macros in Display, FromStr, is_exclusive(), is_shared(), compatible_service_kinds(), and required_context_types() implementations",
+  "next_phase": "green",
+  "notes": [
+    "All enum variants and derives compile successfully",
+    "Serde serialization/deserialization works via kebab-case rename",
+    "Display and FromStr traits need implementation",
+    "ContextType::is_exclusive() and is_shared() need implementation",
+    "WorkflowNode::compatible_service_kinds() needs implementation",
+    "WorkflowNode::required_context_types() needs implementation"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "bead_id": "bd-3uj",
+  "title": "ui: Add edge animation during execution",
+  "status": "completed",
+  "implementation": {
+    "files_modified": [
+      "src/main.rs",
+      "src/ui/edges.rs"
+    ],
+    "changes": [
+      {
+        "file": "src/main.rs",
+        "description": "Added @keyframes flow animation CSS and prefers-reduced-motion media query. Added running_node_ids prop to FlowEdges component, computed from nodes with ExecutionState::Running"
+      },
+      {
+        "file": "src/ui/edges.rs",
+        "description": "Added running_node_ids prop to FlowEdges. Updated edge rendering to animate incoming edges to running nodes with stroke-dasharray and flow animation"
+      }
+    ],
+    "animation_details": {
+      "keyframes": "@keyframes flow { to { stroke-dashoffset: -16; } }",
+      "dash_pattern": "6 4",
+      "animation_duration": "0.5s linear infinite",
+      "accessibility": "@media (prefers-reduced-motion: reduce) { .edge-animated { animation: none !important; } }"
+    }
+  },
+  "quality_gates": {
+    "cargo_check": "passed",
+    "cargo_clippy": "passed"
+  }
+}

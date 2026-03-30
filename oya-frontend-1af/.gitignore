@@ -1,0 +1,13 @@
+/target
+.zjj/
+.moon/cache/
+.beads/
+.codanna/
+node_modules/
+playwright-report/
+test-results/
+.playwright/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db

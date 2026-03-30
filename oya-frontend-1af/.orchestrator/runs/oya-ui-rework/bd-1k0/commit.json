@@ -1,0 +1,13 @@
+{
+  "bead_id": "bd-1k0",
+  "phase": "COMMIT",
+  "agent_id": "opencode-main",
+  "command_runs": [
+    {"cmd": "git add src/graph/restate_types.rs src/graph/mod.rs src/graph/workflow_node.rs", "exit_code": 0},
+    {"cmd": "git commit -m 'feat(graph): add ServiceKind and ContextType enums...'", "exit_code": 0}
+  ],
+  "artifacts": ["src/graph/restate_types.rs", "src/graph/mod.rs", "src/graph/workflow_node.rs"],
+  "gate_result": {"passed": true, "reason": "All phases complete, committed successfully"},
+  "commit_hash": "67887db",
+  "timestamp_utc": "2026-02-22T09:10:00Z"
+}
