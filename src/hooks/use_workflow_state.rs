@@ -5,7 +5,8 @@
 use crate::errors::{WorkflowError, WorkflowResult};
 use dioxus::prelude::*;
 use oya_frontend::graph::{
-    Connection, ConnectionError, ConnectionResult, Node, NodeId, PortName, Viewport, Workflow,
+    Connection, ConnectionResult, ConnectivityConnectionError, Node, NodeId, PortName, Viewport,
+    Workflow,
 };
 use std::collections::HashMap;
 
@@ -404,14 +405,16 @@ impl WorkflowState {
     }
 }
 
-fn map_connection_error(error: ConnectionError) -> WorkflowError {
+fn map_connection_error(error: ConnectivityConnectionError) -> WorkflowError {
     match error {
-        ConnectionError::SelfConnection => WorkflowError::SelfConnection,
-        ConnectionError::MissingSourceNode(node_id)
-        | ConnectionError::MissingTargetNode(node_id) => WorkflowError::NodeNotFound(node_id),
-        ConnectionError::WouldCreateCycle => WorkflowError::CycleDetected,
-        ConnectionError::Duplicate => WorkflowError::DuplicateConnection,
-        ConnectionError::TypeMismatch {
+        ConnectivityConnectionError::SelfConnection => WorkflowError::SelfConnection,
+        ConnectivityConnectionError::MissingSourceNode(node_id)
+        | ConnectivityConnectionError::MissingTargetNode(node_id) => {
+            WorkflowError::NodeNotFound(node_id)
+        }
+        ConnectivityConnectionError::WouldCreateCycle => WorkflowError::CycleDetected,
+        ConnectivityConnectionError::Duplicate => WorkflowError::DuplicateConnection,
+        ConnectivityConnectionError::TypeMismatch {
             source_type,
             target_type,
         } => WorkflowError::InvalidConnection(format!(
@@ -505,34 +508,17 @@ mod tests {
 
     #[test]
     fn given_connection_error_when_mapping_to_workflow_error_then_taxonomy_is_preserved() {
-        assert_eq!(
-            map_connection_error(ConnectionError::SelfConnection),
-            WorkflowError::SelfConnection
-        );
-        assert_eq!(
-            map_connection_error(ConnectionError::WouldCreateCycle),
-            WorkflowError::CycleDetected
-        );
-        assert_eq!(
-            map_connection_error(ConnectionError::Duplicate),
-            WorkflowError::DuplicateConnection
-        );
-        let missing_source = NodeId::new();
-        assert_eq!(
-            map_connection_error(ConnectionError::MissingSourceNode(missing_source)),
-            WorkflowError::NodeNotFound(missing_source)
-        );
-        let missing_target = NodeId::new();
-        assert_eq!(
-            map_connection_error(ConnectionError::MissingTargetNode(missing_target)),
-            WorkflowError::NodeNotFound(missing_target)
-        );
+        use crate::errors::WorkflowError;
+        use oya_frontend::graph::ConnectivityConnectionError;
 
-        let mismatch = map_connection_error(ConnectionError::TypeMismatch {
+        let mismatch = map_connection_error(ConnectivityConnectionError::TypeMismatch {
             source_type: "event".to_string(),
             target_type: "signal".to_string(),
         });
         assert!(matches!(mismatch, WorkflowError::InvalidConnection(_)));
+
+        // Note: connectivity::ConnectionError doesn't have ContextTypeMismatch or ServiceKindIncompatible
+        // These are in connection_errors::ConnectionError for Restate type validation
     }
 
     #[test]

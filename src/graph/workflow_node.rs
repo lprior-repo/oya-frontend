@@ -15,7 +15,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use super::NodeCategory;
-use crate::graph::restate_types::PortType;
+use crate::graph::{restate_types::PortType, service_kinds::ServiceKind};
 
 pub mod configs;
 pub use configs::*;
@@ -286,6 +286,64 @@ impl WorkflowNode {
             | Self::ResolvePromise(_) => PortType::FlowControl,
         }
     }
+
+    /// Returns the `ServiceKind` for this workflow node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::oya_frontend::graph::{WorkflowNode, service_kinds::ServiceKind};
+    /// assert_eq!(WorkflowNode::default().service_kind(), ServiceKind::Handler);
+    /// ```
+    #[must_use]
+    pub const fn service_kind(&self) -> ServiceKind {
+        match self {
+            // Stateless services - Handler context
+            Self::HttpHandler(_)
+            | Self::KafkaHandler(_)
+            | Self::CronTrigger(_)
+            | Self::SignalHandler(_)
+            | Self::HttpCall(_)
+            | Self::ServiceCall(_)
+            | Self::Run(_)
+            | Self::SendMessage(_)
+            | Self::DelayedSend(_)
+            | Self::Condition(_)
+            | Self::Switch(_)
+            | Self::Loop(_)
+            | Self::Parallel(_)
+            | Self::Compensate(_)
+            | Self::Sleep(_)
+            | Self::Timeout(_) => ServiceKind::Handler,
+
+            // Stateful operations - Actor context
+            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) | Self::ObjectCall(_) => {
+                ServiceKind::Actor
+            }
+
+            // Workflow operations - Workflow context
+            Self::WorkflowCall(_)
+            | Self::WorkflowSubmit(_)
+            | Self::DurablePromise(_)
+            | Self::Awakeable(_)
+            | Self::ResolvePromise(_) => ServiceKind::Workflow,
+        }
+    }
+
+    /// Returns the `ContextType` for this workflow node.
+    ///
+    /// This is derived from the node's `ServiceKind`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::oya_frontend::graph::{WorkflowNode, service_kinds::ContextType};
+    /// assert_eq!(WorkflowNode::default().context_type(), ContextType::Synchronous);
+    /// ```
+    #[must_use]
+    pub const fn context_type(&self) -> crate::graph::service_kinds::ContextType {
+        self.service_kind().context_type()
+    }
 }
 
 // ============================================================================
@@ -442,16 +500,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_http_method_from_str() {
+    fn http_method_from_str_parses_get() {
         assert_eq!(HttpMethod::from_str("GET").unwrap(), HttpMethod::Get);
+    }
+
+    #[test]
+    fn http_method_from_str_parses_lowercase_post() {
         assert_eq!(HttpMethod::from_str("post").unwrap(), HttpMethod::Post);
     }
 
     #[test]
-    fn test_condition_result() {
+    fn condition_result_from_bool_true() {
         let result: ConditionResult = true.into();
         assert!(result.is_true());
+    }
 
+    #[test]
+    fn condition_result_into_bool_true() {
         let bool: bool = ConditionResult::True.into();
         assert!(bool);
     }

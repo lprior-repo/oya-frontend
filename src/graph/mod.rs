@@ -19,6 +19,7 @@ mod metadata;
 mod primitives;
 mod view;
 
+pub mod connection_errors;
 pub mod expressions;
 pub mod layout;
 pub mod node_icon;
@@ -31,7 +32,8 @@ mod validation_checks;
 pub mod value_objects;
 pub mod workflow_node;
 
-pub use connectivity::{ConnectionError, ConnectionResult};
+pub use connection_errors::{get_node_by_id, ConnectionError};
+pub use connectivity::{ConnectionError as ConnectivityConnectionError, ConnectionResult};
 pub use core_types::{Node, RunRecord, Viewport, Workflow};
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
