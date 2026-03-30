@@ -34,7 +34,11 @@ pub mod value_objects;
 pub mod workflow_node;
 
 pub use connection_errors::{get_node_by_id, ConnectionError as RestateConnectionError};
-pub use connectivity::{ConnectionError as GraphConnectionError, ConnectionResult};
+pub use connectivity::{ConnectionError as GraphConnectionError, ConnectionError as ConnectivityConnectionError, ConnectionResult};
+
+// Re-export ConnectionError for backward compatibility
+// Tests expect connection_errors::ConnectionError to be available
+pub use connection_errors::ConnectionError;
 pub use core_types::{Node, RunRecord, Viewport, Workflow};
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,

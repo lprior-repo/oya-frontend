@@ -176,7 +176,6 @@ mod tests {
     }
 
     mod export_restate_history {
-        use super::super::*;
 
         #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
         struct MockInvocation {

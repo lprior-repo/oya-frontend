@@ -484,7 +484,7 @@ mod tests {
         viewport_center_node_origin,
     };
     use crate::errors::WorkflowError;
-    use oya_frontend::graph::{ConnectionError, NodeId, PortName, Viewport, Workflow};
+    use oya_frontend::graph::{NodeId, PortName, Viewport, Workflow};
     use serde_json::json;
 
     #[tokio::test]

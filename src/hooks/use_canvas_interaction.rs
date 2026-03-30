@@ -400,7 +400,7 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
 mod tests {
     use super::{
         cursor_class_for, drag_mode_from_selection, update_marquee_mode, CanvasPoint, CursorTool,
-        DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
+        DragAnchor, HandleName, HoveredHandle, InteractionMode,
     };
     use oya_frontend::graph::NodeId;
 

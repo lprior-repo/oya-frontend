@@ -96,31 +96,29 @@ impl std::fmt::Display for WorkflowExecutionError {
                     "Cycle detected in workflow: {} -> {} -> ...",
                     cycle_nodes
                         .first()
-                        .map(|n| n.to_string())
+                        .map(std::string::ToString::to_string)
                         .unwrap_or_default(),
                     cycle_nodes
                         .get(1)
-                        .map(|n| n.to_string())
+                        .map(std::string::ToString::to_string)
                         .unwrap_or_default()
                 )
             }
             Self::NodeNotFound {
                 connection_id,
                 referenced_node,
-            } => write!(
-                f,
-                "Node not found: connection {} references non-existent node {}",
-                connection_id, referenced_node
-            ),
+            } => {
+                write!(f, "Node not found: connection {connection_id} references non-existent node {referenced_node}")
+            }
             Self::ExecutionFailed {
                 node_id,
                 error,
                 retryable,
             } => {
                 if *retryable {
-                    write!(f, "Node {} failed (retryable): {}", node_id, error)
+                    write!(f, "Node {node_id} failed (retryable): {error}")
                 } else {
-                    write!(f, "Node {} failed (non-retryable): {}", node_id, error)
+                    write!(f, "Node {node_id} failed (non-retryable): {error}")
                 }
             }
             Self::Timeout {
@@ -128,43 +126,48 @@ impl std::fmt::Display for WorkflowExecutionError {
                 duration_ms,
                 limit_ms,
             } => match node_id {
-                Some(id) => write!(
-                    f,
-                    "Node {} timed out: {}ms > {}ms limit",
-                    id, duration_ms, limit_ms
-                ),
-                None => write!(
-                    f,
-                    "Execution timed out: {}ms > {}ms limit",
-                    duration_ms, limit_ms
-                ),
+                Some(id) => {
+                    write!(
+                        f,
+                        "Node {id} timed out: {duration_ms}ms > {limit_ms}ms limit"
+                    )
+                }
+                None => {
+                    write!(
+                        f,
+                        "Execution timed out: {duration_ms}ms > {limit_ms}ms limit"
+                    )
+                }
             },
             Self::MemoryLimitExceeded {
                 node_id,
                 bytes_used,
                 limit_bytes,
             } => match node_id {
-                Some(id) => write!(
-                    f,
-                    "Node {} exceeded memory: {}B > {}B limit",
-                    id, bytes_used, limit_bytes
-                ),
-                None => write!(
-                    f,
-                    "Execution exceeded memory: {}B > {}B limit",
-                    bytes_used, limit_bytes
-                ),
+                Some(id) => {
+                    write!(
+                        f,
+                        "Node {id} exceeded memory: {bytes_used}B > {limit_bytes}B limit"
+                    )
+                }
+                None => {
+                    write!(
+                        f,
+                        "Execution exceeded memory: {bytes_used}B > {limit_bytes}B limit"
+                    )
+                }
             },
             Self::InvalidConfig { node_id, error } => {
-                write!(f, "Node {} has invalid configuration: {}", node_id, error)
+                write!(f, "Node {node_id} has invalid configuration: {error}")
             }
             Self::NoEntryNodes => write!(f, "Workflow has no entry nodes to start execution"),
             Self::EmptyWorkflow => write!(f, "Workflow is empty (no nodes)"),
-            Self::InvalidStateTransition { node_id, from, to } => write!(
-                f,
-                "Invalid state transition for node {}: {:?} -> {:?}",
-                node_id, from, to
-            ),
+            Self::InvalidStateTransition { node_id, from, to } => {
+                write!(
+                    f,
+                    "Invalid state transition for node {node_id}: {from:?} -> {to:?}"
+                )
+            }
         }
     }
 }

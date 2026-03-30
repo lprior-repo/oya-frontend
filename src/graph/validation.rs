@@ -1,5 +1,6 @@
 //! Validation types and main validation function.
 
+use std::collections::HashSet;
 use std::fmt;
 
 /// Severity level for validation issues.
@@ -111,6 +112,28 @@ pub use crate::graph::validation_checks::structural::{
     validate_entry_points, validate_orphan_nodes, validate_reachability,
 };
 
+/// Validates that all node IDs in the workflow are unique.
+///
+/// # Returns
+///
+/// Returns a ValidationIssue with severity ERROR if duplicate node IDs are found.
+#[must_use]
+pub fn validate_unique_node_ids(workflow: &super::Workflow) -> Vec<ValidationIssue> {
+    let mut issues = Vec::new();
+    let mut seen_ids = HashSet::new();
+
+    for node in &workflow.nodes {
+        if !seen_ids.insert(node.id) {
+            issues.push(ValidationIssue::error_for_node(
+                format!("Duplicate node ID: {}", node.id),
+                node.id,
+            ));
+        }
+    }
+
+    issues
+}
+
 // The main validation function
 #[must_use]
 pub fn validate_workflow(workflow: &super::Workflow) -> ValidationResult {
@@ -119,6 +142,7 @@ pub fn validate_workflow(workflow: &super::Workflow) -> ValidationResult {
     validate_entry_points(workflow, &mut issues);
     validate_reachability(workflow, &mut issues);
     validate_orphan_nodes(workflow, &mut issues);
+    issues.extend(validate_unique_node_ids(workflow));
 
     // Config validation would go here
     // for node in &workflow.nodes {
