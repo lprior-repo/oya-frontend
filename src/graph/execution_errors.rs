@@ -18,8 +18,23 @@ pub enum WorkflowExecutionError {
     /// A cycle was detected in the workflow graph.
     /// Contains the node IDs that form the cycle.
     CycleDetected {
-        /// Node IDs that form the cycle, in order.
+        /// Node IDs that form the cycle.
         cycle_nodes: Vec<NodeId>,
+    },
+
+    /// Nodes have unresolved dependencies (missing nodes or circular).
+    /// Distinguishes between missing nodes and circular dependencies.
+    UnresolvedDependencies {
+        /// Nodes that cannot be executed.
+        nodes: Vec<NodeId>,
+        /// For each node, which dependencies are unresolved.
+        missing_deps: Vec<NodeId>,
+    },
+
+    /// Invalid workflow state (precondition violation).
+    InvalidWorkflowState {
+        /// Description of what is invalid.
+        reason: String,
     },
 
     /// A node was not found during execution.
@@ -103,6 +118,19 @@ impl std::fmt::Display for WorkflowExecutionError {
                         .map(std::string::ToString::to_string)
                         .unwrap_or_default()
                 )
+            }
+            Self::UnresolvedDependencies {
+                nodes,
+                missing_deps,
+            } => {
+                write!(
+                    f,
+                    "Unresolved dependencies: nodes {:?} missing deps {:?}",
+                    nodes, missing_deps
+                )
+            }
+            Self::InvalidWorkflowState { reason } => {
+                write!(f, "Invalid workflow state: {}", reason)
             }
             Self::NodeNotFound {
                 connection_id,

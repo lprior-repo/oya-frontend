@@ -8,7 +8,7 @@ impl Workflow {
     // ===========================================================================
 
     pub async fn run(&mut self) {
-        self.prepare_run();
+        let _ = self.prepare_run();
         let start_time = chrono::Utc::now();
         let mut results = std::collections::HashMap::new();
 

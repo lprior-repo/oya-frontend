@@ -12,3 +12,6 @@ test-results/
 .dolt/
 *.db
 mutants.out/
+
+# Fuzz build artifacts (large binary files)
+fuzz/target/
