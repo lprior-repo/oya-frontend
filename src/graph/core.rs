@@ -156,9 +156,9 @@ mod tests {
     use crate::graph::{PortName, RunConfig, WorkflowNode};
 
     #[test]
-    fn given_occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
+    fn occupied_position_when_adding_node_then_safe_position_offsets_new_node() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 100.0, 100.0);
+        workflow.add_node("run", 100.0, 100.0);
         let id = workflow.add_node("run", 100.0, 100.0);
 
         let added = workflow.nodes.iter().find(|node| node.id == id);
@@ -189,15 +189,15 @@ mod tests {
     }
 
     #[test]
-    fn given_removed_node_when_removing_then_incident_connections_are_removed() {
+    fn removed_node_when_removing_then_incident_connections_are_removed() {
         let mut workflow = Workflow::new();
         let a = workflow.add_node("http-handler", 0.0, 0.0);
         let b = workflow.add_node("run", 100.0, 0.0);
         let c = workflow.add_node("run", 200.0, 0.0);
         let main = PortName::from("main");
 
-        let _ = workflow.add_connection_checked(a, b, &main, &main);
-        let _ = workflow.add_connection_checked(b, c, &main, &main);
+        workflow.add_connection_checked(a, b, &main, &main);
+        workflow.add_connection_checked(b, c, &main, &main);
 
         workflow.remove_node(b);
 
@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn given_node_when_setting_status_then_status_is_updated_in_execution_state_and_config() {
+    fn node_when_setting_status_then_status_is_updated_in_execution_state_and_config() {
         let mut node = Node::from_workflow_node(
             "n".to_string(),
             WorkflowNode::Run(RunConfig::default()),
@@ -218,10 +218,10 @@ mod tests {
         );
 
         // Node starts in Idle state, need to transition to Queued first
-        let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+        Workflow::set_node_status(&mut node, ExecutionState::Queued);
 
         // Now we can transition from Queued to Running
-        let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+        Workflow::set_node_status(&mut node, ExecutionState::Running);
 
         // execution_state should be updated
         assert_eq!(node.execution_state, ExecutionState::Running);

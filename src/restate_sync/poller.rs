@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
 async fn sleep_ms(ms: u32) {
-    tokio::time::sleep(std::time::Duration::from_millis(ms as u64)).await;
+    tokio::time::sleep(std::time::Duration::from_millis(u64::from(ms))).await;
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -47,12 +47,11 @@ pub enum InvocationStatus {
 impl From<RestateInvocationStatus> for InvocationStatus {
     fn from(status: RestateInvocationStatus) -> Self {
         match status {
-            RestateInvocationStatus::Pending => Self::Pending,
-            RestateInvocationStatus::Scheduled => Self::Pending,
-            RestateInvocationStatus::Ready => Self::Pending,
-            RestateInvocationStatus::Running => Self::Running,
+            RestateInvocationStatus::Pending
+            | RestateInvocationStatus::Scheduled
+            | RestateInvocationStatus::Ready => Self::Pending,
+            RestateInvocationStatus::Running | RestateInvocationStatus::BackingOff => Self::Running,
             RestateInvocationStatus::Paused => Self::Failed,
-            RestateInvocationStatus::BackingOff => Self::Running,
             RestateInvocationStatus::Suspended => Self::Suspended,
             RestateInvocationStatus::Completed => Self::Completed,
         }
@@ -67,11 +66,13 @@ pub struct PollResult {
 }
 
 impl PollResult {
+    #[must_use]
     pub fn new(events: Vec<InvocationEvent>) -> Self {
         let timestamp = chrono::Utc::now().timestamp();
         Self { events, timestamp }
     }
 
+    #[must_use]
     pub fn empty() -> Self {
         Self::new(Vec::new())
     }
@@ -86,10 +87,12 @@ pub enum PollerState {
 }
 
 impl PollerState {
+    #[must_use]
     pub fn is_tracking(&self) -> bool {
         matches!(self, Self::Tracking(_))
     }
 
+    #[must_use]
     pub fn get_tracked_status(&self, id: &str) -> Option<InvocationStatus> {
         match self {
             Self::Initial => None,
@@ -108,6 +111,7 @@ impl PollerState {
         }
     }
 
+    #[must_use]
     pub fn tracked_ids(&self) -> Vec<String> {
         match self {
             Self::Initial => Vec::new(),
@@ -123,6 +127,7 @@ pub struct InvocationPoller {
 }
 
 impl InvocationPoller {
+    #[must_use]
     pub fn new(client: Arc<RestateClient>) -> Self {
         Self {
             client,
@@ -131,6 +136,7 @@ impl InvocationPoller {
         }
     }
 
+    #[must_use]
     pub fn with_interval(client: Arc<RestateClient>, poll_interval_ms: u32) -> Self {
         Self {
             client,
@@ -139,10 +145,16 @@ impl InvocationPoller {
         }
     }
 
+    #[must_use]
     pub fn state(&self) -> &PollerState {
         &self.state
     }
 
+    /// Start polling for invocation events.
+    ///
+    /// # Errors
+    ///
+    /// Returns `PollerError` if polling fails.
     pub async fn start_polling<F>(mut self, mut callback: F) -> Result<(), PollerError>
     where
         F: FnMut(PollResult) + Send + Sync,
@@ -157,12 +169,17 @@ impl InvocationPoller {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Polling error: {:?}", e);
+                    eprintln!("Polling error: {e:?}");
                 }
             }
         }
     }
 
+    /// Poll for invocation events.
+    ///
+    /// # Errors
+    ///
+    /// Returns `PollerError` if the request fails.
     pub async fn poll(&mut self) -> Result<PollResult, PollerError> {
         let invocations = self
             .client
@@ -213,6 +230,7 @@ impl InvocationPoller {
         Ok(PollResult::new(events))
     }
 
+    #[must_use]
     pub fn client(&self) -> &Arc<RestateClient> {
         &self.client
     }

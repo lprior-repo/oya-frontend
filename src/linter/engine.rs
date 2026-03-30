@@ -8,6 +8,11 @@ pub struct SpecLinter {
 }
 
 impl SpecLinter {
+    /// Creates a new spec linter with rules loaded from file.
+    ///
+    /// # Errors
+    ///
+    /// Returns `LintError` if the file cannot be read or parsed.
     pub fn new(rules_path: &Path) -> Result<Self, LintError> {
         let rules_content = fs::read_to_string(rules_path)?;
         let rules: LintRules = serde_yaml::from_str(&rules_content)?;
@@ -69,6 +74,11 @@ impl SpecLinter {
         Ok(())
     }
 
+    /// Lint a specification file.
+    ///
+    /// # Errors
+    ///
+    /// Returns `LintError` if the file cannot be read or parsed.
     pub fn lint(&self, spec_path: &Path) -> Result<LintReport, LintError> {
         let spec_content = fs::read_to_string(spec_path)?;
         let spec: Spec = serde_yaml::from_str(&spec_content)?;
@@ -88,24 +98,21 @@ impl SpecLinter {
         Ok(report)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn check_completeness(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
         let spec_001_rule = rules.rules.iter().find(|r| r.id == "SPEC-001");
         let spec_003_rule = rules.rules.iter().find(|r| r.id == "SPEC-003");
         let spec_004_rule = rules.rules.iter().find(|r| r.id == "SPEC-004");
         let spec_011_rule = rules.rules.iter().find(|r| r.id == "SPEC-011");
 
-        let spec_001_severity = spec_001_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
-        let spec_003_severity = spec_003_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
-        let spec_004_severity = spec_004_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "warning".to_string());
-        let spec_011_severity = spec_011_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
+        let spec_001_severity =
+            spec_001_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
+        let spec_003_severity =
+            spec_003_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
+        let spec_004_severity =
+            spec_004_rule.map_or_else(|| "warning".to_string(), |r| r.severity.clone());
+        let spec_011_severity =
+            spec_011_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
 
         let mut error_count = 0;
         let mut warning_count = 0;
@@ -287,18 +294,14 @@ impl SpecLinter {
         }
 
         let total: usize = error_count + warning_count;
-        let passed = if error_count > 0 || warning_count > 0 {
-            0
-        } else {
-            1
-        };
+        let passed = usize::from(!(error_count > 0 || warning_count > 0));
         let score = passed * 100 / total.max(1);
         let score: u32 = score.try_into().map_or(100, |score| score);
         report.categories.insert(
             "Completeness".to_string(),
             CategoryScore {
                 score,
-                details: format!("{}/{} rules passed", passed, total),
+                details: format!("{passed}/{total} rules passed"),
             },
         );
     }
@@ -307,12 +310,11 @@ impl SpecLinter {
         let spec_010_rule = rules.rules.iter().find(|r| r.id == "SPEC-010");
         let banned: Vec<&str> = spec_010_rule
             .and_then(|r| r.banned_phrases.as_ref())
-            .map(|phrases| phrases.iter().map(|s| s.as_str()).collect())
-            .unwrap_or_else(Vec::new);
+            .map_or_else(Vec::new, |phrases| {
+                phrases.iter().map(std::string::String::as_str).collect()
+            });
 
-        let severity = spec_010_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "warning".to_string());
+        let severity = spec_010_rule.map_or_else(|| "warning".to_string(), |r| r.severity.clone());
 
         let issues: Vec<_> = spec
             .specification
@@ -340,13 +342,13 @@ impl SpecLinter {
             })
             .collect();
 
-        issues.iter().for_each(|issue| {
+        for issue in &issues {
             if issue.severity == "error" {
                 report.errors.push(issue.clone());
             } else {
                 report.warnings.push(issue.clone());
             }
-        });
+        }
 
         let score = if issues.is_empty() { 100 } else { 88 };
         report.categories.insert(
@@ -358,20 +360,18 @@ impl SpecLinter {
         );
     }
 
+    #[allow(clippy::too_many_lines)]
     fn check_security(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
         let spec_020_rule = rules.rules.iter().find(|r| r.id == "SPEC-020");
         let spec_021_rule = rules.rules.iter().find(|r| r.id == "SPEC-021");
         let spec_040_rule = rules.rules.iter().find(|r| r.id == "SPEC-040");
 
-        let spec_020_severity = spec_020_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
-        let spec_021_severity = spec_021_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "warning".to_string());
-        let spec_040_severity = spec_040_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "warning".to_string());
+        let spec_020_severity =
+            spec_020_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
+        let spec_021_severity =
+            spec_021_rule.map_or_else(|| "warning".to_string(), |r| r.severity.clone());
+        let spec_040_severity =
+            spec_040_rule.map_or_else(|| "warning".to_string(), |r| r.severity.clone());
 
         if let Some(contract) = &spec.specification.api_contract {
             if let Some(endpoints) = &contract.endpoints {
@@ -439,7 +439,7 @@ impl SpecLinter {
                         let issue = LintIssue {
                             rule_id: "SPEC-021".to_string(),
                             rule_name: "rate-limiting-specified".to_string(),
-                            severity: spec_021_severity.clone(),
+                            severity: spec_021_severity,
                             message:
                                 "Write endpoints found but no rate limiting behavior specified"
                                     .to_string(),
@@ -477,7 +477,7 @@ impl SpecLinter {
                 let issue = LintIssue {
                     rule_id: "SPEC-040".to_string(),
                     rule_name: "canvas-behavior-requires-visual-feedback".to_string(),
-                    severity: spec_040_severity.clone(),
+                    severity: spec_040_severity,
                     message: "Canvas behaviors should specify visual feedback for user experience"
                         .to_string(),
                     line: None,
@@ -501,9 +501,7 @@ impl SpecLinter {
 
     fn check_testability(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
         let spec_030_rule = rules.rules.iter().find(|r| r.id == "SPEC-030");
-        let severity = spec_030_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
+        let severity = spec_030_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
 
         let observable_terms = ["http", "response", "status", "body", "api", "event"];
         let non_observable_count = spec
@@ -524,10 +522,9 @@ impl SpecLinter {
             let issue = LintIssue {
                 rule_id: "SPEC-030".to_string(),
                 rule_name: "behaviors-are-observable".to_string(),
-                severity: severity.clone(),
+                severity,
                 message: format!(
-                    "{} behaviors may not have observable outcomes",
-                    non_observable_count
+                    "{non_observable_count} behaviors may not have observable outcomes"
                 ),
                 line: None,
             };
@@ -549,9 +546,7 @@ impl SpecLinter {
 
     fn check_data_model(rules: &LintRules, spec: &Spec, report: &mut LintReport) {
         let spec_002_rule = rules.rules.iter().find(|r| r.id == "SPEC-002");
-        let severity = spec_002_rule
-            .map(|r| r.severity.clone())
-            .unwrap_or_else(|| "error".to_string());
+        let severity = spec_002_rule.map_or_else(|| "error".to_string(), |r| r.severity.clone());
 
         let mut score = 100;
 

@@ -1218,10 +1218,14 @@ fn App() -> Element {
                                 collapsed: history_collapsed,
                                 active_run_id: ReadSignal::from(frozen_run_id),
                                 on_run_select: move |id| {
-                                    let _ = frozen_run_id.try_write().map(|mut v| *v = Some(id));
+                                    if let Ok(mut v) = frozen_run_id.try_write() {
+                                        *v = Some(id);
+                                    }
                                 },
                                 on_exit_frozen: move |()| {
-                                    let _ = frozen_run_id.try_write().map(|mut v| *v = None);
+                                    if let Ok(mut v) = frozen_run_id.try_write() {
+                                        *v = None;
+                                    }
                                 },
                             }
                             RestateInvocationsPanel { handle: restate }

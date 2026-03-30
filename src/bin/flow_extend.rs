@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("{}", serde_json::to_string_pretty(&patch)?);
                 }
                 None => {
-                    println!("No preview changes for extension '{}'.", extension_key);
+                    println!("No preview changes for extension '{extension_key}'.");
                 }
             }
         }

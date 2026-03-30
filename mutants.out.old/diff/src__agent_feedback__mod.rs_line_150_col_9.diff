@@ -1,0 +1,25 @@
+--- src/agent_feedback/mod.rs
++++ replace FeedbackGenerator::determine_priority -> String with String::new()
+@@ -142,21 +142,17 @@
+             FailureCategory::Spec => "spec-quality".to_string(),
+             FailureCategory::Validation => "validation-failure".to_string(),
+             FailureCategory::Security => "security-issue".to_string(),
+             FailureCategory::Integration => "integration-failure".to_string(),
+         }
+     }
+ 
+     fn determine_priority(category: FailureCategory) -> String {
+-        match category {
+-            FailureCategory::Security | FailureCategory::Validation => "high".to_string(),
+-            FailureCategory::Integration => "medium".to_string(),
+-            FailureCategory::Spec => "low".to_string(),
+-        }
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub fn generate_batch(&self, requests: &[FeedbackRequest]) -> Vec<AgentFeedback> {
+         requests.iter().map(|r| self.generate(r)).collect()
+     }
+ }
+ 

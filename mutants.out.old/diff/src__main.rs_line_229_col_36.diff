@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace == with != in App
+@@ -221,17 +221,17 @@
+     let selected_frozen_run = use_memo(move || {
+         let run_id = *frozen_run_id.read();
+         run_id.and_then(|id| {
+             workflow
+                 .workflow()
+                 .read()
+                 .history
+                 .iter()
+-                .find(|run| run.id == id)
++                .find(|run| run.id != /* ~ changed by cargo-mutants ~ */ id)
+                 .cloned()
+         })
+     });
+     let inspector_output = use_memo(move || {
+         let selected = selected_node.read().clone();
+         let frozen = selected_frozen_run.read().clone();
+ 
+         if let (Some(node), Some(run)) = (selected.as_ref(), frozen.as_ref()) {

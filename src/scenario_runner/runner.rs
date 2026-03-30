@@ -149,9 +149,8 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
     fn check_assertion(result: &ActionResult, assertion: &Assertion) -> Result<(), String> {
         match assertion.assertion_type.as_str() {
             "status" => {
-                let expected = match assertion.expected.as_ref() {
-                    Some(value) => value,
-                    None => return Err("Missing expected value for status assertion".to_string()),
+                let Some(expected) = assertion.expected.as_ref() else {
+                    return Err("Missing expected value for status assertion".to_string());
                 };
                 let expected_status = match expected.as_u64() {
                     Some(v) => u16::try_from(v).map_or(0, |status| status),
@@ -189,8 +188,7 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&result.body) {
             if let Some(path) = &extraction.path {
                 if let Some(value) = json.pointer(path) {
-                    let _ = self
-                        .extracted_values
+                    self.extracted_values
                         .insert(extraction.name.clone(), value.clone());
                 }
             }

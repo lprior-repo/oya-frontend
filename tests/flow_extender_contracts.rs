@@ -1040,9 +1040,9 @@ fn get_node_by_id_rejects_nonexistent() {
 #[test]
 fn get_node_by_id_first_match_wins() {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 0.0, 0.0);
+    workflow.add_node("run", 0.0, 0.0);
     let node_id = workflow.add_node("run", 10.0, 10.0);
-    let _ = workflow.add_node("run", 20.0, 20.0);
+    workflow.add_node("run", 20.0, 20.0);
 
     let nodes: &[oya_frontend::graph::Node] = &workflow.nodes;
     let result = get_node_by_id(node_id, nodes);
@@ -1380,8 +1380,8 @@ fn timeout_guard_creates_connection_with_exact_ports() {
 #[test]
 fn durable_checkpoint_creates_connection_with_exact_ports() {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("http-handler", 0.0, 0.0);
-    let _ = workflow.add_node("get-state", 10.0, 10.0);
+    workflow.add_node("http-handler", 0.0, 0.0);
+    workflow.add_node("get-state", 10.0, 10.0);
     let _anchor_id = workflow.add_node("run", 30.0, 30.0);
 
     let preview = preview_extension(&workflow, "add-durable-checkpoint")
@@ -1406,9 +1406,9 @@ fn durable_checkpoint_creates_connection_with_exact_ports() {
 #[test]
 fn compensation_branch_creates_connection_with_exact_source_port_false() {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("durable-promise", 40.0, 90.0);
+    workflow.add_node("durable-promise", 40.0, 90.0);
     let condition_id = workflow.add_node("condition", 100.0, 100.0);
-    let _ = workflow.add_connection(
+    workflow.add_connection(
         condition_id,
         NodeId::new(),
         &PortName::from("true"),
@@ -1461,9 +1461,9 @@ fn restate_semantic_tags_contract() -> Result<()> {
 #[test]
 fn restate_semantic_guardrails_contract() -> Result<()> {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 20.0, 20.0);
-    let _ = workflow.add_node("condition", 60.0, 20.0);
-    let _ = workflow.add_node("awakeable", 100.0, 20.0);
+    workflow.add_node("run", 20.0, 20.0);
+    workflow.add_node("condition", 60.0, 20.0);
+    workflow.add_node("awakeable", 100.0, 20.0);
 
     let keys = suggest_extensions(&workflow)
         .into_iter()
@@ -1512,7 +1512,7 @@ fn timeout_guard_contract() -> Result<()> {
     assert_eq!(preview.nodes[0].node_type, "timeout");
     assert_eq!(preview.connections.len(), 1);
 
-    let _ = apply_extension(&mut workflow, "add-timeout-guard").map_err(|err| anyhow!("{err}"))?;
+    apply_extension(&mut workflow, "add-timeout-guard").map_err(|err| anyhow!("{err}"))?;
 
     assert!(workflow
         .nodes
@@ -1531,7 +1531,7 @@ fn timeout_guard_contract() -> Result<()> {
 #[test]
 fn durable_checkpoint_contract() -> Result<()> {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("get-state", 0.0, 0.0);
+    workflow.add_node("get-state", 0.0, 0.0);
     let durable_id = workflow.add_node("run", 30.0, 30.0);
 
     let preview = preview_extension(&workflow, "add-durable-checkpoint")
@@ -1560,10 +1560,10 @@ fn durable_checkpoint_contract() -> Result<()> {
 #[test]
 fn compensation_branch_contract() -> Result<()> {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("durable-promise", 40.0, 90.0);
+    workflow.add_node("durable-promise", 40.0, 90.0);
     let condition_id = workflow.add_node("condition", 100.0, 100.0);
     let true_branch = workflow.add_node("run", 240.0, 60.0);
-    let _ = workflow.add_connection(
+    workflow.add_connection(
         condition_id,
         true_branch,
         &PortName::from("true"),
@@ -1576,8 +1576,7 @@ fn compensation_branch_contract() -> Result<()> {
     assert_eq!(preview.nodes[0].node_type, "compensate");
     assert_eq!(preview.connections[0].source_port, "false");
 
-    let _ = apply_extension(&mut workflow, "add-compensation-branch")
-        .map_err(|err| anyhow!("{err}"))?;
+    apply_extension(&mut workflow, "add-compensation-branch").map_err(|err| anyhow!("{err}"))?;
 
     let compensate_node_id = workflow
         .nodes
@@ -1634,7 +1633,7 @@ fn signal_resolution_contract() -> Result<()> {
 #[test]
 fn reliability_bundle_preview_contract_respects_service_semantics() -> Result<()> {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 32.0, 32.0);
+    workflow.add_node("run", 32.0, 32.0);
 
     let preview = preview_extension(&workflow, "add-reliability-bundle")
         .map_err(|err| anyhow!(err))?
@@ -1650,7 +1649,7 @@ fn reliability_bundle_preview_contract_respects_service_semantics() -> Result<()
 #[test]
 fn reliability_bundle_preview_apply_contract_match_in_service_context() -> Result<()> {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 48.0, 48.0);
+    workflow.add_node("run", 48.0, 48.0);
 
     let preview = preview_extension(&workflow, "add-reliability-bundle")
         .map_err(|err| anyhow!(err))?
@@ -1661,7 +1660,7 @@ fn reliability_bundle_preview_apply_contract_match_in_service_context() -> Resul
         .map(|node| node.node_type.clone())
         .collect::<Vec<_>>();
 
-    let _ = apply_extension(&mut workflow, "add-reliability-bundle").map_err(|err| anyhow!(err))?;
+    apply_extension(&mut workflow, "add-reliability-bundle").map_err(|err| anyhow!(err))?;
     let applied_types = workflow
         .nodes
         .iter()
@@ -1682,7 +1681,7 @@ fn awakeable_signal_resolution_contract() -> Result<()> {
     let mut workflow = Workflow::new();
     let awakeable_id = workflow.add_node("awakeable", 120.0, 64.0);
     let run_id = workflow.add_node("run", 360.0, 64.0);
-    let _ = workflow.add_connection(
+    workflow.add_connection(
         awakeable_id,
         run_id,
         &PortName::from("out"),
@@ -1699,7 +1698,7 @@ fn awakeable_signal_resolution_contract() -> Result<()> {
         .iter()
         .any(|connection| { connection.source_port == "out" && connection.target_port == "in" }));
 
-    let _ = apply_extension(&mut workflow, "add-signal-resolution").map_err(|err| anyhow!(err))?;
+    apply_extension(&mut workflow, "add-signal-resolution").map_err(|err| anyhow!(err))?;
 
     let resolve_id = workflow
         .nodes

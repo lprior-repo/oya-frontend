@@ -82,6 +82,7 @@ impl ExecutionMetadata {
 
     /// Increment executed node count.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // DateTime<Utc> is not const-safe
     pub fn with_executed_node(self) -> Self {
         Self {
             executed_nodes: self.executed_nodes + 1,
@@ -91,6 +92,7 @@ impl ExecutionMetadata {
 
     /// Increment skipped node count.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // DateTime<Utc> is not const-safe
     pub fn with_skipped_node(self) -> Self {
         Self {
             skipped_nodes: self.skipped_nodes + 1,
@@ -100,6 +102,7 @@ impl ExecutionMetadata {
 
     /// Increment failed node count.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // DateTime<Utc> is not const-safe
     pub fn with_failed_node(self) -> Self {
         Self {
             failed_nodes: self.failed_nodes + 1,
@@ -109,6 +112,7 @@ impl ExecutionMetadata {
 
     /// Set completion time.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // DateTime<Utc> is not const-safe
     pub fn with_completed_at(self, completed_at: DateTime<Utc>) -> Self {
         Self {
             completed_at: Some(completed_at),

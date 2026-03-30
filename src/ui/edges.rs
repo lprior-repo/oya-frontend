@@ -255,7 +255,7 @@ mod tests {
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
         resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup, Rect,
     };
-    use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
+    use oya_frontend::graph::{Connection, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
 
     // Constants for test data builders

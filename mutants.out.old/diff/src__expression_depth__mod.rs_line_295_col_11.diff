@@ -1,0 +1,21 @@
+--- src/expression_depth/mod.rs
++++ replace + with - in calculate_depth
+@@ -287,17 +287,17 @@
+ /// };
+ /// assert_eq!(calculate_depth(&leaf), 0);
+ /// ```
+ #[must_use]
+ pub fn calculate_depth(expression: &Expression) -> u32 {
+     if expression.children.is_empty() {
+         0
+     } else {
+-        1 + expression
++        1 - /* ~ changed by cargo-mutants ~ */ expression
+             .children
+             .iter()
+             .map(|child| calculate_depth(child))
+             .max()
+             .unwrap_or(0)
+     }
+ }
+ 

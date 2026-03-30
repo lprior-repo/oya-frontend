@@ -18,9 +18,9 @@ fn bead_required_unknown_extension_returns_structured_error() {
 #[test]
 fn bead_required_conflict_detection_returns_diagnostics_without_mutation() {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 10.0, 10.0);
-    let _ = workflow.add_node("condition", 40.0, 10.0);
-    let _ = workflow.add_node("awakeable", 70.0, 10.0);
+    workflow.add_node("run", 10.0, 10.0);
+    workflow.add_node("condition", 40.0, 10.0);
+    workflow.add_node("awakeable", 70.0, 10.0);
 
     let before_nodes = workflow.nodes.clone();
     let before_connections = workflow.connections.clone();
@@ -38,7 +38,7 @@ fn bead_required_conflict_detection_returns_diagnostics_without_mutation() {
 #[test]
 fn bead_required_repeated_apply_is_idempotent() {
     let mut workflow = Workflow::new();
-    let _ = workflow.add_node("run", 20.0, 20.0);
+    workflow.add_node("run", 20.0, 20.0);
 
     let first = apply_extension(&mut workflow, "add-timeout-guard");
     match first {

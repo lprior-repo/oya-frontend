@@ -1,0 +1,21 @@
+--- src/dashboard/mod.rs
++++ replace / with % in print_summary
+@@ -74,17 +74,17 @@
+             summary.passed_sessions as f64 / total as f64 * 100.0
+         }
+     } else {
+         0.0
+     };
+     let failed_pct = if total > 0 {
+         #[allow(clippy::cast_precision_loss)]
+         {
+-            summary.failed_sessions as f64 / total as f64 * 100.0
++            summary.failed_sessions as f64 % /* ~ changed by cargo-mutants ~ */ total as f64 * 100.0
+         }
+     } else {
+         0.0
+     };
+     let escalated_pct = if total > 0 {
+         #[allow(clippy::cast_precision_loss)]
+         {
+             summary.escalated_sessions as f64 / total as f64 * 100.0

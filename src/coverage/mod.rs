@@ -129,12 +129,12 @@ impl CoverageAnalyzer {
     }
 
     fn find_spec_files(&self) -> Result<Vec<PathBuf>, CoverageError> {
-        let mut specs = self.collect_yaml_files(&self.specs_dir)?;
+        let mut specs = Self::collect_yaml_files(&self.specs_dir)?;
         specs.sort();
         Ok(specs)
     }
 
-    fn collect_yaml_files(&self, root: &Path) -> Result<Vec<PathBuf>, CoverageError> {
+    fn collect_yaml_files(root: &Path) -> Result<Vec<PathBuf>, CoverageError> {
         let mut files = Vec::new();
         if !root.exists() {
             return Ok(files);
@@ -183,6 +183,7 @@ impl CoverageAnalyzer {
             .to_lowercase()
     }
 
+    #[allow(clippy::too_many_lines)]
     fn analyze_spec(&self, spec_path: &Path) -> Result<Option<SpecCoverage>, CoverageError> {
         let spec_path_buf = spec_path.to_path_buf();
         let spec_content =
@@ -214,7 +215,7 @@ impl CoverageAnalyzer {
 
         if spec_id.is_empty() {
             return Err(CoverageError::InvalidSpecShape {
-                path: spec_path_buf.clone(),
+                path: spec_path_buf,
                 detail: "specification.identity.id must be a non-empty string".to_string(),
             });
         }
@@ -336,7 +337,7 @@ impl CoverageAnalyzer {
                                             .to_string(),
                                     })?;
 
-                                let _ = scenario_behavior_ids.insert(behavior_ref.to_string());
+                                scenario_behavior_ids.insert(behavior_ref.to_string());
                             }
 
                             if let Some(edge_case_ref_value) = assertion.get("edge_case_ref") {
@@ -350,7 +351,7 @@ impl CoverageAnalyzer {
                                             .to_string(),
                                     })?;
 
-                                let _ = scenario_edge_case_ids.insert(edge_case_ref.to_string());
+                                scenario_edge_case_ids.insert(edge_case_ref.to_string());
                             }
                         }
                     }
@@ -399,7 +400,7 @@ impl CoverageAnalyzer {
         let mut scenarios = Vec::new();
         let normalized_spec_id = Self::normalize_spec_ref(spec_id);
 
-        for path in self.collect_yaml_files(&self.scenarios_dir)? {
+        for path in Self::collect_yaml_files(&self.scenarios_dir)? {
             let content = fs::read_to_string(&path).map_err(|source| CoverageError::ReadFile {
                 path: path.clone(),
                 source,
@@ -473,7 +474,7 @@ scenario:
     }
 
     #[test]
-    fn test_analyzer() {
+    fn coverage_analyzer_initializes_with_empty_paths() {
         let _ = CoverageAnalyzer::new(Path::new("."), Path::new("."));
     }
 

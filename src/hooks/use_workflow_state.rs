@@ -13,7 +13,7 @@ use std::collections::HashMap;
 fn push_undo_snapshot(undo_stack: &mut Vec<Workflow>, snapshot: Workflow, cap: usize) {
     undo_stack.push(snapshot);
     if undo_stack.len() > cap {
-        let _ = undo_stack.remove(0);
+        undo_stack.remove(0);
     }
 }
 
@@ -125,7 +125,7 @@ fn add_connection_transaction(
             redo_stack.clear();
             Ok(())
         }
-        Err(error) => Err(map_connection_error(error)),
+        Err(error) => Err(map_connection_error(&error)),
     }
 }
 
@@ -405,12 +405,12 @@ impl WorkflowState {
     }
 }
 
-fn map_connection_error(error: ConnectivityConnectionError) -> WorkflowError {
+fn map_connection_error(error: &ConnectivityConnectionError) -> WorkflowError {
     match error {
         ConnectivityConnectionError::SelfConnection => WorkflowError::SelfConnection,
         ConnectivityConnectionError::MissingSourceNode(node_id)
         | ConnectivityConnectionError::MissingTargetNode(node_id) => {
-            WorkflowError::NodeNotFound(node_id)
+            WorkflowError::NodeNotFound(*node_id)
         }
         ConnectivityConnectionError::WouldCreateCycle => WorkflowError::CycleDetected,
         ConnectivityConnectionError::Duplicate => WorkflowError::DuplicateConnection,
@@ -492,9 +492,9 @@ mod tests {
     use serde_json::json;
 
     #[tokio::test]
-    async fn given_detached_workflow_when_running_then_history_is_recorded() {
+    async fn detached_workflow_when_running_then_history_is_recorded() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("http-handler", 0.0, 0.0);
+        workflow.add_node("http-handler", 0.0, 0.0);
 
         let updated = run_workflow_detached(workflow, "http://localhost:8080".to_string()).await;
 
@@ -515,7 +515,7 @@ mod tests {
         use crate::errors::WorkflowError;
         use oya_frontend::graph::ConnectivityConnectionError;
 
-        let mismatch = map_connection_error(ConnectivityConnectionError::TypeMismatch {
+        let mismatch = map_connection_error(&ConnectivityConnectionError::TypeMismatch {
             source_type: PortType::Event,
             target_type: PortType::Signal,
         });
@@ -538,16 +538,16 @@ mod tests {
     }
 
     #[test]
-    fn given_undo_then_redo_sequence_when_applied_then_snapshots_restore_correctly() {
+    fn undo_then_redo_sequence_when_applied_then_snapshots_restore_correctly() {
         let mut workflow = Workflow::new();
         let mut undo_stack = Vec::new();
         let mut redo_stack = Vec::new();
 
         let mut older = Workflow::new();
-        let _ = older.add_node("http-handler", 0.0, 0.0);
+        older.add_node("http-handler", 0.0, 0.0);
         let mut newer = Workflow::new();
-        let _ = newer.add_node("http-handler", 0.0, 0.0);
-        let _ = newer.add_node("run", 0.0, 0.0);
+        newer.add_node("http-handler", 0.0, 0.0);
+        newer.add_node("run", 0.0, 0.0);
 
         workflow.clone_from(&newer);
         undo_stack.push(older.clone());

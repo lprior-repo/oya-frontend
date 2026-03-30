@@ -125,12 +125,11 @@ impl std::fmt::Display for WorkflowExecutionError {
             } => {
                 write!(
                     f,
-                    "Unresolved dependencies: nodes {:?} missing deps {:?}",
-                    nodes, missing_deps
+                    "Unresolved dependencies: nodes {nodes:?} missing deps {missing_deps:?}"
                 )
             }
             Self::InvalidWorkflowState { reason } => {
-                write!(f, "Invalid workflow state: {}", reason)
+                write!(f, "Invalid workflow state: {reason}")
             }
             Self::NodeNotFound {
                 connection_id,

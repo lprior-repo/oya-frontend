@@ -1,0 +1,21 @@
+--- src/coverage/mod.rs
++++ delete ! in CoverageAnalyzer::analyze_spec
+@@ -285,17 +285,17 @@
+                         .map(str::trim)
+                         .filter(|id| !id.is_empty())
+                         .ok_or_else(|| CoverageError::InvalidSpecShape {
+                             path: spec_path_buf.clone(),
+                             detail: "each edge case must include a non-empty string id".to_string(),
+                         })?
+                         .to_string();
+ 
+-                    if !edge_case_ids.insert(edge_case_id.clone()) {
++                    if  /* ~ changed by cargo-mutants ~ */edge_case_ids.insert(edge_case_id.clone()) {
+                         return Err(CoverageError::DuplicateEdgeCaseId {
+                             path: spec_path_buf.clone(),
+                             id: edge_case_id,
+                         });
+                     }
+                 }
+             }
+         }

@@ -1,0 +1,173 @@
+src/bin/agent_feedback.rs:41:5: replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/bin/agent_feedback.rs:75:28: delete ! in main
+src/bin/coverage.rs:25:5: replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/bin/coverage.rs:31:9: delete match arm "json" in main
+src/bin/coverage.rs:35:9: delete match arm "text" in main
+src/bin/coverage.rs:50:5: replace print_text_report with ()
+src/bin/coverage.rs:70:8: delete ! in print_text_report
+src/bin/flow_extend.rs:48:5: replace parse_workflow -> Result<Workflow, Box<dyn std::error::Error>> with Ok(Default::default())
+src/bin/flow_extend.rs:55:5: replace write_workflow -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/bin/flow_extend.rs:62:5: replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/bin/quality-gate.rs:48:5: replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/bin/quality-gate.rs:78:41: replace == with != in main
+src/bin/quality-gate.rs:92:5: replace print_report with ()
+src/bin/quality-gate.rs:103:5: replace print_validation_results with ()
+src/main.rs:32:5: replace should_end_canvas_interaction -> bool with true
+src/main.rs:32:5: replace should_end_canvas_interaction -> bool with false
+src/main.rs:32:45: replace || with && in should_end_canvas_interaction
+src/main.rs:32:31: replace || with && in should_end_canvas_interaction
+src/main.rs:32:17: replace || with && in should_end_canvas_interaction
+src/main.rs:44:9: replace <impl Drop for GlobalMouseupListenerInner>::drop with ()
+src/main.rs:63:5: replace register_global_mouseup_listener -> Option<GlobalMouseupListener> with None
+src/main.rs:63:5: replace register_global_mouseup_listener -> Option<GlobalMouseupListener> with Some(Default::default())
+src/main.rs:174:58: replace == with != in App
+src/main.rs:184:40: replace == with != in App
+src/main.rs:189:40: replace == with != in App
+src/main.rs:195:13: replace && with || in App
+src/main.rs:194:54: replace || with && in App
+src/main.rs:194:75: replace == with != in App
+src/main.rs:197:44: replace == with != in App
+src/main.rs:229:36: replace == with != in App
+src/main.rs:262:12: delete ! in App
+src/main.rs:283:55: replace == with != in App
+src/main.rs:285:36: replace + with - in App
+src/main.rs:285:36: replace + with * in App
+src/main.rs:286:36: replace + with - in App
+src/main.rs:286:36: replace + with * in App
+src/main.rs:291:36: replace + with - in App
+src/main.rs:291:36: replace + with * in App
+src/main.rs:344:53: replace + with - in App
+src/main.rs:344:53: replace + with * in App
+src/main.rs:344:69: replace + with - in App
+src/main.rs:344:69: replace + with * in App
+src/main.rs:348:50: replace + with - in App
+src/main.rs:348:50: replace + with * in App
+src/main.rs:348:61: replace + with - in App
+src/main.rs:348:61: replace + with * in App
+src/main.rs:353:61: replace + with - in App
+src/main.rs:353:61: replace + with * in App
+src/main.rs:357:53: replace + with - in App
+src/main.rs:357:53: replace + with * in App
+src/main.rs:1294:5: replace parse_key_event -> Option<EditorCommand> with None
+src/main.rs:1296:9: delete match arm "+" | "=" | "add" in parse_key_event
+src/main.rs:1297:9: delete match arm "-" | "_" | "subtract" in parse_key_event
+src/main.rs:1298:9: delete match arm "0" in parse_key_event
+src/main.rs:1303:22: replace match guard modifiers.ctrl && modifiers.shift with true in parse_key_event
+src/main.rs:1303:22: replace match guard modifiers.ctrl && modifiers.shift with false in parse_key_event
+src/main.rs:1304:16: replace match guard modifiers.ctrl with true in parse_key_event
+src/main.rs:1304:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1305:16: replace match guard modifiers.ctrl with true in parse_key_event
+src/main.rs:1305:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1308:16: replace match guard modifiers.ctrl with true in parse_key_event
+src/main.rs:1308:16: replace match guard modifiers.ctrl with false in parse_key_event
+src/main.rs:1303:37: replace && with || in parse_key_event
+src/main.rs:1478:5: replace main with ()
+src/agent_feedback/mod.rs:141:9: replace FeedbackGenerator::category_to_key -> String with String::new()
+src/agent_feedback/mod.rs:141:9: replace FeedbackGenerator::category_to_key -> String with "xyzzy".into()
+src/agent_feedback/mod.rs:150:9: replace FeedbackGenerator::determine_priority -> String with String::new()
+src/agent_feedback/mod.rs:150:9: replace FeedbackGenerator::determine_priority -> String with "xyzzy".into()
+src/agent_feedback/mod.rs:159:9: replace FeedbackGenerator::generate_batch -> Vec<AgentFeedback> with vec![]
+src/coverage/mod.rs:102:66: replace += with -= in CoverageAnalyzer::analyze
+src/coverage/mod.rs:102:66: replace += with *= in CoverageAnalyzer::analyze
+src/coverage/mod.rs:105:67: replace += with -= in CoverageAnalyzer::analyze
+src/coverage/mod.rs:105:67: replace += with *= in CoverageAnalyzer::analyze
+src/coverage/mod.rs:115:50: replace > with == in CoverageAnalyzer::analyze
+src/coverage/mod.rs:115:50: replace > with < in CoverageAnalyzer::analyze
+src/coverage/mod.rs:115:50: replace > with >= in CoverageAnalyzer::analyze
+src/coverage/mod.rs:118:71: replace * with + in CoverageAnalyzer::analyze
+src/coverage/mod.rs:118:71: replace * with / in CoverageAnalyzer::analyze
+src/coverage/mod.rs:118:46: replace / with % in CoverageAnalyzer::analyze
+src/coverage/mod.rs:118:46: replace / with * in CoverageAnalyzer::analyze
+src/coverage/mod.rs:160:61: replace == with != in CoverageAnalyzer::collect_yaml_files
+src/coverage/mod.rs:171:9: replace CoverageAnalyzer::normalize_spec_ref -> String with String::new()
+src/coverage/mod.rs:171:9: replace CoverageAnalyzer::normalize_spec_ref -> String with "xyzzy".into()
+src/coverage/mod.rs:387:74: replace * with + in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:387:74: replace * with / in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:387:46: replace / with % in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:387:46: replace / with * in CoverageAnalyzer::analyze_spec
+src/dashboard/mod.rs:38:5: replace run -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/dashboard/mod.rs:63:5: replace print_summary with ()
+src/dashboard/mod.rs:71:31: replace > with == in print_summary
+src/dashboard/mod.rs:71:31: replace > with < in print_summary
+src/dashboard/mod.rs:71:31: replace > with >= in print_summary
+src/dashboard/mod.rs:74:59: replace * with + in print_summary
+src/dashboard/mod.rs:74:59: replace * with / in print_summary
+src/dashboard/mod.rs:74:44: replace / with % in print_summary
+src/dashboard/mod.rs:74:44: replace / with * in print_summary
+src/dashboard/mod.rs:79:31: replace > with == in print_summary
+src/dashboard/mod.rs:79:31: replace > with < in print_summary
+src/dashboard/mod.rs:79:31: replace > with >= in print_summary
+src/dashboard/mod.rs:82:59: replace * with + in print_summary
+src/dashboard/mod.rs:82:59: replace * with / in print_summary
+src/dashboard/mod.rs:82:44: replace / with % in print_summary
+src/dashboard/mod.rs:82:44: replace / with * in print_summary
+src/dashboard/mod.rs:87:34: replace > with == in print_summary
+src/dashboard/mod.rs:87:34: replace > with < in print_summary
+src/dashboard/mod.rs:87:34: replace > with >= in print_summary
+src/dashboard/mod.rs:90:62: replace * with + in print_summary
+src/dashboard/mod.rs:90:62: replace * with / in print_summary
+src/dashboard/mod.rs:90:47: replace / with % in print_summary
+src/dashboard/mod.rs:90:47: replace / with * in print_summary
+src/dashboard/mod.rs:111:5: replace print_sessions with ()
+src/dashboard/mod.rs:120:5: replace format_status -> &'static str with ""
+src/dashboard/mod.rs:120:5: replace format_status -> &'static str with "xyzzy"
+src/dashboard/mod.rs:137:5: replace export_metrics -> Result<(), Box<dyn std::error::Error>> with Ok(())
+src/dashboard/mod.rs:140:9: delete match arm "json" in export_metrics
+src/dashboard/mod.rs:141:9: delete match arm "text" in export_metrics
+src/dashboard/mod.rs:152:5: replace format_text_summary -> String with String::new()
+src/dashboard/mod.rs:152:5: replace format_text_summary -> String with "xyzzy".into()
+src/dashboard/mod.rs:153:31: replace > with == in format_text_summary
+src/dashboard/mod.rs:153:31: replace > with < in format_text_summary
+src/dashboard/mod.rs:153:31: replace > with >= in format_text_summary
+src/dashboard/mod.rs:156:59: replace * with + in format_text_summary
+src/dashboard/mod.rs:156:59: replace * with / in format_text_summary
+src/dashboard/mod.rs:156:44: replace / with % in format_text_summary
+src/dashboard/mod.rs:156:44: replace / with * in format_text_summary
+src/dashboard/mod.rs:161:31: replace > with == in format_text_summary
+src/dashboard/mod.rs:161:31: replace > with < in format_text_summary
+src/dashboard/mod.rs:161:31: replace > with >= in format_text_summary
+src/dashboard/mod.rs:164:59: replace * with + in format_text_summary
+src/dashboard/mod.rs:164:59: replace * with / in format_text_summary
+src/dashboard/mod.rs:164:44: replace / with % in format_text_summary
+src/dashboard/mod.rs:164:44: replace / with * in format_text_summary
+src/dashboard/mod.rs:169:34: replace > with == in format_text_summary
+src/dashboard/mod.rs:169:34: replace > with < in format_text_summary
+src/dashboard/mod.rs:169:34: replace > with >= in format_text_summary
+src/dashboard/mod.rs:172:62: replace * with + in format_text_summary
+src/dashboard/mod.rs:172:62: replace * with / in format_text_summary
+src/dashboard/mod.rs:172:47: replace / with % in format_text_summary
+src/dashboard/mod.rs:172:47: replace / with * in format_text_summary
+src/expression_depth/mod.rs:84:9: replace ExpressionDepth::current -> u32 with 0
+src/expression_depth/mod.rs:84:9: replace ExpressionDepth::current -> u32 with 1
+src/expression_depth/mod.rs:105:19: replace >= with < in ExpressionDepth::increment
+src/expression_depth/mod.rs:111:28: replace + with - in ExpressionDepth::increment
+src/expression_depth/mod.rs:111:28: replace + with * in ExpressionDepth::increment
+src/expression_depth/mod.rs:133:9: replace ExpressionDepth::is_valid -> bool with true
+src/expression_depth/mod.rs:133:9: replace ExpressionDepth::is_valid -> bool with false
+src/expression_depth/mod.rs:133:16: replace <= with > in ExpressionDepth::is_valid
+src/expression_depth/mod.rs:139:9: replace <impl std::fmt::Display for ExpressionDepth>::fmt -> std::fmt::Result with Ok(Default::default())
+src/expression_depth/mod.rs:146:5: replace looks_like_reference -> bool with true
+src/expression_depth/mod.rs:146:5: replace looks_like_reference -> bool with false
+src/expression_depth/mod.rs:146:71: replace || with && in looks_like_reference
+src/expression_depth/mod.rs:146:48: replace || with && in looks_like_reference
+src/expression_depth/mod.rs:146:25: replace || with && in looks_like_reference
+src/expression_depth/mod.rs:189:9: replace <impl std::fmt::Display for Error>::fmt -> std::fmt::Result with Ok(Default::default())
+src/expression_depth/mod.rs:246:9: replace <impl FromExpression for i32>::from_expression_string -> Result<Self, Error> with Ok(Default::default())
+src/expression_depth/mod.rs:255:9: replace <impl FromExpression for bool>::from_expression_string -> Result<Self, Error> with Ok(Default::default())
+src/expression_depth/mod.rs:256:13: delete match arm "true" in <impl FromExpression for bool>::from_expression_string
+src/expression_depth/mod.rs:257:13: delete match arm "false" in <impl FromExpression for bool>::from_expression_string
+src/expression_depth/mod.rs:268:9: replace <impl FromExpression for String>::from_expression_string -> Result<Self, Error> with Ok(Default::default())
+src/expression_depth/mod.rs:292:5: replace calculate_depth -> u32 with 0
+src/expression_depth/mod.rs:292:5: replace calculate_depth -> u32 with 1
+src/expression_depth/mod.rs:295:11: replace + with - in calculate_depth
+src/expression_depth/mod.rs:295:11: replace + with * in calculate_depth
+src/expression_depth/mod.rs:327:5: replace validate_expression_depth -> Result<ExpressionDepth, Error> with Ok(Default::default())
+src/expression_depth/mod.rs:328:14: replace > with == in validate_expression_depth
+src/expression_depth/mod.rs:328:14: replace > with < in validate_expression_depth
+src/expression_depth/mod.rs:328:14: replace > with >= in validate_expression_depth
+src/expression_depth/mod.rs:390:8: delete ! in resolve_expressions
+src/expression_depth/mod.rs:415:47: replace || with && in resolve_expressions
+src/expression_depth/mod.rs:421:43: replace || with && in resolve_expressions
+src/expression_depth/mod.rs:425:43: replace || with && in resolve_expressions
+src/feedback/mod.rs:26:9: replace FeedbackLevel::value -> u8 with 0
+src/feedback/mod.rs:26:9: replace FeedbackLevel::value -> u8 with 1

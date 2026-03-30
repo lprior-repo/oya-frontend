@@ -1,0 +1,21 @@
+--- src/main.rs
++++ delete ! in App
+@@ -254,17 +254,17 @@
+         }
+ 
+         selected.and_then(|node| node.error)
+     });
+     let mut show_inspector = use_signal(|| false);
+ 
+     use_effect(move || {
+         let has_node = inspector_node.read().is_some();
+-        if !has_node {
++        if  /* ~ changed by cargo-mutants ~ */has_node {
+             show_inspector.set(false);
+         }
+     });
+ 
+     // PrototypePalette signal
+     let mut prototype_open = use_signal(|| false);
+ 
+     let vp = workflow.viewport();

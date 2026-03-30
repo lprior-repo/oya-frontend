@@ -1,0 +1,21 @@
+--- src/coverage/mod.rs
++++ delete ! in CoverageAnalyzer::analyze_spec
+@@ -248,17 +248,17 @@
+                 .map(str::trim)
+                 .filter(|id| !id.is_empty())
+                 .ok_or_else(|| CoverageError::InvalidSpecShape {
+                     path: spec_path_buf.clone(),
+                     detail: "each behavior must include a non-empty string id".to_string(),
+                 })?
+                 .to_string();
+ 
+-            if !behavior_ids.insert(behavior_id.clone()) {
++            if  /* ~ changed by cargo-mutants ~ */behavior_ids.insert(behavior_id.clone()) {
+                 return Err(CoverageError::DuplicateBehaviorId {
+                     path: spec_path_buf.clone(),
+                     id: behavior_id,
+                 });
+             }
+ 
+             if let Some(edge_cases_value) =
+                 behavior_map.get(Value::String("edge_cases".to_string()))

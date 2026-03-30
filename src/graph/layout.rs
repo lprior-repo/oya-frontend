@@ -232,11 +232,11 @@ mod tests {
     }
 
     #[test]
-    fn given_disconnected_graph_when_applying_layout_then_nodes_have_distinct_y_positions() {
+    fn disconnected_graph_when_applying_layout_then_nodes_have_distinct_y_positions() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 0.0, 0.0);
-        let _ = workflow.add_node("run", 0.0, 0.0);
-        let _ = workflow.add_node("run", 0.0, 0.0);
+        workflow.add_node("run", 0.0, 0.0);
+        workflow.add_node("run", 0.0, 0.0);
+        workflow.add_node("run", 0.0, 0.0);
 
         DagLayout::default().apply(&mut workflow);
 
@@ -247,14 +247,14 @@ mod tests {
     }
 
     #[test]
-    fn given_same_graph_when_applying_twice_then_positions_are_deterministic() {
+    fn same_graph_when_applying_twice_then_positions_are_deterministic() {
         let mut workflow = Workflow::new();
         let n1 = workflow.add_node("http-handler", 0.0, 0.0);
         let n2 = workflow.add_node("run", 0.0, 0.0);
         let n3 = workflow.add_node("condition", 0.0, 0.0);
         let main = PortName::from("main");
-        let _ = workflow.add_connection_checked(n1, n2, &main, &main);
-        let _ = workflow.add_connection_checked(n2, n3, &main, &main);
+        workflow.add_connection_checked(n1, n2, &main, &main);
+        workflow.add_connection_checked(n2, n3, &main, &main);
 
         let layout = DagLayout::default();
         layout.apply(&mut workflow);
@@ -275,10 +275,10 @@ mod tests {
     }
 
     #[test]
-    fn given_layout_result_when_normalized_then_minimum_coordinates_match_padding() {
+    fn layout_result_when_normalized_then_minimum_coordinates_match_padding() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", -500.0, -400.0);
-        let _ = workflow.add_node("run", -350.0, -200.0);
+        workflow.add_node("run", -500.0, -400.0);
+        workflow.add_node("run", -350.0, -200.0);
 
         DagLayout::default().apply(&mut workflow);
 

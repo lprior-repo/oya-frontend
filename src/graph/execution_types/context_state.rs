@@ -12,9 +12,9 @@ use crate::graph::{NodeId, WorkflowExecutionError};
 // ===========================================================================
 
 /// Execution context maintained during workflow execution.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ExecutionContext {
-    /// Output from each executed node (node_id -> output).
+    /// Output from each executed node (`node_id` -> output).
     pub node_outputs: HashMap<NodeId, NodeOutput>,
     /// Shared context passed through entire workflow.
     pub shared_state: SharedContext,

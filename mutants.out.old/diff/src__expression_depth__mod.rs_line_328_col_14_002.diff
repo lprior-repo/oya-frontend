@@ -1,0 +1,21 @@
+--- src/expression_depth/mod.rs
++++ replace > with >= in validate_expression_depth
+@@ -320,17 +320,17 @@
+ /// let leaf = Expression {
+ ///     value: Some("leaf".to_string()),
+ ///     children: vec![],
+ /// };
+ /// assert!(validate_expression_depth(&leaf).is_ok());
+ /// ```
+ pub fn validate_expression_depth(expression: &Expression) -> Result<ExpressionDepth, Error> {
+     let depth = calculate_depth(expression);
+-    if depth > MAX_EXPRESSION_DEPTH {
++    if depth >= /* ~ changed by cargo-mutants ~ */ MAX_EXPRESSION_DEPTH {
+         Err(Error::DepthLimitExceeded {
+             current_depth: depth,
+             max_depth: MAX_EXPRESSION_DEPTH,
+         })
+     } else {
+         Ok(ExpressionDepth(depth))
+     }
+ }

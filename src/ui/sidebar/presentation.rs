@@ -103,16 +103,16 @@ pub fn NodeSidebar(
                                     button {
                                         r#type: "button",
                                         class: "group/cat flex w-full items-center gap-2 px-1 py-2",
-                                        onclick: move |_| {
-                                            // Signal write — only mutation in this component.
-                                            let _ = collapsed.try_write().map(|mut set| {
-                                                if set.contains(&category) {
-                                                    set.remove(&category);
-                                                } else {
-                                                    set.insert(category);
-                                                }
-                                            });
-                                        },
+                                    onclick: move |_| {
+                                             // Signal write — only mutation in this component.
+                                             if let Ok(mut set) = collapsed.try_write() {
+                                                 if set.contains(&category) {
+                                                     set.remove(&category);
+                                                 } else {
+                                                     set.insert(category);
+                                                 }
+                                             }
+                                         },
                                         div {
                                             class: "h-1.5 w-1.5 shrink-0 rounded-full \
                                                     {category.dot_class()}"
@@ -184,8 +184,12 @@ fn NodeButton(
                         hover:bg-slate-200/80 active:scale-[0.98] active:cursor-grabbing",
                 onmousedown: move |_| on_pickup_node.call(template.node_type),
                 onclick: move |_| on_add_node.call(template.node_type),
-                onmouseenter: move |_| { let _ = show_tooltip.try_write().map(|mut v| *v = true); },
-                onmouseleave: move |_| { let _ = show_tooltip.try_write().map(|mut v| *v = false); },
+                 onmouseenter: move |_| {
+                      let _ = show_tooltip.try_write().map(|mut v| *v = true);
+                  },
+                  onmouseleave: move |_| {
+                      let _ = show_tooltip.try_write().map(|mut v| *v = false);
+                  },
 
                 div {
                     class: "flex h-7 w-7 shrink-0 items-center justify-center rounded-md \

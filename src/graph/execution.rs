@@ -147,7 +147,7 @@ impl Workflow {
             for (source, missing) in &missing_deps {
                 nodes_with_missing
                     .entry(*source)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(*missing);
             }
 
@@ -170,7 +170,7 @@ impl Workflow {
 
         for conn in &self.connections {
             let key = (conn.source, conn.target);
-            seen.entry(key).or_insert_with(Vec::new).push(conn.id);
+            seen.entry(key).or_default().push(conn.id);
         }
 
         for ((source, target), ids) in &seen {
@@ -208,7 +208,7 @@ impl Workflow {
     }
 
     /// Returns error if workflow is empty.
-    fn check_non_empty(&self) -> Result<(), WorkflowExecutionError> {
+    const fn check_non_empty(&self) -> Result<(), WorkflowExecutionError> {
         if self.nodes.is_empty() {
             return Err(WorkflowExecutionError::EmptyWorkflow);
         }
@@ -227,6 +227,11 @@ impl Workflow {
         Ok(())
     }
 
+    /// Prepare the workflow for execution.
+    ///
+    /// # Errors
+    ///
+    /// Returns `WorkflowExecutionError` if the workflow is invalid.
     pub fn prepare_run(&mut self) -> Result<(), WorkflowExecutionError> {
         // Precondition checks (Data layer) - FIRST, before any state changes
         // This ensures we fail fast if there's a problem
@@ -476,6 +481,7 @@ impl Workflow {
     /// assert_eq!(workflow.execution_config.memory_limit_bytes, Some(1024 * 1024));
     /// ```
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // uses RwLockWriteGuard which is not const-safe
     pub fn with_memory_limit(mut self, memory_limit_bytes: u64) -> Self {
         self.execution_config = self.execution_config.with_memory_limit(memory_limit_bytes);
         self
@@ -525,7 +531,9 @@ impl Workflow {
                     .map(|v| self.resolve_expressions_with_depth(v, depth + 1))
                     .collect(),
             ),
-            _ => config.clone(),
+            serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {
+                config.clone()
+            }
         }
     }
 }

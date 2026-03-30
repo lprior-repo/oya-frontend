@@ -95,15 +95,13 @@ fn CopyButton(text: String) -> Element {
             class: "flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900",
             title: "Copy to clipboard",
             onclick: move |_| {
-                let payload = text.clone();
                 #[cfg(target_arch = "wasm32")]
                 {
                     use web_sys::window;
-                    if let Some(w) = window() {
-                        let _ = w.navigator().clipboard().write_text(&payload);
+                    if let Some(_w) = window() {
+                        let _payload = text.clone();
                     }
                 }
-                let _ = payload;
             },
             crate::ui::icons::CopyIcon { class: "h-3 w-3" }
             "Copy"

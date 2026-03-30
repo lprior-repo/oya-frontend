@@ -1,0 +1,29 @@
+--- src/expression_depth/mod.rs
++++ replace validate_expression_depth -> Result<ExpressionDepth, Error> with Ok(Default::default())
+@@ -319,25 +319,17 @@
+ ///
+ /// let leaf = Expression {
+ ///     value: Some("leaf".to_string()),
+ ///     children: vec![],
+ /// };
+ /// assert!(validate_expression_depth(&leaf).is_ok());
+ /// ```
+ pub fn validate_expression_depth(expression: &Expression) -> Result<ExpressionDepth, Error> {
+-    let depth = calculate_depth(expression);
+-    if depth > MAX_EXPRESSION_DEPTH {
+-        Err(Error::DepthLimitExceeded {
+-            current_depth: depth,
+-            max_depth: MAX_EXPRESSION_DEPTH,
+-        })
+-    } else {
+-        Ok(ExpressionDepth(depth))
+-    }
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Resolve an expression tree with depth limiting.
+ ///
+ /// # Arguments
+ /// * `expression` - The root expression to resolve
+ /// * `registry` - Context containing referenced expressions
+ /// * `current_depth` - Current nesting depth (must be valid)

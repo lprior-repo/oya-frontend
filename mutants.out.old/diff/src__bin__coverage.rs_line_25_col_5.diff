@@ -1,0 +1,41 @@
+--- src/bin/coverage.rs
++++ replace main -> Result<(), Box<dyn std::error::Error>> with Ok(())
+@@ -17,37 +17,17 @@
+     scenarios_dir: PathBuf,
+ 
+     #[arg(short = 'f', long, default_value = "text")]
+     format: String,
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+-    let args = Args::parse();
+-
+-    let analyzer = CoverageAnalyzer::new(&args.specs_dir, &args.scenarios_dir);
+-    let report = analyzer.analyze()?;
+-
+-    match args.format.as_str() {
+-        "json" => {
+-            let json = serde_json::to_string_pretty(&report)?;
+-            println!("{json}");
+-        }
+-        "text" => {
+-            println!("Analyzing scenario coverage...");
+-            print_text_report(&report);
+-        }
+-        _ => {
+-            eprintln!("Unsupported format: {}", args.format);
+-            return Err("Use 'json' or 'text'".into());
+-        }
+-    }
+-
+-    Ok(())
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn print_text_report(report: &CoverageReport) {
+     println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+     println!("  SCENARIO COVERAGE REPORT");
+     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+     println!();

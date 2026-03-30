@@ -35,7 +35,7 @@ pub struct NodeOutput {
 // ===========================================================================
 
 /// Result of executing a workflow.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionResult {
     /// Unique execution ID.
     pub execution_id: uuid::Uuid,
@@ -54,6 +54,7 @@ pub struct ExecutionResult {
 impl ExecutionResult {
     /// Create a new execution result.
     #[must_use]
+    #[allow(clippy::missing_const_for_fn)] // uses uuid::Uuid and HashMap which are not const-safe
     pub fn new(
         execution_id: uuid::Uuid,
         node_results: std::collections::HashMap<NodeId, NodeOutput>,

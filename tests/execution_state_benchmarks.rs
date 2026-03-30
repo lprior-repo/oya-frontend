@@ -42,7 +42,7 @@ fn bench_try_transition_all_states(c: &mut Criterion) {
             let mut count = 0;
             for from in states.iter() {
                 for to in states.iter() {
-                    let _ = try_transition(*from, *to);
+                    try_transition(*from, *to);
                     count += 1;
                 }
             }
@@ -85,7 +85,7 @@ fn bench_serialize_state(c: &mut Criterion) {
     c.bench_function("serialize_running_state", |b| {
         let state = ExecutionState::Running;
         b.iter(|| {
-            let _ = serde_json::to_string(&state);
+            serde_json::to_string(&state);
         })
     });
 }

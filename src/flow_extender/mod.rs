@@ -372,6 +372,11 @@ pub fn suggest_extensions_with_analysis(workflow: &Workflow) -> Vec<ExtensionSug
     )
 }
 
+/// Preview an extension without applying it.
+///
+/// # Errors
+///
+/// Returns `String` if the key is invalid.
 pub fn preview_extension(
     workflow: &Workflow,
     key: &str,
@@ -382,6 +387,11 @@ pub fn preview_extension(
         .map(|plan| preview_from_patch(key.to_string(), &plan.patch)))
 }
 
+/// Apply an extension to a workflow.
+///
+/// # Errors
+///
+/// Returns `String` if the key is invalid or application fails.
 pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExtension, String> {
     let parsed_key = ExtensionKey::from_str(key)?;
     if parsed_key == ExtensionKey::AddReliabilityBundle {
@@ -405,6 +415,11 @@ pub fn apply_extension(workflow: &mut Workflow, key: &str) -> Result<AppliedExte
     })
 }
 
+/// Detect conflicts between extensions.
+///
+/// # Errors
+///
+/// Returns `String` if a key is invalid.
 pub fn detect_extension_conflicts(
     workflow: &Workflow,
     keys: &[String],
@@ -434,7 +449,7 @@ pub fn detect_extension_conflicts(
                     reason: "Two extensions resolve to the same patch fingerprint.".to_string(),
                 });
             } else {
-                let _ = fingerprint_map.insert(fingerprint, raw_key.clone());
+                fingerprint_map.insert(fingerprint, raw_key.clone());
             }
         }
     }
@@ -477,6 +492,11 @@ pub fn detect_extension_conflicts(
     Ok(conflicts)
 }
 
+/// Build dependency graph for extensions.
+///
+/// # Errors
+///
+/// Returns `String` if a key is invalid.
 pub fn extension_dependency_graph(keys: &[String]) -> Result<ExtensionDependencyGraph, String> {
     let parsed_keys = parse_unique_keys(keys)?;
     let edges = parsed_keys
@@ -508,6 +528,11 @@ pub fn extension_dependency_graph(keys: &[String]) -> Result<ExtensionDependency
     })
 }
 
+/// Generate a compound plan for multiple extensions.
+///
+/// # Errors
+///
+/// Returns `String` if keys are invalid or conflicts exist.
 pub fn generate_compound_plan(
     workflow: &Workflow,
     keys: &[String],
@@ -529,8 +554,8 @@ pub fn generate_compound_plan(
             let analysis_data = analyses
                 .get(key_str)
                 .cloned()
-                .unwrap_or_else(|| fallback_analysis(key_str, &simulation, key));
-            let _ = apply_extension(&mut simulation, key_str)?;
+                .unwrap_or_else(|| fallback_analysis(key_str, &simulation, *key));
+            apply_extension(&mut simulation, key_str)?;
             steps.push(CompoundPlanStep {
                 key: key_str.to_string(),
                 confidence_score: analysis_data.score,
@@ -573,6 +598,11 @@ pub fn extension_presets() -> Vec<ExtensionPreset> {
     .collect()
 }
 
+/// Resolve an extension preset into individual extension keys.
+///
+/// # Errors
+///
+/// Returns `String` if preset key is invalid or conflicts exist.
 pub fn resolve_extension_preset(
     workflow: &Workflow,
     preset_key: &str,
@@ -1204,23 +1234,23 @@ fn sort_keys(keys: &mut [ExtensionKey]) {
 
 fn priority_rank(key: ExtensionKey) -> u8 {
     match key {
-        ExtensionKey::AddEntryTrigger => 0,
-        ExtensionKey::AddReliabilityBundle => 0,
-        ExtensionKey::AddTimeoutGuard => 0,
-        ExtensionKey::AddDurableCheckpoint => 1,
-        ExtensionKey::AddCompensationBranch => 1,
-        ExtensionKey::AddSignalResolution => 1,
+        ExtensionKey::AddEntryTrigger
+        | ExtensionKey::AddReliabilityBundle
+        | ExtensionKey::AddTimeoutGuard => 0,
+        ExtensionKey::AddDurableCheckpoint
+        | ExtensionKey::AddCompensationBranch
+        | ExtensionKey::AddSignalResolution => 1,
     }
 }
 
 fn extension_dependencies(key: ExtensionKey) -> &'static [ExtensionKey] {
     match key {
         ExtensionKey::AddEntryTrigger => &[],
-        ExtensionKey::AddReliabilityBundle => &[ExtensionKey::AddEntryTrigger],
-        ExtensionKey::AddTimeoutGuard => &[ExtensionKey::AddEntryTrigger],
         ExtensionKey::AddDurableCheckpoint => &[ExtensionKey::AddTimeoutGuard],
-        ExtensionKey::AddCompensationBranch => &[ExtensionKey::AddEntryTrigger],
-        ExtensionKey::AddSignalResolution => &[ExtensionKey::AddEntryTrigger],
+        ExtensionKey::AddReliabilityBundle
+        | ExtensionKey::AddTimeoutGuard
+        | ExtensionKey::AddCompensationBranch
+        | ExtensionKey::AddSignalResolution => &[ExtensionKey::AddEntryTrigger],
     }
 }
 
@@ -1238,6 +1268,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
             }
         }
         ExtensionKey::AddReliabilityBundle => {
+            #[allow(clippy::cast_precision_loss)]
             let missing = [
                 plan_missing_timeout_guard(workflow).is_some(),
                 plan_missing_checkpoint(workflow).is_some(),
@@ -1245,7 +1276,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
             ]
             .into_iter()
             .filter(|value| *value)
-            .count() as f32;
+            .count() as f32; // OK: small count < 100, no precision loss
             if missing == 0.0 {
                 0.0
             } else {
@@ -1253,22 +1284,25 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
             }
         }
         ExtensionKey::AddTimeoutGuard => {
+            #[allow(clippy::cast_precision_loss)]
             let durable_count = workflow
                 .nodes
                 .iter()
                 .filter(|node| node.category == NodeCategory::Durable)
-                .count() as f32;
+                .count() as f32; // OK: small count, no precision loss
             (0.75 + durable_count * 0.08).min(0.97)
         }
         ExtensionKey::AddDurableCheckpoint => {
+            #[allow(clippy::cast_precision_loss)]
             let durable_count = workflow
                 .nodes
                 .iter()
                 .filter(|node| node.category == NodeCategory::Durable)
-                .count() as f32;
+                .count() as f32; // OK: small count, no precision loss
             (0.70 + durable_count * 0.07).min(0.95)
         }
         ExtensionKey::AddCompensationBranch => {
+            #[allow(clippy::cast_precision_loss)]
             let missing = workflow
                 .nodes
                 .iter()
@@ -1276,15 +1310,16 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
                     matches!(node.node, WorkflowNode::Condition(_))
                         && missing_condition_branch(workflow, node.id)
                 })
-                .count() as f32;
+                .count() as f32; // OK: small count, no precision loss
             (0.72 + missing * 0.09).min(0.96)
         }
         ExtensionKey::AddSignalResolution => {
+            #[allow(clippy::cast_precision_loss)]
             let waits = workflow
                 .nodes
                 .iter()
                 .filter(|node| is_signal_wait_anchor(workflow, node))
-                .count() as f32;
+                .count() as f32; // OK: small count, no precision loss
             (0.74 + waits * 0.08).min(0.97)
         }
     }
@@ -1364,21 +1399,21 @@ fn is_side_effecting_durable(node: &Node) -> bool {
 fn fallback_analysis(
     key: &str,
     workflow: &Workflow,
-    parsed_key: &ExtensionKey,
+    parsed_key: ExtensionKey,
 ) -> ExtensionSuggestionAnalysis {
-    let fingerprint = plan_for_key(workflow, *parsed_key)
-        .map(|plan| extension_fingerprint(*parsed_key, &plan.patch))
+    let fingerprint = plan_for_key(workflow, parsed_key)
+        .map(|plan| extension_fingerprint(parsed_key, &plan.patch))
         .unwrap_or_default();
     ExtensionSuggestionAnalysis {
         key: key.to_string(),
-        score: confidence_score_for(*parsed_key, workflow),
-        rationale_class: rationale_class_for(*parsed_key),
+        score: confidence_score_for(parsed_key, workflow),
+        rationale_class: rationale_class_for(parsed_key),
         fingerprint,
-        dependencies: extension_dependencies(*parsed_key)
+        dependencies: extension_dependencies(parsed_key)
             .iter()
             .map(|dependency| dependency.as_str().to_string())
             .collect(),
-        semantics: extension_semantics(*parsed_key),
+        semantics: extension_semantics(parsed_key),
     }
 }
 
@@ -1573,9 +1608,9 @@ mod tests {
     }
 
     #[test]
-    fn given_timeout_guard_preview_when_rule_applies_then_patch_contains_proposed_node_and_edge() {
+    fn timeout_guard_preview_when_rule_applies_then_patch_contains_proposed_node_and_edge() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 10.0, 20.0);
+        workflow.add_node("run", 10.0, 20.0);
 
         let preview = preview_extension(&workflow, "add-timeout-guard");
 
@@ -1622,12 +1657,12 @@ mod tests {
     }
 
     #[test]
-    fn given_side_effecting_durable_when_suggesting_then_bundle_replaces_isolated_hints() {
+    fn side_effecting_durable_when_suggesting_then_bundle_replaces_isolated_hints() {
         let mut workflow = Workflow::new();
         let condition = workflow.add_node("condition", 120.0, 120.0);
         let run = workflow.add_node("run", 200.0, 120.0);
-        let _ = workflow.add_node("get-state", 80.0, 120.0);
-        let _ = workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
+        workflow.add_node("get-state", 80.0, 120.0);
+        workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
 
         let suggestions = suggest_extensions(&workflow);
         let keys = suggestions
@@ -1642,9 +1677,9 @@ mod tests {
     }
 
     #[test]
-    fn given_workflow_without_side_effecting_durable_when_suggesting_then_bundle_is_absent() {
+    fn workflow_without_side_effecting_durable_when_suggesting_then_bundle_is_absent() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("condition", 120.0, 120.0);
+        workflow.add_node("condition", 120.0, 120.0);
 
         let suggestions = suggest_extensions(&workflow);
 
@@ -1654,10 +1689,10 @@ mod tests {
     }
 
     #[test]
-    fn given_bundle_when_analyzing_then_confidence_and_rationale_are_reported() {
+    fn bundle_when_analyzing_then_confidence_and_rationale_are_reported() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 80.0, 80.0);
-        let _ = workflow.add_node("get-state", 40.0, 40.0);
+        workflow.add_node("run", 80.0, 80.0);
+        workflow.add_node("get-state", 40.0, 40.0);
 
         let analyses = suggest_extensions_with_analysis(&workflow);
         let bundle = analyses
@@ -1675,10 +1710,9 @@ mod tests {
     }
 
     #[test]
-    fn given_stamped_fingerprint_when_applying_then_extension_is_idempotent() {
+    fn stamped_fingerprint_when_applying_then_extension_is_idempotent() {
         let mut workflow = Workflow::new();
-        let anchor = workflow.add_node("run", 20.0, 30.0);
-        let _ = anchor;
+        let _ = workflow.add_node("run", 20.0, 30.0);
 
         let initial = apply_extension(&mut workflow, "add-timeout-guard");
         assert!(initial.is_ok());
@@ -1716,12 +1750,12 @@ mod tests {
     }
 
     #[test]
-    fn given_bundle_when_applying_twice_then_second_apply_is_idempotent() {
+    fn bundle_when_applying_twice_then_second_apply_is_idempotent() {
         let mut workflow = Workflow::new();
         let condition = workflow.add_node("condition", 40.0, 40.0);
         let run = workflow.add_node("run", 120.0, 40.0);
-        let _ = workflow.add_node("get-state", 20.0, 20.0);
-        let _ = workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
+        workflow.add_node("get-state", 20.0, 20.0);
+        workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
 
         let initial = apply_extension(&mut workflow, "add-reliability-bundle");
         assert!(initial.is_ok());
@@ -1741,9 +1775,9 @@ mod tests {
     }
 
     #[test]
-    fn given_duplicate_requested_keys_when_detecting_conflicts_then_duplicate_is_reported() {
+    fn duplicate_requested_keys_when_detecting_conflicts_then_duplicate_is_reported() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 10.0, 10.0);
+        workflow.add_node("run", 10.0, 10.0);
         let keys = vec![
             "add-timeout-guard".to_string(),
             "add-timeout-guard".to_string(),
@@ -1780,11 +1814,11 @@ mod tests {
     }
 
     #[test]
-    fn given_service_context_when_analyzing_then_workflow_only_recommendations_are_not_emitted() {
+    fn service_context_when_analyzing_then_workflow_only_recommendations_are_not_emitted() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 16.0, 24.0);
-        let _ = workflow.add_node("condition", 40.0, 24.0);
-        let _ = workflow.add_node("awakeable", 80.0, 24.0);
+        workflow.add_node("run", 16.0, 24.0);
+        workflow.add_node("condition", 40.0, 24.0);
+        workflow.add_node("awakeable", 80.0, 24.0);
 
         let analyses = suggest_extensions_with_analysis(&workflow);
 
@@ -1825,14 +1859,14 @@ mod tests {
     }
 
     #[test]
-    fn given_multi_rule_workflow_when_generating_compound_plan_then_steps_are_built_in_dependency_order(
-    ) {
+    fn multi_rule_workflow_when_generating_compound_plan_then_steps_are_built_in_dependency_order()
+    {
         let mut workflow = Workflow::new();
         let durable = workflow.add_node("run", 100.0, 100.0);
         let condition = workflow.add_node("condition", 180.0, 180.0);
-        let _ = workflow.add_node("durable-promise", 200.0, 100.0);
-        let _ = workflow.add_node("get-state", 60.0, 60.0);
-        let _ = workflow.add_connection_checked(condition, durable, &"true".into(), &"in".into());
+        workflow.add_node("durable-promise", 200.0, 100.0);
+        workflow.add_node("get-state", 60.0, 60.0);
+        workflow.add_connection_checked(condition, durable, &"true".into(), &"in".into());
 
         let suggestions = suggest_extensions(&workflow)
             .into_iter()
@@ -1879,10 +1913,10 @@ mod tests {
     }
 
     #[test]
-    fn given_webhook_preset_when_applying_then_guard_and_checkpoint_are_added() {
+    fn webhook_preset_when_applying_then_guard_and_checkpoint_are_added() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 80.0, 80.0);
-        let _ = workflow.add_node("get-state", 20.0, 20.0);
+        workflow.add_node("run", 80.0, 80.0);
+        workflow.add_node("get-state", 20.0, 20.0);
         let resolved = resolve_extension_preset(&workflow, "webhook");
         assert!(resolved.is_ok());
         let resolved = match resolved {

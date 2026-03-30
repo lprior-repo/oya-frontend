@@ -3,6 +3,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub mod agent_feedback;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod connectivity;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod coverage;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod dashboard;

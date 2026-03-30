@@ -1,0 +1,33 @@
+--- src/coverage/mod.rs
++++ replace CoverageAnalyzer::normalize_spec_ref -> String with "xyzzy".into()
+@@ -163,29 +163,17 @@
+                 }
+             }
+         }
+ 
+         Ok(files)
+     }
+ 
+     fn normalize_spec_ref(value: &str) -> String {
+-        let normalized = value.trim().replace('\\', "/");
+-        let name = normalized
+-            .rsplit('/')
+-            .next()
+-            .map_or(normalized.as_str(), std::convert::identity);
+-        let stem = name
+-            .strip_suffix(".yaml")
+-            .or_else(|| name.strip_suffix(".yml"))
+-            .map_or(name, std::convert::identity);
+-
+-        stem.strip_prefix("spec-")
+-            .map_or(stem, std::convert::identity)
+-            .to_lowercase()
++        "xyzzy".into() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     fn analyze_spec(&self, spec_path: &Path) -> Result<Option<SpecCoverage>, CoverageError> {
+         let spec_path_buf = spec_path.to_path_buf();
+         let spec_content =
+             fs::read_to_string(spec_path).map_err(|source| CoverageError::ReadFile {
+                 path: spec_path_buf.clone(),
+                 source,

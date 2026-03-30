@@ -1,0 +1,2376 @@
+
+*** src/main.rs:1478:5: replace main with ()
+
+*** mutation diff:
+--- src/main.rs
++++ replace main with ()
+@@ -1470,10 +1470,10 @@
+         let source = include_str!("main.rs");
+         let leak_pattern = ["listener", ".forget()"].join("");
+ 
+         assert!(!source.contains(&leak_pattern));
+     }
+ }
+ 
+ fn main() {
+-    launch(App);
++    () /* ~ changed by cargo-mutants ~ */
+ }
+
+
+*** /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo test --no-run --verbose --package=oya-frontend@0.1.0
+       Fresh unicode-ident v1.0.24
+       Fresh cfg-if v1.0.4
+       Fresh once_cell v1.21.3
+       Fresh pin-project-lite v0.2.16
+       Fresh futures-core v0.3.32
+       Fresh futures-sink v0.3.32
+       Fresh memchr v2.8.0
+       Fresh futures-io v0.3.32
+       Fresh smallvec v1.15.1
+       Fresh slab v0.4.12
+       Fresh futures-task v0.3.32
+       Fresh version_check v0.9.5
+       Fresh fnv v1.0.7
+       Fresh bytes v1.11.1
+       Fresh find-msvc-tools v0.1.9
+       Fresh shlex v1.3.0
+       Fresh pkg-config v0.3.32
+       Fresh itoa v1.0.17
+       Fresh scopeguard v1.2.0
+       Fresh bumpalo v3.20.1
+       Fresh stable_deref_trait v1.2.1
+       Fresh vcpkg v0.2.15
+       Fresh log v0.4.29
+       Fresh proc-macro2 v1.0.106
+       Fresh tracing-core v0.1.36
+       Fresh cc v1.2.56
+       Fresh lock_api v0.4.14
+       Fresh ident_case v1.0.1
+       Fresh equivalent v1.0.2
+       Fresh foreign-types-shared v0.1.1
+       Fresh hashbrown v0.16.1
+       Fresh dioxus-core-types v0.7.3
+       Fresh unicode-xid v0.2.6
+       Fresh libloading v0.8.9
+       Fresh http v0.2.12
+       Fresh writeable v0.6.2
+       Fresh litemap v0.8.1
+       Fresh rustc-hash v2.1.1
+       Fresh quote v1.0.44
+       Fresh libc v0.2.182
+       Fresh rustversion v1.0.22
+       Fresh wasm-bindgen-shared v0.2.108
+       Fresh httparse v1.10.1
+       Fresh foreign-types v0.3.2
+       Fresh indexmap v2.13.0
+       Fresh autocfg v1.5.0
+       Fresh longest-increasing-subsequence v0.1.0
+       Fresh openssl-probe v0.2.1
+       Fresh lazy-js-bundle v0.7.3
+       Fresh try-lock v0.2.5
+       Fresh http-body v0.4.6
+       Fresh unicode-segmentation v1.12.0
+       Fresh httpdate v1.0.3
+       Fresh tower-service v0.3.3
+       Fresh percent-encoding v2.3.2
+       Fresh ryu v1.0.23
+       Fresh syn v2.0.116
+       Fresh parking_lot_core v0.9.12
+       Fresh mio v1.1.1
+       Fresh socket2 v0.6.2
+       Fresh typenum v1.19.0
+       Fresh memmap2 v0.9.10
+       Fresh const_format_proc_macros v0.2.34
+       Fresh anyhow v1.0.101
+       Fresh serde_core v1.0.228
+       Fresh errno v0.3.14
+       Fresh socket2 v0.5.10
+       Fresh want v0.3.1
+       Fresh convert_case v0.8.0
+       Fresh form_urlencoded v1.2.2
+       Fresh utf8_iter v1.0.4
+       Fresh base64 v0.21.7
+       Fresh regex-syntax v0.8.9
+       Fresh encoding_rs v0.8.35
+       Fresh ipnet v2.11.0
+       Fresh sync_wrapper v0.1.2
+       Fresh serde_derive v1.0.228
+       Fresh futures-macro v0.3.32
+       Fresh synstructure v0.13.2
+       Fresh parking_lot v0.12.5
+       Fresh tracing-attributes v0.1.31
+       Fresh wasm-bindgen-macro-support v0.2.108
+       Fresh zerovec-derive v0.11.2
+       Fresh displaydoc v0.2.5
+       Fresh thiserror-impl v2.0.18
+       Fresh openssl-macros v0.1.1
+       Fresh openssl-sys v0.9.111
+       Fresh const_format v0.2.35
+       Fresh pin-project-internal v1.1.10
+       Fresh signal-hook-registry v1.4.8
+       Fresh icu_normalizer_data v2.1.1
+       Fresh getrandom v0.3.4
+       Fresh tokio-macros v2.6.0
+       Fresh warnings-macro v0.2.0
+       Fresh icu_properties_data v2.1.2
+       Fresh darling_core v0.21.3
+       Fresh generic-array v0.14.7
+       Fresh const-serialize-macro v0.7.2
+       Fresh zerocopy v0.8.39
+       Fresh zmij v1.0.21
+       Fresh const-serialize-macro v0.8.0-alpha.0
+       Fresh proc-macro2-diagnostics v0.10.1
+       Fresh rustls-pemfile v1.0.4
+       Fresh winnow v0.7.14
+       Fresh zerofrom-derive v0.1.6
+       Fresh yoke-derive v0.8.1
+       Fresh wasm-bindgen-macro v0.2.108
+       Fresh thiserror v2.0.18
+       Fresh serde v1.0.228
+       Fresh pin-project v1.1.10
+       Fresh num-traits v0.2.19
+       Fresh rand_core v0.9.5
+       Fresh ppv-lite86 v0.2.21
+       Fresh const-serialize v0.7.2
+       Fresh darling_macro v0.21.3
+       Fresh crypto-common v0.1.7
+       Fresh block-buffer v0.10.4
+       Fresh serde_json v1.0.149
+       Fresh dioxus-rsx v0.7.3
+       Fresh mime v0.3.17
+       Fresh cpufeatures v0.2.17
+       Fresh getrandom v0.4.1
+       Fresh sledgehammer_bindgen_macro v0.6.5
+       Fresh async-trait v0.1.89
+       Fresh regex-automata v0.4.14
+       Fresh dioxus-html-internal-macro v0.7.3
+       Fresh keyboard-types v0.7.0
+       Fresh http v1.4.0
+       Fresh linux-raw-sys v0.11.0
+       Fresh zerofrom v0.1.6
+       Fresh wasm-bindgen v0.2.108
+       Fresh subsecond-types v0.7.3
+       Fresh slotmap v1.1.1
+       Fresh generational-box v0.7.3
+       Fresh warnings v0.2.1
+       Fresh darling v0.21.3
+       Fresh rand_chacha v0.9.0
+       Fresh digest v0.10.7
+       Fresh dioxus-core-macro v0.7.3
+       Fresh euclid v0.22.13
+       Fresh lazy_static v1.5.0
+       Fresh data-encoding v2.10.0
+       Fresh utf8parse v0.2.2
+       Fresh utf-8 v0.7.6
+       Fresh rustc-hash v1.1.0
+       Fresh matchers v0.2.0
+       Fresh const-serialize v0.8.0-alpha.0
+       Fresh rustix v1.1.3
+       Fresh tokio v1.49.0
+       Fresh macro-string v0.1.4
+       Fresh thread_local v1.1.9
+       Fresh is_terminal_polyfill v1.70.2
+       Fresh anstyle-query v1.1.5
+       Fresh dunce v1.0.5
+       Fresh colorchoice v1.0.4
+       Fresh either v1.15.0
+       Fresh yoke v0.8.1
+       Fresh subsecond v0.7.3
+       Fresh js-sys v0.3.85
+       Fresh dioxus-cli-config v0.7.3
+       Fresh rand v0.9.2
+       Fresh enumset_derive v0.14.0
+       Fresh sha1 v0.10.6
+       Fresh sledgehammer_utils v0.3.1
+       Fresh sharded-slab v0.1.7
+       Fresh sledgehammer_bindgen v0.6.0
+       Fresh anstyle-parse v0.2.7
+       Fresh anstyle v1.0.13
+       Fresh fastrand v2.3.0
+       Fresh bitmaps v2.1.0
+       Fresh dioxus-stores-macro v0.7.3
+       Fresh send_wrapper v0.6.0
+       Fresh foldhash v0.1.5
+       Fresh strsim v0.11.1
+       Fresh triomphe v0.1.15
+       Fresh heck v0.5.0
+       Fresh clap_lex v1.0.0
+       Fresh iana-time-zone v0.1.65
+       Fresh rand_core v0.6.4
+       Fresh bitflags v2.11.0
+       Fresh tokio-util v0.7.18
+       Fresh dioxus-config-macro v0.7.3
+       Fresh zerovec v0.11.5
+       Fresh zerotrie v0.2.3
+       Fresh dioxus-core v0.7.3
+       Fresh web-sys v0.3.85
+       Fresh wasm-bindgen-futures v0.4.58
+       Fresh enumset v1.1.10
+       Fresh tungstenite v0.27.0
+       Fresh manganis-core v0.7.3
+       Fresh manganis-macro v0.7.3
+       Fresh tempfile v3.25.0
+       Fresh gloo-timers v0.3.0
+       Fresh tracing-subscriber v0.3.22
+       Fresh anstream v0.6.21
+       Fresh serde-wasm-bindgen v0.6.5
+       Fresh sized-chunks v0.6.5
+       Fresh archery v1.2.2
+       Fresh rand_xoshiro v0.6.0
+       Fresh chrono v0.4.43
+       Fresh hashbrown v0.15.5
+       Fresh clap_derive v4.5.55
+       Fresh openssl v0.10.75
+       Fresh tracing v0.1.44
+       Fresh futures-util v0.3.32
+       Fresh dioxus-config-macros v0.7.3
+       Fresh fixedbitset v0.5.7
+       Fresh unsafe-libyaml v0.2.11
+       Fresh itertools v0.14.0
+       Fresh uuid v1.21.0
+       Fresh futures-channel v0.3.32
+       Fresh tap v1.0.1
+       Fresh tinystr v0.8.2
+       Fresh potential_utf v0.1.4
+       Fresh dioxus-signals v0.7.3
+       Fresh dioxus-devtools-types v0.7.3
+       Fresh wasm-streams v0.4.2
+       Fresh dioxus-history v0.7.3
+       Fresh dioxus-interpreter-js v0.7.3
+       Fresh dioxus-logger v0.7.3
+       Fresh dioxus-asset-resolver v0.7.3
+       Fresh manganis v0.7.3
+       Fresh clap_builder v4.5.59
+       Fresh native-tls v0.2.18
+       Fresh syn v1.0.109
+       Fresh serde_yaml v0.9.34+deprecated
+       Fresh petgraph v0.8.3
+       Fresh h2 v0.3.27
+       Fresh im v15.1.0
+       Fresh rpds v1.2.0
+       Fresh strsim v0.10.0
+       Fresh serde_urlencoded v0.7.1
+       Fresh simd-adler32 v0.3.8
+       Fresh adler2 v2.0.1
+       Fresh thiserror-impl v1.0.69
+       Fresh futures-executor v0.3.32
+       Fresh dirs-sys v0.3.7
+       Fresh time v0.1.45
+       Fresh wait-timeout v0.2.1
+       Fresh quick-error v1.2.3
+       Fresh icu_locale_core v2.1.1
+       Fresh icu_collections v2.1.1
+       Fresh dioxus-hooks v0.7.3
+       Fresh dioxus-devtools v0.7.3
+       Fresh dioxus-stores v0.7.3
+       Fresh clap v4.5.59
+       Fresh darling_core v0.13.4
+       Fresh tokio-native-tls v0.3.1
+       Fresh hyper v0.14.32
+       Fresh miniz_oxide v0.8.9
+       Fresh byteorder v1.5.0
+       Fresh bit-vec v0.8.0
+       Fresh dirs v3.0.2
+       Fresh rusty-fork v0.3.1
+       Fresh futures v0.3.32
+       Fresh tokio-stream v0.1.18
+       Fresh itertools v0.10.5
+       Fresh rand_xorshift v0.4.0
+       Fresh strong v0.3.4
+       Fresh unarray v0.1.4
+       Fresh base64 v0.13.1
+       Fresh icu_provider v2.1.1
+       Fresh dioxus-html v0.7.3
+       Fresh darling_macro v0.13.4
+       Fresh hyper-tls v0.5.0
+       Fresh bzip2-sys v0.1.13+1.0.8
+       Fresh crc32fast v1.5.0
+       Fresh thiserror v1.0.69
+       Fresh bit-set v0.8.0
+       Fresh paste v1.0.15
+       Fresh icu_normalizer v2.1.1
+       Fresh icu_properties v2.1.2
+       Fresh dioxus-document v0.7.3
+       Fresh darling v0.13.4
+       Fresh flate2 v1.1.9
+       Fresh bzip2 v0.4.4
+       Fresh proptest v1.11.0
+       Fresh idna_adapter v1.2.1
+       Fresh dioxus-web v0.7.3
+       Fresh serde_with_macros v1.5.2
+       Fresh zip v0.5.13
+       Fresh idna v1.1.0
+       Fresh dioxus v0.7.3
+       Fresh serde_with v1.14.0
+       Fresh url v2.5.8
+       Fresh reqwest v0.11.27
+       Dirty oya-frontend v0.1.0 (/tmp/cargo-mutants-oya-frontend-F29OYv.tmp): the file `src/main.rs` has changed (1774852100.496214001s, 2s after last build at 1774852098.383172364s)
+   Compiling oya-frontend v0.1.0 (/tmp/cargo-mutants-oya-frontend-F29OYv.tmp)
+       Fresh playwright v0.0.20
+warning: function `make_chain` is never used
+  --> tests/expression_depth_tests.rs:33:8
+   |
+33 |     fn make_chain(depth: u32) -> Expression {
+   |        ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `arb_expression` is never used
+  --> tests/expression_depth_tests.rs:42:8
+   |
+42 |     fn arb_expression(depth: u32) -> impl Strategy<Value = Expression> {
+   |        ^^^^^^^^^^^^^^
+
+warning: function `arb_valid_depth` is never used
+  --> tests/expression_depth_tests.rs:53:8
+   |
+53 |     fn arb_valid_depth() -> impl Strategy<Value = u32> {
+   |        ^^^^^^^^^^^^^^^
+
+warning: function `calculate_depth` is never used
+   --> tests/expression_depth_tests.rs:197:12
+    |
+197 |     pub fn calculate_depth(expression: &Expression) -> u32 {
+    |            ^^^^^^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+  --> tests/expression_depth_tests.rs:64:26
+   |
+64 |             prop_assert!(depth >= 0);
+   |                          ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_comparisons)]` on by default
+
+     Running `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=505f8ef606013f38 -C extra-filename=-f70a12e0c13f1321 --out-dir /tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rlib --extern chrono=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libchrono-cf31016e6e136055.rlib --extern clap=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rlib --extern dioxus=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libdioxus-27873ed6d3014eac.rlib --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rlib --extern im=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libim-5712ea53a942ec90.rlib --extern itertools=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rlib --extern js_sys=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rlib --extern oya_frontend=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/liboya_frontend-fa0e1354f45c31e1.rlib --extern petgraph=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rlib --extern reqwest=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rlib --extern rpds=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/librpds-d97c182bf42cd548.rlib --extern serde=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde-aba271893af5d4c6.rlib --extern serde_json=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rlib --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rlib --extern tap=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtap-db64676956143bc2.rlib --extern tempfile=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rlib --extern thiserror=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rlib --extern tokio=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rlib --extern uuid=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rlib --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rlib --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rlib --extern web_sys=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rlib`
+warning: `oya-frontend` (test "expression_depth_tests") generated 5 warnings
+     Running `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=70291aca93e95d14 -C extra-filename=-ca13c4a3a5e95fd1 --out-dir /tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rlib --extern chrono=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libchrono-cf31016e6e136055.rlib --extern clap=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rlib --extern dioxus=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libdioxus-27873ed6d3014eac.rlib --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rlib --extern im=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libim-5712ea53a942ec90.rlib --extern itertools=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rlib --extern js_sys=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rlib --extern oya_frontend=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/liboya_frontend-fa0e1354f45c31e1.rlib --extern petgraph=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rlib --extern playwright=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libplaywright-19115cc98de27ff9.rlib --extern proptest=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libproptest-ee162db713f6a6e1.rlib --extern reqwest=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rlib --extern rpds=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/librpds-d97c182bf42cd548.rlib --extern serde=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde-aba271893af5d4c6.rlib --extern serde_json=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rlib --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rlib --extern tap=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtap-db64676956143bc2.rlib --extern tempfile=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rlib --extern thiserror=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rlib --extern tokio=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rlib --extern uuid=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rlib --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rlib --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rlib --extern web_sys=/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rlib -L native=/usr/lib`
+warning: unused import: `ExecutionState`
+   --> src/ui/edges.rs:258:43
+    |
+258 |     use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId, PortName, WorkflowNode};
+    |                                           ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `DRAG_THRESHOLD_PX` is never used
+  --> src/main.rs:19:7
+   |
+19 | const DRAG_THRESHOLD_PX: f32 = 4.0;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variants `CycleDetected`, `DuplicateConnection`, `InvalidConnection`, and `SelfConnection` are never constructed
+  --> src/errors.rs:76:5
+   |
+71 | pub enum WorkflowError {
+   |          ------------- variants in this enum
+...
+76 |     CycleDetected,
+   |     ^^^^^^^^^^^^^
+...
+79 |     DuplicateConnection,
+   |     ^^^^^^^^^^^^^^^^^^^
+...
+82 |     InvalidConnection(String),
+   |     ^^^^^^^^^^^^^^^^^
+...
+89 |     SelfConnection,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `WorkflowError` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: method `as_positions` is never used
+   --> src/hooks/use_canvas_interaction.rs:159:12
+    |
+149 | impl TempEdge {
+    | ------------- method in this implementation
+...
+159 |     pub fn as_positions(&self) -> Option<(FlowPosition, FlowPosition)> {
+    |            ^^^^^^^^^^^^
+
+warning: method `as_tuple` is never used
+   --> src/hooks/use_canvas_interaction.rs:187:12
+    |
+177 | impl HoveredHandle {
+    | ------------------ method in this implementation
+...
+187 |     pub fn as_tuple(&self) -> Option<(NodeId, String)> {
+    |            ^^^^^^^^
+
+warning: function `use_canvas_interaction` is never used
+   --> src/hooks/use_canvas_interaction.rs:379:8
+    |
+379 | pub fn use_canvas_interaction() -> CanvasInteraction {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: fields `invocations`, `connected`, and `last_error` are never read
+  --> src/hooks/use_restate_sync.rs:24:9
+   |
+22 | pub struct RestateState {
+   |            ------------ fields in this struct
+23 |     /// Latest snapshot of all invocations.
+24 |     pub invocations: Vec<Invocation>,
+   |         ^^^^^^^^^^^
+25 |     /// Whether the last poll succeeded.
+26 |     pub connected: bool,
+   |         ^^^^^^^^^
+27 |     /// Last error message if the connection failed.
+28 |     pub last_error: Option<String>,
+   |         ^^^^^^^^^^
+   |
+   = note: `RestateState` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: function `use_restate_sync` is never used
+  --> src/hooks/use_restate_sync.rs:48:8
+   |
+48 | pub fn use_restate_sync() -> RestateSyncHandle {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: function `build_restate_config_from_url` is never used
+  --> src/hooks/use_restate_sync.rs:91:8
+   |
+91 | pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `poll_sleep_ms` is never used
+   --> src/hooks/use_restate_sync.rs:119:10
+    |
+119 | async fn poll_sleep_ms(ms: u32) {
+    |          ^^^^^^^^^^^^^
+
+warning: function `use_selection` is never used
+   --> src/hooks/use_selection.rs:262:8
+    |
+262 | pub fn use_selection() -> SelectionState {
+    |        ^^^^^^^^^^^^^
+
+warning: method `as_str` is never used
+  --> src/hooks/use_sidebar.rs:71:12
+   |
+66 | impl SearchQuery {
+   | ---------------- method in this implementation
+...
+71 |     pub fn as_str(&self) -> &str {
+   |            ^^^^^^
+
+warning: function `use_sidebar` is never used
+   --> src/hooks/use_sidebar.rs:149:8
+    |
+149 | pub fn use_sidebar() -> SidebarState {
+    |        ^^^^^^^^^^^
+
+warning: method `position` is never used
+  --> src/hooks/use_ui_panels.rs:62:12
+   |
+57 | impl ContextMenuState {
+   | --------------------- method in this implementation
+...
+62 |     pub fn position(&self) -> Option<MenuPosition> {
+   |            ^^^^^^^^
+
+warning: function `use_ui_panels` is never used
+   --> src/hooks/use_ui_panels.rs:409:8
+    |
+409 | pub fn use_ui_panels() -> UiPanels {
+    |        ^^^^^^^^^^^^^
+
+warning: function `apply_undo` is never used
+  --> src/hooks/use_workflow_state.rs:20:4
+   |
+20 | fn apply_undo(
+   |    ^^^^^^^^^^
+
+warning: function `apply_redo` is never used
+  --> src/hooks/use_workflow_state.rs:36:4
+   |
+36 | fn apply_redo(
+   |    ^^^^^^^^^^
+
+warning: function `merge_run_result` is never used
+  --> src/hooks/use_workflow_state.rs:78:4
+   |
+78 | fn merge_run_result(mut current: Workflow, completed: Workflow) -> Workflow {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `add_connection_transaction` is never used
+   --> src/hooks/use_workflow_state.rs:112:4
+    |
+112 | fn add_connection_transaction(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `run_workflow_detached` is never used
+   --> src/hooks/use_workflow_state.rs:177:10
+    |
+177 | async fn run_workflow_detached(mut workflow: Workflow, ingress_url: String) -> Workflow {
+    |          ^^^^^^^^^^^^^^^^^^^^^
+
+warning: multiple methods are never used
+   --> src/hooks/use_workflow_state.rs:185:12
+    |
+183 | impl WorkflowState {
+    | ------------------ methods in this implementation
+184 |     /// Access to workflow data signal
+185 |     pub fn workflow(&self) -> Signal<Workflow> {
+    |            ^^^^^^^^
+...
+190 |     pub fn workflow_name(&self) -> Signal<String> {
+    |            ^^^^^^^^^^^^^
+...
+195 |     pub fn nodes(&self) -> ReadSignal<Vec<Node>> {
+    |            ^^^^^
+...
+200 |     pub fn nodes_by_id(&self) -> ReadSignal<HashMap<NodeId, Node>> {
+    |            ^^^^^^^^^^^
+...
+205 |     pub fn connections(&self) -> ReadSignal<Vec<Connection>> {
+    |            ^^^^^^^^^^^
+...
+210 |     pub fn viewport(&self) -> ReadSignal<Viewport> {
+    |            ^^^^^^^^
+...
+234 |     pub fn add_node(mut self, node_type: &str, x: f32, y: f32) -> NodeId {
+    |            ^^^^^^^^
+...
+276 |     pub fn add_connection(
+    |            ^^^^^^^^^^^^^^
+...
+298 |     pub fn zoom(mut self, delta: f32, center_x: f32, center_y: f32) {
+    |            ^^^^
+...
+303 |     pub fn pan(mut self, dx: f32, dy: f32) {
+    |            ^^^
+...
+309 |     pub fn fit_view(mut self, width: f32, height: f32, padding: f32) {
+    |            ^^^^^^^^
+...
+314 |     pub fn apply_layout(mut self) {
+    |            ^^^^^^^^^^^^
+...
+320 |     pub fn undo(mut self) -> bool {
+    |            ^^^^
+...
+334 |     pub fn redo(mut self) -> bool {
+    |            ^^^^
+...
+348 |     pub fn can_undo(&self) -> bool {
+    |            ^^^^^^^^
+...
+353 |     pub fn can_redo(&self) -> bool {
+    |            ^^^^^^^^
+...
+358 |     pub fn update_node_position(mut self, node_id: NodeId, dx: f32, dy: f32) {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+366 |     pub fn run(self, ingress_url: String) {
+    |            ^^^
+...
+378 |     pub fn downstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
+    |            ^^^^^^^^^^^^^^^^
+...
+388 |     pub fn upstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
+    |            ^^^^^^^^^^^^^^
+...
+398 |     pub fn move_node_by(self, node_id: NodeId, dx: f32, dy: f32) {
+    |            ^^^^^^^^^^^^
+...
+403 |     pub fn first_node_id(&self) -> Option<NodeId> {
+    |            ^^^^^^^^^^^^^
+
+warning: function `map_connection_error` is never used
+   --> src/hooks/use_workflow_state.rs:408:4
+    |
+408 | fn map_connection_error(error: ConnectivityConnectionError) -> WorkflowError {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `use_workflow_state` is never used
+   --> src/hooks/use_workflow_state.rs:429:8
+    |
+429 | pub fn use_workflow_state() -> WorkflowState {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `default_workflow` is never used
+ --> src/ui/app_bootstrap.rs:4:8
+  |
+4 | pub fn default_workflow() -> Workflow {
+  |        ^^^^^^^^^^^^^^^^
+
+warning: function `canvas_rect_size` is never used
+  --> src/ui/app_io.rs:36:14
+   |
+36 | pub const fn canvas_rect_size() -> Option<(f32, f32)> {
+   |              ^^^^^^^^^^^^^^^^
+
+warning: function `canvas_origin` is never used
+  --> src/ui/app_io.rs:41:14
+   |
+41 | pub const fn canvas_origin() -> Option<(f32, f32)> {
+   |              ^^^^^^^^^^^^^
+
+warning: constant `MENU_WIDTH` is never used
+ --> src/ui/canvas_context_menu.rs:5:7
+  |
+5 | const MENU_WIDTH: f32 = 224.0;
+  |       ^^^^^^^^^^
+
+warning: constant `MENU_HEIGHT` is never used
+ --> src/ui/canvas_context_menu.rs:6:7
+  |
+6 | const MENU_HEIGHT: f32 = 180.0;
+  |       ^^^^^^^^^^^
+
+warning: constant `PADDING` is never used
+ --> src/ui/canvas_context_menu.rs:7:7
+  |
+7 | const PADDING: f32 = 8.0;
+  |       ^^^^^^^
+
+warning: function `clamp_menu_position` is never used
+  --> src/ui/canvas_context_menu.rs:12:8
+   |
+12 | pub fn clamp_menu_position(
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `generate_menu_style` is never used
+  --> src/ui/canvas_context_menu.rs:27:8
+   |
+27 | pub fn generate_menu_style(x: f32, y: f32, viewport_width: f32, viewport_height: f32) -> String {
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_escape_key` is never used
+ --> src/ui/command_palette.rs:6:8
+  |
+6 | pub fn is_escape_key(key: &str) -> bool {
+  |        ^^^^^^^^^^^^^
+
+warning: struct `CommandTemplate` is never constructed
+  --> src/ui/command_palette.rs:12:12
+   |
+12 | pub struct CommandTemplate {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `filtered_templates` is never used
+  --> src/ui/command_palette.rs:16:8
+   |
+16 | pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: constant `INPUT_CLASS` is never used
+  --> src/ui/config_panel/mod.rs:20:7
+   |
+20 | const INPUT_CLASS: &str =
+   |       ^^^^^^^^^^^
+
+warning: enum `Tab` is never used
+  --> src/ui/config_panel/mod.rs:24:6
+   |
+24 | enum Tab {
+   |      ^^^
+
+warning: function `get_str_val` is never used
+   --> src/ui/config_panel/mod.rs:148:15
+    |
+148 | pub(crate) fn get_str_val(config: &Value, key: &str) -> String {
+    |               ^^^^^^^^^^^
+
+warning: function `get_u64_val` is never used
+   --> src/ui/config_panel/mod.rs:156:15
+    |
+156 | pub(crate) fn get_u64_val(config: &Value, key: &str) -> Option<u64> {
+    |               ^^^^^^^^^^^
+
+warning: constant `PINNED_OUTPUT_KEY` is never used
+  --> src/ui/config_panel/execution.rs:17:7
+   |
+17 | const PINNED_OUTPUT_KEY: &str = "pinnedOutputSample";
+   |       ^^^^^^^^^^^^^^^^^
+
+warning: constant `DEFAULT_PREVIEW_LINES` is never used
+  --> src/ui/config_panel/execution.rs:18:7
+   |
+18 | const DEFAULT_PREVIEW_LINES: usize = 10;
+   |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `copy_to_clipboard` is never used
+  --> src/ui/config_panel/execution.rs:20:4
+   |
+20 | fn copy_to_clipboard(text: &str) -> bool {
+   |    ^^^^^^^^^^^^^^^^^
+
+warning: function `build_execution_timeline` is never used
+   --> src/ui/config_panel/execution.rs:301:4
+    |
+301 | fn build_execution_timeline(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_pinned_output` is never used
+   --> src/ui/config_panel/execution.rs:332:4
+    |
+332 | fn get_pinned_output(config: &Value) -> Option<Value> {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `runtime_status` is never used
+   --> src/ui/config_panel/execution.rs:336:4
+    |
+336 | fn runtime_status(
+    |    ^^^^^^^^^^^^^^
+
+warning: function `resolve_invocation_status` is never used
+   --> src/ui/config_panel/execution.rs:360:4
+    |
+360 | fn resolve_invocation_status(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `read_u64_with_legacy_fallback` is never used
+   --> src/ui/config_panel/execution.rs:372:4
+    |
+372 | fn read_u64_with_legacy_fallback(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `json_preview` is never used
+   --> src/ui/config_panel/execution.rs:386:4
+    |
+386 | fn json_preview(payload: &Value, max_lines: usize) -> String {
+    |    ^^^^^^^^^^^^
+
+warning: associated items `label`, `hint`, and `all` are never used
+   --> src/ui/domain_types.rs:136:12
+    |
+116 | impl NodeTemplateId {
+    | ------------------- associated items in this implementation
+...
+136 |     pub fn label(self) -> &'static str {
+    |            ^^^^^
+...
+155 |     pub fn hint(self) -> &'static str {
+    |            ^^^^
+...
+194 |     pub const fn all() -> [Self; 14] {
+    |                  ^^^
+
+warning: constant `BEND_CLAMP` is never used
+  --> src/ui/edges.rs:15:7
+   |
+15 | const BEND_CLAMP: f32 = 200.0;
+   |       ^^^^^^^^^^
+
+warning: struct `EdgeAnchor` is never constructed
+  --> src/ui/edges.rs:18:8
+   |
+18 | struct EdgeAnchor {
+   |        ^^^^^^^^^^
+
+warning: struct `DragState` is never constructed
+  --> src/ui/edges.rs:24:12
+   |
+24 | pub struct DragState {
+   |            ^^^^^^^^^
+
+warning: function `get_source_point` is never used
+  --> src/ui/edges.rs:30:4
+   |
+30 | fn get_source_point(node: &Node) -> Position {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `get_target_point` is never used
+  --> src/ui/edges.rs:37:4
+   |
+37 | fn get_target_point(node: &Node) -> Position {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `create_smooth_step_path` is never used
+  --> src/ui/edges.rs:44:4
+   |
+44 | fn create_smooth_step_path(from: Position, to: Position, bend_y: f32) -> (String, Position) {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `resolve_edge_anchors` is never used
+  --> src/ui/edges.rs:84:4
+   |
+84 | fn resolve_edge_anchors(edges: &[Connection], nodes: &[Node]) -> HashMap<String, EdgeAnchor> {
+   |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `resolve_edge_anchors_with_parallel` is never used
+  --> src/ui/edges.rs:99:4
+   |
+99 | fn resolve_edge_anchors_with_parallel(
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `calculate_parallel_offset` is never used
+   --> src/ui/edges.rs:143:4
+    |
+143 | fn calculate_parallel_offset(target_id: &NodeId, targets: &[Node], node_height: f32) -> f32 {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_parallel_branches` is never used
+   --> src/ui/edges.rs:156:4
+    |
+156 | fn find_parallel_branches(nodes: &[Node], connections: &[Connection]) -> Vec<ParallelGroup> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `sanitize_bend_input_edge` is never used
+   --> src/ui/edges.rs:228:4
+    |
+228 | fn sanitize_bend_input_edge(input: f32, start_bend: f32) -> f32 {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `NODE_WIDTH` is never used
+ --> src/ui/editor_interactions.rs:7:11
+  |
+7 | pub const NODE_WIDTH: f32 = 220.0;
+  |           ^^^^^^^^^^
+
+warning: constant `NODE_HEIGHT` is never used
+ --> src/ui/editor_interactions.rs:8:11
+  |
+8 | pub const NODE_HEIGHT: f32 = 68.0;
+  |           ^^^^^^^^^^^
+
+warning: type alias `SelectionRect` is never used
+ --> src/ui/editor_interactions.rs:9:10
+  |
+9 | pub type SelectionRect = (f32, f32, f32, f32);
+  |          ^^^^^^^^^^^^^
+
+warning: function `normalize_rect` is never used
+  --> src/ui/editor_interactions.rs:12:8
+   |
+12 | pub fn normalize_rect(start: (f32, f32), end: (f32, f32)) -> SelectionRect {
+   |        ^^^^^^^^^^^^^^
+
+warning: function `rect_contains` is never used
+  --> src/ui/editor_interactions.rs:21:8
+   |
+21 | pub fn rect_contains(rect: SelectionRect, point: (f32, f32)) -> bool {
+   |        ^^^^^^^^^^^^^
+
+warning: function `node_intersects_rect` is never used
+  --> src/ui/editor_interactions.rs:26:8
+   |
+26 | pub fn node_intersects_rect(node_x: f32, node_y: f32, rect: SelectionRect) -> bool {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `snap_handle` is never used
+  --> src/ui/editor_interactions.rs:36:8
+   |
+36 | pub fn snap_handle(
+   |        ^^^^^^^^^^^
+
+warning: function `status_badge_classes` is never used
+  --> src/ui/execution_history_panel.rs:14:10
+   |
+14 | const fn status_badge_classes(outcome: RunOutcome) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `status_icon_classes` is never used
+  --> src/ui/execution_history_panel.rs:21:10
+   |
+21 | const fn status_icon_classes(outcome: RunOutcome) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_timestamp` is never used
+  --> src/ui/execution_history_panel.rs:28:4
+   |
+28 | fn format_timestamp(ts: &chrono::DateTime<chrono::Utc>) -> String {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `format_elapsed` is never used
+  --> src/ui/execution_history_panel.rs:32:4
+   |
+32 | fn format_elapsed(ts: &chrono::DateTime<chrono::Utc>) -> String {
+   |    ^^^^^^^^^^^^^^
+
+warning: function `truncate_id` is never used
+  --> src/ui/execution_history_panel.rs:46:8
+   |
+46 | pub fn truncate_id(id: &uuid::Uuid) -> String {
+   |        ^^^^^^^^^^^
+
+warning: function `format_run_status` is never used
+  --> src/ui/execution_history_panel.rs:52:14
+   |
+52 | pub const fn format_run_status(outcome: RunOutcome) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^
+
+warning: function `run_status_badge_class` is never used
+  --> src/ui/execution_history_panel.rs:57:14
+   |
+57 | pub const fn run_status_badge_class(outcome: RunOutcome) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_run_duration` is never used
+  --> src/ui/execution_history_panel.rs:65:8
+   |
+65 | pub fn format_run_duration(_run: &RunRecord) -> String {
+   |        ^^^^^^^^^^^^^^^^^^^
+
+warning: function `truncate_preview` is never used
+  --> src/ui/execution_history_panel.rs:70:4
+   |
+70 | fn truncate_preview(input: &str, max_chars: usize) -> String {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `is_failed_step_result` is never used
+  --> src/ui/execution_history_panel.rs:90:4
+   |
+90 | fn is_failed_step_result(result: &serde_json::Value) -> bool {
+   |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `derive_step_counts` is never used
+   --> src/ui/execution_history_panel.rs:106:4
+    |
+106 | fn derive_step_counts(run: &RunRecord) -> (usize, usize) {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: struct `PlanSnapshot` is never constructed
+  --> src/ui/execution_plan_panel.rs:15:8
+   |
+15 | struct PlanSnapshot {
+   |        ^^^^^^^^^^^^
+
+warning: function `node_invocation_status` is never used
+  --> src/ui/execution_plan_panel.rs:20:4
+   |
+20 | fn node_invocation_status(node: &Node) -> InvocationStatus {
+   |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `status_badge_classes` is never used
+  --> src/ui/execution_plan_panel.rs:30:4
+   |
+30 | fn status_badge_classes(status: InvocationStatus) -> &'static str {
+   |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `compare_node_ids` is never used
+  --> src/ui/execution_plan_panel.rs:40:4
+   |
+40 | fn compare_node_ids(a: &NodeId, b: &NodeId, nodes: &HashMap<NodeId, Node>) -> std::cmp::Ordering {
+   |    ^^^^^^^^^^^^^^^^
+
+warning: function `build_plan_snapshot` is never used
+  --> src/ui/execution_plan_panel.rs:54:4
+   |
+54 | fn build_plan_snapshot(workflow: &Workflow) -> PlanSnapshot {
+   |    ^^^^^^^^^^^^^^^^^^^
+
+warning: enum `IconId` is never used
+  --> src/ui/icons/registry.rs:11:10
+   |
+11 | pub enum IconId {
+   |          ^^^^^^
+
+warning: associated items `as_str` and `from_str` are never used
+  --> src/ui/icons/registry.rs:44:12
+   |
+43 | impl IconId {
+   | ----------- associated items in this implementation
+44 |     pub fn as_str(self) -> &'static str {
+   |            ^^^^^^
+...
+78 |     pub fn from_str(s: &str) -> Option<Self> {
+   |            ^^^^^^^^
+
+warning: function `icon` is never used
+   --> src/ui/icons/registry.rs:128:8
+    |
+128 | pub fn icon(icon_id: IconId, class: String) -> Element {
+    |        ^^^^
+
+warning: function `icon_by_name` is never used
+   --> src/ui/icons/registry.rs:174:8
+    |
+174 | pub fn icon_by_name(name: &str, class: String) -> Element {
+    |        ^^^^^^^^^^^^
+
+warning: constant `INPUT_CLASS` is never used
+ --> src/ui/inline_config_panel.rs:8:7
+  |
+8 | const INPUT_CLASS: &str =
+  |       ^^^^^^^^^^^
+
+warning: function `parse_http_method` is never used
+  --> src/ui/inline_config_panel.rs:11:4
+   |
+11 | fn parse_http_method(config: &Value, key: &str) -> HttpMethod {
+   |    ^^^^^^^^^^^^^^^^^
+
+warning: function `entry_config` is never used
+  --> src/ui/inline_config_panel.rs:56:4
+   |
+56 | fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+   |    ^^^^^^^^^^^^
+
+warning: function `durable_config` is never used
+  --> src/ui/inline_config_panel.rs:98:4
+   |
+98 | fn durable_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+   |    ^^^^^^^^^^^^^^
+
+warning: function `state_config` is never used
+   --> src/ui/inline_config_panel.rs:128:4
+    |
+128 | fn state_config(config: &Value, on_change: EventHandler<Value>) -> Element {
+    |    ^^^^^^^^^^^^
+
+warning: function `flow_config` is never used
+   --> src/ui/inline_config_panel.rs:132:4
+    |
+132 | fn flow_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+    |    ^^^^^^^^^^^
+
+warning: function `timing_config` is never used
+   --> src/ui/inline_config_panel.rs:168:4
+    |
+168 | fn timing_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+    |    ^^^^^^^^^^^^^
+
+warning: function `signal_config` is never used
+   --> src/ui/inline_config_panel.rs:199:4
+    |
+199 | fn signal_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> Element {
+    |    ^^^^^^^^^^^^^
+
+warning: function `text_field` is never used
+   --> src/ui/inline_config_panel.rs:226:4
+    |
+226 | fn text_field(
+    |    ^^^^^^^^^^
+
+warning: enum `InspectorTab` is never used
+  --> src/ui/inspector_panel.rs:12:10
+   |
+12 | pub enum InspectorTab {
+   |          ^^^^^^^^^^^^
+
+warning: function `status_badge_class` is never used
+  --> src/ui/inspector_panel.rs:18:14
+   |
+18 | pub const fn status_badge_class(state: ExecutionState) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `format_duration` is never used
+  --> src/ui/inspector_panel.rs:31:8
+   |
+31 | pub fn format_duration(ms: Option<i64>) -> String {
+   |        ^^^^^^^^^^^^^^^
+
+warning: function `pretty_json` is never used
+  --> src/ui/inspector_panel.rs:43:4
+   |
+43 | fn pretty_json(value: &serde_json::Value) -> String {
+   |    ^^^^^^^^^^^
+
+warning: function `filter_lines` is never used
+  --> src/ui/inspector_panel.rs:47:4
+   |
+47 | fn filter_lines(text: &str, query: &str) -> String {
+   |    ^^^^^^^^^^^^
+
+warning: function `execution_state_label` is never used
+  --> src/ui/inspector_panel.rs:59:10
+   |
+59 | const fn execution_state_label(state: ExecutionState) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `should_render_failure` is never used
+  --> src/ui/inspector_panel.rs:70:4
+   |
+70 | fn should_render_failure(state: ExecutionState, error_text: &str) -> bool {
+   |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `is_valid_zoom` is never used
+ --> src/ui/interaction_guards.rs:4:8
+  |
+4 | pub fn is_valid_zoom(zoom: f32) -> bool {
+  |        ^^^^^^^^^^^^^
+
+warning: function `safe_canvas_point` is never used
+ --> src/ui/interaction_guards.rs:9:8
+  |
+9 | pub fn safe_canvas_point(page: (f32, f32), origin: (f32, f32)) -> Option<(f32, f32)> {
+  |        ^^^^^^^^^^^^^^^^^
+
+warning: function `safe_canvas_from_viewport` is never used
+  --> src/ui/interaction_guards.rs:18:8
+   |
+18 | pub fn safe_canvas_from_viewport(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `NODE_W` is never used
+  --> src/ui/minimap.rs:13:7
+   |
+13 | const NODE_W: f32 = 220.0;
+   |       ^^^^^^
+
+warning: constant `NODE_H` is never used
+  --> src/ui/minimap.rs:14:7
+   |
+14 | const NODE_H: f32 = 68.0;
+   |       ^^^^^^
+
+warning: constant `SCENE_PAD` is never used
+  --> src/ui/minimap.rs:16:7
+   |
+16 | const SCENE_PAD: f32 = 60.0;
+   |       ^^^^^^^^^
+
+warning: struct `SceneBounds` is never constructed
+  --> src/ui/minimap.rs:22:8
+   |
+22 | struct SceneBounds {
+   |        ^^^^^^^^^^^
+
+warning: struct `ViewportRect` is never constructed
+  --> src/ui/minimap.rs:31:8
+   |
+31 | struct ViewportRect {
+   |        ^^^^^^^^^^^^
+
+warning: struct `NodeColors` is never constructed
+  --> src/ui/minimap.rs:40:8
+   |
+40 | struct NodeColors {
+   |        ^^^^^^^^^^
+
+warning: function `scene_bounds` is never used
+  --> src/ui/minimap.rs:51:4
+   |
+51 | fn scene_bounds(nodes: &[Node]) -> SceneBounds {
+   |    ^^^^^^^^^^^^
+
+warning: function `viewport_rect` is never used
+  --> src/ui/minimap.rs:83:4
+   |
+83 | fn viewport_rect(vp: &Viewport, canvas_w: f32, canvas_h: f32) -> ViewportRect {
+   |    ^^^^^^^^^^^^^
+
+warning: function `node_colors` is never used
+  --> src/ui/minimap.rs:98:4
+   |
+98 | fn node_colors(category: &str, selected: bool) -> NodeColors {
+   |    ^^^^^^^^^^^
+
+warning: function `node_border_class` is never used
+  --> src/ui/node.rs:21:14
+   |
+21 | pub const fn node_border_class(state: ExecutionState) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^
+
+warning: function `status_badge_class` is never used
+  --> src/ui/node.rs:34:14
+   |
+34 | pub const fn status_badge_class(state: ExecutionState) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `status_badge_label` is never used
+  --> src/ui/node.rs:57:14
+   |
+57 | pub const fn status_badge_label(state: ExecutionState) -> &'static str {
+   |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `output_preview` is never used
+  --> src/ui/node.rs:71:8
+   |
+71 | pub fn output_preview(output: Option<&Value>, max_lines: usize) -> Option<String> {
+   |        ^^^^^^^^^^^^^^
+
+warning: enum `HttpMethod` is never used
+  --> src/ui/panel_types.rs:10:10
+   |
+10 | pub enum HttpMethod {
+   |          ^^^^^^^^^^
+
+warning: associated items `parse`, `as_str`, and `all` are never used
+  --> src/ui/panel_types.rs:20:12
+   |
+18 | impl HttpMethod {
+   | --------------- associated items in this implementation
+19 |     #[must_use]
+20 |     pub fn parse(s: &str) -> Self {
+   |            ^^^^^
+...
+32 |     pub const fn as_str(self) -> &'static str {
+   |                  ^^^^^^
+...
+42 |     pub const fn all() -> &'static [Self] {
+   |                  ^^^
+
+warning: multiple variants are never constructed
+  --> src/ui/panel_types.rs:55:5
+   |
+54 | pub enum InvocationStatus {
+   |          ---------------- variants in this enum
+55 |     Queued,
+   |     ^^^^^^
+56 |     Running,
+   |     ^^^^^^^
+57 |     Suspended,
+   |     ^^^^^^^^^
+58 |     Completed,
+   |     ^^^^^^^^^
+59 |     Failed,
+   |     ^^^^^^
+60 |     Skipped,
+   |     ^^^^^^^
+61 |     Retrying,
+   |     ^^^^^^^^
+   |
+   = note: `InvocationStatus` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated items `parse`, `display_label`, `icon_name`, and `is_spinning` are never used
+   --> src/ui/panel_types.rs:66:12
+    |
+ 64 | impl InvocationStatus {
+    | --------------------- associated items in this implementation
+ 65 |     #[must_use]
+ 66 |     pub fn parse(s: &str) -> Option<Self> {
+    |            ^^^^^
+...
+ 93 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+...
+106 |     pub const fn icon_name(self) -> &'static str {
+    |                  ^^^^^^^^^
+...
+119 |     pub const fn is_spinning(self) -> bool {
+    |                  ^^^^^^^^^^^
+
+warning: methods `is_success` and `display_label` are never used
+   --> src/ui/panel_types.rs:148:18
+    |
+137 | impl RunOutcome {
+    | --------------- methods in this implementation
+...
+148 |     pub const fn is_success(self) -> bool {
+    |                  ^^^^^^^^^^
+...
+153 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+
+warning: enum `OutputOrigin` is never used
+   --> src/ui/panel_types.rs:168:10
+    |
+168 | pub enum OutputOrigin {
+    |          ^^^^^^^^^^^^
+
+warning: associated items `from_flags` and `display_label` are never used
+   --> src/ui/panel_types.rs:176:18
+    |
+174 | impl OutputOrigin {
+    | ----------------- associated items in this implementation
+175 |     #[must_use]
+176 |     pub const fn from_flags(has_live: bool, has_pinned: bool) -> Self {
+    |                  ^^^^^^^^^^
+...
+187 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+
+warning: variants `Object`, `Array`, `String`, `Number`, `Boolean`, and `Null` are never constructed
+   --> src/ui/panel_types.rs:198:5
+    |
+197 | pub enum PayloadShape {
+    |          ------------ variants in this enum
+198 |     Object { field_count: usize },
+    |     ^^^^^^
+199 |     Array { element_count: usize },
+    |     ^^^^^
+200 |     String { char_count: usize },
+    |     ^^^^^^
+201 |     Number,
+    |     ^^^^^^
+202 |     Boolean,
+    |     ^^^^^^^
+203 |     Null,
+    |     ^^^^
+    |
+    = note: `PayloadShape` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: associated items `from_value` and `to_display` are never used
+   --> src/ui/panel_types.rs:208:12
+    |
+206 | impl PayloadShape {
+    | ----------------- associated items in this implementation
+207 |     #[must_use]
+208 |     pub fn from_value(value: &serde_json::Value) -> Self {
+    |            ^^^^^^^^^^
+...
+226 |     pub fn to_display(&self) -> String {
+    |            ^^^^^^^^^^
+
+warning: function `invocation_badge_style` is never used
+   --> src/ui/panel_types.rs:259:14
+    |
+259 | pub const fn invocation_badge_style(status: InvocationStatus) -> StatusBadgeStyle {
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variants `Status`, `Journal`, and `Retry` are never constructed
+   --> src/ui/panel_types.rs:311:5
+    |
+310 | pub enum ExecutionEventCategory {
+    |          ---------------------- variants in this enum
+311 |     Status,
+    |     ^^^^^^
+312 |     Journal,
+    |     ^^^^^^^
+313 |     Retry,
+    |     ^^^^^
+    |
+    = note: `ExecutionEventCategory` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: methods `display_label`, `dot_class`, and `pill_class` are never used
+   --> src/ui/panel_types.rs:318:18
+    |
+316 | impl ExecutionEventCategory {
+    | --------------------------- methods in this implementation
+317 |     #[must_use]
+318 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+...
+327 |     pub const fn dot_class(self) -> &'static str {
+    |                  ^^^^^^^^^
+...
+336 |     pub const fn pill_class(self) -> &'static str {
+    |                  ^^^^^^^^^^
+
+warning: enum `ValidationResultCategory` is never used
+   --> src/ui/panel_types.rs:346:10
+    |
+346 | pub enum ValidationResultCategory {
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: associated items `from_counts`, `header_bg_class`, `status_text_class`, and `badge_class` are never used
+   --> src/ui/panel_types.rs:354:18
+    |
+352 | impl ValidationResultCategory {
+    | ----------------------------- associated items in this implementation
+353 |     #[must_use]
+354 |     pub const fn from_counts(error_count: usize, warning_count: usize) -> Self {
+    |                  ^^^^^^^^^^^
+...
+365 |     pub const fn header_bg_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^^^
+...
+374 |     pub const fn status_text_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^^^^^
+...
+383 |     pub const fn badge_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^
+
+warning: associated items `from_bool` and `is_collapsed` are never used
+   --> src/ui/panel_types.rs:399:18
+    |
+397 | impl CollapseState {
+    | ------------------ associated items in this implementation
+398 |     #[must_use]
+399 |     pub const fn from_bool(collapsed: bool) -> Self {
+    |                  ^^^^^^^^^
+...
+408 |     pub const fn is_collapsed(self) -> bool {
+    |                  ^^^^^^^^^^^^
+
+warning: function `panel_height_class` is never used
+   --> src/ui/panel_types.rs:422:14
+    |
+422 | pub const fn panel_height_class(state: CollapseState) -> &'static str {
+    |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `chevron_rotation_class` is never used
+   --> src/ui/panel_types.rs:430:14
+    |
+430 | pub const fn chevron_rotation_class(state: CollapseState) -> &'static str {
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `NODE_WIDTH` is never used
+ --> src/ui/parallel_group_overlay.rs:6:7
+  |
+6 | const NODE_WIDTH: f32 = 220.0;
+  |       ^^^^^^^^^^
+
+warning: constant `NODE_HEIGHT` is never used
+ --> src/ui/parallel_group_overlay.rs:7:7
+  |
+7 | const NODE_HEIGHT: f32 = 68.0;
+  |       ^^^^^^^^^^^
+
+warning: constant `PADDING_X` is never used
+ --> src/ui/parallel_group_overlay.rs:8:7
+  |
+8 | const PADDING_X: f32 = 24.0;
+  |       ^^^^^^^^^
+
+warning: constant `PADDING_Y` is never used
+ --> src/ui/parallel_group_overlay.rs:9:7
+  |
+9 | const PADDING_Y: f32 = 32.0;
+  |       ^^^^^^^^^
+
+warning: constant `BADGE_OFFSET_X` is never used
+  --> src/ui/parallel_group_overlay.rs:10:7
+   |
+10 | const BADGE_OFFSET_X: f32 = 12.0;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `BADGE_OFFSET_Y` is never used
+  --> src/ui/parallel_group_overlay.rs:11:7
+   |
+11 | const BADGE_OFFSET_Y: f32 = -12.0;
+   |       ^^^^^^^^^^^^^^
+
+warning: struct `ParallelGroup` is never constructed
+  --> src/ui/parallel_group_overlay.rs:14:12
+   |
+14 | pub struct ParallelGroup {
+   |            ^^^^^^^^^^^^^
+
+warning: enum `AggregateStatus` is never used
+  --> src/ui/parallel_group_overlay.rs:23:10
+   |
+23 | pub enum AggregateStatus {
+   |          ^^^^^^^^^^^^^^^
+
+warning: methods `stroke_color` and `badge_bg_color` are never used
+  --> src/ui/parallel_group_overlay.rs:32:12
+   |
+31 | impl AggregateStatus {
+   | -------------------- methods in this implementation
+32 |     pub fn stroke_color(self) -> &'static str {
+   |            ^^^^^^^^^^^^
+...
+42 |     pub fn badge_bg_color(self) -> &'static str {
+   |            ^^^^^^^^^^^^^^
+
+warning: struct `BoundingBox` is never constructed
+  --> src/ui/parallel_group_overlay.rs:54:12
+   |
+54 | pub struct BoundingBox {
+   |            ^^^^^^^^^^^
+
+warning: function `find_parallel_nodes` is never used
+  --> src/ui/parallel_group_overlay.rs:61:4
+   |
+61 | fn find_parallel_nodes(nodes: &[Node]) -> Vec<NodeId> {
+   |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `find_branch_nodes` is never used
+  --> src/ui/parallel_group_overlay.rs:69:4
+   |
+69 | fn find_branch_nodes(
+   |    ^^^^^^^^^^^^^^^^^
+
+warning: function `calculate_bounding_box` is never used
+   --> src/ui/parallel_group_overlay.rs:100:4
+    |
+100 | fn calculate_bounding_box(branch_nodes: &[Node]) -> Option<BoundingBox> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `compute_aggregate_status` is never used
+   --> src/ui/parallel_group_overlay.rs:134:4
+    |
+134 | fn compute_aggregate_status(branch_nodes: &[Node]) -> AggregateStatus {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `detect_parallel_groups` is never used
+   --> src/ui/parallel_group_overlay.rs:166:4
+    |
+166 | fn detect_parallel_groups(nodes: &[Node], connections: &[Connection]) -> Vec<ParallelGroup> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `PayloadTab` is never used
+  --> src/ui/payload_preview_panel.rs:13:10
+   |
+13 | pub enum PayloadTab {
+   |          ^^^^^^^^^^
+
+warning: function `collect_input_payloads` is never used
+  --> src/ui/payload_preview_panel.rs:18:4
+   |
+18 | fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_json::Value> {
+   |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `pretty_json` is never used
+  --> src/ui/payload_preview_panel.rs:33:4
+   |
+33 | fn pretty_json(value: &serde_json::Value) -> String {
+   |    ^^^^^^^^^^^
+
+warning: struct `SketchNode` is never constructed
+  --> src/ui/prototype_palette.rs:14:12
+   |
+14 | pub struct SketchNode {
+   |            ^^^^^^^^^^
+
+warning: struct `PaletteEntry` is never constructed
+  --> src/ui/prototype_palette.rs:19:8
+   |
+19 | struct PaletteEntry {
+   |        ^^^^^^^^^^^^
+
+warning: constant `PALETTE_ENTRIES` is never used
+  --> src/ui/prototype_palette.rs:24:7
+   |
+24 | const PALETTE_ENTRIES: [PaletteEntry; 9] = [
+   |       ^^^^^^^^^^^^^^^
+
+warning: function `generate_skeleton` is never used
+  --> src/ui/prototype_palette.rs:63:8
+   |
+63 | pub fn generate_skeleton(nodes: &[SketchNode]) -> String {
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: function `status_to_ui_string` is never used
+  --> src/ui/restate/details_panel.rs:18:10
+   |
+18 | const fn status_to_ui_string(status: InvocationStatus) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_time` is never used
+   --> src/ui/restate/details_panel.rs:186:4
+    |
+186 | fn format_time(ts: i64) -> String {
+    |    ^^^^^^^^^^^
+
+warning: function `status_dot_class` is never used
+  --> src/ui/restate/panel.rs:20:10
+   |
+20 | const fn status_dot_class(connected: bool) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^
+
+warning: function `invocation_status_label` is never used
+  --> src/ui/restate/panel.rs:28:10
+   |
+28 | const fn invocation_status_label(status: InvocationStatus) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `status_badge_class` is never used
+  --> src/ui/restate/panel.rs:41:10
+   |
+41 | const fn status_badge_class(status: InvocationStatus) -> &'static str {
+   |          ^^^^^^^^^^^^^^^^^^
+
+warning: function `truncate_inv_id` is never used
+  --> src/ui/restate/panel.rs:56:4
+   |
+56 | fn truncate_inv_id(id: &str) -> String {
+   |    ^^^^^^^^^^^^^^^
+
+warning: function `bar_bg_class` is never used
+  --> src/ui/run_status_bar.rs:13:14
+   |
+13 | pub const fn bar_bg_class(status: ExecutionState, frozen: bool) -> &'static str {
+   |              ^^^^^^^^^^^^
+
+warning: function `status_text` is never used
+  --> src/ui/run_status_bar.rs:27:8
+   |
+27 | pub fn status_text(status: ExecutionState, step: usize, total: usize, name: &str) -> String {
+   |        ^^^^^^^^^^^
+
+warning: function `collect_previews` is never used
+   --> src/ui/selected_node_panel.rs:792:4
+    |
+792 | fn collect_previews(workflow: &Workflow, keys: &[String]) -> Vec<ExtensionPatchPreview> {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `collect_input_payloads` is never used
+   --> src/ui/selected_node_panel.rs:799:4
+    |
+799 | fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_json::Value> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `record_suggestion_decision` is never used
+   --> src/ui/selected_node_panel.rs:815:4
+    |
+815 | fn record_suggestion_decision(key: &str, accepted: bool, source: &str) {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `ExtensionTimelineEventKind` is never used
+   --> src/ui/selected_node_panel.rs:841:6
+    |
+841 | enum ExtensionTimelineEventKind {
+    |      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ExtensionTimelineEvent` is never constructed
+   --> src/ui/selected_node_panel.rs:851:8
+    |
+851 | struct ExtensionTimelineEvent {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `ExtensionTimelineMetadata` is never constructed
+   --> src/ui/selected_node_panel.rs:859:8
+    |
+859 | struct ExtensionTimelineMetadata {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `ExtensionApplyMode` is never used
+   --> src/ui/selected_node_panel.rs:866:6
+    |
+866 | enum ExtensionApplyMode {
+    |      ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ExtensionBatchSnapshot` is never constructed
+   --> src/ui/selected_node_panel.rs:872:8
+    |
+872 | struct ExtensionBatchSnapshot {
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `push_timeline` is never used
+   --> src/ui/selected_node_panel.rs:881:4
+    |
+881 | fn push_timeline(
+    |    ^^^^^^^^^^^^^
+
+warning: function `event_appearance` is never used
+   --> src/ui/selected_node_panel.rs:898:4
+    |
+898 | fn event_appearance(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `mode_label` is never used
+   --> src/ui/selected_node_panel.rs:923:4
+    |
+923 | fn mode_label(mode: ExtensionApplyMode) -> &'static str {
+    |    ^^^^^^^^^^
+
+warning: function `remember_extension_snapshot` is never used
+   --> src/ui/selected_node_panel.rs:930:4
+    |
+930 | fn remember_extension_snapshot(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `snapshot_by_id` is never used
+   --> src/ui/selected_node_panel.rs:960:4
+    |
+960 | fn snapshot_by_id(
+    |    ^^^^^^^^^^^^^^
+
+warning: variants `Entry`, `Durable`, `State`, `Flow`, `Timing`, and `Signal` are never constructed
+  --> src/ui/sidebar/model.rs:14:5
+   |
+13 | pub(super) enum Category {
+   |                 -------- variants in this enum
+14 |     Entry,
+   |     ^^^^^
+15 |     Durable,
+   |     ^^^^^^^
+16 |     State,
+   |     ^^^^^
+17 |     Flow,
+   |     ^^^^
+18 |     Timing,
+   |     ^^^^^^
+19 |     Signal,
+   |     ^^^^^^
+   |
+   = note: `Category` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: associated items `ORDER`, `label`, `dot_class`, and `icon_badge_class` are never used
+  --> src/ui/sidebar/model.rs:24:22
+   |
+22 | impl Category {
+   | ------------- associated items in this implementation
+23 |     /// Ordered slice used by the sidebar to iterate categories top→bottom.
+24 |     pub(super) const ORDER: [Self; 6] = [
+   |                      ^^^^^
+...
+34 |     pub(super) const fn label(self) -> &'static str {
+   |                         ^^^^^
+...
+46 |     pub(super) const fn dot_class(self) -> &'static str {
+   |                         ^^^^^^^^^
+...
+58 |     pub(super) const fn icon_badge_class(self) -> &'static str {
+   |                         ^^^^^^^^^^^^^^^^
+
+warning: method `matches_query` is never used
+  --> src/ui/sidebar/model.rs:89:19
+   |
+86 | impl NodeTemplate {
+   | ----------------- method in this implementation
+...
+89 |     pub(super) fn matches_query(self, query: &str) -> bool {
+   |                   ^^^^^^^^^^^^^
+
+warning: constant `NODE_TEMPLATES` is never used
+  --> src/ui/sidebar/model.rs:99:18
+   |
+99 | pub(super) const NODE_TEMPLATES: [NodeTemplate; 24] = [
+   |                  ^^^^^^^^^^^^^^
+
+warning: function `visible_indices` is never used
+   --> src/ui/sidebar/model.rs:346:15
+    |
+346 | pub(super) fn visible_indices(category: Category, query: &str) -> Vec<usize> {
+    |               ^^^^^^^^^^^^^^^
+
+warning: function `no_results` is never used
+   --> src/ui/sidebar/model.rs:356:15
+    |
+356 | pub(super) fn no_results(query: &str) -> bool {
+    |               ^^^^^^^^^^
+
+warning: function `chevron_class` is never used
+  --> src/ui/sidebar/presentation.rs:16:10
+   |
+16 | const fn chevron_class(collapsed: bool) -> &'static str {
+   |          ^^^^^^^^^^^^^
+
+warning: function `build_status_text` is never used
+   --> src/ui/validation_panel.rs:135:4
+    |
+135 | fn build_status_text(error_count: usize, warning_count: usize) -> String {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `build_node_with_id` is never used
+   --> src/ui/edges.rs:299:8
+    |
+299 |     fn build_node_with_id(id: NodeId, x: f32, y: f32) -> Node {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: associated function `all` is never used
+  --> src/ui/panel_types.rs:42:18
+   |
+18 | impl HttpMethod {
+   | --------------- associated function in this implementation
+...
+42 |     pub const fn all() -> &'static [Self] {
+   |                  ^^^
+
+warning: methods `display_label` and `icon_name` are never used
+   --> src/ui/panel_types.rs:93:18
+    |
+ 64 | impl InvocationStatus {
+    | --------------------- methods in this implementation
+...
+ 93 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+...
+106 |     pub const fn icon_name(self) -> &'static str {
+    |                  ^^^^^^^^^
+
+warning: method `display_label` is never used
+   --> src/ui/panel_types.rs:187:18
+    |
+174 | impl OutputOrigin {
+    | ----------------- method in this implementation
+...
+187 |     pub const fn display_label(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^
+
+warning: method `to_display` is never used
+   --> src/ui/panel_types.rs:226:12
+    |
+206 | impl PayloadShape {
+    | ----------------- method in this implementation
+...
+226 |     pub fn to_display(&self) -> String {
+    |            ^^^^^^^^^^
+
+warning: methods `header_bg_class`, `status_text_class`, and `badge_class` are never used
+   --> src/ui/panel_types.rs:365:18
+    |
+352 | impl ValidationResultCategory {
+    | ----------------------------- methods in this implementation
+...
+365 |     pub const fn header_bg_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^^^
+...
+374 |     pub const fn status_text_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^^^^^^^
+...
+383 |     pub const fn badge_class(self) -> &'static str {
+    |                  ^^^^^^^^^^^
+
+warning: variants `Snapshot`, `Undone`, `Redone`, and `RolledBack` are never constructed
+   --> src/ui/selected_node_panel.rs:842:5
+    |
+841 | enum ExtensionTimelineEventKind {
+    |      -------------------------- variants in this enum
+842 |     Snapshot,
+    |     ^^^^^^^^
+...
+845 |     Undone,
+    |     ^^^^^^
+846 |     Redone,
+    |     ^^^^^^
+847 |     RolledBack,
+    |     ^^^^^^^^^^
+    |
+    = note: `ExtensionTimelineEventKind` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: fields `kind`, `message`, and `metadata` are never read
+   --> src/ui/selected_node_panel.rs:853:5
+    |
+851 | struct ExtensionTimelineEvent {
+    |        ---------------------- fields in this struct
+852 |     id: usize,
+853 |     kind: ExtensionTimelineEventKind,
+    |     ^^^^
+854 |     message: String,
+    |     ^^^^^^^
+855 |     metadata: Option<ExtensionTimelineMetadata>,
+    |     ^^^^^^^^
+    |
+    = note: `ExtensionTimelineEvent` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: fields `batch_id` and `mode` are never read
+   --> src/ui/selected_node_panel.rs:860:5
+    |
+859 | struct ExtensionTimelineMetadata {
+    |        ------------------------- fields in this struct
+860 |     batch_id: usize,
+    |     ^^^^^^^^
+861 |     snapshot_id: usize,
+862 |     mode: ExtensionApplyMode,
+    |     ^^^^
+    |
+    = note: `ExtensionTimelineMetadata` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: fields `mode`, `keys`, `created_nodes`, and `workflow_before` are never read
+   --> src/ui/selected_node_panel.rs:875:5
+    |
+872 | struct ExtensionBatchSnapshot {
+    |        ---------------------- fields in this struct
+...
+875 |     mode: ExtensionApplyMode,
+    |     ^^^^
+876 |     keys: Vec<String>,
+    |     ^^^^
+877 |     created_nodes: usize,
+    |     ^^^^^^^^^^^^^
+878 |     workflow_before: Workflow,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `ExtensionBatchSnapshot` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `oya-frontend` (bin "oya-frontend") generated 185 warnings
+warning: `oya-frontend` (bin "oya-frontend" test) generated 75 warnings (64 duplicates) (run `cargo fix --bin "oya-frontend" -p oya-frontend --tests` to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.65s
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/oya_frontend-d6c17433ce727b30`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/agent_feedback-c73da183e15a343d`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/coverage-63078f2b73142414`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/flow_extend-13da70139dcb7ebc`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/oya_frontend-ca13c4a3a5e95fd1`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/quality_gate-35b51fb367310d77`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/bead_flow_extender_regression-7a96c19fc60affe9`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/coverage_cli_regressions-974ed8aeaab98678`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/drag_unit_test-3d676176887b1009`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/e2e_acceptance-dc64e8ac8c0bd1f8`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/expression_depth_tests-59728453d44f80a6`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/flow_extender_contracts-2a7906481b9d7fbd`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/graph_layout_regressions-05c06ff7b4d29632`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/graph_regressions-da472a6bb33c1821`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/node_drag_regression-7369eebf53ef251c`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/scenario_runner_extension_cases-f0a6f09e120d647c`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/self_connection_cycle_detection-196c7edfd4084608`
+  Executable `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/ui_test-60f3db7cb28db8ed`
+
+*** result: Success
+
+*** /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo test --verbose --package=oya-frontend@0.1.0 --lib
+       Fresh unicode-ident v1.0.24
+       Fresh cfg-if v1.0.4
+       Fresh once_cell v1.21.3
+       Fresh pin-project-lite v0.2.16
+       Fresh futures-core v0.3.32
+       Fresh futures-sink v0.3.32
+       Fresh memchr v2.8.0
+       Fresh futures-io v0.3.32
+       Fresh smallvec v1.15.1
+       Fresh futures-task v0.3.32
+       Fresh version_check v0.9.5
+       Fresh slab v0.4.12
+       Fresh fnv v1.0.7
+       Fresh bytes v1.11.1
+       Fresh shlex v1.3.0
+       Fresh find-msvc-tools v0.1.9
+       Fresh pkg-config v0.3.32
+       Fresh scopeguard v1.2.0
+       Fresh itoa v1.0.17
+       Fresh bumpalo v3.20.1
+       Fresh vcpkg v0.2.15
+       Fresh stable_deref_trait v1.2.1
+       Fresh log v0.4.29
+       Fresh ident_case v1.0.1
+       Fresh tracing-core v0.1.36
+       Fresh cc v1.2.56
+       Fresh lock_api v0.4.14
+       Fresh hashbrown v0.16.1
+       Fresh foreign-types-shared v0.1.1
+       Fresh equivalent v1.0.2
+       Fresh dioxus-core-types v0.7.3
+       Fresh unicode-xid v0.2.6
+       Fresh libloading v0.8.9
+       Fresh http v0.2.12
+       Fresh writeable v0.6.2
+       Fresh litemap v0.8.1
+       Fresh rustc-hash v2.1.1
+       Fresh autocfg v1.5.0
+       Fresh proc-macro2 v1.0.106
+       Fresh libc v0.2.182
+       Fresh rustversion v1.0.22
+       Fresh wasm-bindgen-shared v0.2.108
+       Fresh foreign-types v0.3.2
+       Fresh httparse v1.10.1
+       Fresh indexmap v2.13.0
+       Fresh openssl-probe v0.2.1
+       Fresh longest-increasing-subsequence v0.1.0
+       Fresh lazy-js-bundle v0.7.3
+       Fresh try-lock v0.2.5
+       Fresh http-body v0.4.6
+       Fresh tower-service v0.3.3
+       Fresh unicode-segmentation v1.12.0
+       Fresh httpdate v1.0.3
+       Fresh percent-encoding v2.3.2
+       Fresh bitflags v2.11.0
+       Fresh ryu v1.0.23
+       Fresh quote v1.0.44
+       Fresh parking_lot_core v0.9.12
+       Fresh mio v1.1.1
+       Fresh socket2 v0.6.2
+       Fresh memmap2 v0.9.10
+       Fresh typenum v1.19.0
+       Fresh anyhow v1.0.101
+       Fresh serde_core v1.0.228
+       Fresh errno v0.3.14
+       Fresh socket2 v0.5.10
+       Fresh want v0.3.1
+       Fresh form_urlencoded v1.2.2
+       Fresh convert_case v0.8.0
+       Fresh utf8_iter v1.0.4
+       Fresh futures-channel v0.3.32
+       Fresh strsim v0.10.0
+       Fresh regex-syntax v0.8.9
+       Fresh base64 v0.21.7
+       Fresh syn v2.0.116
+       Fresh parking_lot v0.12.5
+       Fresh openssl-sys v0.9.111
+       Fresh const_format_proc_macros v0.2.34
+       Fresh signal-hook-registry v1.4.8
+       Fresh getrandom v0.3.4
+       Fresh icu_properties_data v2.1.2
+       Fresh icu_normalizer_data v2.1.1
+       Fresh zerocopy v0.8.39
+       Fresh num-traits v0.2.19
+       Fresh generic-array v0.14.7
+       Fresh zmij v1.0.21
+       Fresh rustls-pemfile v1.0.4
+       Fresh encoding_rs v0.8.35
+       Fresh mime v0.3.17
+       Fresh ipnet v2.11.0
+       Fresh sync_wrapper v0.1.2
+       Fresh winnow v0.7.14
+       Fresh cpufeatures v0.2.17
+       Fresh regex-automata v0.4.14
+       Fresh keyboard-types v0.7.0
+       Fresh serde_derive v1.0.228
+       Fresh futures-macro v0.3.32
+       Fresh synstructure v0.13.2
+       Fresh tracing-attributes v0.1.31
+       Fresh wasm-bindgen-macro-support v0.2.108
+       Fresh zerovec-derive v0.11.2
+       Fresh thiserror-impl v2.0.18
+       Fresh displaydoc v0.2.5
+       Fresh openssl-macros v0.1.1
+       Fresh const_format v0.2.35
+       Fresh pin-project-internal v1.1.10
+       Fresh warnings-macro v0.2.0
+       Fresh tokio-macros v2.6.0
+       Fresh rand_core v0.9.5
+       Fresh const-serialize-macro v0.7.2
+       Fresh darling_core v0.21.3
+       Fresh const-serialize-macro v0.8.0-alpha.0
+       Fresh ppv-lite86 v0.2.21
+       Fresh serde_json v1.0.149
+       Fresh crypto-common v0.1.7
+       Fresh proc-macro2-diagnostics v0.10.1
+       Fresh syn v1.0.109
+       Fresh block-buffer v0.10.4
+       Fresh sledgehammer_bindgen_macro v0.6.5
+       Fresh euclid v0.22.13
+       Fresh dioxus-html-internal-macro v0.7.3
+       Fresh async-trait v0.1.89
+       Fresh getrandom v0.4.1
+       Fresh http v1.4.0
+       Fresh futures-util v0.3.32
+       Fresh zerofrom-derive v0.1.6
+       Fresh tracing v0.1.44
+       Fresh yoke-derive v0.8.1
+       Fresh wasm-bindgen-macro v0.2.108
+       Fresh thiserror v2.0.18
+       Fresh serde v1.0.228
+       Fresh pin-project v1.1.10
+       Fresh tokio v1.49.0
+       Fresh darling_macro v0.21.3
+       Fresh const-serialize v0.7.2
+       Fresh rand_chacha v0.9.0
+       Fresh dioxus-rsx v0.7.3
+       Fresh digest v0.10.7
+       Fresh darling_core v0.13.4
+       Fresh openssl v0.10.75
+       Fresh rustc-hash v1.1.0
+       Fresh utf-8 v0.7.6
+       Fresh data-encoding v2.10.0
+       Fresh simd-adler32 v0.3.8
+       Fresh lazy_static v1.5.0
+       Fresh utf8parse v0.2.2
+       Fresh linux-raw-sys v0.11.0
+       Fresh adler2 v2.0.1
+       Fresh bzip2-sys v0.1.13+1.0.8
+       Fresh crc32fast v1.5.0
+       Fresh macro-string v0.1.4
+       Fresh zerofrom v0.1.6
+       Fresh wasm-bindgen v0.2.108
+       Fresh subsecond-types v0.7.3
+       Fresh slotmap v1.1.1
+       Fresh generational-box v0.7.3
+       Fresh warnings v0.2.1
+       Fresh darling v0.21.3
+       Fresh tokio-util v0.7.18
+       Fresh rand v0.9.2
+       Fresh dioxus-core-macro v0.7.3
+       Fresh darling_macro v0.13.4
+       Fresh sha1 v0.10.6
+       Fresh miniz_oxide v0.8.9
+       Fresh sledgehammer_utils v0.3.1
+       Fresh rustix v1.1.3
+       Fresh const-serialize v0.8.0-alpha.0
+       Fresh sharded-slab v0.1.7
+       Fresh anstyle-parse v0.2.7
+       Fresh native-tls v0.2.18
+       Fresh thiserror-impl v1.0.69
+       Fresh matchers v0.2.0
+       Fresh thread_local v1.1.9
+       Fresh fastrand v2.3.0
+       Fresh anstyle v1.0.13
+       Fresh colorchoice v1.0.4
+       Fresh dunce v1.0.5
+       Fresh yoke v0.8.1
+       Fresh subsecond v0.7.3
+       Fresh js-sys v0.3.85
+       Fresh dioxus-cli-config v0.7.3
+       Fresh enumset_derive v0.14.0
+       Fresh h2 v0.3.27
+       Fresh tungstenite v0.27.0
+       Fresh sledgehammer_bindgen v0.6.0
+       Fresh darling v0.13.4
+       Fresh either v1.15.0
+       Fresh is_terminal_polyfill v1.70.2
+       Fresh anstyle-query v1.1.5
+       Fresh tracing-subscriber v0.3.22
+       Fresh thiserror v1.0.69
+       Fresh tempfile v3.25.0
+       Fresh tokio-native-tls v0.3.1
+       Fresh flate2 v1.1.9
+       Fresh futures-executor v0.3.32
+       Fresh bzip2 v0.4.4
+       Fresh dioxus-stores-macro v0.7.3
+       Fresh bitmaps v2.1.0
+       Fresh time v0.1.45
+       Fresh wait-timeout v0.2.1
+       Fresh dirs-sys v0.3.7
+       Fresh send_wrapper v0.6.0
+       Fresh bit-vec v0.8.0
+       Fresh triomphe v0.1.15
+       Fresh foldhash v0.1.5
+       Fresh zerovec v0.11.5
+       Fresh zerotrie v0.2.3
+       Fresh dioxus-core v0.7.3
+       Fresh web-sys v0.3.85
+       Fresh wasm-bindgen-futures v0.4.58
+       Fresh enumset v1.1.10
+       Fresh serde_with_macros v1.5.2
+       Fresh manganis-macro v0.7.3
+       Fresh serde-wasm-bindgen v0.6.5
+       Fresh manganis-core v0.7.3
+       Fresh hyper v0.14.32
+       Fresh gloo-timers v0.3.0
+       Fresh anstream v0.6.21
+       Fresh byteorder v1.5.0
+       Fresh heck v0.5.0
+       Fresh rand_core v0.6.4
+       Fresh strsim v0.11.1
+       Fresh clap_lex v1.0.0
+       Fresh iana-time-zone v0.1.65
+       Fresh quick-error v1.2.3
+       Fresh sized-chunks v0.6.5
+       Fresh itertools v0.10.5
+       Fresh bit-set v0.8.0
+       Fresh hashbrown v0.15.5
+       Fresh archery v1.2.2
+       Fresh dioxus-logger v0.7.3
+       Fresh futures v0.3.32
+       Fresh paste v1.0.15
+       Fresh dirs v3.0.2
+       Fresh tokio-stream v0.1.18
+       Fresh serde_urlencoded v0.7.1
+       Fresh tinystr v0.8.2
+       Fresh potential_utf v0.1.4
+       Fresh dioxus-signals v0.7.3
+       Fresh dioxus-devtools-types v0.7.3
+       Fresh dioxus-interpreter-js v0.7.3
+       Fresh wasm-streams v0.4.2
+       Fresh dioxus-history v0.7.3
+       Fresh zip v0.5.13
+       Fresh hyper-tls v0.5.0
+       Fresh rand_xoshiro v0.6.0
+       Fresh dioxus-asset-resolver v0.7.3
+       Fresh clap_builder v4.5.59
+       Fresh manganis v0.7.3
+       Fresh rusty-fork v0.3.1
+       Fresh serde_with v1.14.0
+       Fresh clap_derive v4.5.55
+       Fresh chrono v0.4.43
+       Fresh strong v0.3.4
+       Fresh rand_xorshift v0.4.0
+       Fresh dioxus-config-macro v0.7.3
+       Fresh unsafe-libyaml v0.2.11
+       Fresh dioxus-config-macros v0.7.3
+       Fresh fixedbitset v0.5.7
+       Fresh base64 v0.13.1
+       Fresh unarray v0.1.4
+       Fresh rpds v1.2.0
+       Fresh itertools v0.14.0
+       Fresh uuid v1.21.0
+       Fresh tap v1.0.1
+       Fresh icu_locale_core v2.1.1
+       Fresh icu_collections v2.1.1
+       Fresh dioxus-hooks v0.7.3
+       Fresh dioxus-devtools v0.7.3
+       Fresh dioxus-stores v0.7.3
+       Fresh clap v4.5.59
+       Fresh im v15.1.0
+       Fresh petgraph v0.8.3
+       Fresh serde_yaml v0.9.34+deprecated
+       Fresh proptest v1.11.0
+       Fresh icu_provider v2.1.1
+       Fresh dioxus-html v0.7.3
+       Fresh icu_normalizer v2.1.1
+       Fresh icu_properties v2.1.2
+       Fresh dioxus-document v0.7.3
+       Fresh idna_adapter v1.2.1
+       Fresh dioxus-web v0.7.3
+       Fresh idna v1.1.0
+       Fresh dioxus v0.7.3
+       Fresh url v2.5.8
+       Fresh reqwest v0.11.27
+       Fresh playwright v0.0.20
+       Fresh oya-frontend v0.1.0 (/tmp/cargo-mutants-oya-frontend-F29OYv.tmp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running `/tmp/cargo-mutants-oya-frontend-F29OYv.tmp/target/debug/deps/oya_frontend-d6c17433ce727b30`
+
+running 210 tests
+test agent_feedback::tests::test_feedback_generator ... ok
+test coverage::tests::given_duplicate_behavior_ids_when_analyzing_then_it_returns_typed_duplicate_error ... ok
+test flow_extender::tests::given_presets_when_listing_then_expected_keys_exist ... ok
+test coverage::tests::test_analyzer ... ok
+test coverage::tests::given_duplicate_edge_case_ids_when_analyzing_then_it_returns_typed_duplicate_error ... ok
+test coverage::tests::given_matching_edge_case_ref_when_analyzing_then_edge_case_is_counted_as_covered ... ok
+test flow_extender::tests::given_dependency_graph_when_ordering_then_prerequisites_come_first ... ok
+test coverage::tests::given_spec_without_identity_id_when_analyzing_then_it_returns_error ... ok
+test flow_extender::tests::given_empty_workflow_when_applying_entry_trigger_then_http_handler_is_added ... ok
+test flow_extender::tests::given_extensions_when_suggesting_then_contracts_are_present ... ok
+test coverage::tests::given_mixed_spec_ref_formats_when_analyzing_then_refs_are_normalized ... ok
+test coverage::tests::given_non_array_behaviors_shape_when_analyzing_then_it_returns_invalid_shape_error ... ok
+test coverage::tests::given_non_string_behavior_reference_when_analyzing_then_it_returns_malformed_reference_error ... ok
+test coverage::tests::given_nested_spec_and_scenario_dirs_when_analyzing_then_discovery_is_recursive ... ok
+test flow_extender::tests::given_bundle_when_analyzing_then_confidence_and_rationale_are_reported ... ok
+test flow_extender::tests::given_bundle_when_applying_twice_then_second_apply_is_idempotent ... ok
+test flow_extender::tests::given_known_extension_keys_when_parsing_then_all_are_unique_and_valid ... ok
+test coverage::tests::given_matching_behavior_ref_when_analyzing_then_behavior_is_counted_as_covered ... ok
+test flow_extender::tests::given_duplicate_requested_keys_when_detecting_conflicts_then_duplicate_is_reported ... ok
+test flow_extender::tests::given_empty_workflow_when_suggesting_then_entry_trigger_is_recommended ... ok
+test flow_extender::tests::given_missing_entry_when_analyzing_then_confidence_and_rationale_class_are_deterministic ... ok
+test flow_extender::tests::given_service_context_when_detecting_conflicts_then_semantic_mismatch_is_reported ... ok
+test flow_extender::tests::given_retry_saga_preset_when_resolving_then_dependencies_expand_in_order ... ok
+test flow_extender::tests::given_unknown_key_when_applying_then_error_is_returned ... ok
+test flow_extender::tests::given_timeout_guard_preview_when_rule_applies_then_patch_contains_proposed_node_and_edge ... ok
+test flow_extender::tests::given_service_context_when_analyzing_then_workflow_only_recommendations_are_not_emitted ... ok
+test flow_extender::tests::given_side_effecting_durable_when_suggesting_then_bundle_replaces_isolated_hints ... ok
+test flow_extender::tests::given_stamped_fingerprint_when_applying_then_extension_is_idempotent ... ok
+test graph::calc::tests::given_invalid_pan_zoom_inputs_when_calculating_offset_then_viewport_is_unchanged ... ok
+test flow_extender::tests::given_workflow_without_side_effecting_durable_when_suggesting_then_bundle_is_absent ... ok
+test graph::calc::tests::given_negative_padding_when_calculating_fit_view_then_result_is_none ... ok
+test graph::calc::tests::given_non_finite_nodes_when_calculating_fit_view_then_result_is_none ... ok
+test graph::calc::tests::given_non_finite_zoom_inputs_when_calculating_zoom_delta_then_result_is_deterministic ... ok
+test graph::calc::tests::given_non_positive_viewport_when_calculating_fit_view_then_result_is_none ... ok
+test graph::calc::tests::given_small_drag_delta_when_updating_node_position_then_position_moves_by_snap_grid ... ok
+test flow_extender::tests::given_multi_rule_workflow_when_generating_compound_plan_then_steps_are_built_in_dependency_order ... ok
+test flow_extender::tests::given_webhook_preset_when_applying_then_guard_and_checkpoint_are_added ... ok
+test graph::calc::tests::given_zero_drag_delta_when_updating_node_position_then_position_stays_unchanged ... ok
+test graph::connectivity::tests::given_back_edge_when_adding_checked_connection_then_cycle_error_is_returned ... ok
+test graph::connectivity::tests::given_compatible_ports_when_adding_checked_connection_then_connection_is_created ... ok
+test graph::connectivity::tests::given_duplicate_connection_when_adding_checked_connection_then_duplicate_error_is_returned ... ok
+test graph::connectivity::tests::given_missing_source_when_adding_checked_connection_then_source_not_found_error_is_returned ... ok
+test graph::connectivity::tests::given_missing_target_when_adding_checked_connection_then_target_not_found_error_is_returned ... ok
+test graph::connectivity::tests::given_self_connection_when_adding_checked_connection_then_self_connection_error_is_returned ... ok
+test graph::connectivity::tests::given_type_mismatch_ports_when_adding_checked_connection_then_type_mismatch_error_is_returned ... ok
+test graph::core::tests::given_added_node_when_returning_id_then_it_matches_inserted_node_id ... ok
+test graph::core::tests::given_node_when_setting_status_then_status_is_updated_in_execution_state_and_config ... ok
+test graph::core::tests::given_occupied_position_when_adding_node_then_safe_position_offsets_new_node ... ok
+test graph::core::tests::given_viewport_offset_and_zoom_when_adding_node_at_center_then_node_is_centered ... ok
+test graph::core::tests::given_removed_node_when_removing_then_incident_connections_are_removed ... ok
+test graph::execution_record::tests::given_run_record_with_failure_when_converting_then_status_is_failed ... ok
+test graph::execution_record::tests::given_run_record_with_one_result_when_converting_then_step_is_created ... ok
+test graph::execution_record::tests::given_run_record_with_results_when_converting_then_steps_are_created ... ok
+test graph::execution_runtime::execution::tests::given_array_value_when_estimating_memory_then_includes_brackets_and_separators ... ok
+test graph::execution_runtime::execution::tests::given_bool_value_when_estimating_memory_then_returns_five_bytes ... ok
+test graph::execution_runtime::execution::tests::given_large_output_when_checking_and_updating_memory_then_fails ... ok
+test graph::execution_runtime::execution::tests::given_large_string_when_estimating_memory_then_approximates_correctly ... ok
+test graph::execution_runtime::execution::tests::given_nested_structure_when_estimating_memory_then_recursive_calculation ... ok
+test graph::execution_runtime::execution::tests::given_null_value_when_estimating_memory_then_returns_four_bytes ... ok
+test graph::execution_runtime::execution::tests::given_number_value_when_estimating_memory_then_returns_string_length ... ok
+test graph::execution_runtime::execution::tests::given_object_value_when_estimating_memory_then_includes_braces_and_separators ... ok
+test graph::execution_runtime::execution::tests::given_small_output_when_checking_and_updating_memory_then_succeeds ... ok
+test graph::execution_runtime::execution::tests::given_string_value_when_estimating_memory_then_returns_length_plus_two ... ok
+test graph::execution_runtime::execution::tests::given_workflow_with_memory_limit_when_checking_then_returns_correct_result ... ok
+test graph::execution_runtime::execution::tests::given_workflow_without_memory_limit_when_checking_then_never_exceeds ... ok
+test graph::expressions::tests::given_double_quote_token_when_resolving_then_it_does_not_panic ... ok
+test graph::expressions::tests::given_len_calls_when_resolving_then_returns_string_or_array_length ... ok
+test graph::expressions::tests::given_numeric_binary_expression_when_resolving_then_returns_computed_number ... ok
+test graph::expressions::tests::given_node_json_path_expression_when_resolving_then_returns_pointer_value ... ok
+test graph::expressions::tests::given_single_quote_token_when_resolving_then_it_does_not_panic ... ok
+test graph::expressions::tests::given_unknown_token_when_resolving_then_original_trimmed_string_is_returned ... ok
+test graph::expressions::tests::given_uppercase_call_when_resolving_then_string_is_transformed ... ok
+test graph::expressions::tests::given_wrapped_literal_when_resolving_then_quotes_are_trimmed ... ok
+test graph::layout::tests::given_cycle_when_applying_layout_then_node_positions_remain_unchanged ... ok
+test graph::metadata::tests::given_known_node_type_when_fetching_metadata_then_expected_values_are_returned ... ok
+test graph::layout::tests::given_disconnected_graph_when_applying_layout_then_nodes_have_distinct_y_positions ... ok
+test graph::layout::tests::given_layout_result_when_normalized_then_minimum_coordinates_match_padding ... ok
+test graph::metadata::tests::given_unknown_node_type_when_fetching_metadata_then_defaults_are_returned ... ok
+test graph::port_types::tests::any_source_is_compatible_with_any_target ... ok
+test graph::layout::tests::given_same_graph_when_applying_twice_then_positions_are_deterministic ... ok
+test graph::port_types::tests::any_target_accepts_any_source ... ok
+test graph::port_types::tests::different_specific_types_are_not_compatible ... ok
+test graph::port_types::tests::json_source_is_compatible_with_any_target ... ok
+test graph::port_types::tests::same_types_are_compatible ... ok
+test graph::service_kinds::tests::context_type_asynchronous_is_asynchronous ... ok
+test graph::service_kinds::tests::context_type_parses_synchronous ... ok
+test graph::service_kinds::tests::context_type_synchronous_is_synchronous ... ok
+test graph::service_kinds::tests::service_kind_parses_handler ... ok
+test graph::tests::given_default_node_id_when_created_then_it_is_not_nil ... ok
+test graph::tests::given_node_categories_when_displayed_then_lowercase_labels_are_returned ... ok
+test graph::tests::given_config_update_when_applied_then_node_config_is_replaced ... ok
+test graph::tests::given_node_id_when_displayed_then_it_matches_inner_uuid ... ok
+test graph::tests::given_non_object_config_when_applying_then_typed_node_is_preserved ... ok
+test graph::tests::given_set_state_alias_state_key_when_applied_then_typed_key_is_updated ... ok
+test graph::tests::given_send_message_alias_target_service_when_applied_then_typed_target_is_updated ... ok
+test graph::tests::given_string_when_converted_to_port_name_then_value_is_preserved ... ok
+test graph::value_objects::tests::positive_duration::positive_is_some ... ok
+test graph::value_objects::tests::positive_duration::zero_is_none ... ok
+test graph::value_objects::tests::run_outcome::failure_is_not_success ... ok
+test graph::value_objects::tests::run_outcome::success_is_success ... ok
+test graph::view::tests::given_empty_workflow_when_fitting_view_then_viewport_stays_unchanged ... ok
+test graph::view::tests::given_zoom_delta_when_zooming_then_viewport_values_change ... ok
+test graph::view::tests::given_nodes_when_fitting_view_then_zoom_updates_from_default ... ok
+test graph::workflow_node::tests::condition_result_from_bool_true ... ok
+test graph::workflow_node::tests::condition_result_into_bool_true ... ok
+test graph::workflow_node::tests::http_method_from_str_parses_get ... ok
+test graph::workflow_node::tests::http_method_from_str_parses_lowercase_post ... ok
+test linter::tests::given_missing_required_rule_field_when_loading_rules_then_linter_returns_explicit_error ... ok
+test linter::tests::given_invalid_rule_severity_when_loading_rules_then_linter_returns_explicit_error ... ok
+test metrics::tests::test_metrics_store_new ... ok
+test linter::tests::given_unknown_rule_id_when_loading_rules_then_linter_returns_explicit_error ... ok
+test restate_client::client::tests::client_config_default ... ok
+test linter::tests::given_api_endpoint_without_auth_when_linting_then_spec_003_error_is_reported ... ok
+test metrics::tests::test_suggestion_decision_metrics_roundtrip ... ok
+test metrics::tests::test_record_suggestion_decision_persists ... ok
+test metrics::tests::test_spec_validation_metrics ... ok
+test linter::tests::given_canvas_behavior_without_visual_feedback_when_linting_then_spec_040_warning_is_reported ... ok
+test linter::tests::given_multiple_dependency_failures_when_checking_completeness_then_score_saturates_to_zero ... ok
+test linter::tests::given_ambiguous_then_clause_when_linting_then_clarity_warning_is_reported ... ok
+test linter::tests::given_spec_030_with_error_severity_when_linting_then_issue_is_reported_as_error ... ok
+test linter::tests::given_behavior_without_acceptance_criterion_when_linting_then_spec_004_warning_is_reported ... ok
+test linter::tests::given_spec_002_with_error_severity_when_linting_then_issue_is_reported_as_error ... ok
+test restate_client::client::tests::client_error_display ... ok
+test linter::tests::given_error_without_concrete_http_status_when_linting_then_spec_011_error_is_reported ... ok
+test linter::tests::given_non_observable_then_clause_when_linting_then_spec_030_warning_is_reported ... ok
+test restate_client::queries::tests::invocation_query_uses_explicit_projection ... ok
+test restate_client::queries::tests::invocations_by_status_uses_typed_literal ... ok
+test linter::tests::given_user_identifier_endpoint_without_enumeration_edge_case_when_linting_then_security_error_is_reported ... ok
+test restate_client::queries::tests::invocation_queries_share_projection_columns ... ok
+test restate_client::queries::tests::journal_events_since_max_index ... ok
+test linter::tests::test_lint_spec_minimal ... ok
+test linter::tests::given_state_transitions_without_invariants_when_linting_then_spec_002_warning_is_reported ... ok
+test restate_client::queries::tests::journal_query_escapes_id ... ok
+test linter::tests::given_write_endpoint_without_rate_limit_when_linting_then_spec_021_warning_is_reported ... ok
+test restate_client::queries::tests::journal_query_includes_entry_lite_json ... ok
+test restate_client::queries::tests::keyed_state_escapes_both_params ... ok
+test restate_client::queries::tests::list_invocations_query_contains_projection ... ok
+test restate_client::queries::tests::service_state_sql_injection_attempt ... ok
+test restate_client::queries::tests::stuck_invocations_uses_absolute_cutoff ... ok
+test restate_client::types::tests::deployment_info_default ... ok
+test restate_client::types::tests::invocation_default ... ok
+test restate_client::types::tests::invocation_detail_default ... ok
+test restate_client::types::tests::invocation_finished_at_none_when_incomplete ... ok
+test restate_client::types::tests::invocation_finished_at_with_value ... ok
+test restate_client::types::tests::invocation_started_at_valid_timestamp ... ok
+test restate_client::types::tests::invocation_status_all_variants ... ok
+test restate_client::types::tests::invocation_status_backing_off_is_active ... ok
+test restate_client::types::tests::invocation_status_completed_is_terminal ... ok
+test restate_client::types::tests::invocation_serialization_roundtrip ... ok
+test restate_client::types::tests::invocation_status_paused_is_not_active ... ok
+test restate_client::types::tests::invocation_status_deserialization ... ok
+test restate_client::types::tests::invocation_status_pending_is_active ... ok
+test restate_client::types::tests::invocation_status_ready_is_active ... ok
+test restate_client::types::tests::invocation_status_running_is_active ... ok
+test restate_client::types::tests::invocation_status_scheduled_is_active ... ok
+test restate_client::types::tests::invocation_status_serialization ... ok
+test restate_client::types::tests::invocation_status_suspended_is_active ... ok
+test restate_client::types::tests::invoked_by_deserialization ... ok
+test restate_client::types::tests::invoked_by_variants ... ok
+test restate_client::types::tests::journal_entry_default ... ok
+test restate_client::types::tests::journal_entry_type_all_variants ... ok
+test restate_client::types::tests::journal_entry_type_case_insensitive ... ok
+test restate_client::types::tests::journal_entry_type_from_str ... ok
+test restate_client::types::tests::journal_entry_type_serialization_roundtrip ... ok
+test restate_client::types::tests::journal_entry_type_unknown ... ok
+test restate_client::types::tests::journal_entry_with_all_fields ... ok
+test restate_client::types::tests::journal_event_default ... ok
+test restate_client::types::tests::keyed_service_status_default ... ok
+test restate_client::types::tests::keyed_service_status_empty_invocation ... ok
+test restate_client::types::tests::promise_info_default ... ok
+test restate_client::types::tests::promise_info_with_completion ... ok
+test restate_client::types::tests::promise_info_with_failure ... ok
+test restate_client::types::tests::service_info_default ... ok
+test restate_client::types::tests::service_type_deserialization ... ok
+test restate_client::types::tests::service_type_serialization ... ok
+test restate_client::types::tests::service_type_variants ... ok
+test restate_client::types::tests::sql_query_response_default ... ok
+test restate_client::types::tests::sql_query_response_empty ... ok
+test restate_client::types::tests::sql_query_response_with_data ... ok
+test restate_client::types::tests::state_entry_default ... ok
+test restate_client::types::tests::state_entry_optional_fields ... ok
+test restate_client::types::tests::state_entry_with_binary_value ... ok
+test restate_client::types::tests::state_entry_serialization_roundtrip ... ok
+test restate_sync::poller::tests::test_all_invocation_statuses ... ok
+test restate_sync::poller::tests::test_empty_invocation_id_edge_case ... ok
+test restate_sync::poller::tests::test_hashset_behavior ... ok
+test restate_sync::poller::tests::test_invocation_event_clone ... ok
+test restate_sync::poller::tests::test_invocation_event_completed_with_result ... ok
+test restate_sync::poller::tests::test_invocation_event_failed_with_error ... ok
+test restate_sync::poller::tests::test_invocation_event_serialization ... ok
+test restate_sync::poller::tests::test_invocation_event_status_changed ... ok
+test restate_sync::poller::tests::test_invocation_status_clone ... ok
+test restate_sync::poller::tests::test_invocation_status_equality ... ok
+test restate_sync::poller::tests::test_invocation_status_suspended ... ok
+test restate_sync::poller::tests::test_multiple_status_changes_serialization ... ok
+test restate_sync::poller::tests::test_poll_result_empty ... ok
+test restate_sync::poller::tests::test_poll_result_deserialization ... ok
+test restate_sync::poller::tests::test_poll_result_timestamp_consistency ... ok
+test restate_sync::poller::tests::test_poll_result_timestamp_type ... ok
+test restate_sync::poller::tests::test_poll_result_with_events ... ok
+test restate_sync::poller::tests::test_poller_error_display ... ok
+test restate_sync::poller::tests::test_large_error_message ... ok
+test restate_client::client::tests::client_new_wraps_ipv6_host ... ok
+test restate_client::client::tests::client_new_creates_correct_url ... ok
+test restate_client::client::tests::client_clone_is_independent ... ok
+test restate_client::client::tests::client_timeout_is_stored ... ok
+test restate_client::client::tests::row_to_state_entry_parses_binary_value ... ok
+test restate_client::client::tests::row_to_invocation_rejects_journal_size_overflow ... ok
+test restate_client::client::tests::map_rows_reports_invalid_row_index ... ok
+test restate_client::client::tests::row_to_invocation_rejects_unknown_status ... ok
+
+test result: ok. 210 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+*** result: Success

@@ -26,7 +26,7 @@ impl Workflow {
                 restate_invocation_id: None,
             });
             if self.history.len() > 10 {
-                let _ = self.history.remove(0);
+                self.history.remove(0);
             }
             return;
         }
@@ -38,7 +38,7 @@ impl Workflow {
             {
                 if let Some(node) = self.nodes.iter().find(|n| n.id == *id) {
                     if let Some(out) = &node.last_output {
-                        let _ = results.insert(*id, out.clone());
+                        results.insert(*id, out.clone());
                     }
                 }
             }

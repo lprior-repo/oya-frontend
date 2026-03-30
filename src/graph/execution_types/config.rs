@@ -49,7 +49,7 @@ impl ExecutionConfig {
 
     /// Set global timeout.
     #[must_use]
-    pub fn with_timeout(self, timeout_ms: u64) -> Self {
+    pub const fn with_timeout(self, timeout_ms: u64) -> Self {
         Self {
             timeout_ms: Some(timeout_ms),
             ..self
@@ -58,7 +58,7 @@ impl ExecutionConfig {
 
     /// Set memory limit.
     #[must_use]
-    pub fn with_memory_limit(self, memory_limit_bytes: u64) -> Self {
+    pub const fn with_memory_limit(self, memory_limit_bytes: u64) -> Self {
         Self {
             memory_limit_bytes: Some(memory_limit_bytes),
             ..self
@@ -67,7 +67,7 @@ impl ExecutionConfig {
 
     /// Set maximum iterations.
     #[must_use]
-    pub fn with_max_iterations(self, max_iterations: usize) -> Self {
+    pub const fn with_max_iterations(self, max_iterations: usize) -> Self {
         Self {
             max_iterations: Some(max_iterations),
             ..self
@@ -76,7 +76,7 @@ impl ExecutionConfig {
 
     /// Enable continue on error.
     #[must_use]
-    pub fn with_continue_on_error(self) -> Self {
+    pub const fn with_continue_on_error(self) -> Self {
         Self {
             continue_on_error: true,
             ..self
@@ -85,7 +85,7 @@ impl ExecutionConfig {
 
     /// Enable skip failed nodes.
     #[must_use]
-    pub fn with_skip_failed_nodes(self) -> Self {
+    pub const fn with_skip_failed_nodes(self) -> Self {
         Self {
             skip_failed_nodes: true,
             ..self
@@ -94,7 +94,7 @@ impl ExecutionConfig {
 
     /// Set maximum expression resolution depth.
     #[must_use]
-    pub fn with_max_expression_depth(self, depth: usize) -> Self {
+    pub const fn with_max_expression_depth(self, depth: usize) -> Self {
         Self {
             max_expression_depth: depth,
             ..self
@@ -104,17 +104,14 @@ impl ExecutionConfig {
     /// Check if timeout is exceeded.
     #[must_use]
     pub fn is_timeout_exceeded(&self, elapsed_ms: u64) -> bool {
-        self.timeout_ms
-            .map(|limit| elapsed_ms >= limit)
-            .unwrap_or(false)
+        self.timeout_ms.is_some_and(|limit| elapsed_ms >= limit)
     }
 
     /// Check if memory limit is exceeded.
     #[must_use]
     pub fn is_memory_limit_exceeded(&self, bytes_used: u64) -> bool {
         self.memory_limit_bytes
-            .map(|limit| bytes_used >= limit)
-            .unwrap_or(false)
+            .is_some_and(|limit| bytes_used >= limit)
     }
 }
 
@@ -123,7 +120,7 @@ impl ExecutionConfig {
 // ===========================================================================
 
 /// Configuration for a single node execution.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeExecutionConfig {
     /// Node-specific timeout (overrides global).
     pub timeout_ms: Option<u64>,
@@ -152,7 +149,7 @@ impl NodeExecutionConfig {
 
     /// Set node-specific timeout.
     #[must_use]
-    pub fn with_timeout(self, timeout_ms: u64) -> Self {
+    pub const fn with_timeout(self, timeout_ms: u64) -> Self {
         Self {
             timeout_ms: Some(timeout_ms),
             ..self
@@ -161,7 +158,7 @@ impl NodeExecutionConfig {
 
     /// Set retry count.
     #[must_use]
-    pub fn with_retry_count(self, retry_count: u32) -> Self {
+    pub const fn with_retry_count(self, retry_count: u32) -> Self {
         Self {
             retry_count,
             ..self
@@ -170,7 +167,7 @@ impl NodeExecutionConfig {
 
     /// Set retry backoff.
     #[must_use]
-    pub fn with_retry_backoff(self, retry_backoff_ms: u64) -> Self {
+    pub const fn with_retry_backoff(self, retry_backoff_ms: u64) -> Self {
         Self {
             retry_backoff_ms,
             ..self

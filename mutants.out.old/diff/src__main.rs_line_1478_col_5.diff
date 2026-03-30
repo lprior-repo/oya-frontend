@@ -1,0 +1,14 @@
+--- src/main.rs
++++ replace main with ()
+@@ -1470,10 +1470,10 @@
+         let source = include_str!("main.rs");
+         let leak_pattern = ["listener", ".forget()"].join("");
+ 
+         assert!(!source.contains(&leak_pattern));
+     }
+ }
+ 
+ fn main() {
+-    launch(App);
++    () /* ~ changed by cargo-mutants ~ */
+ }

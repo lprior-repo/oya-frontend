@@ -11,6 +11,11 @@ impl FeedbackLevel {
     pub const DIAGNOSTIC: Self = Self(4);
     pub const TRANSPARENT: Self = Self(5);
 
+    /// Creates a new feedback configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FeedbackConfigError` if the level is invalid.
     pub fn new(level: u8) -> Result<Self, FeedbackConfigError> {
         match level {
             1 => Ok(Self::MINIMAL),
@@ -22,18 +27,22 @@ impl FeedbackLevel {
         }
     }
 
+    #[must_use]
     pub fn value(&self) -> u8 {
         self.0
     }
 
+    #[must_use]
     pub fn is_minimal(&self) -> bool {
         self.0 == Self::MINIMAL.0
     }
 
+    #[must_use]
     pub fn is_transparent(&self) -> bool {
         self.0 == Self::TRANSPARENT.0
     }
 
+    #[must_use]
     pub fn name(&self) -> &'static str {
         match self.0 {
             1 => "minimal",
@@ -54,10 +63,12 @@ impl FailureCategoryName {
         Self(name.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
+    #[must_use]
     pub fn categorize(error_message: &str) -> Self {
         if error_message.contains("404") {
             Self("Resource Not Found".into())
@@ -85,6 +96,7 @@ impl SpecRef {
         Self(reference.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -103,6 +115,7 @@ pub enum FeedbackConfigError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct FeedbackConfig {
     pub level: FeedbackLevel,
     pub name: String,

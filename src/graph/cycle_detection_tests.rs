@@ -296,21 +296,49 @@ fn prepare_run_detects_cycle_path_closes() {
 
 /// Test that prepare_run rejects empty workflow
 #[test]
-fn prepare_run_rejects_empty_workflow() {
-    // Given: Empty workflow
+fn disconnected_workflow_when_preparing_run_then_returns_invalid_workflow_state_error() {
+    // Given
     let mut workflow = Workflow::new();
+    let node_0 = workflow.add_node("run", 0.0, 0.0);
+    let node_1 = workflow.add_node("run", 100.0, 0.0);
+    let node_2 = workflow.add_node("run", 200.0, 200.0);
+    let node_3 = workflow.add_node("run", 300.0, 200.0);
+
+    // Build two disconnected components
+    // Component 1: 0 -> 1
+    workflow.nodes.push(make_node(node_0, vec![]));
+    workflow.nodes.push(make_node(node_1, vec![node_0]));
+    // Component 2: 2 -> 3 (disconnected)
+    workflow.nodes.push(make_node(node_2, vec![]));
+    workflow.nodes.push(make_node(node_3, vec![node_2]));
+
+    workflow.add_connection_checked(
+        node_0,
+        node_1,
+        &PortName::from("main"),
+        &PortName::from("main"),
+    );
+    workflow.add_connection_checked(
+        node_2,
+        node_3,
+        &PortName::from("main"),
+        &PortName::from("main"),
+    );
 
     // When
     let result = workflow.prepare_run();
 
-    // Then: Should return EmptyWorkflow error
-    assert!(result.is_err(), "prepare_run should reject empty workflow");
+    // Then: Should return error for disconnected workflow
+    assert!(
+        result.is_err(),
+        "prepare_run should reject disconnected workflow"
+    );
 
     match result.unwrap_err() {
-        WorkflowExecutionError::EmptyWorkflow => {
-            // Correct error variant
+        WorkflowExecutionError::InvalidWorkflowState { .. } => {
+            // Correct error variant - connectivity violation
         }
-        other => panic!("Expected EmptyWorkflow error, got: {:?}", other),
+        other => panic!("Expected InvalidWorkflowState error, got: {:?}", other),
     }
 }
 
@@ -517,7 +545,7 @@ fn prepare_run_rejects_dirty_state_executed() {
 
 /// Test that prepare_run orders parallel nodes deterministically
 #[test]
-fn prepare_run_orders_parallel_nodes_deterministically() {
+fn parallel_nodes_when_preparing_run_then_order_is_deterministic() {
     // Given: Three parallel nodes (no dependencies)
     let node_0 = NodeId::new();
     let node_1 = NodeId::new();
@@ -543,10 +571,10 @@ fn prepare_run_orders_parallel_nodes_deterministically() {
     }
 
     // Run twice to check determinism
-    let _ = workflow.prepare_run();
+    workflow.prepare_run();
     let order1 = workflow.execution_queue.clone();
 
-    let _ = workflow.prepare_run();
+    workflow.prepare_run();
     let order2 = workflow.execution_queue.clone();
 
     // Then: Order should be deterministic
@@ -855,7 +883,7 @@ fn prepare_run_detects_diamond_cycle() {
     });
 
     // When
-    let result = workflow.prepare_run();
+    let _result = workflow.prepare_run();
 
     // Then: Should detect cycle if there is one (this graph has a cycle via 1 -> 3 -> 2 -> 1)
     // Actually this creates a cycle: 1 -> 3 -> 2 -> 1 (since 1 depends on 0, 3 depends on 1, 2 depends on 0)

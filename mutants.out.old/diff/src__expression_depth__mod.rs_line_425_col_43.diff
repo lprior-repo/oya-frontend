@@ -1,0 +1,21 @@
+--- src/expression_depth/mod.rs
++++ replace || with && in resolve_expressions
+@@ -417,17 +417,17 @@
+                         message: "Runtime error during expression evaluation".to_string(),
+                     });
+                 }
+                 // For invalid syntax (like "(unbalanced"), return InvalidExpression
+                 if value.starts_with('(') || value.contains("unbalanced") {
+                     return Err(Error::InvalidExpression);
+                 }
+                 // For values that look like reference names (contain "expr" or "_expr"), return ExpressionNotFound
+-                if value.contains("expr") || value.ends_with("_expr") {
++                if value.contains("expr") && /* ~ changed by cargo-mutants ~ */ value.ends_with("_expr") {
+                     return Err(Error::ExpressionNotFound {
+                         reference: value.clone(),
+                     });
+                 }
+                 // For other type errors (like "string_value" when expecting i32), return TypeError
+                 return Err(Error::TypeError {
+                     expected: std::any::type_name::<T>(),
+                     actual: "String",

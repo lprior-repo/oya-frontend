@@ -1,0 +1,25 @@
+--- src/dashboard/mod.rs
++++ replace print_sessions with ()
+@@ -103,21 +103,17 @@
+     println!("  Performance:");
+     println!(
+         "    Avg iterations to pass: {:.2}",
+         summary.avg_iterations_to_pass
+     );
+ }
+ 
+ pub fn print_sessions(_store: &MetricsStore, _count: usize) {
+-    println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+-    println!("  RECENT SESSIONS");
+-    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+-    println!();
+-    println!("  (Session listing currently limited to summary view)");
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[must_use]
+ pub const fn format_status(status: &SessionStatus) -> &'static str {
+     match status {
+         SessionStatus::Passed => "✓",
+         SessionStatus::Failed => "✗",
+         SessionStatus::Escalated => "!",

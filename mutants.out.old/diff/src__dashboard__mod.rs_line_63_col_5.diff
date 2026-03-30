@@ -1,0 +1,65 @@
+--- src/dashboard/mod.rs
++++ replace print_summary with ()
+@@ -55,61 +55,17 @@
+             export_metrics(&metrics_store, &format, &output_path)?;
+         }
+     }
+ 
+     Ok(())
+ }
+ 
+ pub fn print_summary(summary: &crate::metrics::MetricsSummary) {
+-    println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+-    println!("  QUALITY GATE SUMMARY");
+-    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+-    println!();
+-    println!("  Sessions:");
+-    println!("    Total: {}", summary.total_sessions);
+-
+-    let total = summary.total_sessions;
+-    let passed_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.passed_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-    let failed_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.failed_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-    let escalated_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.escalated_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-
+-    println!("    Passed: {} ({passed_pct:.1}%)", summary.passed_sessions);
+-    println!("    Failed: {} ({failed_pct:.1}%)", summary.failed_sessions);
+-    println!(
+-        "    Escalated: {} ({escalated_pct:.1}%)",
+-        summary.escalated_sessions
+-    );
+-    println!();
+-    println!("  Performance:");
+-    println!(
+-        "    Avg iterations to pass: {:.2}",
+-        summary.avg_iterations_to_pass
+-    );
++    () /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ pub fn print_sessions(_store: &MetricsStore, _count: usize) {
+     println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+     println!("  RECENT SESSIONS");
+     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+     println!();
+     println!("  (Session listing currently limited to summary view)");

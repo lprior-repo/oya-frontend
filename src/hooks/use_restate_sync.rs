@@ -51,7 +51,7 @@ pub fn use_restate_sync() -> RestateSyncHandle {
     let admin_url = use_signal(|| "http://localhost:9070".to_string());
     let ingress_url = use_signal(|| "http://localhost:8080".to_string());
 
-    let _ = use_future(move || async move {
+    use_future(move || async move {
         loop {
             if *enabled.read() {
                 let url = admin_url.read().clone();

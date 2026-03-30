@@ -116,7 +116,7 @@ pub use crate::graph::validation_checks::structural::{
 ///
 /// # Returns
 ///
-/// Returns a ValidationIssue with severity ERROR if duplicate node IDs are found.
+/// Returns a `ValidationIssue` with severity ERROR if duplicate node IDs are found.
 #[must_use]
 pub fn validate_unique_node_ids(workflow: &super::Workflow) -> Vec<ValidationIssue> {
     let mut issues = Vec::new();

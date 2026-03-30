@@ -1,0 +1,21 @@
+--- src/dashboard/mod.rs
++++ delete match arm "json" in export_metrics
+@@ -132,17 +132,17 @@
+ pub fn export_metrics(
+     store: &MetricsStore,
+     format: &str,
+     output: &Path,
+ ) -> Result<(), Box<dyn std::error::Error>> {
+     let summary = store.get_summary();
+ 
+     let report = match format {
+-        "json" => serde_json::to_string_pretty(&summary)?,
++         /* ~ changed by cargo-mutants ~ */
+         "text" => format_text_summary(&summary),
+         _ => return Err("Unsupported format".into()),
+     };
+ 
+     std::fs::write(output, report)?;
+ 
+     println!("✅ Exported metrics to {}", output.display());
+     Ok(())

@@ -1,0 +1,21 @@
+--- src/expression_depth/mod.rs
++++ replace <impl FromExpression for String>::from_expression_string -> Result<Self, Error> with Ok(Default::default())
+@@ -260,17 +260,17 @@
+                 actual: "String",
+             }),
+         }
+     }
+ }
+ 
+ impl FromExpression for String {
+     fn from_expression_string(value: &str) -> Result<Self, Error> {
+-        Ok(value.to_string())
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ /// Calculate the maximum nesting depth of an expression tree.
+ ///
+ /// # Arguments
+ /// * `expression` - The root expression to analyze
+ ///

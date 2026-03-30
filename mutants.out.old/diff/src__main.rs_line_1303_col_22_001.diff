@@ -1,0 +1,21 @@
+--- src/main.rs
++++ replace match guard modifiers.ctrl && modifiers.shift with false in parse_key_event
+@@ -1295,17 +1295,17 @@
+         // Zoom commands - no modifiers required
+         "+" | "=" | "add" => Some(EditorCommand::ZoomIn),
+         "-" | "_" | "subtract" => Some(EditorCommand::ZoomOut),
+         "0" => Some(EditorCommand::FitView),
+ 
+         // Undo/Redo - require Ctrl/Cmd modifier (security requirement)
+         // Plain 'z'/'y' should NOT mutate history
+         // Note: More specific patterns must come first
+-        "y" | "z" if modifiers.ctrl && modifiers.shift => Some(EditorCommand::Redo),
++        "y" | "z" if false /* ~ changed by cargo-mutants ~ */ => Some(EditorCommand::Redo),
+         "z" if modifiers.ctrl => Some(EditorCommand::Undo),
+         "y" if modifiers.ctrl => Some(EditorCommand::Redo),
+ 
+         // Auto layout - accessible via toolbar/context
+         "l" if modifiers.ctrl => Some(EditorCommand::AutoLayout),
+ 
+         _ => None,
+     }

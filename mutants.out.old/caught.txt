@@ -1,0 +1,17 @@
+src/coverage/mod.rs:132:9: replace CoverageAnalyzer::find_spec_files -> Result<Vec<PathBuf>, CoverageError> with Ok(vec![])
+src/coverage/mod.rs:132:9: replace CoverageAnalyzer::find_spec_files -> Result<Vec<PathBuf>, CoverageError> with Ok(vec![Default::default()])
+src/coverage/mod.rs:138:9: replace CoverageAnalyzer::collect_yaml_files -> Result<Vec<PathBuf>, CoverageError> with Ok(vec![])
+src/coverage/mod.rs:138:9: replace CoverageAnalyzer::collect_yaml_files -> Result<Vec<PathBuf>, CoverageError> with Ok(vec![Default::default()])
+src/coverage/mod.rs:139:12: delete ! in CoverageAnalyzer::collect_yaml_files
+src/coverage/mod.rs:160:54: replace || with && in CoverageAnalyzer::collect_yaml_files
+src/coverage/mod.rs:160:44: replace == with != in CoverageAnalyzer::collect_yaml_files
+src/coverage/mod.rs:187:9: replace CoverageAnalyzer::analyze_spec -> Result<Option<SpecCoverage>, CoverageError> with Ok(None)
+src/coverage/mod.rs:249:30: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:256:16: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:286:38: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:293:24: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:332:57: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:346:57: delete ! in CoverageAnalyzer::analyze_spec
+src/coverage/mod.rs:399:9: replace CoverageAnalyzer::find_scenarios_for_spec -> Result<Vec<(Value, PathBuf)>, CoverageError> with Ok(vec![])
+src/coverage/mod.rs:399:9: replace CoverageAnalyzer::find_scenarios_for_spec -> Result<Vec<(Value, PathBuf)>, CoverageError> with Ok(vec![(Default::default(), Default::default())])
+src/coverage/mod.rs:417:39: replace == with != in CoverageAnalyzer::find_scenarios_for_spec

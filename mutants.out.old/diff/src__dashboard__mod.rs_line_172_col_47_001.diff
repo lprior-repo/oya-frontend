@@ -1,0 +1,21 @@
+--- src/dashboard/mod.rs
++++ replace / with * in format_text_summary
+@@ -164,17 +164,17 @@
+             summary.failed_sessions as f64 / total as f64 * 100.0
+         }
+     } else {
+         0.0
+     };
+     let escalated_pct = if total > 0 {
+         #[allow(clippy::cast_precision_loss)]
+         {
+-            summary.escalated_sessions as f64 / total as f64 * 100.0
++            summary.escalated_sessions as f64 * /* ~ changed by cargo-mutants ~ */ total as f64 * 100.0
+         }
+     } else {
+         0.0
+     };
+ 
+     format!(
+         "Quality Gate Metrics
+ ====================

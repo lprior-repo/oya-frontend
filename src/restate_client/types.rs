@@ -302,6 +302,7 @@ pub struct InvocationDetail {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
 
     #[test]
     fn invocation_status_pending_is_active() {
@@ -342,18 +343,46 @@ mod tests {
     }
 
     #[test]
-    fn service_type_variants() {
-        let _ = ServiceType::Service;
-        let _ = ServiceType::VirtualObject;
-        let _ = ServiceType::Workflow;
+    fn service_type_has_service_variant() {
+        let _service = ServiceType::Service;
+        // Just verify the variant exists - compile-time check
+        assert_eq!(format!("{:?}", ServiceType::Service), "Service");
     }
 
     #[test]
-    fn invoked_by_variants() {
-        let _ = InvokedBy::Ingress;
-        let _ = InvokedBy::Service;
-        let _ = InvokedBy::Subscription;
-        let _ = InvokedBy::RestartAsNew;
+    fn service_type_has_virtual_object_variant() {
+        let _virtual_object = ServiceType::VirtualObject;
+        assert_eq!(format!("{:?}", ServiceType::VirtualObject), "VirtualObject");
+    }
+
+    #[test]
+    fn service_type_has_workflow_variant() {
+        let _workflow = ServiceType::Workflow;
+        assert_eq!(format!("{:?}", ServiceType::Workflow), "Workflow");
+    }
+
+    #[test]
+    fn invoked_by_has_ingress_variant() {
+        let _ingress = InvokedBy::Ingress;
+        assert_eq!(format!("{:?}", InvokedBy::Ingress), "Ingress");
+    }
+
+    #[test]
+    fn invoked_by_has_service_variant() {
+        let _service = InvokedBy::Service;
+        assert_eq!(format!("{:?}", InvokedBy::Service), "Service");
+    }
+
+    #[test]
+    fn invoked_by_has_subscription_variant() {
+        let _subscription = InvokedBy::Subscription;
+        assert_eq!(format!("{:?}", InvokedBy::Subscription), "Subscription");
+    }
+
+    #[test]
+    fn invoked_by_has_restart_as_new_variant() {
+        let _restart_as_new = InvokedBy::RestartAsNew;
+        assert_eq!(format!("{:?}", InvokedBy::RestartAsNew), "RestartAsNew");
     }
 
     #[test]
@@ -854,7 +883,9 @@ mod tests {
     }
 
     #[test]
-    fn invocation_started_at_valid_timestamp() {
+    fn invocation_started_at_returns_correct_timestamp() {
+        use chrono::Utc;
+
         let inv = Invocation {
             id: "inv_123".to_string(),
             target: "Service".to_string(),
@@ -876,7 +907,9 @@ mod tests {
             last_failure_error_code: None,
         };
 
-        let _ = inv.started_at();
+        let started_at = inv.started_at();
+        let expected = Utc.timestamp_millis_opt(1700000000000).unwrap();
+        assert_eq!(started_at, expected);
     }
 
     #[test]

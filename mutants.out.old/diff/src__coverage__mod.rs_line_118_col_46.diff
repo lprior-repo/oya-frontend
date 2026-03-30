@@ -1,0 +1,21 @@
+--- src/coverage/mod.rs
++++ replace / with % in CoverageAnalyzer::analyze
+@@ -110,17 +110,17 @@
+         sorted_gaps.sort_by_key(|b| std::cmp::Reverse(b.1));
+         let common_gaps: Vec<String> = sorted_gaps.into_iter().take(10).map(|(s, _)| s).collect();
+ 
+         Ok(CoverageReport {
+             specs: spec_coverage,
+             overall_coverage: if total_behaviors > 0 {
+                 #[allow(clippy::cast_precision_loss)]
+                 {
+-                    covered_behaviors as f64 / total_behaviors as f64 * 100.0
++                    covered_behaviors as f64 % /* ~ changed by cargo-mutants ~ */ total_behaviors as f64 * 100.0
+                 }
+             } else {
+                 0.0
+             },
+             total_behaviors,
+             total_edge_cases,
+             covered_behaviors,
+             covered_edge_cases,

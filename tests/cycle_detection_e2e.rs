@@ -32,7 +32,7 @@ fn create_workflow_with_connections(deps: Vec<(NodeId, Vec<NodeId>)>) -> Workflo
         let node = make_node(*id, node_deps.clone());
         workflow.nodes.push(node);
         for target in node_deps {
-            let _ = workflow.add_connection_checked(
+            workflow.add_connection_checked(
                 *id,
                 *target,
                 &PortName::from("main"),
@@ -135,7 +135,7 @@ fn e2e_workflow_without_cycles_completes_successfully() {
     let mut workflow = create_workflow_with_connections(deps);
 
     // When: User runs the workflow
-    let _ = workflow.prepare_run();
+    workflow.prepare_run();
 
     // Then: All nodes should be in the execution queue
     // RED PHASE: This test PASSES because the implementation works correctly for DAGs

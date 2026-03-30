@@ -1,0 +1,21 @@
+--- src/coverage/mod.rs
++++ replace / with * in CoverageAnalyzer::analyze_spec
+@@ -379,17 +379,17 @@
+             covered_behaviors,
+             total_edge_cases: edge_case_ids.len(),
+             covered_edge_cases,
+             coverage_percentage: if behavior_ids.is_empty() {
+                 0.0
+             } else {
+                 #[allow(clippy::cast_precision_loss)]
+                 {
+-                    covered_behaviors as f64 / behavior_ids.len() as f64 * 100.0
++                    covered_behaviors as f64 * /* ~ changed by cargo-mutants ~ */ behavior_ids.len() as f64 * 100.0
+                 }
+             },
+             missing_behaviors,
+             missing_edge_cases,
+         }))
+     }
+ 
+     fn find_scenarios_for_spec(

@@ -1,0 +1,23 @@
+--- src/bin/flow_extend.rs
++++ replace parse_workflow -> Result<Workflow, Box<dyn std::error::Error>> with Ok(Default::default())
+@@ -40,19 +40,17 @@
+         /// Optional output path. Defaults to in-place write.
+         #[arg(long)]
+         output: Option<PathBuf>,
+     },
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn parse_workflow(path: &PathBuf) -> Result<Workflow, Box<dyn std::error::Error>> {
+-    let content = std::fs::read_to_string(path)?;
+-    let workflow = serde_json::from_str::<Workflow>(&content)?;
+-    Ok(workflow)
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn write_workflow(path: &PathBuf, workflow: &Workflow) -> Result<(), Box<dyn std::error::Error>> {
+     let content = serde_json::to_string_pretty(workflow)?;
+     std::fs::write(path, content)?;
+     Ok(())
+ }

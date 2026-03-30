@@ -52,7 +52,7 @@ impl FeedbackGenerator {
     pub fn new() -> Self {
         let mut templates = HashMap::new();
 
-        let _ = templates.insert(
+        templates.insert(
             "spec-quality".to_string(),
             FeedbackTemplate {
                 title: "Specification Quality Issue".to_string(),
@@ -63,10 +63,10 @@ impl FeedbackGenerator {
                     "Add observable outcomes to all behaviors".to_string(),
                     "Specify exact error responses".to_string(),
                 ],
-            }
+            },
         );
 
-        let _ = templates.insert(
+        templates.insert(
             "validation-failure".to_string(),
             FeedbackTemplate {
                 title: "Behavioral Validation Failed".to_string(),
@@ -82,7 +82,7 @@ impl FeedbackGenerator {
             },
         );
 
-        let _ = templates.insert(
+        templates.insert(
             "security-issue".to_string(),
             FeedbackTemplate {
                 title: "Security Vulnerability Detected".to_string(),
@@ -97,7 +97,7 @@ impl FeedbackGenerator {
             },
         );
 
-        let _ = templates.insert(
+        templates.insert(
             "integration-failure".to_string(),
             FeedbackTemplate {
                 title: "Integration Issue".to_string(),
@@ -108,7 +108,7 @@ impl FeedbackGenerator {
                     "Test with real twin instances if possible".to_string(),
                     "Review API contract compliance".to_string(),
                 ],
-            }
+            },
         );
 
         Self { templates }
@@ -165,7 +165,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_feedback_generator() {
+    fn feedback_generator_generates_message_for_validation_failure() {
         let generator = FeedbackGenerator::new();
 
         let request = FeedbackRequest {
@@ -179,5 +179,100 @@ mod tests {
 
         assert!(!feedback.message.is_empty());
         assert!(!feedback.hints.is_empty());
+    }
+
+    #[test]
+    fn feedback_generator_generates_message_for_spec_quality_issue() {
+        let generator = FeedbackGenerator::new();
+
+        let request = FeedbackRequest {
+            failure_category: FailureCategory::Spec,
+            spec_ref: "spec-002".to_string(),
+            iteration: 1,
+            failure_context: "Spec quality issue".to_string(),
+        };
+
+        let feedback = generator.generate(&request);
+
+        assert!(feedback.message.contains("Specification Quality"));
+        assert_eq!(feedback.priority, "low");
+    }
+
+    #[test]
+    fn feedback_generator_generates_message_for_security_issue() {
+        let generator = FeedbackGenerator::new();
+
+        let request = FeedbackRequest {
+            failure_category: FailureCategory::Security,
+            spec_ref: "spec-003".to_string(),
+            iteration: 1,
+            failure_context: "Security issue".to_string(),
+        };
+
+        let feedback = generator.generate(&request);
+
+        assert!(feedback.message.contains("Security"));
+        assert_eq!(feedback.priority, "high");
+    }
+
+    #[test]
+    fn feedback_generator_generates_message_for_integration_failure() {
+        let generator = FeedbackGenerator::new();
+
+        let request = FeedbackRequest {
+            failure_category: FailureCategory::Integration,
+            spec_ref: "spec-004".to_string(),
+            iteration: 1,
+            failure_context: "Integration issue".to_string(),
+        };
+
+        let feedback = generator.generate(&request);
+
+        assert!(feedback.message.contains("Integration"));
+        assert_eq!(feedback.priority, "medium");
+    }
+
+    #[test]
+    fn feedback_generator_generates_batch_feedback_correctly() {
+        let generator = FeedbackGenerator::new();
+
+        let requests = vec![
+            FeedbackRequest {
+                failure_category: FailureCategory::Validation,
+                spec_ref: "spec-001".to_string(),
+                iteration: 1,
+                failure_context: "Context 1".to_string(),
+            },
+            FeedbackRequest {
+                failure_category: FailureCategory::Spec,
+                spec_ref: "spec-002".to_string(),
+                iteration: 1,
+                failure_context: "Context 2".to_string(),
+            },
+        ];
+
+        let feedbacks = generator.generate_batch(&requests);
+
+        assert_eq!(feedbacks.len(), 2);
+        assert!(!feedbacks[0].message.is_empty());
+        assert!(!feedbacks[1].message.is_empty());
+    }
+
+    #[test]
+    fn feedback_generator_handles_unknown_category_with_fallback() {
+        // Test that an unknown category falls back to default message
+        let generator = FeedbackGenerator::new();
+
+        let request = FeedbackRequest {
+            failure_category: FailureCategory::Validation,
+            spec_ref: "spec-001".to_string(),
+            iteration: 1,
+            failure_context: "Test context".to_string(),
+        };
+
+        let feedback = generator.generate(&request);
+
+        assert!(!feedback.spec_reference.is_empty());
+        assert_eq!(feedback.spec_reference, "spec-001");
     }
 }

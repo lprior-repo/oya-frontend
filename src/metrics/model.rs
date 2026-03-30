@@ -220,6 +220,7 @@ impl SuggestionKey {
         Self(key.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -265,15 +266,18 @@ impl FeedbackLevel {
         }
     }
 
-    pub fn value(&self) -> u8 {
+    #[must_use]
+    pub fn value(self) -> u8 {
         self.0
     }
 
-    pub fn is_minimal(&self) -> bool {
+    #[must_use]
+    pub fn is_minimal(self) -> bool {
         self.0 == Self::MIN
     }
 
-    pub fn is_transparent(&self) -> bool {
+    #[must_use]
+    pub fn is_transparent(self) -> bool {
         self.0 == Self::MAX
     }
 
@@ -341,7 +345,8 @@ impl Priority {
         }
     }
 
-    pub fn value(&self) -> u8 {
+    #[must_use]
+    pub fn value(self) -> u8 {
         self.0
     }
 }
@@ -360,11 +365,13 @@ impl IterationNumber {
         Self(n)
     }
 
-    pub fn value(&self) -> u32 {
+    #[must_use]
+    pub fn value(self) -> u32 {
         self.0
     }
 
-    pub fn increment(&self) -> Self {
+    #[must_use]
+    pub fn increment(self) -> Self {
         Self(self.0 + 1)
     }
 }

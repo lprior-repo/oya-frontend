@@ -9,7 +9,7 @@ use crate::graph::NodeId;
 // ===========================================================================
 
 /// Execution plan with topologically sorted nodes.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionPlan {
     /// Topologically sorted execution order.
     pub execution_order: Vec<NodeId>,

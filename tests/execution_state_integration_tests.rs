@@ -55,7 +55,7 @@ fn set_node_status_updates_config_on_queued_to_running() {
     );
 
     // First transition to Queued
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
 
     // Then transition to Running
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -78,7 +78,7 @@ fn set_node_status_updates_config_on_queued_to_skipped() {
     );
 
     // First transition to Queued
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
 
     // Then transition to Skipped
     let result = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
@@ -101,8 +101,8 @@ fn set_node_status_updates_config_on_running_to_completed() {
     );
 
     // Transition to Running
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     // Then transition to Completed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Completed);
@@ -125,8 +125,8 @@ fn set_node_status_updates_config_on_running_to_failed() {
     );
 
     // Transition to Running
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     // Then transition to Failed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Failed);
@@ -153,9 +153,9 @@ fn set_node_status_returns_error_on_completed_to_running() {
     );
 
     // First transition to Completed
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Completed);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
     // Try to transition from Completed to Running
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -183,8 +183,8 @@ fn set_node_status_returns_error_on_running_to_idle() {
     );
 
     // Transition to Running first
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     // Try to go backwards
     let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
@@ -310,9 +310,9 @@ fn set_node_status_rejects_completed_to_any() {
     );
 
     // First reach Completed state
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Completed);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
     // Try any transition from Completed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -331,9 +331,9 @@ fn set_node_status_rejects_failed_to_any() {
     );
 
     // First reach Failed state
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Failed);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Failed);
 
     // Try any transition from Failed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -352,7 +352,7 @@ fn set_node_status_rejects_skipped_to_any() {
     );
 
     // First reach Skipped state
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
+    Workflow::set_node_status(&mut node, ExecutionState::Skipped);
 
     // Try any transition from Skipped
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -375,13 +375,13 @@ fn set_node_status_leaves_config_unchanged_on_failed_transition() {
     );
 
     // Set to Running first
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     let original_status = node.config.get("status").cloned();
 
     // Try invalid transition
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+    Workflow::set_node_status(&mut node, ExecutionState::Idle);
 
     // Config should be unchanged
     assert_eq!(node.config.get("status"), original_status.as_ref());
@@ -397,13 +397,13 @@ fn set_node_status_leaves_state_unchanged_on_failed_transition() {
     );
 
     // Set to Running first
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     let original_state = node.execution_state;
 
     // Try invalid transition
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+    Workflow::set_node_status(&mut node, ExecutionState::Idle);
 
     // State should be unchanged
     assert_eq!(node.execution_state, original_state);
@@ -442,7 +442,7 @@ fn set_node_pending_status_allows_queued_to_queued() {
     );
 
     // First set to Queued
-    let _ = Workflow::set_node_pending_status(&mut node);
+    Workflow::set_node_pending_status(&mut node);
 
     // Then call again (Queued -> Queued is valid for pending)
     let result = Workflow::set_node_pending_status(&mut node);
@@ -465,8 +465,8 @@ fn set_node_pending_status_rejects_running_to_queued() {
     );
 
     // Set to Running
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     // Try to set pending
     let result = Workflow::set_node_pending_status(&mut node);
@@ -492,9 +492,9 @@ fn set_node_pending_status_rejects_completed_to_queued() {
     );
 
     // Set to Completed
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Completed);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
     // Try to set pending
     let result = Workflow::set_node_pending_status(&mut node);
@@ -520,9 +520,9 @@ fn set_node_pending_status_rejects_failed_to_queued() {
     );
 
     // Set to Failed
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Failed);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Failed);
 
     // Try to set pending
     let result = Workflow::set_node_pending_status(&mut node);
@@ -548,7 +548,7 @@ fn set_node_pending_status_rejects_skipped_to_queued() {
     );
 
     // Set to Skipped
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
+    Workflow::set_node_status(&mut node, ExecutionState::Skipped);
 
     // Try to set pending
     let result = Workflow::set_node_pending_status(&mut node);
@@ -574,13 +574,13 @@ fn set_node_pending_status_leaves_config_unchanged_on_failure() {
     );
 
     // Set to Running
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     let original_status = node.config.get("status").cloned();
 
     // Try invalid set_node_pending_status
-    let _ = Workflow::set_node_pending_status(&mut node);
+    Workflow::set_node_pending_status(&mut node);
 
     // Config should be unchanged
     assert_eq!(node.config.get("status"), original_status.as_ref());

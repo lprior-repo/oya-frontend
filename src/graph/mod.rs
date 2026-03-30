@@ -9,10 +9,10 @@ pub mod calc;
 pub mod connectivity;
 pub mod core;
 mod core_types;
-mod domain_types;
-mod execution;
 #[cfg(test)]
 mod cycle_detection_tests;
+mod domain_types;
+mod execution;
 pub mod execution_errors;
 pub mod execution_record;
 pub mod execution_record_types;
@@ -61,7 +61,10 @@ pub use execution_state::{
     InvalidTransition, QueuedState, RunningState, SkippedState, StateTransition, TerminalState,
 };
 pub use primitives::{Connection, NodeCategory, NodeId, PortName};
-pub use validation::{validate_workflow, ValidationIssue, ValidationResult, ValidationSeverity};
+pub use validation::{
+    validate_unique_node_ids, validate_workflow, ValidationIssue, ValidationResult,
+    ValidationSeverity,
+};
 pub use workflow_node::configs::{
     ConditionConfig, HttpHandlerConfig, RunConfig, SendMessageConfig, SetStateConfig,
 };

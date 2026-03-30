@@ -1,0 +1,21 @@
+--- src/coverage/mod.rs
++++ replace == with != in CoverageAnalyzer::find_scenarios_for_spec
+@@ -409,17 +409,17 @@
+                     path: path.clone(),
+                     source,
+                 }
+             })?;
+ 
+             if let Some(scenario) = yaml.get("scenario") {
+                 if let Some(ref_str) = scenario.get("spec_ref").and_then(Value::as_str) {
+                     let normalized_ref = Self::normalize_spec_ref(ref_str);
+-                    if normalized_ref == normalized_spec_id {
++                    if normalized_ref != /* ~ changed by cargo-mutants ~ */ normalized_spec_id {
+                         scenarios.push((yaml, path.clone()));
+                     }
+                 }
+             }
+         }
+         Ok(scenarios)
+     }
+ }

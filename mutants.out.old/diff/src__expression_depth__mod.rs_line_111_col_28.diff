@@ -1,0 +1,21 @@
+--- src/expression_depth/mod.rs
++++ replace + with - in ExpressionDepth::increment
+@@ -103,17 +103,17 @@
+     /// ```
+     pub const fn increment(&self) -> Result<Self, Error> {
+         if self.0 >= MAX_EXPRESSION_DEPTH {
+             Err(Error::DepthLimitExceeded {
+                 current_depth: self.0,
+                 max_depth: MAX_EXPRESSION_DEPTH,
+             })
+         } else {
+-            Ok(Self(self.0 + 1))
++            Ok(Self(self.0 - /* ~ changed by cargo-mutants ~ */ 1))
+         }
+     }
+ 
+     /// Checks if the depth is within valid bounds.
+     ///
+     /// This method is primarily useful for testing invalid depths constructed
+     /// via unsafe transmute, as the public constructor `new()` already validates.
+     ///

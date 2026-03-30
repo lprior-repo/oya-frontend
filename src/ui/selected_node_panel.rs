@@ -1044,7 +1044,7 @@ mod tests {
     #[test]
     fn collect_previews_deduplicates_duplicate_keys() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 10.0, 10.0);
+        workflow.add_node("run", 10.0, 10.0);
         let keys = vec![
             "add-timeout-guard".to_string(),
             "add-timeout-guard".to_string(),
@@ -1058,7 +1058,7 @@ mod tests {
     #[test]
     fn collect_previews_ignores_unknown_keys_but_keeps_valid_previews() {
         let mut workflow = Workflow::new();
-        let _ = workflow.add_node("run", 10.0, 10.0);
+        workflow.add_node("run", 10.0, 10.0);
         let keys = vec![
             "unknown-extension-key".to_string(),
             "add-timeout-guard".to_string(),

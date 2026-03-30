@@ -1,15 +1,15 @@
 //! Execution engine type definitions.
 //!
 //! This module contains all the type definitions for the execution engine:
-//! - ExecutionOutcome
-//! - NodeOutput
-//! - SharedContext
-//! - ExecutionMetadata
-//! - ExecutionConfig
-//! - NodeExecutionConfig
-//! - ExecutionContext
-//! - ExecutionPlan
-//! - ExecutionResult
+//! - `ExecutionOutcome`
+//! - `NodeOutput`
+//! - `SharedContext`
+//! - `ExecutionMetadata`
+//! - `ExecutionConfig`
+//! - `NodeExecutionConfig`
+//! - `ExecutionContext`
+//! - `ExecutionPlan`
+//! - `ExecutionResult`
 
 pub mod config;
 pub mod context;

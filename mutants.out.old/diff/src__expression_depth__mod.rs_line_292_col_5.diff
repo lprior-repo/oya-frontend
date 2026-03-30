@@ -1,0 +1,30 @@
+--- src/expression_depth/mod.rs
++++ replace calculate_depth -> u32 with 0
+@@ -284,26 +284,17 @@
+ /// let leaf = Expression {
+ ///     value: Some("leaf".to_string()),
+ ///     children: vec![],
+ /// };
+ /// assert_eq!(calculate_depth(&leaf), 0);
+ /// ```
+ #[must_use]
+ pub fn calculate_depth(expression: &Expression) -> u32 {
+-    if expression.children.is_empty() {
+-        0
+-    } else {
+-        1 + expression
+-            .children
+-            .iter()
+-            .map(|child| calculate_depth(child))
+-            .max()
+-            .unwrap_or(0)
+-    }
++    0 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Validate expression depth before resolution.
+ ///
+ /// # Arguments
+ /// * `expression` - The expression to validate
+ ///
+ /// # Returns

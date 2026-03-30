@@ -1,0 +1,56 @@
+--- src/dashboard/mod.rs
++++ replace format_text_summary -> String with String::new()
+@@ -144,52 +144,10 @@
+ 
+     std::fs::write(output, report)?;
+ 
+     println!("✅ Exported metrics to {}", output.display());
+     Ok(())
+ }
+ 
+ fn format_text_summary(summary: &crate::metrics::MetricsSummary) -> String {
+-    let total = summary.total_sessions;
+-    let passed_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.passed_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-    let failed_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.failed_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-    let escalated_pct = if total > 0 {
+-        #[allow(clippy::cast_precision_loss)]
+-        {
+-            summary.escalated_sessions as f64 / total as f64 * 100.0
+-        }
+-    } else {
+-        0.0
+-    };
+-
+-    format!(
+-        "Quality Gate Metrics
+-====================
+-
+-Total Sessions: {}
+-Passed: {} ({passed_pct:.1}%)
+-Failed: {} ({failed_pct:.1}%)
+-Escalated: {} ({escalated_pct:.1}%)
+-
+-Avg Iterations to Pass: {:.2}
+-",
+-        summary.total_sessions,
+-        summary.passed_sessions,
+-        summary.failed_sessions,
+-        summary.escalated_sessions,
+-        summary.avg_iterations_to_pass
+-    )
++    String::new() /* ~ changed by cargo-mutants ~ */
+ }

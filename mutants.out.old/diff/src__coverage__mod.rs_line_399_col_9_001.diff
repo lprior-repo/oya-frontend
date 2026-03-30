@@ -1,0 +1,45 @@
+--- src/coverage/mod.rs
++++ replace CoverageAnalyzer::find_scenarios_for_spec -> Result<Vec<(Value, PathBuf)>, CoverageError> with Ok(vec![(Default::default(), Default::default())])
+@@ -391,41 +391,17 @@
+             missing_edge_cases,
+         }))
+     }
+ 
+     fn find_scenarios_for_spec(
+         &self,
+         spec_id: &str,
+     ) -> Result<Vec<(Value, PathBuf)>, CoverageError> {
+-        let mut scenarios = Vec::new();
+-        let normalized_spec_id = Self::normalize_spec_ref(spec_id);
+-
+-        for path in self.collect_yaml_files(&self.scenarios_dir)? {
+-            let content = fs::read_to_string(&path).map_err(|source| CoverageError::ReadFile {
+-                path: path.clone(),
+-                source,
+-            })?;
+-            let yaml = serde_yaml::from_str::<Value>(&content).map_err(|source| {
+-                CoverageError::MalformedYaml {
+-                    path: path.clone(),
+-                    source,
+-                }
+-            })?;
+-
+-            if let Some(scenario) = yaml.get("scenario") {
+-                if let Some(ref_str) = scenario.get("spec_ref").and_then(Value::as_str) {
+-                    let normalized_ref = Self::normalize_spec_ref(ref_str);
+-                    if normalized_ref == normalized_spec_id {
+-                        scenarios.push((yaml, path.clone()));
+-                    }
+-                }
+-            }
+-        }
+-        Ok(scenarios)
++        Ok(vec![(Default::default(), Default::default())]) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+     use std::fs;
+     use std::time::{SystemTime, UNIX_EPOCH};
