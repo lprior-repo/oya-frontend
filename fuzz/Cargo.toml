@@ -1,0 +1,27 @@
+[package]
+name = "oya-frontend-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+oya-frontend = { path = ".." }
+
+[[bin]]
+name = "parse_expression_depth"
+path = "fuzz_targets/parse_expression_depth.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "deserialize_expression_tree"
+path = "fuzz_targets/deserialize_expression_tree.rs"
+test = false
+doc = false
+
+[profile.release]
+debug = 1
