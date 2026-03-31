@@ -111,7 +111,7 @@ impl Invocation {
     pub fn started_at(&self) -> DateTime<Utc> {
         DateTime::from_timestamp_millis(self.created_at).unwrap_or_else(|| {
             // Safe unwrap: timestamp 0 is always valid
-            chrono::TimeZone::timestamp_opt(&Utc, 0, 0).unwrap()
+            chrono::DateTime::from_timestamp(0, 0).unwrap_or(chrono::DateTime::UNIX_EPOCH)
         })
     }
 

@@ -76,7 +76,7 @@ impl ExpressionDepth {
     /// ```
     /// use oya_frontend::expression_depth::ExpressionDepth;
     ///
-    /// let depth = ExpressionDepth::new(5).unwrap();
+    /// let depth = ExpressionDepth::new(5).expect("5 is within valid range");
     /// assert_eq!(depth.current(), 5);
     /// ```
     #[must_use]
@@ -97,8 +97,8 @@ impl ExpressionDepth {
     /// ```
     /// use oya_frontend::expression_depth::ExpressionDepth;
     ///
-    /// let depth = ExpressionDepth::new(100).unwrap();
-    /// let next = depth.increment().unwrap();
+    /// let depth = ExpressionDepth::new(100).expect("100 is within valid range");
+    /// let next = depth.increment().expect("increment succeeded");
     /// assert_eq!(next.current(), 101);
     /// ```
     pub const fn increment(&self) -> Result<Self, Error> {
@@ -125,7 +125,7 @@ impl ExpressionDepth {
     /// ```
     /// use oya_frontend::expression_depth::ExpressionDepth;
     ///
-    /// let valid = ExpressionDepth::new(1024).unwrap();
+    /// let valid = ExpressionDepth::new(1024).expect("1024 is MAX_EXPRESSION_DEPTH");
     /// assert!(valid.is_valid());
     /// ```
     #[must_use]
@@ -373,7 +373,7 @@ pub fn validate_expression_depth(expression: &Expression) -> Result<ExpressionDe
 ///     children: vec![],
 /// };
 /// let registry: ExpressionRegistry = HashMap::new();
-/// let depth = ExpressionDepth::new(0).unwrap();
+/// let depth = ExpressionDepth::new(0).expect("0 is valid depth");
 ///
 /// let result = resolve_expressions::<i32>(&expression, &registry, depth);
 /// assert!(result.is_ok());

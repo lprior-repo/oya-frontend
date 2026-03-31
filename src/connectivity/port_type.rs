@@ -28,8 +28,8 @@ impl PortType {
     /// ```
     /// use oya_frontend::connectivity::PortType;
     ///
-    /// let tcp = PortType::parse("tcp:8080").unwrap();
-    /// let unix = PortType::parse("unix:/var/run/socket").unwrap();
+    /// let tcp = PortType::parse("tcp:8080").expect("tcp:8080 is valid");
+    /// let unix = PortType::parse("unix:/var/run/socket").expect("unix socket path is valid");
     /// ```
     pub fn parse(s: &str) -> Result<Self, PortTypeParseError> {
         let trimmed = s.trim();
