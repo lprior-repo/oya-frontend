@@ -76,7 +76,9 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
 
     for conn in &workflow.connections {
         if node_ids.contains_key(&conn.source) && node_ids.contains_key(&conn.target) {
-            *in_degree.get_mut(&conn.target).unwrap() += 1;
+            if let Some(deg) = in_degree.get_mut(&conn.target) {
+                *deg += 1;
+            }
         }
     }
 
@@ -104,9 +106,11 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
             .collect();
 
         for target in &next_nodes {
-            *local_in_degree.get_mut(target).unwrap() -= 1;
-            if *local_in_degree.get(target).unwrap() == 0 {
-                queue.push(*target);
+            if let Some(deg) = local_in_degree.get_mut(target) {
+                *deg -= 1;
+                if *deg == 0 {
+                    queue.push(*target);
+                }
             }
         }
     }

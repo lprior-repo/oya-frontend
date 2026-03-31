@@ -27,8 +27,8 @@ use super::PortType;
 /// ```
 /// use oya_frontend::connectivity::{validate_connection, PortType};
 ///
-/// let tcp = PortType::parse("tcp:8080").unwrap();
-/// let udp = PortType::parse("udp:53").unwrap();
+/// let tcp = PortType::parse("tcp:8080").expect("tcp:8080 is valid");
+/// let udp = PortType::parse("udp:53").expect("udp:53 is valid");
 ///
 /// assert!(validate_connection("tcp:8080", "udp:53", "", "").is_ok());
 /// ```

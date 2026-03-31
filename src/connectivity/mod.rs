@@ -376,7 +376,7 @@ impl GlobalConnectionStore {
         let Ok(store) = self.store.read() else {
             return Vec::new();
         };
-        store.list_connections().unwrap_or_default()
+        store.list_connections().ok().unwrap_or_default()
     }
 
     /// Clears all connections.
@@ -400,14 +400,15 @@ impl Default for GlobalConnectionStore {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
     #[test]
     fn given_valid_tcp_ports_when_adding_checked_connection_then_connection_is_created() {
         let mut store = ConnectionStore::new();
-        let source = PortType::parse("tcp:8080").unwrap();
-        let destination = PortType::parse("tcp:9090").unwrap();
+        let source = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
+        let destination = PortType::parse("tcp:9090").expect("tcp:9090 should parse");
 
         let result = store.add_connection_checked(source, destination, "test");
 
@@ -418,8 +419,9 @@ mod tests {
     #[test]
     fn given_incompatible_ports_when_adding_checked_connection_then_type_mismatch_is_returned() {
         let mut store = ConnectionStore::new();
-        let source = PortType::parse("tcp:8080").unwrap();
-        let destination = PortType::parse("unix:/tmp/socket").unwrap();
+        let source = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
+        let destination =
+            PortType::parse("unix:/tmp/socket").expect("unix:/tmp/socket should parse");
 
         let result = store.add_connection_checked(source, destination, "test");
 
@@ -431,8 +433,8 @@ mod tests {
     ) {
         let mut store = ConnectionStore::new();
         let id = ConnectionId::new();
-        let source = PortType::parse("tcp:8080").unwrap();
-        let destination = PortType::parse("tcp:9090").unwrap();
+        let source = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
+        let destination = PortType::parse("tcp:9090").expect("tcp:9090 should parse");
         let connection = Connection {
             id,
             source,
@@ -455,11 +457,11 @@ mod tests {
         let mut store = ConnectionStore::new();
         let id = store
             .add_connection_checked(
-                PortType::parse("tcp:8080").unwrap(),
-                PortType::parse("tcp:9090").unwrap(),
+                PortType::parse("tcp:8080").expect("tcp:8080 should parse"),
+                PortType::parse("tcp:9090").expect("tcp:9090 should parse"),
                 "test",
             )
-            .unwrap();
+            .expect("connection should be added");
 
         let result = store.remove_connection(id);
 
@@ -485,20 +487,22 @@ mod tests {
         let mut store = ConnectionStore::new();
         store
             .add_connection_checked(
-                PortType::parse("tcp:8080").unwrap(),
-                PortType::parse("tcp:9090").unwrap(),
+                PortType::parse("tcp:8080").expect("tcp:8080 should parse"),
+                PortType::parse("tcp:9090").expect("tcp:9090 should parse"),
                 "conn1",
             )
-            .unwrap();
+            .expect("connection1 should be added");
         store
             .add_connection_checked(
-                PortType::parse("udp:53").unwrap(),
-                PortType::parse("udp:5353").unwrap(),
+                PortType::parse("udp:53").expect("udp:53 should parse"),
+                PortType::parse("udp:5353").expect("udp:5353 should parse"),
                 "conn2",
             )
-            .unwrap();
+            .expect("connection2 should be added");
 
-        let connections = store.list_connections().unwrap();
+        let connections = store
+            .list_connections()
+            .expect("connections should be listed");
 
         assert_eq!(connections.len(), 2);
     }
@@ -512,13 +516,13 @@ mod tests {
     #[test]
     fn given_global_store_when_concurrent_access_then_no_data_races() {
         let store = GlobalConnectionStore::new();
-        let source = PortType::parse("tcp:8080").unwrap();
-        let destination = PortType::parse("tcp:9090").unwrap();
+        let source = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
+        let destination = PortType::parse("tcp:9090").expect("tcp:9090 should parse");
 
         let result = store.add_connection_checked(source, destination, "test");
 
         assert!(result.is_ok());
-        let connection = store.get_connection(result.unwrap());
+        let connection = store.get_connection(result.expect("connection should be added"));
         assert!(connection.is_ok());
     }
 }

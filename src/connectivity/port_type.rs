@@ -28,8 +28,8 @@ impl PortType {
     /// ```
     /// use oya_frontend::connectivity::PortType;
     ///
-    /// let tcp = PortType::parse("tcp:8080").unwrap();
-    /// let unix = PortType::parse("unix:/var/run/socket").unwrap();
+    /// let tcp = PortType::parse("tcp:8080").expect("tcp:8080 is valid");
+    /// let unix = PortType::parse("unix:/var/run/socket").expect("unix socket path is valid");
     /// ```
     pub fn parse(s: &str) -> Result<Self, PortTypeParseError> {
         let trimmed = s.trim();
@@ -166,6 +166,7 @@ impl fmt::Display for PortTypeParseError {
 impl std::error::Error for PortTypeParseError {}
 
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
@@ -213,19 +214,20 @@ mod tests {
 
     #[test]
     fn given_uppercase_tcp_when_parsing_then_it_is_normalized() {
-        let result = PortType::parse("TCP:8080").unwrap();
+        let result = PortType::parse("TCP:8080").expect("TCP:8080 should parse");
         assert_eq!(result.as_str(), "tcp:8080");
     }
 
     #[test]
     fn given_uppercase_udp_when_parsing_then_it_is_normalized() {
-        let result = PortType::parse("UDP:53").unwrap();
+        let result = PortType::parse("UDP:53").expect("UDP:53 should parse");
         assert_eq!(result.as_str(), "udp:53");
     }
 
     #[test]
     fn given_uppercase_unix_when_parsing_then_it_is_normalized() {
-        let result = PortType::parse("UNIX:/var/run/socket").unwrap();
+        let result =
+            PortType::parse("UNIX:/var/run/socket").expect("UNIX:/var/run/socket should parse");
         assert_eq!(result.as_str(), "unix:/var/run/socket");
     }
 
@@ -273,44 +275,40 @@ mod tests {
 
     #[test]
     fn given_valid_tcp_port_one_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("tcp:1");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "tcp:1");
+        let result = PortType::parse("tcp:1").expect("tcp:1 should parse");
+        assert_eq!(result.as_str(), "tcp:1");
     }
 
     #[test]
     fn given_valid_tcp_port_max_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("tcp:65535");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "tcp:65535");
+        let result = PortType::parse("tcp:65535").expect("tcp:65535 should parse");
+        assert_eq!(result.as_str(), "tcp:65535");
     }
 
     #[test]
     fn given_valid_udp_port_one_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("udp:1");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "udp:1");
+        let result = PortType::parse("udp:1").expect("udp:1 should parse");
+        assert_eq!(result.as_str(), "udp:1");
     }
 
     #[test]
     fn given_valid_udp_port_max_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("udp:65535");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "udp:65535");
+        let result = PortType::parse("udp:65535").expect("udp:65535 should parse");
+        assert_eq!(result.as_str(), "udp:65535");
     }
 
     #[test]
     fn given_valid_unix_path_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("unix:/var/run/socket");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "unix:/var/run/socket");
+        let result =
+            PortType::parse("unix:/var/run/socket").expect("unix:/var/run/socket should parse");
+        assert_eq!(result.as_str(), "unix:/var/run/socket");
     }
 
     #[test]
     fn given_unix_path_with_spaces_when_parsing_then_it_succeeds() {
-        let result = PortType::parse("unix: /var/run/socket ");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "unix:/var/run/socket");
+        let result =
+            PortType::parse("unix: /var/run/socket ").expect("unix: /var/run/socket  should parse");
+        assert_eq!(result.as_str(), "unix:/var/run/socket");
     }
 
     #[test]
@@ -321,81 +319,83 @@ mod tests {
 
     #[test]
     fn given_whitespace_padded_input_when_parsing_then_it_is_trimmed() {
-        let result = PortType::parse("  tcp:8080  ");
-        assert!(matches!(result, Ok(_)));
-        assert_eq!(result.unwrap().as_str(), "tcp:8080");
+        let result = PortType::parse("  tcp:8080  ").expect("tcp:8080 should parse");
+        assert_eq!(result.as_str(), "tcp:8080");
     }
 
     #[test]
     fn given_tcp_port_when_is_tcp_then_it_returns_true() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert!(port.is_tcp());
     }
 
     #[test]
     fn given_tcp_port_when_is_udp_then_it_returns_false() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert!(!port.is_udp());
     }
 
     #[test]
     fn given_tcp_port_when_is_unix_then_it_returns_false() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert!(!port.is_unix());
     }
 
     #[test]
     fn given_udp_port_when_is_tcp_then_it_returns_false() {
-        let port = PortType::parse("udp:53").unwrap();
+        let port = PortType::parse("udp:53").expect("udp:53 should parse");
         assert!(!port.is_tcp());
     }
 
     #[test]
     fn given_udp_port_when_is_udp_then_it_returns_true() {
-        let port = PortType::parse("udp:53").unwrap();
+        let port = PortType::parse("udp:53").expect("udp:53 should parse");
         assert!(port.is_udp());
     }
 
     #[test]
     fn given_unix_port_when_is_unix_then_it_returns_true() {
-        let port = PortType::parse("unix:/var/run/socket").unwrap();
+        let port =
+            PortType::parse("unix:/var/run/socket").expect("unix:/var/run/socket should parse");
         assert!(port.is_unix());
     }
 
     #[test]
     fn given_unix_port_when_is_tcp_then_it_returns_false() {
-        let port = PortType::parse("unix:/var/run/socket").unwrap();
+        let port =
+            PortType::parse("unix:/var/run/socket").expect("unix:/var/run/socket should parse");
         assert!(!port.is_tcp());
     }
 
     #[test]
     fn given_tcp_port_when_protocol_then_it_returns_tcp() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert_eq!(port.protocol(), "tcp");
     }
 
     #[test]
     fn given_tcp_port_when_address_then_it_returns_port() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert_eq!(port.address(), "8080");
     }
 
     #[test]
     fn given_unix_port_when_address_then_it_returns_path() {
-        let port = PortType::parse("unix:/var/run/socket").unwrap();
+        let port =
+            PortType::parse("unix:/var/run/socket").expect("unix:/var/run/socket should parse");
         assert_eq!(port.address(), "/var/run/socket");
     }
 
     #[test]
     fn given_valid_port_when_display_then_it_returns_string() {
-        let port = PortType::parse("tcp:8080").unwrap();
+        let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
         assert_eq!(format!("{}", port), "tcp:8080");
     }
 
     #[test]
     fn given_valid_port_when_from_str_then_it_parses() {
         use std::str::FromStr;
-        let port = PortType::from_str("tcp:8080").unwrap();
+        let port = PortType::from_str("tcp:8080").expect("tcp:8080 should parse");
         assert_eq!(port.as_str(), "tcp:8080");
     }
 }

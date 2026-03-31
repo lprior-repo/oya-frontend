@@ -14,6 +14,11 @@ use thiserror::Error;
 pub struct ZoomFactor(pub f32); // invariant: 0.15 <= value <= 3.0
 
 impl ZoomFactor {
+    /// Creates a new [`ZoomFactor`] from an f32 value.
+    ///
+    /// # Errors
+    /// Returns `None` if the value is not finite or outside the range [0.15, 3.0].
+    #[must_use = "ZoomFactor construction may fail if value is invalid"]
     pub fn from_f32(value: f32) -> Option<Self> {
         if value.is_finite() && (0.15..=3.0).contains(&value) {
             Some(ZoomFactor(value))
@@ -22,6 +27,8 @@ impl ZoomFactor {
         }
     }
 
+    /// Returns the underlying f32 value.
+    #[must_use]
     pub fn value(&self) -> f32 {
         self.0
     }
@@ -44,6 +51,11 @@ impl std::fmt::Display for ClassListError {
 impl std::error::Error for ClassListError {}
 
 impl ClassList {
+    /// Creates a new [`ClassList`] from a string.
+    ///
+    /// # Errors
+    /// Returns [`ClassListError::Empty`] if the input string is empty or whitespace-only.
+    #[must_use = "ClassList construction may fail if input is empty"]
     pub fn from_string(s: &str) -> Result<Self, ClassListError> {
         let trimmed = s.trim();
         if trimmed.is_empty() {
@@ -54,6 +66,8 @@ impl ClassList {
         ))
     }
 
+    /// Returns the underlying string slice.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -63,6 +77,11 @@ impl ClassList {
 pub struct CssToken(pub String); // must exist in approved token set
 
 impl CssToken {
+    /// Creates a new [`CssToken`] from a string if it's in the approved set.
+    ///
+    /// # Errors
+    /// Returns [`MigrationError::UnsupportedCssToken`] if the token is not in the approved set.
+    #[must_use = "CssToken construction may fail if token is not approved"]
     pub fn from_string(
         token: &str,
         approved_set: &HashSet<String>,
@@ -76,6 +95,8 @@ impl CssToken {
         }
     }
 
+    /// Returns the underlying string slice.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -85,6 +106,11 @@ impl CssToken {
 pub struct Px(pub f32); // finite, non-negative where documented
 
 impl Px {
+    /// Creates a new [`Px`] from an f32 value.
+    ///
+    /// # Errors
+    /// Returns `None` if the value is not finite or not positive.
+    #[must_use = "Px construction may fail if value is invalid"]
     pub fn new(value: f32) -> Option<Self> {
         if value.is_finite() && value > 0.0 {
             Some(Px(value))
@@ -93,6 +119,8 @@ impl Px {
         }
     }
 
+    /// Returns the underlying f32 value.
+    #[must_use]
     pub fn value(&self) -> f32 {
         self.0
     }
@@ -102,10 +130,14 @@ impl Px {
 pub struct ComponentId(pub &'static str); // stable identity for parity checks
 
 impl ComponentId {
+    /// Creates a new [`ComponentId`] with a stable identity.
+    #[must_use]
     pub fn new(id: &'static str) -> Self {
         ComponentId(id)
     }
 
+    /// Returns the underlying string slice.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         self.0
     }
@@ -115,10 +147,14 @@ impl ComponentId {
 pub struct TestSelector(pub &'static str); // stable selectors for verification
 
 impl TestSelector {
+    /// Creates a new [`TestSelector`] with a stable selector.
+    #[must_use]
     pub fn new(selector: &'static str) -> Self {
         TestSelector(selector)
     }
 
+    /// Returns the underlying string slice.
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         self.0
     }
@@ -145,6 +181,11 @@ impl std::fmt::Display for NodeIdError {
 impl std::error::Error for NodeIdError {}
 
 impl NodeId {
+    /// Creates a new [`NodeId`] from a UUID string.
+    ///
+    /// # Errors
+    /// Returns [`NodeIdError::InvalidUuid`] if the string is not a valid UUID format.
+    #[must_use = "NodeId construction may fail if UUID is invalid"]
     pub fn new(uuid: &str) -> Result<Self, NodeIdError> {
         let parts: Vec<&str> = uuid.split('-').collect();
         if parts.len() != 5
@@ -157,6 +198,8 @@ impl NodeId {
         Ok(NodeId(uuid.to_string()))
     }
 
+    /// Returns the underlying string slice.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -169,6 +212,11 @@ pub struct FlowPosition {
 }
 
 impl FlowPosition {
+    /// Creates a new [`FlowPosition`] from x and y coordinates.
+    ///
+    /// # Errors
+    /// Returns `None` if either coordinate is not finite.
+    #[must_use = "FlowPosition construction may fail if coordinates are invalid"]
     pub fn new(x: f32, y: f32) -> Option<Self> {
         if x.is_finite() && y.is_finite() {
             Some(FlowPosition { x, y })
@@ -450,6 +498,10 @@ pub fn map_source_tokens_to_dioxus(
     })
 }
 
+/// Validates component structure against the contract.
+///
+/// # Errors
+/// Returns `MigrationError::DomStructureMismatch` if the rendered tree doesn't match the contract.
 pub fn validate_component_structure(
     _rendered: &RenderedTree,
     _contract: &UiParityContract,
