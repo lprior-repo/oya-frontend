@@ -42,3 +42,5 @@ pub use linter::{LintReport, SpecLinter};
 pub use metrics::{MetricsStore, MetricsSummary};
 #[cfg(not(target_arch = "wasm32"))]
 pub use scenario_runner::{ScenarioRunner, ValidationReport};
+
+pub mod migration;
