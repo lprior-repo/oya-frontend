@@ -4,10 +4,11 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::hooks::use_selection::SelectionState;
+use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::PayloadShape;
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, Workflow};
-use std::collections::HashMap;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum PayloadTab {
@@ -69,11 +70,14 @@ fn PayloadItem(payload: serde_json::Value, index: usize, label: String) -> Eleme
 
 #[component]
 pub fn PayloadPreviewPanel(
-    selected_node_id: ReadSignal<Option<NodeId>>,
-    nodes_by_id: ReadSignal<HashMap<NodeId, oya_frontend::graph::Node>>,
-    workflow: Signal<Workflow>,
     on_close: EventHandler<MouseEvent>,
 ) -> Element {
+    let selection: SelectionState = use_context();
+    let selected_node_id = selection.selected_id();
+    let workflow_state: WorkflowState = use_context();
+    let nodes_by_id = workflow_state.nodes_by_id();
+    let workflow = workflow_state.workflow();
+
     let mut active_tab: Signal<PayloadTab> = use_signal(|| PayloadTab::Input);
 
     let node_id = *selected_node_id.read();

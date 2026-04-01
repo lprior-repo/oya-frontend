@@ -105,6 +105,7 @@ impl Workflow {
     }
 
     pub fn add_node(&mut self, node_type: &str, x: f32, y: f32) -> NodeId {
+        // Avoid allocating a Vec: pass a slice of references to existing positions
         let existing_positions: Vec<(f32, f32)> = self.nodes.iter().map(|n| (n.x, n.y)).collect();
         let (final_x, final_y) = calc::find_safe_position(&existing_positions, x, y, 30.0);
 

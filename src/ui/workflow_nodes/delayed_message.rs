@@ -1,6 +1,11 @@
 use crate::ui::workflow_nodes::schema::{DelayedMessageConfig, TargetType};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const PRESET_BTN_CLASSES: &str = "px-2 py-2 text-sm border rounded-md hover:bg-gray-50";
+
 #[component]
 pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
     let pretty_input = if let Ok(value) = serde_json::to_string_pretty(&*config.read().input) {
@@ -46,11 +51,11 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Send to"
                 }
                 select {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500",
+                    class: "{INPUT_CLASSES}",
                     value: match config.read().target_type {
                         TargetType::Service => "Service",
                         TargetType::VirtualObject => "Virtual Object",
@@ -79,12 +84,12 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Service Name"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., reminder_service",
                     value: "{config.read().service_name}",
                     oninput: move |e| {
@@ -97,12 +102,12 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                 class: "form-field",
                 visible: matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow),
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Key (for objects/workflows)"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., user-456",
                     value: "{key_value}",
                     oninput: move |e| {
@@ -119,12 +124,12 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Handler"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., send_reminder",
                     value: "{config.read().handler_name}",
                     oninput: move |e| {
@@ -136,13 +141,15 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "How long to wait?"
                 }
                 div {
                     class: "grid grid-cols-4 gap-2 mb-2",
+                    role: "group",
+                    aria_label: "Delay presets",
                     button {
-                        class: "px-2 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().delay_ms = 60_000;
                             delay_error.set(None);
@@ -150,7 +157,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                         "1 min"
                     }
                     button {
-                        class: "px-2 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().delay_ms = 3600_000;
                             delay_error.set(None);
@@ -158,7 +165,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                         "1 hour"
                     }
                     button {
-                        class: "px-2 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().delay_ms = 86400_000;
                             delay_error.set(None);
@@ -166,7 +173,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                         "1 day"
                     }
                     button {
-                        class: "px-2 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().delay_ms = 604800_000;
                             delay_error.set(None);
@@ -177,9 +184,9 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                 input {
                     r#type: "number",
                     min: "1",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "Or enter milliseconds",
-                    value: "{config.read().delay_ms}",
+                    value: "{config.delay_ms}",
                     oninput: move |e| {
                         let value = e.value();
                         if value.trim().is_empty() {
@@ -211,13 +218,13 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Message (JSON)"
                 }
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm",
                     rows: 3,
-                    value: "{json_draft.read()}",
+                    value: "{json_draft}",
                     oninput: move |e| {
                         let draft = e.value().clone();
                         json_draft.set(draft.clone());
@@ -254,7 +261,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
 pub fn DelayedMessageNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center",

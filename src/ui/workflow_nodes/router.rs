@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{RouterBranch, RouterConfig};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 fn add_branch(branches: &[RouterBranch]) -> Vec<RouterBranch> {
     let branch_name = format!("Path {}", branches.len() + 1);
     branches
@@ -117,6 +121,7 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
                         button {
                             class: if can_remove_branch { "text-red-500 text-sm hover:underline" } else { "text-red-300 text-sm cursor-not-allowed" },
                             disabled: !can_remove_branch,
+                            aria_label: "Remove path {idx + 1}",
                             onclick: move |_| {
                                 config.write().branches = remove_branch_by_id(&config.read().branches, branch_id_for_remove.as_str());
                             },
@@ -126,10 +131,10 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
 
                     div {
                         class: "form-field",
-                        label { class: "block text-sm font-medium text-gray-700 mb-1", "Name this path" }
+                        label { class: "{LABEL_CLASSES}", "Name this path" }
                         input {
                             r#type: "text",
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500",
+                            class: "{INPUT_CLASSES}",
                             placeholder: "e.g., If approved, If rejected",
                             value: "{branch.name}",
                             oninput: move |e| {
@@ -140,10 +145,10 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
 
                     div {
                         class: "form-field",
-                        label { class: "block text-sm font-medium text-gray-700 mb-1", "When to take this path?" }
+                        label { class: "{LABEL_CLASSES}", "When to take this path?" }
                         input {
                             r#type: "text",
-                            class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500",
+                            class: "{INPUT_CLASSES}",
                             placeholder: "{{ steps.approve.status }} == 'approved'",
                             value: "{branch.condition}",
                             oninput: move |e| {
@@ -157,6 +162,7 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
 
             button {
                 class: "w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600",
+                aria_label: "Add another path",
                 onclick: move |_| config.write().branches = add_branch(&config.read().branches),
                 "+ Add Another Path"
             }
@@ -224,7 +230,7 @@ mod tests {
 pub fn RouterNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
             div { class: "w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center", span { class: "text-xl", "🔀" } },
             div {
                 class: "flex-1",

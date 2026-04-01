@@ -1,6 +1,11 @@
 use crate::ui::workflow_nodes::schema::WaitForSignalConfig;
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const PRESET_BTN_CLASSES: &str = "px-3 py-2 text-sm border rounded-md hover:bg-gray-50";
+
 #[component]
 pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
     rsx! {
@@ -20,14 +25,14 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Promise Name"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., payment_complete, order_shipped",
-                    value: "{config.read().promise_name}",
+                    value: "{config.promise_name}",
                     oninput: move |e| {
                         config.write().promise_name = e.value().clone();
                     }
@@ -41,27 +46,29 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Give up after..."
                 }
                 div {
                     class: "grid grid-cols-3 gap-2",
+                    role: "group",
+                    aria_label: "Timeout presets",
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().timeout_ms = Some(60000);
                         },
                         "1 minute"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().timeout_ms = Some(3600000);
                         },
                         "1 hour"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             config.write().timeout_ms = None;
                         },
@@ -85,7 +92,7 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
 pub fn WaitForSignalNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center",

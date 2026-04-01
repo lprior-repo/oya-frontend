@@ -228,7 +228,7 @@ fn given_orphan_source_connection_when_preparing_run_then_target_still_schedules
         target_port: PortName("main".to_string()),
     });
 
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
 
     assert!(workflow.execution_queue.contains(&target));
 }
@@ -325,7 +325,7 @@ async fn given_unschedulable_cycle_when_running_then_history_marks_run_as_unsucc
         target_port: PortName("main".to_string()),
     });
 
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
     assert!(workflow.execution_queue.is_empty());
 
     workflow.run().await;

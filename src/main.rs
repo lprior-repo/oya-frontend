@@ -4,14 +4,11 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-use crate::ui::restate::RestateInvocationsPanel;
 use crate::ui::{
-    CanvasContextMenu, ExecutionHistoryPanel, ExecutionPlanPanel, FlowEdges, FlowMinimap,
-    FlowNodeComponent, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar,
-    NodeTemplateId, ParallelGroupOverlay, PayloadPreviewPanel, PrototypePalette, RunStatusBar,
-    SelectedNodePanel, ValidationPanel,
+    CanvasArea, CanvasContextMenu, FlowPosition,
+    FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar, NodeTemplateId,
+    PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar, SelectedNodePanel,
 };
-use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
 use oya_frontend::graph::{validate_workflow, PortName, ValidationResult};
@@ -144,9 +141,9 @@ fn App() -> Element {
     });
 
     // Derived computations
-    let nodes = workflow.nodes();
+    let _nodes = workflow.nodes();
     let nodes_by_id = workflow.nodes_by_id();
-    let connections = workflow.connections();
+    let _connections = workflow.connections();
     let node_count = use_memo(move || workflow.nodes().read().len());
     let edge_count = use_memo(move || workflow.connections().read().len());
     let zoom_label = use_memo(move || format!("{:.0}%", workflow.viewport().read().zoom * 100.0));
@@ -268,9 +265,9 @@ fn App() -> Element {
     let mut prototype_open = use_signal(|| false);
 
     let vp = workflow.viewport();
-    let vx = vp.read().x;
-    let vy = vp.read().y;
-    let vz = vp.read().zoom;
+    let _vx = vp.read().x;
+    let _vy = vp.read().y;
+    let _vz = vp.read().zoom;
 
     // Temp edge computation for connecting mode
     let temp_edge = use_memo(move || {
@@ -532,18 +529,7 @@ fn App() -> Element {
                     class: "relative flex-1 overflow-hidden bg-gradient-to-br from-slate-50 via-cyan-50/40 to-sky-100/40 {canvas.cursor_class()}",
                     tabindex: "0",
                     onmouseenter: move |evt| {
-                        let page = evt.page_coordinates();
-                        let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                            origin
-                        } else {
-                            let element = evt.element_coordinates();
-                            #[allow(clippy::cast_possible_truncation)]
-                            let fallback_x = page.x as f32 - element.x as f32;
-                            #[allow(clippy::cast_possible_truncation)]
-                            let fallback_y = page.y as f32 - element.y as f32;
-                            (fallback_x, fallback_y)
-                        };
-                        canvas.set_origin(origin);
+                        crate::hooks::use_canvas_mouse::handle_canvas_mouseenter_event(&evt, canvas);
                     },
                     oncontextmenu: move |evt| {
                         evt.prevent_default();
@@ -561,133 +547,15 @@ fn App() -> Element {
                     },
                     onkeydown: move |evt| {
                         let key = evt.key().to_string().to_lowercase();
-
-                        if panels.any_open() {
-                            if key == "escape" {
-                                evt.prevent_default();
-                                panels.close_all();
-                            }
-                            return;
-                        }
-
-                        if key == " " || key == "space" {
-                            evt.prevent_default();
-                            canvas.enable_space_hand();
-                            return;
-                        }
-
-                        if key == "escape" {
-                            evt.prevent_default();
-                            panels.close_all();
-                            canvas.cancel_interaction();
-                            selection.clear_pending_drag();
-                            return;
-                        }
-
-                        if key == "k" {
-                            evt.prevent_default();
-                            panels.toggle_palette();
-                            return;
-                        }
-
-                        // Use command dispatcher for editor commands
-                        // Dioxus 0.7 has limited modifier detection - use default
-                        let modifiers = KeyModifiers::default();
-                        if let Some(cmd) = parse_key_event(&key, &modifiers) {
-                            evt.prevent_default();
-                            match cmd {
-                                EditorCommand::ZoomIn => {
-                                    workflow.zoom(0.12, 640.0, 400.0);
-                                }
-                                EditorCommand::ZoomOut => {
-                                    workflow.zoom(-0.12, 640.0, 400.0);
-                                }
-                                EditorCommand::FitView => {
-                                    workflow.fit_view(1280.0, 760.0, 200.0);
-                                }
-                                EditorCommand::AutoLayout => {
-                                    workflow.apply_layout();
-                                }
-                                EditorCommand::Undo => {
-                                    workflow.undo();
-                                    extension_previews.set(Vec::new());
-                                    selection.clear();
-                                }
-                                EditorCommand::Redo => {
-                                    workflow.redo();
-                                    extension_previews.set(Vec::new());
-                                    selection.clear();
-                                }
-                            }
-                            return;
-                        }
-
-                        if key == "backspace" || key == "delete" {
-                            let ids = selection.selected_ids().read().clone();
-                            if ids.is_empty() {
-                                return;
-                            }
-
-                            evt.prevent_default();
-                            let _ = workflow.remove_nodes(&ids);
-                            selection.clear();
-                            return;
-                        }
-
-                        if key == "tab" {
-                            evt.prevent_default();
-                            let shift = evt.modifiers().shift();
-                            match *selection.selected_id().read() { Some(current_id) => {
-                                let next_id = if shift {
-                                    workflow.upstream_nodes(current_id).first().copied()
-                                } else {
-                                    workflow.downstream_nodes(current_id).first().copied()
-                                };
-                                if let Some(id) = next_id {
-                                    selection.select_single(id);
-                                }
-                            } _ => if let Some(first_id) = workflow.first_node_id() {
-                                selection.select_single(first_id);
-                            }}
-                            return;
-                        }
-
-                        if key == "enter" {
-                            if let Some(node_id) = *selection.selected_id().read() {
-                                evt.prevent_default();
-                                panels.toggle_inline_panel(node_id);
-                            }
-                            return;
-                        }
-
-                        let arrow_delta = 20.0_f32;
-                        if key == "arrowup" {
-                            if let Some(node_id) = *selection.selected_id().read() {
-                                evt.prevent_default();
-                                workflow.move_node_by(node_id, 0.0, -arrow_delta);
-                            }
-                            return;
-                        }
-                        if key == "arrowdown" {
-                            if let Some(node_id) = *selection.selected_id().read() {
-                                evt.prevent_default();
-                                workflow.move_node_by(node_id, 0.0, arrow_delta);
-                            }
-                            return;
-                        }
-                        if key == "arrowleft" {
-                            if let Some(node_id) = *selection.selected_id().read() {
-                                evt.prevent_default();
-                                workflow.move_node_by(node_id, -arrow_delta, 0.0);
-                            }
-                            return;
-                        }
-                        if key == "arrowright" {
-                            if let Some(node_id) = *selection.selected_id().read() {
-                                evt.prevent_default();
-                                workflow.move_node_by(node_id, arrow_delta, 0.0);
-                            }
-                        }
+                        crate::hooks::use_canvas_events::handle_canvas_keydown(
+                            &key,
+                            &evt,
+                            &panels,
+                            canvas,
+                            selection,
+                            &workflow,
+                            &mut extension_previews,
+                        );
                     },
                     onkeyup: move |evt| {
                         let key = evt.key().to_string().to_lowercase();
@@ -700,20 +568,7 @@ fn App() -> Element {
                         }
                     },
                     onwheel: move |evt| {
-                        evt.prevent_default();
-                        let page = evt.page_coordinates();
-                        let origin = *canvas.canvas_origin().read();
-                        let origin_x = origin.x;
-                        let origin_y = origin.y;
-                        #[allow(clippy::cast_possible_truncation)]
-                        let delta = -evt.delta().strip_units().y as f32 * 0.001;
-                        #[allow(clippy::cast_possible_truncation)]
-                        let zoom_x = page.x as f32 - origin_x;
-                        #[allow(clippy::cast_possible_truncation)]
-                        let zoom_y = page.y as f32 - origin_y;
-                        if delta.is_finite() && zoom_x.is_finite() && zoom_y.is_finite() {
-                            workflow.zoom(delta, zoom_x, zoom_y);
-                        }
+                        crate::hooks::use_canvas_mouse::handle_canvas_wheel_event(&evt, canvas, &workflow);
                     },
                     onmousemove: move |evt| {
                         let page = evt.page_coordinates();
@@ -915,322 +770,37 @@ fn App() -> Element {
                         }
                     },
                     onmouseleave: move |_| {
-                        if canvas.is_dragging() || canvas.is_panning() || canvas.is_marquee() || canvas.is_connecting() {
-                            return;
-                        }
-                        canvas.cancel_interaction();
-                        sidebar.clear_pending_drop();
-                        selection.clear_pending_drag();
+                        crate::hooks::use_canvas_mouse::handle_canvas_mouseleave_event(
+                            canvas, sidebar, selection,
+                        );
                     },
                     onmousedown: move |evt| {
-                        panels.close_context_menu();
-                        panels.close_inline_panel();
-                        let trigger_button = evt.trigger_button();
-                        if matches!(trigger_button, Some(MouseButton::Primary | MouseButton::Auxiliary)) {
-                            evt.prevent_default();
-                            selection.clear_pending_drag();
-                            canvas.clear_drag_anchor();
-                            let page = evt.page_coordinates();
-                            let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                                origin
-                            } else {
-                                let coordinates = evt.element_coordinates();
-                                #[allow(clippy::cast_possible_truncation)]
-                                let fallback_x = page.x as f32 - coordinates.x as f32;
-                                #[allow(clippy::cast_possible_truncation)]
-                                let fallback_y = page.y as f32 - coordinates.y as f32;
-                                (fallback_x, fallback_y)
-                            };
-                            canvas.set_origin(origin);
-                            #[allow(clippy::cast_possible_truncation)]
-                            let page_point = (page.x as f32, page.y as f32);
-                            let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
-                                return;
-                            };
-                            canvas.update_mouse(mouse_pos);
-
-                            let has_pending_drop = sidebar.has_pending_drop();
-                            if matches!(trigger_button, Some(MouseButton::Auxiliary))
-                                || (matches!(trigger_button, Some(MouseButton::Primary))
-                                    && canvas.is_space_hand_active())
-                            {
-                                canvas.start_pan();
-                            } else if matches!(trigger_button, Some(MouseButton::Primary))
-                                && !has_pending_drop
-                            {
-                                canvas.start_marquee(mouse_pos);
-                            }
-                        } else {
-                            selection.clear();
-                        }
+                        crate::hooks::use_canvas_mouse::handle_canvas_mousedown_event(
+                            &evt, &panels, canvas, selection, sidebar,
+                        );
                     },
 
-                    div {
-                        class: "absolute inset-0 pointer-events-none",
-                        style: "background-image: radial-gradient(circle, rgba(100, 116, 139, 0.33) 1px, transparent 1px); background-size: calc(22px * {vz}) calc(22px * {vz}); background-position: {vx}px {vy}px;"
-                    }
-
-                    div {
-                        class: "canvas-grid-animated absolute inset-0 pointer-events-none opacity-35",
-                        style: "background-image: linear-gradient(120deg, rgba(14, 165, 233, 0.08), transparent 45%, rgba(20, 184, 166, 0.08)); background-size: 56px 56px;"
-                    }
-
-                    div {
-                        class: "absolute origin-top-left",
-                        style: "transform: translate({vx}px, {vy}px) scale({vz}); will-change: transform;",
-                        FlowEdges {
-                            edges: connections,
-                            nodes: nodes,
-                            temp_edge: temp_edge,
-                            running_node_ids: use_memo(move || {
-                                nodes.read()
-                                    .iter()
-                                    .filter(|n| matches!(n.execution_state, oya_frontend::graph::ExecutionState::Running))
-                                    .map(|n| n.id)
-                                    .collect::<Vec<_>>()
-                            }),
-                            zoom: use_memo(move || viewport_state.read().zoom),
-                        }
-
-                        ParallelGroupOverlay {
-                            nodes: nodes,
-                            connections: connections,
-                        }
-
-                        if !preview_edges.read().is_empty() {
-                            svg {
-                                class: "absolute inset-0 overflow-visible pointer-events-none",
-                                style: "width: 100%; height: 100%; z-index: 0;",
-                                for (preview_edge_id, preview_path) in preview_edges.read().iter() {
-                                    path {
-                                        key: "{preview_edge_id}",
-                                        d: "{preview_path}",
-                                        fill: "none",
-                                        stroke: "rgba(99, 102, 241, 0.75)",
-                                        stroke_width: "2",
-                                        stroke_dasharray: "6 4"
-                                    }
-                                }
-                            }
-                        }
-
-                        for (preview_node_id, preview_node_type, preview_x, preview_y) in preview_nodes.read().iter() {
-                            div {
-                                key: "{preview_node_id}",
-                                class: "pointer-events-none absolute rounded-xl border border-indigo-300/70 bg-indigo-500/10 px-3 py-2",
-                                style: "left: {preview_x}px; top: {preview_y}px; width: 220px; z-index: 0;",
-                                div { class: "text-[11px] font-semibold text-indigo-700", "Preview" }
-                                div { class: "text-[10px] font-mono text-indigo-600", "{preview_node_type}" }
-                            }
-                        }
-
-                        for node in nodes.read().iter().cloned() {
-                             {
-                                 let node_id = node.id;
-                                 let is_selected = selection.is_selected(node_id);
-                                 let is_inline_open = panels.is_inline_panel_open(node_id);
-                                 let workflow_clone = workflow;
-                                 let selection_clone = selection;
-                                 let canvas_clone = canvas;
-                                 let panels_clone = panels;
-
-                                 rsx! {
-                                     FlowNodeComponent {
-                                         key: "{node_id}",
-                                         node,
-                                         selected: is_selected,
-                                         inline_open: is_inline_open,
-                                         on_mouse_down: move |evt: MouseEvent| {
-                                             if evt.trigger_button() != Some(MouseButton::Primary) {
-                                                 return;
-                                             }
-                                              if canvas_clone.is_space_hand_active() {
-                                                 return;
-                                             }
-                                             evt.stop_propagation();
-
-                                             let page = evt.page_coordinates();
-                                             let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                                                 origin
-                                             } else {
-                                                 let coordinates = evt.element_coordinates();
-                                                 #[allow(clippy::cast_possible_truncation)]
-                                                 let fallback_x = page.x as f32 - coordinates.x as f32;
-                                                 #[allow(clippy::cast_possible_truncation)]
-                                                 let fallback_y = page.y as f32 - coordinates.y as f32;
-                                                 (fallback_x, fallback_y)
-                                             };
-                                             canvas_clone.set_origin(origin);
-                                             #[allow(clippy::cast_possible_truncation)]
-                                             let page_point = (page.x as f32, page.y as f32);
-                                             let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
-                                                 return;
-                                             };
-                                             canvas_clone.update_mouse(mouse_pos);
-
-                                             let currently_selected = selection_clone.selected_ids().read().clone();
-                                             let drag_targets = if currently_selected.contains(&node_id) {
-                                                 if currently_selected.is_empty() {
-                                                     vec![node_id]
-                                                 } else {
-                                                     currently_selected
-                                                 }
-                                             } else {
-                                                 vec![node_id]
-                                             };
-                                             selection_clone.set_multiple(drag_targets.clone());
-                                             selection_clone.set_pending_drag(drag_targets);
-                                             canvas_clone.start_drag_anchor(mouse_pos);
-                                         },
-                                         on_click: move |_| {
-                                             selection_clone.select_single(node_id);
-                                             show_inspector.set(true);
-                                         },
-                                         on_double_click: move |_| {
-                                             panels_clone.toggle_inline_panel(node_id);
-                                         },
-                                         on_handle_mouse_down: move |args: (MouseEvent, String)| {
-                                             let (evt, handle_type) = args;
-                                             selection_clone.clear_pending_drag();
-                                             canvas_clone.clear_drag_anchor();
-                                             let page = evt.page_coordinates();
-                                             let origin = if let Some(origin) = crate::ui::app_io::canvas_origin() {
-                                                 origin
-                                             } else {
-                                                 let coordinates = evt.element_coordinates();
-                                                 #[allow(clippy::cast_possible_truncation)]
-                                                 let fallback_x = page.x as f32 - coordinates.x as f32;
-                                                 #[allow(clippy::cast_possible_truncation)]
-                                                 let fallback_y = page.y as f32 - coordinates.y as f32;
-                                                 (fallback_x, fallback_y)
-                                             };
-                                             canvas_clone.set_origin(origin);
-                                             #[allow(clippy::cast_possible_truncation)]
-                                             let page_point = (page.x as f32, page.y as f32);
-                                             let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin) else {
-                                                 return;
-                                             };
-                                             canvas_clone.update_mouse(mouse_pos);
-                                             canvas_clone.start_connect(node_id, handle_type.clone());
-                                             selection_clone.select_single(node_id);
-                                             let current_vp = workflow_clone.viewport().read().clone();
-                                             #[allow(clippy::cast_possible_truncation)]
-                                             let page_point = (page.x as f32, page.y as f32);
-                                             if let Some((canvas_x, canvas_y)) =
-                                                 crate::ui::interaction_guards::safe_canvas_from_viewport(
-                                                     page_point,
-                                                     origin,
-                                                     &current_vp,
-                                                 )
-                                             {
-                                                 canvas_clone.set_temp_edge(Some((
-                                                     FlowPosition { x: canvas_x, y: canvas_y },
-                                                     FlowPosition { x: canvas_x, y: canvas_y },
-                                                 )));
-                                             }
-                                         },
-                                         on_handle_mouse_enter: move |handle_type| canvas_clone.set_hovered_handle(Some((node_id, handle_type))),
-                                         on_handle_mouse_leave: move |()| canvas_clone.set_hovered_handle(None),
-                                          on_inline_change: move |new_config| {
-                                              let mut binding = workflow_clone.workflow();
-                                              let mut wf = binding.write();
-                                              if let Some(n) = wf.nodes.iter_mut().find(|n| n.id == node_id) {
-                                                  n.apply_config_update(&new_config);
-                                              }
-                                          },
-                                         on_inline_close: move |()| {
-                                             panels_clone.close_inline_panel();
-                                         }
-                                     }
-                                 }
-                             }
-                         }
-                     }
-
-                    if let Some((start, end)) = canvas.marquee_rect() {
-                        {
-                            let rect = crate::ui::editor_interactions::normalize_rect(start, end);
-                            let left = rect.0;
-                            let top = rect.1;
-                            let width = (rect.2 - rect.0).max(1.0);
-                            let height = (rect.3 - rect.1).max(1.0);
-
-                            rsx! {
-                                div {
-                                    class: "pointer-events-none absolute border border-indigo-400/70 bg-indigo-500/10",
-                                    style: "left: {left}px; top: {top}px; width: {width}px; height: {height}px;",
-                                }
-                            }
-                        }
-                    }
-
-                    FlowMinimap {
-                        nodes: nodes,
-                        edges: connections,
-                        selected_node_id: selection.selected_id(),
-                        viewport: workflow.viewport(),
-                        canvas_width: 1280.0,
-                        canvas_height: 760.0,
-                        on_zoom_in: move |evt: MouseEvent| {
-                            evt.stop_propagation();
-                            workflow.zoom(0.12, 640.0, 400.0);
-                        },
-                        on_zoom_out: move |evt: MouseEvent| {
-                            evt.stop_propagation();
-                            workflow.zoom(-0.12, 640.0, 400.0);
-                        },
-                        on_fit_view: move |evt: MouseEvent| {
-                            evt.stop_propagation();
-                            workflow.fit_view(1280.0, 760.0, 200.0);
-                        }
+                    CanvasArea {
+                        workflow: workflow,
+                        selection: selection,
+                        canvas: canvas,
+                        panels: panels,
+                        temp_edge: temp_edge,
+                        preview_nodes: preview_nodes,
+                        preview_edges: preview_edges,
+                        show_inspector: show_inspector,
                     }
                 }
 
-                {
-                    let plan_collapsed = use_signal(|| false);
-                    let history_collapsed = use_signal(|| true);
-                    let history_signal = use_memo(move || workflow.workflow().read().history.clone());
-                    let workflow_signal = workflow.workflow();
-
-                    rsx! {
-                        div { class: "flex flex-col shrink-0 border-l border-slate-200",
-                            ValidationPanel {
-                                validation_result: ReadSignal::from(validation_result),
-                                collapsed: validation_collapsed,
-                                on_select_node: move |node_id| {
-                                    selection.select_single(node_id);
-                                },
-                            }
-                            ExecutionPlanPanel {
-                                workflow: workflow_signal,
-                                nodes_by_id,
-                                on_select_node: move |node_id| {
-                                    selection.select_single(node_id);
-                                },
-                                collapsed: plan_collapsed,
-                            }
-                            ExecutionHistoryPanel {
-                                history: history_signal,
-                                nodes_by_id,
-                                on_select_node: move |node_id| {
-                                    selection.select_single(node_id);
-                                },
-                                collapsed: history_collapsed,
-                                active_run_id: ReadSignal::from(frozen_run_id),
-                                on_run_select: move |id| {
-                                    if let Ok(mut v) = frozen_run_id.try_write() {
-                                        *v = Some(id);
-                                    }
-                                },
-                                on_exit_frozen: move |()| {
-                                    if let Ok(mut v) = frozen_run_id.try_write() {
-                                        *v = None;
-                                    }
-                                },
-                            }
-                            RestateInvocationsPanel { handle: restate }
-                        }
-                    }
+                RightPanel {
+                    workflow: workflow,
+                    validation_result: validation_result,
+                    validation_collapsed: validation_collapsed,
+                    frozen_run_id: frozen_run_id,
+                    on_select_node: move |node_id| {
+                        selection.select_single(node_id);
+                    },
+                    restate: restate,
                 }
 
                 SelectedNodePanel {
@@ -1241,9 +811,6 @@ fn App() -> Element {
                 }
 
                 PayloadPreviewPanel {
-                    selected_node_id: selection.selected_id(),
-                    nodes_by_id,
-                    workflow: workflow.workflow(),
                     on_close: move |_| selection.clear(),
                 }
             }

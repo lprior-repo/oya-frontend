@@ -166,8 +166,7 @@ pub fn FlowNodeComponent(
             style: "left: {node.x}px; top: {node.y}px; z-index: {z_index};",
 
             div {
-                class: "group relative rounded-xl border bg-gradient-to-b from-white to-slate-50/70 transition-all duration-150 cursor-grab active:cursor-grabbing {category_border} {exec_border} {selected_classes} {running_glow}",
-                style: "width: 220px;",
+                class: "group relative w-[220px] rounded-xl border bg-gradient-to-b from-white to-slate-50/70 transition-all duration-150 cursor-grab active:cursor-grabbing {category_border} {exec_border} {selected_classes} {running_glow}",
                 onmousedown: move |e| {
                     on_mouse_down.call(e);
                 },

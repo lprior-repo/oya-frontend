@@ -20,6 +20,8 @@ fn ToolbarButton(
     rsx! {
         button {
             class: "flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-all duration-150 hover:-translate-y-px hover:bg-white hover:text-slate-900 hover:shadow-sm {disabled_classes}",
+            r#type: "button",
+            aria_label: "{label}",
             title: "{label}",
             disabled,
             onclick: move |evt| on_click.call(evt),
@@ -48,7 +50,10 @@ pub fn FlowToolbar(
     can_redo: ReadSignal<bool>,
 ) -> Element {
     rsx! {
-        header { class: "flex h-[68px] items-center justify-between gap-2 border-b border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-cyan-50/60 px-3 md:px-4 backdrop-blur",
+        header {
+            role: "toolbar",
+            aria_label: "Workflow toolbar",
+            class: "flex h-[68px] items-center justify-between gap-2 border-b border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-cyan-50/60 px-3 md:px-4 backdrop-blur",
             div { class: "flex min-w-0 items-center gap-2 md:gap-3",
                 div { class: "flex items-center gap-2",
                     div { class: "flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-500/10 shadow-[0_0_0_4px_rgba(34,211,238,0.08)]",
@@ -56,6 +61,7 @@ pub fn FlowToolbar(
                     }
                     input {
                         r#type: "text",
+                        aria_label: "Workflow name",
                         value: "{workflow_name.read()}",
                         class: "h-8 w-auto min-w-[120px] max-w-[180px] border-none bg-transparent text-[14px] font-semibold text-slate-900 outline-none md:max-w-[320px] md:text-[15px]",
                         spellcheck: false,
@@ -144,6 +150,8 @@ pub fn FlowToolbar(
                 }
                 button {
                     class: "ml-1 flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 px-3 text-[12px] font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:from-cyan-500 hover:to-teal-500 hover:shadow-lg hover:shadow-cyan-500/30",
+                    r#type: "button",
+                    aria_label: "Execute workflow",
                     title: "Run this workflow",
                     onclick: move |evt| on_execute.call(evt),
                     PlayIcon { class: "h-3.5 w-3.5" }

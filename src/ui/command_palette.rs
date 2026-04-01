@@ -115,6 +115,9 @@ pub fn NodeCommandPalette(
 
     rsx! {
         div {
+            role: "dialog",
+            aria_label: "Quick Add Node",
+            aria_modal: "true",
             class: "fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm",
             onclick: move |_| on_close.call(()),
             div {
@@ -125,6 +128,7 @@ pub fn NodeCommandPalette(
                     h2 { class: "text-[14px] font-semibold text-slate-100", "Quick Add Node" }
                     button {
                         class: "rounded-md border border-slate-700 px-2 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white",
+                        aria_label: "Close palette",
                         onclick: move |_| on_close.call(()),
                         "Close"
                     }
@@ -133,6 +137,7 @@ pub fn NodeCommandPalette(
                 div { class: "border-b border-slate-800 px-4 py-3",
                     input {
                         r#type: "text",
+                        aria_label: "Search node commands",
                         autofocus: true,
                         placeholder: "Search commands...",
                         value: "{query_value}",

@@ -94,7 +94,7 @@ fn prepare_run_rejects_dirty_state_when_executed_set_not_empty() {
     }
 
     // When
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
 
     // Then: State gets reset
     // Expected: Should reject with InvalidWorkflowState error
@@ -120,7 +120,7 @@ fn execute_iterative_completes_all_nodes_on_acyclic_graph() {
     let mut workflow = create_workflow_with_connections(deps);
 
     // When
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
 
     // Then: All nodes should be in execution queue
     assert_eq!(workflow.execution_queue.len(), 5, "All 5 nodes in queue");
@@ -204,7 +204,7 @@ fn mark_node_complete_rejects_out_of_order_with_exact_error_variant() {
     workflow.nodes.push(make_node(node_0, vec![]));
     workflow.nodes.push(make_node(node_1, vec![node_0]));
 
-    workflow.add_connection_checked(
+    let _ = workflow.add_connection_checked(
         node_0,
         node_1,
         &PortName::from("main"),
@@ -464,7 +464,7 @@ fn proptest_nodes_in_mutually_exclusive_states() {
             workflow.nodes.push(make_node(*node_id, vec![]));
         }
 
-        workflow.prepare_run();
+        let _ = workflow.prepare_run();
 
         // Invariant: Each node appears in exactly one state
         // (queue, executed, failed, or neither)

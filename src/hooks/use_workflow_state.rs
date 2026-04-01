@@ -148,9 +148,9 @@ fn remove_nodes_transaction(
     }
 
     let snapshot = workflow.clone();
-    for node_id in node_ids {
+    node_ids.iter().for_each(|node_id| {
         workflow.remove_node(*node_id);
-    }
+    });
     push_undo_snapshot(undo_stack, snapshot, 60);
     redo_stack.clear();
     Ok(())
@@ -436,10 +436,10 @@ pub fn use_workflow_state() -> WorkflowState {
                 match s.get_item("flow-wasm-v1-workflow") {
                     Ok(Some(json)) => {
                         if let Ok(mut parsed) = serde_json::from_str::<Workflow>(&json) {
-                            for node in &mut parsed.nodes {
+                            parsed.nodes.iter_mut().for_each(|node| {
                                 let config = node.config.clone();
                                 node.apply_config_update(&config);
-                            }
+                            });
                             return parsed;
                         }
                     }

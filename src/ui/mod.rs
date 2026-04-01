@@ -1,5 +1,6 @@
 pub mod app_bootstrap;
 pub mod app_io;
+pub mod canvas_area;
 pub mod canvas_context_menu;
 pub mod command_palette;
 pub mod config_panel;
@@ -20,12 +21,14 @@ pub mod parallel_group_overlay;
 pub mod payload_preview_panel;
 pub mod prototype_palette;
 pub mod restate;
+pub mod right_panel;
 pub mod run_status_bar;
 pub mod selected_node_panel;
 pub mod sidebar;
 pub mod toolbar;
 pub mod validation_panel;
 
+pub use canvas_area::CanvasArea;
 pub use canvas_context_menu::CanvasContextMenu;
 pub use command_palette::NodeCommandPalette;
 pub use config_panel::NodeConfigEditor;
@@ -42,6 +45,8 @@ pub use node::FlowNodeComponent;
 pub use parallel_group_overlay::ParallelGroupOverlay;
 pub use payload_preview_panel::PayloadPreviewPanel;
 pub use prototype_palette::PrototypePalette;
+#[allow(unused_imports)]
+pub use right_panel::RightPanel;
 pub use run_status_bar::RunStatusBar;
 pub use selected_node_panel::SelectedNodePanel;
 pub use sidebar::NodeSidebar;

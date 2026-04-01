@@ -51,6 +51,8 @@ pub fn use_restate_sync() -> RestateSyncHandle {
     let admin_url = use_signal(|| "http://localhost:9070".to_string());
     let ingress_url = use_signal(|| "http://localhost:8080".to_string());
 
+    // Bounded polling loop: each iteration awaits poll_sleep_ms (5s timeout),
+    // preventing spin-loops. Dioxus use_future cancels the future on unmount.
     use_future(move || async move {
         loop {
             if *enabled.read() {
@@ -91,10 +93,13 @@ pub fn use_restate_sync() -> RestateSyncHandle {
 pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
     let url = url.trim_end_matches('/');
     // Strip scheme.
-    let without_scheme = url
+    let without_scheme = match url
         .strip_prefix("http://")
         .or_else(|| url.strip_prefix("https://"))
-        .unwrap_or(url);
+    {
+        Some(stripped) => stripped,
+        None => url,
+    };
 
     let (host, port) = if let Some(colon) = without_scheme.rfind(':') {
         let h = &without_scheme[..colon];
@@ -110,7 +115,10 @@ pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
         } else {
             host
         },
-        port: port.unwrap_or(9070),
+        port: match port {
+            Some(p) => p,
+            None => 9070,
+        },
         timeout_secs: 10,
     }
 }

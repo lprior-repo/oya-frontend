@@ -105,9 +105,9 @@ fn e2e_terminal_state_irreversibility() {
     );
 
     // Reach Completed state
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
-    Workflow::set_node_status(&mut node, ExecutionState::Completed);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
     // Try to transition from Completed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -125,9 +125,9 @@ fn e2e_terminal_state_irreversibility_failed() {
     );
 
     // Reach Failed state
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
-    Workflow::set_node_status(&mut node, ExecutionState::Failed);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Failed);
 
     // Try to transition from Failed
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -145,7 +145,7 @@ fn e2e_terminal_state_irreversibility_skipped() {
     );
 
     // Reach Skipped state
-    Workflow::set_node_status(&mut node, ExecutionState::Skipped);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
 
     // Try to transition from Skipped
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
@@ -232,8 +232,8 @@ fn e2e_state_machine_enforcement_no_direct_mutation() {
     assert!(result.is_err());
 
     // Try to go backwards (Running -> Idle)
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
     let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
     assert!(result.is_err());
 }
@@ -248,8 +248,8 @@ fn e2e_no_backwards_transitions() {
     );
 
     // Reach Running state
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
 
     // Try to go backwards to Idle
     let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
@@ -276,7 +276,7 @@ fn e2e_no_skipping_intermediate_states() {
     assert!(result.is_err());
 
     // Try Queued -> Completed (skipping Running)
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
     let result = Workflow::set_node_status(&mut node, ExecutionState::Completed);
     assert!(result.is_err());
 }
@@ -298,7 +298,7 @@ fn e2e_queued_gateway_enforcement() {
     assert!(result.is_err());
 
     // Valid path: Idle -> Queued -> Running
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
     assert!(result.is_ok());
 }
@@ -320,9 +320,9 @@ fn e2e_mutation_survivability_terminal_check() {
     );
 
     // Reach terminal state
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
-    Workflow::set_node_status(&mut node, ExecutionState::Completed);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
     // Verify terminal state check is working
     // If this passes, terminal state check is in place
@@ -347,8 +347,8 @@ fn e2e_mutation_survivability_self_transition_rejection() {
     assert!(result.is_err());
 
     // Try self-transition at Running
-    Workflow::set_node_status(&mut node, ExecutionState::Queued);
-    Workflow::set_node_status(&mut node, ExecutionState::Running);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+    let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
     let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
     assert!(result.is_err());
 }

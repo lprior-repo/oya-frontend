@@ -34,7 +34,7 @@ pub enum StateTransition {
 }
 
 impl StateTransition {
-    /// Apply this transition and return the resulting ExecutionState
+    /// Apply this transition and return the resulting [`ExecutionState`]
     #[must_use]
     pub const fn apply(self) -> ExecutionState {
         match self {
@@ -68,10 +68,15 @@ impl StateTransition {
 ///
 /// Returns `Ok(StateTransition)` if the transition is valid, `Err(InvalidTransition)` otherwise.
 ///
+/// # Errors
+///
+/// Returns [`InvalidTransition`] when the requested state transition is not allowed
+/// by the state machine's transition rules.
+///
 /// # Examples
 ///
 /// ```
-/// use oya_frontend_aik::graph::execution_state::{ExecutionState, StateTransition, try_transition};
+/// use oya_frontend::graph::execution_state::{ExecutionState, StateTransition, try_transition};
 ///
 /// // Valid transition
 /// let result = try_transition(ExecutionState::Idle, ExecutionState::Queued);
@@ -82,7 +87,7 @@ impl StateTransition {
 /// let result = try_transition(ExecutionState::Idle, ExecutionState::Running);
 /// assert!(result.is_err());
 /// ```
-#[must_use]
+#[must_use = "the transition result should be checked"]
 pub const fn try_transition(
     from: ExecutionState,
     to: ExecutionState,
@@ -118,8 +123,8 @@ pub const fn try_transition(
 /// let result = try_transition_or_error(ExecutionState::Idle, ExecutionState::Running);
 /// assert!(result.is_err());
 /// ```
-#[must_use]
-pub fn try_transition_or_error(
+#[must_use = "the transition result should be checked"]
+pub const fn try_transition_or_error(
     from: ExecutionState,
     to: ExecutionState,
 ) -> Result<StateTransition, InvalidTransition> {

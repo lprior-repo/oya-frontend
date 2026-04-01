@@ -9,7 +9,7 @@
 
 use super::{Node, NodeId, Workflow, WorkflowExecutionError};
 use crate::graph::execution_types::ExecutionPlan;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // ============================================================================
 // Execution Functions (Contract Section 2)
@@ -31,35 +31,36 @@ use std::collections::HashMap;
 /// - R6: If cycles detected, plan uses iterative execution strategy
 ///
 /// **Side Effects:** None (pure function)
+#[must_use]
 pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowExecutionError> {
     // Validate preconditions
     if workflow.nodes.is_empty() {
         return Err(WorkflowExecutionError::EmptyWorkflow);
     }
 
-    // Check unique node IDs
-    let mut node_ids: Vec<&NodeId> = workflow.nodes.iter().map(|n| &n.id).collect();
-    node_ids.sort();
-    node_ids.dedup();
-    if node_ids.len() != workflow.nodes.len() {
-        // Duplicate IDs detected - this is a fatal error
-        return Err(WorkflowExecutionError::InvalidConfig {
-            node_id: workflow.nodes[0].id,
-            error: "Duplicate node IDs detected".to_string(),
-        });
+    // Check unique node IDs using HashSet for O(1) lookups instead of sort+dedup
+    let mut seen_ids: HashSet<NodeId> = HashSet::with_capacity(workflow.nodes.len());
+    for node in &workflow.nodes {
+        if !seen_ids.insert(node.id) {
+            return Err(WorkflowExecutionError::InvalidConfig {
+                node_id: node.id,
+                error: "Duplicate node IDs detected".to_string(),
+            });
+        }
     }
 
-    // Validate all connection references exist
-    let node_id_set: HashMap<NodeId, &Node> = workflow.nodes.iter().map(|n| (n.id, n)).collect();
+    // Build node lookup map once, used throughout (eliminates redundant HashMap build)
+    let node_map: HashMap<NodeId, &Node> = workflow.nodes.iter().map(|n| (n.id, n)).collect();
 
+    // Validate all connection references exist
     for conn in &workflow.connections {
-        if !node_id_set.contains_key(&conn.source) {
+        if !node_map.contains_key(&conn.source) {
             return Err(WorkflowExecutionError::NodeNotFound {
                 connection_id: conn.id,
                 referenced_node: conn.source,
             });
         }
-        if !node_id_set.contains_key(&conn.target) {
+        if !node_map.contains_key(&conn.target) {
             return Err(WorkflowExecutionError::NodeNotFound {
                 connection_id: conn.id,
                 referenced_node: conn.target,
@@ -67,15 +68,14 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
         }
     }
 
-    // Build node set for quick lookup
-    let node_ids: HashMap<NodeId, &Node> = workflow.nodes.iter().map(|n| (n.id, n)).collect();
-
-    // Calculate in-degrees
+    // Build adjacency map and calculate in-degrees in a single pass over connections
+    let mut adjacency: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
     let mut in_degree: HashMap<NodeId, usize> =
-        node_ids.keys().copied().map(|id| (id, 0)).collect();
+        node_map.keys().copied().map(|id| (id, 0)).collect();
 
     for conn in &workflow.connections {
-        if node_ids.contains_key(&conn.source) && node_ids.contains_key(&conn.target) {
+        if node_map.contains_key(&conn.source) && node_map.contains_key(&conn.target) {
+            adjacency.entry(conn.source).or_default().push(conn.target);
             if let Some(deg) = in_degree.get_mut(&conn.target) {
                 *deg += 1;
             }
@@ -89,38 +89,35 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
         .map(|(&id, _)| id)
         .collect();
 
-    // Topological sort using Kahn's algorithm
-    let mut execution_order = Vec::new();
+    // Topological sort using Kahn's algorithm with pre-built adjacency map
+    // Optimized: adjacency map gives O(k) lookup per node instead of O(m) scan
+    let mut execution_order = Vec::with_capacity(workflow.nodes.len());
     let mut queue: Vec<NodeId> = entry_nodes.clone();
     let mut local_in_degree = in_degree.clone();
 
     while let Some(node_id) = queue.pop() {
         execution_order.push(node_id);
 
-        // Find nodes that depend on this node
-        let mut next_nodes: Vec<NodeId> = workflow
-            .connections
-            .iter()
-            .filter(|c| c.source == node_id && node_ids.contains_key(&c.target))
-            .map(|c| c.target)
-            .collect();
-
-        for target in &next_nodes {
-            if let Some(deg) = local_in_degree.get_mut(target) {
-                *deg -= 1;
-                if *deg == 0 {
-                    queue.push(*target);
+        // Use pre-built adjacency map for O(k) lookup instead of O(m) scan
+        if let Some(targets) = adjacency.get(&node_id) {
+            for target in targets {
+                if let Some(deg) = local_in_degree.get_mut(target) {
+                    *deg -= 1;
+                    if *deg == 0 {
+                        queue.push(*target);
+                    }
                 }
             }
         }
     }
 
-    // Check for cycles (nodes not in execution order)
+    // Check for cycles (nodes not in execution order) using HashSet for O(1) lookup
     let mut cycles: Vec<Vec<NodeId>> = Vec::new();
-    if execution_order.len() != node_ids.len() {
-        let remaining: Vec<NodeId> = node_ids
+    if execution_order.len() != node_map.len() {
+        let execution_set: HashSet<NodeId> = execution_order.iter().copied().collect();
+        let remaining: Vec<NodeId> = node_map
             .keys()
-            .filter(|id| !execution_order.contains(id))
+            .filter(|id| !execution_set.contains(id))
             .copied()
             .collect();
         if !remaining.is_empty() {
@@ -128,16 +125,17 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
         }
     }
 
-    // Build input map (node -> list of input node IDs)
+    // Build input map by inverting the adjacency map (single pass) instead of
+    // scanning all connections per node (O(n*m) -> O(n+m))
     let mut input_map: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
-    for node_id in node_ids.keys() {
-        let inputs: Vec<NodeId> = workflow
-            .connections
-            .iter()
-            .filter(|c| c.target == *node_id && node_ids.contains_key(&c.source))
-            .map(|c| c.source)
-            .collect();
-        input_map.insert(*node_id, inputs);
+    for (&source, targets) in &adjacency {
+        for &target in targets {
+            input_map.entry(target).or_default().push(source);
+        }
+    }
+    // Ensure all nodes appear in input_map, even those with no inputs
+    for &node_id in node_map.keys() {
+        input_map.entry(node_id).or_default();
     }
 
     Ok(ExecutionPlan {

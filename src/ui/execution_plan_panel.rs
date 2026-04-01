@@ -4,6 +4,7 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::{
     chevron_rotation_class, panel_height_class, CollapseState, InvocationStatus,
 };
@@ -130,11 +131,12 @@ fn build_plan_snapshot(workflow: &Workflow) -> PlanSnapshot {
 
 #[component]
 pub fn ExecutionPlanPanel(
-    workflow: ReadSignal<Workflow>,
-    nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
     on_select_node: EventHandler<NodeId>,
     collapsed: Signal<bool>,
 ) -> Element {
+    let workflow_state: WorkflowState = use_context();
+    let workflow = workflow_state.workflow();
+
     let collapse_state = CollapseState::from_bool(*collapsed.read());
     let height_class = panel_height_class(collapse_state);
     let chevron_class = chevron_rotation_class(collapse_state);
@@ -181,7 +183,7 @@ pub fn ExecutionPlanPanel(
                                     node_id: *node_id,
                                     index: idx,
                                     is_current: idx == current_step,
-                                    nodes_by_id,
+                                    
                                     on_select_node
                                 }
                             }
@@ -193,7 +195,7 @@ pub fn ExecutionPlanPanel(
                         LayerSection {
                             layer_idx,
                             layer: layer.clone(),
-                            nodes_by_id,
+                            
                             on_select_node
                         }
                     }
@@ -201,7 +203,7 @@ pub fn ExecutionPlanPanel(
                     if !plan.unscheduled.is_empty() {
                         UnscheduledSection {
                             unscheduled: plan.unscheduled.clone(),
-                            nodes_by_id,
+                            
                             on_select_node
                         }
                     }
@@ -216,9 +218,10 @@ fn QueueItem(
     node_id: NodeId,
     index: usize,
     is_current: bool,
-    nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
     on_select_node: EventHandler<NodeId>,
 ) -> Element {
+    let workflow_state: WorkflowState = use_context();
+    let nodes_by_id = workflow_state.nodes_by_id();
     let node = nodes_by_id.read().get(&node_id).cloned();
     let label = node
         .as_ref()
@@ -249,7 +252,6 @@ fn QueueItem(
 fn LayerSection(
     layer_idx: usize,
     layer: Vec<NodeId>,
-    nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
     on_select_node: EventHandler<NodeId>,
 ) -> Element {
     rsx! {
@@ -259,7 +261,7 @@ fn LayerSection(
                 for node_id in &layer {
                     LayerNodeItem {
                         node_id: *node_id,
-                        nodes_by_id,
+                        
                         on_select_node
                     }
                 }
@@ -271,9 +273,10 @@ fn LayerSection(
 #[component]
 fn LayerNodeItem(
     node_id: NodeId,
-    nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
     on_select_node: EventHandler<NodeId>,
 ) -> Element {
+    let workflow_state: WorkflowState = use_context();
+    let nodes_by_id = workflow_state.nodes_by_id();
     let node = nodes_by_id.read().get(&node_id).cloned();
     let label = node
         .as_ref()
@@ -297,9 +300,11 @@ fn LayerNodeItem(
 #[component]
 fn UnscheduledSection(
     unscheduled: Vec<NodeId>,
-    nodes_by_id: ReadSignal<HashMap<NodeId, Node>>,
     on_select_node: EventHandler<NodeId>,
 ) -> Element {
+    let workflow_state: WorkflowState = use_context();
+    let nodes_by_id = workflow_state.nodes_by_id();
+
     rsx! {
         div { class: "rounded border border-amber-200 bg-amber-50 px-2 py-1.5",
             p { class: "text-[10px] font-semibold text-amber-800 uppercase tracking-wide", "Unscheduled" }

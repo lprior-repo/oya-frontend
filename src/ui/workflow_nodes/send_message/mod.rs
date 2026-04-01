@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{SendMessageConfig, TargetType};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 fn json_to_display(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |value| value)
 }
@@ -83,9 +87,9 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "Send to" }
+                label { class: "{LABEL_CLASSES}", "Send to" }
                 select {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500",
+                    class: "{INPUT_CLASSES}",
                     value: match &*config.read() {
                         SendMessageConfig { target_type: TargetType::Service, .. } => "Service",
                         SendMessageConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
@@ -106,22 +110,22 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "Service Name" }
+                label { class: "{LABEL_CLASSES}", "Service Name" }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., notification_service",
-                    value: "{config.read().service_name}",
+                    value: "{config.service_name}",
                     oninput: move |e| config.write().service_name = e.value().clone(),
                 }
             }
             div {
                 class: "form-field",
                 visible: matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow),
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "Key (for objects/workflows)" }
+                label { class: "{LABEL_CLASSES}", "Key (for objects/workflows)" }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., user-456",
                     value: "{key_value}",
                     oninput: move |e| config.write().key = normalize_optional_key(e.value().as_str()),
@@ -129,22 +133,22 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "Handler" }
+                label { class: "{LABEL_CLASSES}", "Handler" }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., send_email",
-                    value: "{config.read().handler_name}",
+                    value: "{config.handler_name}",
                     oninput: move |e| config.write().handler_name = e.value().clone(),
                 }
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "Message (JSON)" }
+                label { class: "{LABEL_CLASSES}", "Message (JSON)" }
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm",
                     rows: 3,
-                    value: "{draft.read()}",
+                    value: "{draft}",
                     oninput: move |e| {
                         let next_value = e.value().clone();
                         draft.set(next_value.clone());
@@ -193,7 +197,7 @@ mod tests {
 pub fn SendMessageNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
             div { class: "w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center", span { class: "text-xl", "📤" } },
             div {
                 class: "flex-1",

@@ -12,8 +12,10 @@ fn drag_mode_from_selection(node_id: NodeId, selected_ids: Vec<NodeId>) -> Inter
             node_ids: vec![node_id],
         }
     } else if !selected_ids.contains(&node_id) {
-        let mut all_ids = selected_ids;
-        all_ids.push(node_id);
+        let all_ids = selected_ids
+            .into_iter()
+            .chain(std::iter::once(node_id))
+            .collect();
         InteractionMode::Dragging { node_ids: all_ids }
     } else {
         InteractionMode::Dragging {

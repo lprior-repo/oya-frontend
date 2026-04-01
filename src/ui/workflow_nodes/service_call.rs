@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{ServiceCallConfig, TargetType};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 #[component]
 pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
     let pretty_input = if let Ok(value) = serde_json::to_string_pretty(&*config.read().input) {
@@ -50,11 +54,11 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "What type of thing are you calling?"
                 }
                 select {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500",
+                    class: "{INPUT_CLASSES}",
                     value: match &*config.read() {
                         ServiceCallConfig { target_type: TargetType::Service, .. } => "Service",
                         ServiceCallConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
@@ -83,14 +87,14 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Service Name"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., payment_service",
-                    value: "{config.read().service_name}",
+                    value: "{config.service_name}",
                     oninput: move |e| {
                         config.write().service_name = e.value().clone();
                     }
@@ -101,12 +105,12 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 class: "form-field",
                 visible: matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow),
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Object/Workflow Key"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., order-123",
                     value: "{key_value}",
                     oninput: move |e| {
@@ -127,14 +131,14 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "What to do"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., charge_card",
-                    value: "{config.read().handler_name}",
+                    value: "{config.handler_name}",
                     oninput: move |e| {
                         config.write().handler_name = e.value().clone();
                     }
@@ -144,14 +148,14 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "What to send (JSON)"
                 }
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
-                    value: "{json_draft.read()}",
+                    value: "{json_draft}",
                     oninput: move |e| {
                         let draft = e.value().clone();
                         json_draft.set(draft.clone());
@@ -184,12 +188,12 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Only run if..."
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., {{ steps.validate.valid }} == true",
                     value: "{condition_value}",
                     oninput: move |e| {
@@ -214,7 +218,7 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
 pub fn ServiceCallNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-green-100 rounded-full flex items-center justify-center",

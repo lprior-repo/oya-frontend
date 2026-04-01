@@ -4,12 +4,13 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::{
     chevron_rotation_class, panel_height_class, CollapseState, RunOutcome,
 };
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, RunRecord};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 const fn status_badge_classes(outcome: RunOutcome) -> &'static str {
     match outcome {
@@ -358,13 +359,15 @@ fn FrozenModeBanner(
 #[component]
 pub fn ExecutionHistoryPanel(
     history: Memo<Vec<RunRecord>>,
-    nodes_by_id: ReadSignal<HashMap<NodeId, oya_frontend::graph::Node>>,
     on_select_node: EventHandler<NodeId>,
     collapsed: Signal<bool>,
     active_run_id: ReadSignal<Option<uuid::Uuid>>,
     on_run_select: EventHandler<uuid::Uuid>,
     on_exit_frozen: EventHandler<()>,
 ) -> Element {
+    let workflow_state: WorkflowState = use_context();
+    let nodes_by_id = workflow_state.nodes_by_id();
+
     let mut expanded_runs: Signal<HashSet<uuid::Uuid>> = use_signal(HashSet::new);
     let history_len = history.read().len();
     let collapse_state = CollapseState::from_bool(*collapsed.read());

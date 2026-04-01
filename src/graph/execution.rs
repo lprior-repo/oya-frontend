@@ -15,9 +15,17 @@ use super::{NodeId, Workflow};
 // ===========================================================================
 
 impl Workflow {
-    fn compare_execution_priority(&self, a: NodeId, b: NodeId) -> std::cmp::Ordering {
-        let node_a = self.nodes.iter().find(|node| node.id == a);
-        let node_b = self.nodes.iter().find(|node| node.id == b);
+    /// Compare two node IDs by execution priority (x, then y, then name).
+    ///
+    /// Accepts a pre-built lookup map to avoid repeated O(n) linear scans
+    /// during sorting, turning each comparison from O(n) to O(1).
+    fn compare_execution_priority(
+        node_map: &std::collections::HashMap<NodeId, &super::Node>,
+        a: NodeId,
+        b: NodeId,
+    ) -> std::cmp::Ordering {
+        let node_a = node_map.get(&a);
+        let node_b = node_map.get(&b);
 
         match (node_a, node_b) {
             (Some(left), Some(right)) => left
@@ -38,40 +46,36 @@ impl Workflow {
     ///
     /// This ensures graph connectivity invariant - all nodes must be
     /// reachable from at least one entry node.
+    ///
+    /// Optimized to build adjacency maps once (O(n+m)) instead of scanning
+    /// connections per node (O(n*m)).
     fn verify_graph_connectivity(&self) -> Result<(), WorkflowExecutionError> {
         if self.nodes.is_empty() {
             return Ok(());
         }
 
-        // Build adjacency list for traversal
+        // Build node ID set for validation
         let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
 
-        // Build outgoing edges map (node -> nodes it depends on)
+        // Build outgoing edges map in a single pass over connections
         let mut outgoing: std::collections::HashMap<NodeId, Vec<NodeId>> =
             std::collections::HashMap::new();
+        // Also build incoming set for finding entry nodes in the same pass
+        let mut has_incoming: std::collections::HashSet<NodeId> = std::collections::HashSet::new();
 
-        for node in &self.nodes {
-            let targets: Vec<NodeId> = self
-                .connections
-                .iter()
-                .filter(|conn| conn.source == node.id && node_ids.contains(&conn.target))
-                .map(|conn| conn.target)
-                .collect();
-            outgoing.insert(node.id, targets);
+        for conn in &self.connections {
+            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
+                outgoing.entry(conn.source).or_default().push(conn.target);
+                has_incoming.insert(conn.target);
+            }
         }
 
         // Find a starting node (any node with no incoming edges, or first node)
-        let mut entry_node = None;
-        for node in &self.nodes {
-            let has_incoming: bool = self
-                .connections
-                .iter()
-                .any(|conn| conn.target == node.id && node_ids.contains(&conn.source));
-            if !has_incoming {
-                entry_node = Some(node.id);
-                break;
-            }
-        }
+        let entry_node = self
+            .nodes
+            .iter()
+            .find(|node| !has_incoming.contains(&node.id))
+            .map(|node| node.id);
 
         // If no entry node found, use first node (this should never happen after check_non_empty)
         let start_node = if let Some(node) = entry_node {
@@ -272,16 +276,27 @@ impl Workflow {
     /// Uses Kahn's algorithm to build the execution queue.
     ///
     /// Returns a vector of node IDs in topological order.
+    ///
+    /// Optimized to pre-build an adjacency map (source -> targets) and a node
+    /// lookup `HashMap` so that each comparison during sort is O(1) instead of O(n),
+    /// and finding dependents is O(k) instead of O(m).
     fn build_execution_queue(&self) -> Result<Vec<NodeId>, WorkflowExecutionError> {
-        let mut queue = Vec::new();
+        let mut queue = Vec::with_capacity(self.nodes.len());
         let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
 
+        // Pre-build node lookup for O(1) comparisons during sort
+        let node_map: std::collections::HashMap<NodeId, &super::Node> =
+            self.nodes.iter().map(|n| (n.id, n)).collect();
+
+        // Pre-build adjacency map: source -> list of targets, in a single pass
+        let mut adjacency: std::collections::HashMap<NodeId, Vec<NodeId>> =
+            std::collections::HashMap::new();
         let mut in_degree: std::collections::HashMap<NodeId, usize> =
             self.nodes.iter().map(|n| (n.id, 0)).collect();
 
-        // Calculate in-degrees from connections
         for conn in &self.connections {
             if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
+                adjacency.entry(conn.source).or_default().push(conn.target);
                 if let Some(count) = in_degree.get_mut(&conn.target) {
                     *count += 1;
                 }
@@ -296,37 +311,34 @@ impl Workflow {
             .map(|n| n.id)
             .collect();
 
-        available.sort_by(|a, b| self.compare_execution_priority(*a, *b));
+        available.sort_by(|a, b| Self::compare_execution_priority(&node_map, *a, *b));
 
         // Process nodes in topological order
         while !available.is_empty() {
             let id = available.remove(0);
             queue.push(id);
 
-            // Find nodes that depend on the current node
-            let mut new_available: Vec<NodeId> = Vec::new();
-            for conn in &self.connections {
-                if conn.source == id
-                    && node_ids.contains(&conn.source)
-                    && node_ids.contains(&conn.target)
-                {
-                    if let Some(count) = in_degree.get_mut(&conn.target) {
+            // Use pre-built adjacency map for O(k) lookup instead of O(m) scan
+            if let Some(targets) = adjacency.get(&id) {
+                for target in targets {
+                    if let Some(count) = in_degree.get_mut(target) {
                         *count -= 1;
                         if *count == 0 {
-                            new_available.push(conn.target);
+                            available.push(*target);
                         }
                     }
                 }
             }
 
-            available.extend(new_available);
-            available.sort_by(|a, b| self.compare_execution_priority(*a, *b));
+            available.sort_by(|a, b| Self::compare_execution_priority(&node_map, *a, *b));
         }
 
         // Verify all nodes were processed (no cycles)
         if queue.len() != self.nodes.len() {
+            let queue_set: std::collections::HashSet<NodeId> =
+                queue.iter().copied().collect();
             let remaining: Vec<NodeId> = node_ids
-                .difference(&queue.iter().copied().collect())
+                .difference(&queue_set)
                 .copied()
                 .collect();
 
@@ -339,8 +351,11 @@ impl Workflow {
     }
 
     /// DFS-based cycle detection that returns actual cycle nodes.
+    ///
+    /// Uses a pre-built reverse adjacency map for O(1) neighbor lookup
+    /// instead of scanning all connections per DFS call.
     fn detect_cycle_dfs(
-        &self,
+        reverse_adj: &std::collections::HashMap<NodeId, Vec<NodeId>>,
         start_node: NodeId,
         visited: &mut std::collections::HashSet<NodeId>,
         path_set: &mut std::collections::HashSet<NodeId>,
@@ -350,15 +365,13 @@ impl Workflow {
         path.push(start_node);
         path_set.insert(start_node);
 
-        // Find all nodes that depend on start_node (reverse edges)
-        let dependents: Vec<NodeId> = self
-            .connections
-            .iter()
-            .filter(|conn| conn.target == start_node)
-            .map(|conn| conn.source)
-            .collect();
+        // Use pre-built reverse adjacency for O(1) lookup instead of O(m) scan
+        let dependents = reverse_adj
+            .get(&start_node)
+            .map(std::vec::Vec::as_slice)
+            .unwrap_or_default();
 
-        for dependent in dependents {
+        for &dependent in dependents {
             // Check if dependent is in current path (back edge = cycle)
             if path_set.contains(&dependent) {
                 // Found a cycle - extract it
@@ -368,7 +381,9 @@ impl Workflow {
             }
             // Recurse if not yet visited
             if !visited.contains(&dependent) {
-                if let Some(cycle) = self.detect_cycle_dfs(dependent, visited, path_set, path) {
+                if let Some(cycle) =
+                    Self::detect_cycle_dfs(reverse_adj, dependent, visited, path_set, path)
+                {
                     return Some(cycle);
                 }
             }
@@ -385,7 +400,21 @@ impl Workflow {
     ///
     /// Returns a vector of node IDs that form the cycle if one exists.
     /// The cycle nodes are those that are part of the cycle.
+    ///
+    /// Builds a reverse adjacency map once for O(n+m) complexity instead
+    /// of O(n*m) from scanning connections on each DFS step.
     fn find_cycle(&self) -> Option<Vec<NodeId>> {
+        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
+
+        // Build reverse adjacency: target -> list of sources (dependents)
+        let mut reverse_adj: std::collections::HashMap<NodeId, Vec<NodeId>> =
+            std::collections::HashMap::new();
+        for conn in &self.connections {
+            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
+                reverse_adj.entry(conn.target).or_default().push(conn.source);
+            }
+        }
+
         let mut visited = std::collections::HashSet::new();
         let mut path = Vec::new();
         let mut path_set = std::collections::HashSet::new();
@@ -393,9 +422,13 @@ impl Workflow {
         // Try starting from each node
         for node in &self.nodes {
             if !visited.contains(&node.id) {
-                if let Some(cycle) =
-                    self.detect_cycle_dfs(node.id, &mut visited, &mut path_set, &mut path)
-                {
+                if let Some(cycle) = Self::detect_cycle_dfs(
+                    &reverse_adj,
+                    node.id,
+                    &mut visited,
+                    &mut path_set,
+                    &mut path,
+                ) {
                     return Some(cycle);
                 }
             }

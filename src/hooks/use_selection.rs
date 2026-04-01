@@ -6,12 +6,19 @@ use dioxus::prelude::*;
 use oya_frontend::graph::NodeId;
 
 fn toggle_selection_ids(current: &[NodeId], id: NodeId) -> (Vec<NodeId>, Option<NodeId>) {
-    let mut next = current.to_vec();
-    if let Some(pos) = next.iter().position(|&item| item == id) {
-        next.remove(pos);
+    let next: Vec<NodeId> = if current.contains(&id) {
+        current
+            .iter()
+            .copied()
+            .filter(|&item| item != id)
+            .collect()
     } else {
-        next.push(id);
-    }
+        current
+            .iter()
+            .copied()
+            .chain(std::iter::once(id))
+            .collect()
+    };
 
     let selected_id = if next.contains(&id) {
         Some(id)
@@ -26,9 +33,11 @@ fn add_unique_selection(current: &[NodeId], id: NodeId) -> Vec<NodeId> {
     if current.contains(&id) {
         return current.to_vec();
     }
-    let mut next = current.to_vec();
-    next.push(id);
-    next
+    current
+        .iter()
+        .copied()
+        .chain(std::iter::once(id))
+        .collect()
 }
 
 fn reconcile_primary_selection(
@@ -75,9 +84,9 @@ impl Selection {
             Selection::None => Vec::new(),
             Selection::Single { node_id } => vec![*node_id],
             Selection::Multiple { primary, secondary } => {
-                let mut all = vec![*primary];
-                all.extend(secondary.iter().copied());
-                all
+                std::iter::once(*primary)
+                    .chain(secondary.iter().copied())
+                    .collect()
             }
         }
     }
@@ -179,7 +188,13 @@ impl SelectionState {
                 node_id: new_ids[0],
             },
             _ => Selection::Multiple {
-                primary: selected_id.unwrap_or(new_ids[0]),
+                primary: match selected_id {
+                    Some(id) => id,
+                    None => match new_ids.first() {
+                        Some(id) => *id,
+                        None => return,
+                    },
+                },
                 secondary: new_ids.into_iter().skip(1).collect(),
             },
         };
@@ -197,8 +212,13 @@ impl SelectionState {
             },
             _ => {
                 let current_primary = self.selection.read().primary();
-                let primary =
-                    reconcile_primary_selection(current_primary, &next_ids).unwrap_or(next_ids[0]);
+                let primary = match reconcile_primary_selection(current_primary, &next_ids) {
+                    Some(id) => id,
+                    None => match next_ids.first() {
+                        Some(id) => *id,
+                        None => return,
+                    },
+                };
                 let secondary: Vec<NodeId> =
                     next_ids.into_iter().filter(|&n| n != primary).collect();
                 Selection::Multiple { primary, secondary }

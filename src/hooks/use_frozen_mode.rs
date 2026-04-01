@@ -35,8 +35,7 @@ impl FrozenMode {
         matches!(self, Self::Frozen { .. })
     }
 
-    #[allow(clippy::missing_const_for_fn)]
-    pub fn run_id(&self) -> Option<Uuid> {
+    pub const fn run_id(&self) -> Option<Uuid> {
         match self {
             Self::Live => None,
             Self::Frozen { run_id, .. } => Some(*run_id),

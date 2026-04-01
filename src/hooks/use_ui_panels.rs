@@ -345,15 +345,19 @@ impl UiPanels {
     }
 
     pub fn set_palette_query(mut self, query: String) {
-        let mut state = (*self.palette.read()).clone();
-        state.query = query;
-        self.palette.set(state);
+        let current = (*self.palette.read()).clone();
+        self.palette.set(PaletteState {
+            visibility: current.visibility,
+            query,
+        });
     }
 
     pub fn clear_palette_query(mut self) {
-        let mut state = (*self.palette.read()).clone();
-        state.query.clear();
-        self.palette.set(state);
+        let current = (*self.palette.read()).clone();
+        self.palette.set(PaletteState {
+            visibility: current.visibility,
+            query: String::new(),
+        });
     }
 
     pub fn show_context_menu(mut self, x: f32, y: f32) {

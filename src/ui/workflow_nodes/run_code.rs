@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{CodeLanguage, RunCodeConfig};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 #[derive(Clone)]
 struct LanguageDrafts {
     expression: String,
@@ -105,11 +109,11 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Language"
                 }
                 select {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500",
+                    class: "{INPUT_CLASSES}",
                     value: match &*config.read() {
                         RunCodeConfig { language: CodeLanguage::JavaScript, .. } => "JavaScript",
                         RunCodeConfig { language: CodeLanguage::Python, .. } => "Python",
@@ -149,14 +153,14 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                         div {
                             class: "form-field",
                             label {
-                                class: "block text-sm font-medium text-gray-700 mb-1",
+                                class: "{LABEL_CLASSES}",
                                 "Expression"
                             }
                             input {
                                 r#type: "text",
                                 class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 font-mono",
                                 placeholder: "{{ steps.total.amount }} * 1.2",
-                                value: "{config.read().code}",
+                                value: "{config.code}",
                                 oninput: move |e| {
                                     let value = e.value();
                                     let language = config.read().language.clone();
@@ -179,14 +183,14 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                         div {
                             class: "form-field",
                             label {
-                                class: "block text-sm font-medium text-gray-700 mb-1",
+                                class: "{LABEL_CLASSES}",
                                 "Code"
                             }
                             textarea {
                                 class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 font-mono text-sm",
                                 rows: 8,
                                 placeholder: "// Available: input (from previous step)\n// Return value is saved\n\nconst result = input.amount * 1.2;\nreturn { total: result };",
-                                value: "{config.read().code}",
+                                value: "{config.code}",
                                 oninput: move |e| {
                                     let value = e.value();
                                     let language = config.read().language.clone();
@@ -221,7 +225,7 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
 pub fn RunCodeNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-red-100 rounded-full flex items-center justify-center",

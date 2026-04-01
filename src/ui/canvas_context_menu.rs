@@ -6,6 +6,10 @@ const MENU_WIDTH: f32 = 224.0;
 const MENU_HEIGHT: f32 = 180.0;
 const PADDING: f32 = 8.0;
 
+/// Shared Tailwind classes for context menu action buttons.
+const MENU_BUTTON_CLASSES: &str =
+    "block w-full px-3 py-2 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/90 hover:text-slate-50";
+
 /// Clamps position to keep menu within viewport bounds.
 /// Returns the clamped (x, y) coordinates.
 #[inline]
@@ -68,26 +72,31 @@ pub fn CanvasContextMenu(
             }
 
             div {
+                role: "menu",
+                aria_label: "Canvas actions",
                 class: "absolute w-56 overflow-hidden rounded-lg border border-slate-700/80 bg-slate-900/95 shadow-2xl shadow-slate-950/70 ring-1 ring-slate-700/70 backdrop-blur",
                 style: "{menu_style}",
 
                 button {
                     r#type: "button",
-                    class: "block w-full px-3 py-2 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/90 hover:text-slate-50",
+                    role: "menuitem",
+                    class: "{MENU_BUTTON_CLASSES}",
                     onclick: move |evt| on_add_node.call(evt),
                     "Add Node"
                 }
 
                 button {
                     r#type: "button",
-                    class: "block w-full px-3 py-2 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/90 hover:text-slate-50",
+                    role: "menuitem",
+                    class: "{MENU_BUTTON_CLASSES}",
                     onclick: move |evt| on_fit_view.call(evt),
                     "Fit View"
                 }
 
                 button {
                     r#type: "button",
-                    class: "block w-full px-3 py-2 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800/90 hover:text-slate-50",
+                    role: "menuitem",
+                    class: "{MENU_BUTTON_CLASSES}",
                     onclick: move |evt| on_layout.call(evt),
                     "Auto Layout"
                 }

@@ -1,7 +1,9 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 
+pub mod use_canvas_events;
 pub mod use_canvas_interaction;
+pub mod use_canvas_mouse;
 pub mod use_frozen_mode;
 pub mod use_restate_sync;
 pub mod use_selection;

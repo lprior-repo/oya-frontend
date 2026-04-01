@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{HttpMethod, HttpPath, HttpTriggerConfig};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 #[component]
 pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
     let mut write_config = config.writer();
@@ -22,12 +26,12 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "Path"
                 }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "/orders/{order_id}",
                     value: "{config.read().path.as_str()}",
                     oninput: move |e| {
@@ -43,11 +47,11 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "HTTP Method"
                 }
                 select {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    class: "{INPUT_CLASSES}",
                     value: match config.read().method {
                         HttpMethod::GET => "GET",
                         HttpMethod::POST => "POST",
@@ -84,7 +88,7 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
 pub fn HttpTriggerNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center",

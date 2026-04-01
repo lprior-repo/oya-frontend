@@ -1,6 +1,10 @@
 use crate::ui::workflow_nodes::schema::{MemoryKey, SaveToMemoryConfig};
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+
 fn json_to_display(value: &serde_json::Value) -> String {
     serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |value| value)
 }
@@ -30,10 +34,10 @@ pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "What name should this have?" }
+                label { class: "{LABEL_CLASSES}", "What name should this have?" }
                 input {
                     r#type: "text",
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500",
+                    class: "{INPUT_CLASSES}",
                     placeholder: "e.g., order_total, user_email, approval_status",
                     value: "{config.read().key.as_str()}",
                     oninput: move |e| write_config.write().key = MemoryKey::new(e.value()),
@@ -42,12 +46,12 @@ pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
             }
             div {
                 class: "form-field",
-                label { class: "block text-sm font-medium text-gray-700 mb-1", "What to save (JSON)" }
+                label { class: "{LABEL_CLASSES}", "What to save (JSON)" }
                 textarea {
                     class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
-                    value: "{draft.read()}",
+                    value: "{draft}",
                     oninput: move |e| {
                         let next_value = e.value().clone();
                         draft.set(next_value.clone());
@@ -91,7 +95,7 @@ mod tests {
 pub fn SaveToMemoryNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
             div { class: "w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center", span { class: "text-xl", "💾" } },
             div {
                 class: "flex-1",

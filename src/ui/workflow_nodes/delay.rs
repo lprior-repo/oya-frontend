@@ -1,6 +1,11 @@
 use crate::ui::workflow_nodes::schema::DelayConfig;
 use dioxus::prelude::*;
 
+const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
+const INPUT_CLASSES: &str = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500";
+const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const PRESET_BTN_CLASSES: &str = "px-3 py-2 text-sm border rounded-md hover:bg-gray-50";
+
 #[component]
 pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
     let mut write_config = config.writer();
@@ -23,27 +28,29 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
             div {
                 class: "form-field",
                 label {
-                    class: "block text-sm font-medium text-gray-700 mb-1",
+                    class: "{LABEL_CLASSES}",
                     "How long to wait?"
                 }
                 div {
                     class: "grid grid-cols-3 gap-2 mb-3",
+                    role: "group",
+                    aria_label: "Duration presets",
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 1000;
                         },
                         "1 second"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 5000;
                         },
                         "5 seconds"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 30000;
                         },
@@ -52,22 +59,24 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                 }
                 div {
                     class: "grid grid-cols-3 gap-2 mb-2",
+                    role: "group",
+                    aria_label: "Duration presets",
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 60_000;
                         },
                         "1 minute"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 300_000;
                         },
                         "5 minutes"
                     }
                     button {
-                        class: "px-3 py-2 text-sm border rounded-md hover:bg-gray-50",
+                        class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
                             write_config.write().duration_ms = 3600_000;
                         },
@@ -79,7 +88,7 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                     input {
                         r#type: "number",
                         min: "1",
-                        class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500",
+                        class: "{INPUT_CLASSES}",
                         placeholder: "milliseconds",
                         value: "{config.read().duration_ms}",
                         oninput: move |e| {
@@ -130,7 +139,7 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
 pub fn DelayNodeCard() -> Element {
     rsx! {
         div {
-            class: "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow",
+            class: "{CARD_CLASSES}",
 
             div {
                 class: "w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center",

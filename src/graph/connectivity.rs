@@ -128,11 +128,14 @@ impl Workflow {
             return Err(ConnectionError::SelfConnection);
         }
 
-        if !nodes.iter().any(|node| node.id == source) {
+        // Single-pass O(n) lookup instead of two separate .iter().any() scans
+        let source_found = nodes.iter().any(|node| node.id == source);
+        let target_found = nodes.iter().any(|node| node.id == target);
+
+        if !source_found {
             return Err(ConnectionError::MissingSourceNode(source));
         }
-
-        if !nodes.iter().any(|node| node.id == target) {
+        if !target_found {
             return Err(ConnectionError::MissingTargetNode(target));
         }
 
@@ -186,19 +189,41 @@ impl Workflow {
         }
     }
 
+    /// Single-pass node lookup: finds both source and target in one iteration
+    /// instead of two separate O(n) scans.
+    fn find_source_and_target_nodes(
+        nodes: &[super::Node],
+        source: NodeId,
+        target: NodeId,
+    ) -> Result<(&super::Node, &super::Node), ConnectionError> {
+        let mut source_node = None;
+        let mut target_node = None;
+
+        for node in nodes {
+            if node.id == source {
+                source_node = Some(node);
+            }
+            if node.id == target {
+                target_node = Some(node);
+            }
+            // Early exit once both are found
+            if source_node.is_some() && target_node.is_some() {
+                break;
+            }
+        }
+
+        let source = source_node.ok_or(ConnectionError::MissingSourceNode(source))?;
+        let target = target_node.ok_or(ConnectionError::MissingTargetNode(target))?;
+        Ok((source, target))
+    }
+
     fn check_port_type_compatibility(
         nodes: &[super::Node],
         source: NodeId,
         target: NodeId,
     ) -> Result<(), ConnectionError> {
-        let source_node = nodes
-            .iter()
-            .find(|n| n.id == source)
-            .ok_or(ConnectionError::MissingSourceNode(source))?;
-        let target_node = nodes
-            .iter()
-            .find(|n| n.id == target)
-            .ok_or(ConnectionError::MissingTargetNode(target))?;
+        let (source_node, target_node) =
+            Self::find_source_and_target_nodes(nodes, source, target)?;
 
         let source_type = Self::get_node_output_port_type(source_node)?;
         let target_type = Self::get_node_input_port_type(target_node)?;

@@ -203,8 +203,7 @@ pub fn ParallelGroupOverlay(
 
     rsx! {
         svg {
-            class: "absolute inset-0 overflow-visible pointer-events-none",
-            style: "width: 100%; height: 100%; z-index: -1;",
+            class: "absolute inset-0 overflow-visible pointer-events-none w-full h-full -z-1",
             for group in parallel_groups.read().iter() {
                 {
                     let bb = group.bounding_box;

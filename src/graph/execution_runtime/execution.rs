@@ -28,6 +28,7 @@ impl Workflow {
     /// let memory = Workflow::estimate_memory_usage(&value);
     /// assert!(memory > 0);
     /// ```
+    #[must_use]
     pub fn estimate_memory_usage(value: &serde_json::Value) -> u64 {
         match value {
             serde_json::Value::Null => 4,    // "null"

@@ -36,7 +36,7 @@ playwright = "0.0.20"
 tokio = { version = "1", features = ["full"] }
 proptest = "1.7.0"
 criterion = "0.5"
-insta = "1.39"
+insta = { version = "1.39", features = ["json", "yaml"] }
 
 [lib]
 name = "oya_frontend"

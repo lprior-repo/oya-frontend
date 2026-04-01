@@ -57,21 +57,34 @@ pub fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIss
     }
 }
 
+/// Single-pass connection scan: build incoming/outgoing sets once (O(n+m))
+/// instead of scanning all connections per node (O(n*m)).
 pub fn validate_orphan_nodes(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
+    use std::collections::HashSet;
+
+    // Build sets of nodes that have incoming and outgoing connections in one pass
+    let mut has_incoming: HashSet<NodeId> = HashSet::new();
+    let mut has_outgoing: HashSet<NodeId> = HashSet::new();
+
+    for conn in &workflow.connections {
+        has_outgoing.insert(conn.source);
+        has_incoming.insert(conn.target);
+    }
+
     for node in &workflow.nodes {
         if node.category == NodeCategory::Entry {
             continue;
         }
 
-        let has_incoming = workflow.connections.iter().any(|c| c.target == node.id);
-        let has_outgoing = workflow.connections.iter().any(|c| c.source == node.id);
+        let incoming = has_incoming.contains(&node.id);
+        let outgoing = has_outgoing.contains(&node.id);
 
-        if !has_incoming && !has_outgoing && workflow.nodes.len() > 1 {
+        if !incoming && !outgoing && workflow.nodes.len() > 1 {
             issues.push(ValidationIssue::warning_for_node(
                 format!("Node '{}' is not connected to anything", node.name),
                 node.id,
             ));
-        } else if !has_incoming && workflow.nodes.len() > 1 {
+        } else if !incoming && workflow.nodes.len() > 1 {
             issues.push(ValidationIssue::warning_for_node(
                 format!("Node '{}' has no incoming connections", node.name),
                 node.id,

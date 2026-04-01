@@ -296,12 +296,6 @@ mod tests {
         }
     }
 
-    fn build_node_with_id(id: NodeId, x: f32, y: f32) -> Node {
-        let mut node = build_node(id, x, y);
-        node.id = id;
-        node
-    }
-
     // ==================== find_parallel_branches Tests ====================
 
     #[test]
@@ -1136,8 +1130,7 @@ pub fn FlowEdges(
 
     rsx! {
         svg {
-            class: "absolute inset-0 overflow-visible {svg_pointer_class}",
-            style: "width: 100%; height: 100%; z-index: 0;",
+            class: "absolute inset-0 overflow-visible w-full h-full z-0 {svg_pointer_class}",
             onmousemove: move |evt| {
                 if let Some(state) = drag_state.read().clone() {
                     let coordinates = evt.page_coordinates();

@@ -84,18 +84,24 @@ impl DagLayout {
         }
 
         // 3. Crossing minimization (barycenter sweep)
+        // Optimized: use a position HashMap for O(1) index lookups instead of
+        // .iter().position() which is O(n) per call, called per node per iteration.
         for _ in 0..4 {
             for layer_idx in 1..nodes_by_layer.len() {
+                // Build position map for the previous layer: O(n) once per layer
+                let prev_positions: HashMap<NodeIndex, usize> = nodes_by_layer[layer_idx - 1]
+                    .iter()
+                    .enumerate()
+                    .map(|(pos, &node)| (node, pos))
+                    .collect();
+
                 let mut barycenters: Vec<(NodeIndex, f32)> = nodes_by_layer[layer_idx]
                     .iter()
                     .map(|&node| {
                         let (sum, count) = graph
                             .neighbors_directed(node, petgraph::Direction::Incoming)
                             .filter_map(|parent| {
-                                nodes_by_layer[layer_idx - 1]
-                                    .iter()
-                                    .position(|&n| n == parent)
-                                    .map(|pos| pos as f32)
+                                prev_positions.get(&parent).map(|&pos| pos as f32)
                             })
                             .fold((0.0, 0.0), |(s, c), pos| (s + pos, c + 1.0));
 
@@ -114,6 +120,16 @@ impl DagLayout {
         }
 
         // 4. Coordinate assignment (left-to-right layered layout)
+        //
+        // Pre-build a NodeId -> index map for O(1) node lookups instead of
+        // repeated workflow.nodes.iter_mut().find() which is O(n) per call.
+        let node_position_map: HashMap<NodeId, usize> = workflow
+            .nodes
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (n.id, i))
+            .collect();
+
         let mut y_by_index: HashMap<NodeIndex, f32> = HashMap::new();
         let mut max_layer_height = 0.0_f32;
 
@@ -146,9 +162,9 @@ impl DagLayout {
 
             let x = (layer as f32) * (NODE_WIDTH + self.layer_spacing);
             for node_idx in nodes {
-                if let Some(node_id) = reverse_map.get(node_idx) {
-                    if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == *node_id) {
-                        node.x = x;
+                if let Some(&node_id) = reverse_map.get(node_idx) {
+                    if let Some(&idx) = node_position_map.get(&node_id) {
+                        workflow.nodes[idx].x = x;
                     }
                 }
             }
@@ -169,27 +185,22 @@ impl DagLayout {
             let layer_offset = (max_layer_height - layer_height) / 2.0;
 
             for node_idx in nodes {
-                if let Some(node_id) = reverse_map.get(node_idx) {
-                    if let Some(node) = workflow.nodes.iter_mut().find(|n| n.id == *node_id) {
+                if let Some(&node_id) = reverse_map.get(node_idx) {
+                    if let Some(&idx) = node_position_map.get(&node_id) {
                         let y = y_by_index.get(node_idx).map_or(0.0, |value| *value);
-                        node.y = y + layer_offset;
+                        workflow.nodes[idx].y = y + layer_offset;
                     }
                 }
             }
         }
 
-        let min_x = workflow
-            .nodes
-            .iter()
-            .map(|node| node.x)
-            .reduce(f32::min)
-            .map_or(0.0, |value| value);
-        let min_y = workflow
-            .nodes
-            .iter()
-            .map(|node| node.y)
-            .reduce(f32::min)
-            .map_or(0.0, |value| value);
+        // Single pass to find both min_x and min_y instead of two separate iterations
+        let (min_x, min_y) = workflow.nodes.iter().fold(
+            (f32::INFINITY, f32::INFINITY),
+            |(mx, my), node| (mx.min(node.x), my.min(node.y)),
+        );
+        let min_x = if min_x.is_finite() { min_x } else { 0.0 };
+        let min_y = if min_y.is_finite() { min_y } else { 0.0 };
 
         for node in &mut workflow.nodes {
             node.x = node.x - min_x + LEFT_PADDING;
