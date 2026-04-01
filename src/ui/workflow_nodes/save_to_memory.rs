@@ -1,21 +1,18 @@
 use crate::ui::workflow_nodes::schema::{MemoryKey, SaveToMemoryConfig};
+use crate::ui::workflow_nodes::shared::{
+    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
+    parse_json_draft, CARD_CLASSES, LABEL_CLASSES,
+};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
-
-fn json_to_display(value: &serde_json::Value) -> String {
-    serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |value| value)
-}
-
-fn parse_json_draft(input: &str) -> Result<serde_json::Value, String> {
-    serde_json::from_str(input).map_err(|error| format!("Invalid JSON: {error}"))
-}
+const FOCUS_RING: &str = "indigo";
 
 #[component]
 pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
     let mut write_config = config.writer();
+    let input_cls = input_classes(FOCUS_RING);
+    let textarea_cls = textarea_classes(FOCUS_RING);
+
     let initial_draft = json_to_display(&config.read().value);
     let draft = use_signal(move || initial_draft);
     let parse_error = use_signal(|| None::<String>);
@@ -32,23 +29,21 @@ pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
                     " - Store a value you can use later."
                 }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "What name should this have?" }
+            FormField {
+                label: "What name should this have?",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., order_total, user_email, approval_status",
                     value: "{config.read().key.as_str()}",
                     oninput: move |e| write_config.write().key = MemoryKey::new(e.value()),
                 }
-                p { class: "text-xs text-gray-500 mt-1", "Use this name to load the data later" }
+                FormHint { text: "Use this name to load the data later" }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "What to save (JSON)" }
+            FormField {
+                label: "What to save (JSON)",
                 textarea {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm",
+                    class: "{textarea_cls}",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
                     value: "{draft}",
@@ -78,7 +73,7 @@ pub fn SaveToMemoryForm(config: ReadOnlySignal<SaveToMemoryConfig>) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_json_draft;
+    use crate::ui::workflow_nodes::shared::parse_json_draft;
 
     #[test]
     fn parse_json_draft_accepts_valid_json() {
@@ -94,14 +89,11 @@ mod tests {
 #[component]
 pub fn SaveToMemoryNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-            div { class: "w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center", span { class: "text-xl", "💾" } },
-            div {
-                class: "flex-1",
-                h3 { class: "font-medium text-gray-900", "Save to Memory" }
-                p { class: "text-sm text-gray-500", "Store a value for later" }
-            }
+        NodeCard {
+            icon_bg: "bg-indigo-100",
+            icon: "💾",
+            title: "Save to Memory",
+            subtitle: "Store a value for later",
         }
     }
 }

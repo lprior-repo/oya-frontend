@@ -98,7 +98,7 @@ impl Workflow {
 
     /// Validates that all dependencies reference existing nodes.
     fn validate_dependencies_exist(&self) -> Result<(), WorkflowExecutionError> {
-        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
+        let node_ids = graph_ops::collect_node_ids(&self.nodes);
 
         let mut missing_deps: Vec<(NodeId, NodeId)> = Vec::new();
 

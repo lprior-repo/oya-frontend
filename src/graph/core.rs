@@ -31,11 +31,11 @@ impl Workflow {
             Some(obj) => obj
                 .into_iter()
                 .chain(std::iter::once((
-                    "status".to_string(),
+                    "status".to_owned(),
                     serde_json::Value::String(status_text),
                 )))
                 .collect(),
-            None => std::iter::once(("status".to_string(), serde_json::Value::String(status_text)))
+            None => std::iter::once(("status".to_owned(), serde_json::Value::String(status_text)))
                 .collect(),
         };
         node.config = serde_json::Value::Object(config_obj);
@@ -65,16 +65,16 @@ impl Workflow {
         let config_obj = node.config.as_object().cloned().map_or_else(
             || {
                 std::iter::once((
-                    "status".to_string(),
-                    serde_json::Value::String(status_text.to_string()),
+                    "status".to_owned(),
+                    serde_json::Value::String(status_text.to_owned()),
                 ))
                 .collect::<serde_json::Map<_, _>>()
             },
             |obj| {
                 obj.into_iter()
                     .chain(std::iter::once((
-                        "status".to_string(),
-                        serde_json::Value::String(status_text.to_string()),
+                        "status".to_owned(),
+                        serde_json::Value::String(status_text.to_owned()),
                     )))
                     .collect()
             },
@@ -97,7 +97,7 @@ impl Workflow {
             current_step: 0,
             history: Vec::new(),
             execution_records: Vec::new(),
-            restate_ingress_url: "http://localhost:8080".to_string(),
+            restate_ingress_url: "http://localhost:8080".to_owned(),
             current_memory_bytes: 0,
             execution_config: ExecutionConfig::default(),
             execution_failed: false,

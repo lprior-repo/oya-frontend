@@ -228,9 +228,9 @@ impl PayloadShape {
             Self::Object { field_count } => format!("object ({field_count})"),
             Self::Array { element_count } => format!("array ({element_count})"),
             Self::String { char_count } => format!("string ({char_count})"),
-            Self::Number => "number".to_string(),
-            Self::Boolean => "boolean".to_string(),
-            Self::Null => "null".to_string(),
+            Self::Number => "number".to_owned(),
+            Self::Boolean => "boolean".to_owned(),
+            Self::Null => "null".to_owned(),
         }
     }
 }

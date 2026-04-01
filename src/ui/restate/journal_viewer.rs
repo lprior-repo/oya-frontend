@@ -98,12 +98,14 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                         // Status
                         span {
                             class: {
-                                let base = "px-2 py-0.5 rounded text-xs ";
+                                let mut class = String::with_capacity(64);
+                                class.push_str("px-2 py-0.5 rounded text-xs ");
                                 if entry.completed {
-                                    format!("{base} bg-green-100 text-green-800")
+                                    class.push_str("bg-green-100 text-green-800");
                                 } else {
-                                    format!("{base} bg-yellow-100 text-yellow-800")
+                                    class.push_str("bg-yellow-100 text-yellow-800");
                                 }
+                                class
                             },
                             if entry.completed { "✓" } else { "○" }
                         }

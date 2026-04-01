@@ -33,7 +33,7 @@ fn format_timestamp(ts: &chrono::DateTime<chrono::Utc>) -> String {
 fn format_elapsed(ts: &chrono::DateTime<chrono::Utc>) -> String {
     let elapsed = chrono::Utc::now().signed_duration_since(*ts);
     if elapsed.num_minutes() < 1 {
-        "just now".to_string()
+        "just now".to_owned()
     } else if elapsed.num_hours() < 1 {
         format!("{}m ago", elapsed.num_minutes())
     } else if elapsed.num_days() < 1 {
@@ -64,7 +64,7 @@ pub const fn run_status_badge_class(outcome: RunOutcome) -> &'static str {
 
 #[must_use]
 pub fn format_run_duration(_run: &RunRecord) -> String {
-    "—".to_string()
+    "—".to_owned()
 }
 
 #[must_use]
@@ -277,11 +277,13 @@ pub fn ExecutionHistoryTable(
                             let restate_id = run.restate_invocation_id.clone();
 
                             let row_base = "cursor-pointer transition-colors border-b border-slate-100 last:border-b-0";
-                            let row_class = if is_active {
-                                format!("{row_base} bg-indigo-50 border-l-2 border-indigo-500")
+                            let mut row_class = String::with_capacity(96);
+                            row_class.push_str(row_base);
+                            if is_active {
+                                row_class.push_str(" bg-indigo-50 border-l-2 border-indigo-500");
                             } else {
-                                format!("{row_base} hover:bg-slate-50")
-                            };
+                                row_class.push_str(" hover:bg-slate-50");
+                            }
 
                             rsx! {
                                 tr {

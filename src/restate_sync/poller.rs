@@ -88,7 +88,7 @@ pub enum PollerState {
 
 impl PollerState {
     #[must_use]
-    pub fn is_tracking(&self) -> bool {
+    pub const fn is_tracking(&self) -> bool {
         matches!(self, Self::Tracking(_))
     }
 
@@ -146,7 +146,7 @@ impl InvocationPoller {
     }
 
     #[must_use]
-    pub fn state(&self) -> &PollerState {
+    pub const fn state(&self) -> &PollerState {
         &self.state
     }
 
@@ -231,7 +231,7 @@ impl InvocationPoller {
     }
 
     #[must_use]
-    pub fn client(&self) -> &Arc<RestateClient> {
+    pub const fn client(&self) -> &Arc<RestateClient> {
         &self.client
     }
 }

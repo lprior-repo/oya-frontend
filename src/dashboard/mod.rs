@@ -48,10 +48,9 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::Export { format, output } => {
-            let output_path = match output {
-                Some(path) => path,
-                None => PathBuf::from("metrics-report.txt"),
-            };
+            let output_path = output
+                .clone()
+                .map_or_else(|| PathBuf::from("metrics-report.txt"), |path| path);
             export_metrics(&metrics_store, &format, &output_path)?;
         }
     }

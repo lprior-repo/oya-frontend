@@ -93,13 +93,15 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                             div { class: "text-sm text-gray-500", "Status" }
                             div {
                                 class: {
-                                    let base = "px-2 py-1 rounded text-sm ";
+                                    let mut class = String::with_capacity(64);
+                                    class.push_str("px-2 py-1 rounded text-sm ");
                                     match inv.status {
-                                        InvocationStatus::Completed => format!("{base} bg-green-100 text-green-800"),
-                                        InvocationStatus::Running => format!("{base} bg-blue-100 text-blue-800"),
-                                        InvocationStatus::Paused | InvocationStatus::BackingOff => format!("{base} bg-red-100 text-red-800"),
-                                        _ => format!("{base} bg-gray-100 text-gray-800"),
+                                        InvocationStatus::Completed => class.push_str("bg-green-100 text-green-800"),
+                                        InvocationStatus::Running => class.push_str("bg-blue-100 text-blue-800"),
+                                        InvocationStatus::Paused | InvocationStatus::BackingOff => class.push_str("bg-red-100 text-red-800"),
+                                        _ => class.push_str("bg-gray-100 text-gray-800"),
                                     }
+                                    class
                                 },
                                 {status_str}
                             }
@@ -158,12 +160,14 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
 
                                         span {
                                             class: {
-                                                let base = "px-2 py-0.5 rounded text-xs ";
+                                                let mut class = String::with_capacity(64);
+                                                class.push_str("px-2 py-0.5 rounded text-xs ");
                                                 if entry.completed {
-                                                    format!("{base} bg-green-100 text-green-800")
+                                                    class.push_str("bg-green-100 text-green-800");
                                                 } else {
-                                                    format!("{base} bg-yellow-100 text-yellow-800")
+                                                    class.push_str("bg-yellow-100 text-yellow-800");
                                                 }
+                                                class
                                             },
                                             {entry.raw_entry_type.clone()}
                                         }

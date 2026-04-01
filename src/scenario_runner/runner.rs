@@ -152,10 +152,9 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                 let Some(expected) = assertion.expected.as_ref() else {
                     return Err("Missing expected value for status assertion".to_string());
                 };
-                let expected_status = match expected.as_u64() {
-                    Some(v) => u16::try_from(v).map_or(0, |status| status),
-                    None => 0,
-                };
+                let expected_status = expected
+                    .as_u64()
+                    .map_or(0, |v| u16::try_from(v).map_or(0, |status| status));
                 if result.status != expected_status {
                     return Err(format!(
                         "Expected status {expected_status}, got {}",

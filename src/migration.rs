@@ -29,7 +29,7 @@ impl ZoomFactor {
 
     /// Returns the underlying f32 value.
     #[must_use]
-    pub fn value(&self) -> f32 {
+    pub const fn value(&self) -> f32 {
         self.0
     }
 }
@@ -121,7 +121,7 @@ impl Px {
 
     /// Returns the underlying f32 value.
     #[must_use]
-    pub fn value(&self) -> f32 {
+    pub const fn value(&self) -> f32 {
         self.0
     }
 }
@@ -132,13 +132,13 @@ pub struct ComponentId(pub &'static str); // stable identity for parity checks
 impl ComponentId {
     /// Creates a new [`ComponentId`] with a stable identity.
     #[must_use]
-    pub fn new(id: &'static str) -> Self {
+    pub const fn new(id: &'static str) -> Self {
         ComponentId(id)
     }
 
     /// Returns the underlying string slice.
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         self.0
     }
 }
@@ -149,13 +149,13 @@ pub struct TestSelector(pub &'static str); // stable selectors for verification
 impl TestSelector {
     /// Creates a new [`TestSelector`] with a stable selector.
     #[must_use]
-    pub fn new(selector: &'static str) -> Self {
+    pub const fn new(selector: &'static str) -> Self {
         TestSelector(selector)
     }
 
     /// Returns the underlying string slice.
     #[must_use]
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         self.0
     }
 }
@@ -217,7 +217,7 @@ impl FlowPosition {
     /// # Errors
     /// Returns `None` if either coordinate is not finite.
     #[must_use = "FlowPosition construction may fail if coordinates are invalid"]
-    pub fn new(x: f32, y: f32) -> Option<Self> {
+    pub const fn new(x: f32, y: f32) -> Option<Self> {
         if x.is_finite() && y.is_finite() {
             Some(FlowPosition { x, y })
         } else {

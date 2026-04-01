@@ -31,7 +31,7 @@ pub fn status_text(status: ExecutionState, step: usize, total: usize, name: &str
         }
         ExecutionState::Completed => format!("Completed {total} steps"),
         ExecutionState::Failed => format!("Failed at step {step} \u{2014} {name}"),
-        ExecutionState::Idle | ExecutionState::Skipped => "Ready".to_string(),
+        ExecutionState::Idle | ExecutionState::Skipped => "Ready".to_owned(),
     }
 }
 
@@ -63,7 +63,7 @@ pub fn RunStatusBar(
                     {
                         let run_id = frozen_run_id.read();
                     run_id.as_deref().map_or_else(
-                        || "Viewing historical run".to_string(),
+                        || "Viewing historical run".to_owned(),
                         |id| format!("Viewing historical run {id}"),
                     )
                     }

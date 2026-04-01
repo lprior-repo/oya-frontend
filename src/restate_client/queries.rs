@@ -139,7 +139,7 @@ impl SqlQueries {
     }
 }
 
-fn invocation_status_literal(status: InvocationStatus) -> &'static str {
+const fn invocation_status_literal(status: InvocationStatus) -> &'static str {
     match status {
         InvocationStatus::Pending => "pending",
         InvocationStatus::Scheduled => "scheduled",

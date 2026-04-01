@@ -7,6 +7,7 @@
 
 use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, Node, NodeId, Viewport};
+use std::fmt::Write;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -162,10 +163,8 @@ pub fn FlowMinimap(
     let node_map: std::collections::HashMap<NodeId, &Node> =
         node_list.iter().map(|n| (n.id, n)).collect();
 
-    let viewbox = format!(
-        "{} {} {} {}",
-        bounds.min_x, bounds.min_y, bounds.width, bounds.height
-    );
+    let mut viewbox = String::with_capacity(64);
+    let _ = write!(viewbox, "{} {} {} {}", bounds.min_x, bounds.min_y, bounds.width, bounds.height);
     let node_total = node_list.len();
     let edge_total = edge_list.len();
 
