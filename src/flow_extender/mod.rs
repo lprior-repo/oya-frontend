@@ -1662,7 +1662,7 @@ mod tests {
         let condition = workflow.add_node("condition", 120.0, 120.0);
         let run = workflow.add_node("run", 200.0, 120.0);
         workflow.add_node("get-state", 80.0, 120.0);
-        workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
+        let _ = workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
 
         let suggestions = suggest_extensions(&workflow);
         let keys = suggestions
@@ -1755,7 +1755,7 @@ mod tests {
         let condition = workflow.add_node("condition", 40.0, 40.0);
         let run = workflow.add_node("run", 120.0, 40.0);
         workflow.add_node("get-state", 20.0, 20.0);
-        workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
+        let _ = workflow.add_connection_checked(condition, run, &"true".into(), &"in".into());
 
         let initial = apply_extension(&mut workflow, "add-reliability-bundle");
         assert!(initial.is_ok());
@@ -1866,7 +1866,7 @@ mod tests {
         let condition = workflow.add_node("condition", 180.0, 180.0);
         workflow.add_node("durable-promise", 200.0, 100.0);
         workflow.add_node("get-state", 60.0, 60.0);
-        workflow.add_connection_checked(condition, durable, &"true".into(), &"in".into());
+        let _ = workflow.add_connection_checked(condition, durable, &"true".into(), &"in".into());
 
         let suggestions = suggest_extensions(&workflow)
             .into_iter()

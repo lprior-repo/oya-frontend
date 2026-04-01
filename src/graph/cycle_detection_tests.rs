@@ -571,10 +571,10 @@ fn parallel_nodes_when_preparing_run_then_order_is_deterministic() {
     }
 
     // Run twice to check determinism
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
     let order1 = workflow.execution_queue.clone();
 
-    workflow.prepare_run();
+    let _ = workflow.prepare_run();
     let order2 = workflow.execution_queue.clone();
 
     // Then: Order should be deterministic

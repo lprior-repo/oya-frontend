@@ -264,8 +264,8 @@ mod tests {
         let n2 = workflow.add_node("run", 0.0, 0.0);
         let n3 = workflow.add_node("condition", 0.0, 0.0);
         let main = PortName::from("main");
-        workflow.add_connection_checked(n1, n2, &main, &main);
-        workflow.add_connection_checked(n2, n3, &main, &main);
+        let _ = workflow.add_connection_checked(n1, n2, &main, &main);
+        let _ = workflow.add_connection_checked(n2, n3, &main, &main);
 
         let layout = DagLayout::default();
         layout.apply(&mut workflow);
