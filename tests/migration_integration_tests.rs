@@ -477,7 +477,7 @@ fn test_test_selector_constructor() {
 fn test_px_constructor() {
     let px = Px::new(100.0);
     assert!(px.is_some());
-    assert_eq!(px.unwrap().value(), 100.0);
+    assert_eq!(px.expect("Px::new(100.0) should succeed").value(), 100.0);
 }
 
 #[test]

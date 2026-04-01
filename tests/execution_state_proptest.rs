@@ -71,7 +71,7 @@ proptest! {
 
         // The result must be consistent
         if result.is_some() {
-            let transition = result.unwrap();
+            let transition = result.expect("is_some was checked above");
             let (expected_from, expected_to) = transition.from_states();
             assert_eq!(from, expected_from);
             assert_eq!(to, expected_to);
@@ -90,13 +90,13 @@ proptest! {
     fn prop_serialization_roundtrip(
         state in execution_state_strategy()
     ) {
-        let serialized = to_string(&state).expect("Serialization should succeed");
+        let serialized = to_string(&state).expect("all ExecutionState variants serialize successfully");
         let deserialized: Result<ExecutionState, _> = from_str(&serialized);
 
         assert!(deserialized.is_ok(),
             "Deserialization of {:?} should succeed", state);
 
-        let deserialized = deserialized.unwrap();
+        let deserialized = deserialized.expect("deserialization of valid JSON must succeed");
         assert_eq!(state, deserialized,
             "Round-trip should preserve value for {:?}", state);
     }

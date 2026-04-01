@@ -129,7 +129,7 @@ proptest! {
     fn nodeid_uuid_format(uuid_str in "\\PC*") {
         let result = oya_frontend::migration::NodeId::new(&uuid_str);
         if result.is_ok() {
-            let id = result.unwrap();
+            let id = result.expect("proptest filter guarantees valid UUID");
             let parts: Vec<&str> = id.as_str().split('-').collect();
             assert!(parts.len() >= 1, "Valid UUID should have structure");
         }

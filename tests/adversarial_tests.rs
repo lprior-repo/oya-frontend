@@ -71,7 +71,7 @@ fn classlist_very_long() {
     let long_string = "flex ".repeat(1000);
     let result = ClassList::from_string(&long_string);
     assert!(result.is_ok());
-    let binding = result.unwrap();
+    let binding = result.expect("long ClassList string should parse successfully");
     let classes = binding.as_str();
     assert!(classes.contains("flex"));
     assert!(!classes.contains("  "));

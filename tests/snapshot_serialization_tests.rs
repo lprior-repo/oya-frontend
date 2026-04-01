@@ -322,14 +322,14 @@ fn snapshot_workflow_json() {
 
     workflow.connections = vec![
         Connection {
-            id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").expect("hardcoded UUID is valid"),
             source: fixed_node_id(1),
             target: fixed_node_id(2),
             source_port: PortName::from("main"),
             target_port: PortName::from("main"),
         },
         Connection {
-            id: Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap(),
+            id: Uuid::parse_str("22222222-2222-2222-2222-222222222222").expect("hardcoded UUID is valid"),
             source: fixed_node_id(2),
             target: fixed_node_id(3),
             source_port: PortName::from("main"),
@@ -363,8 +363,8 @@ fn snapshot_node_round_trip_http_handler() {
         20,
     );
 
-    let json = serde_json::to_string(&original).unwrap();
-    let deserialized: Node = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string(&original).expect("Node serialization must succeed");
+    let deserialized: Node = serde_json::from_str(&json).expect("Node deserialization must succeed");
 
     // Note: `node` field is #[serde(skip)], so it won't survive round-trip.
     // We verify that the non-skipped fields round-trip correctly.
@@ -404,15 +404,15 @@ fn snapshot_workflow_round_trip() {
 
     workflow.nodes = vec![n1, n2];
     workflow.connections = vec![Connection {
-        id: Uuid::parse_str("33333333-3333-3333-3333-333333333333").unwrap(),
+        id: Uuid::parse_str("33333333-3333-3333-3333-333333333333").expect("hardcoded UUID is valid"),
         source: fixed_node_id(30),
         target: fixed_node_id(31),
         source_port: PortName::from("main"),
         target_port: PortName::from("main"),
     }];
 
-    let json = serde_json::to_string(&workflow).unwrap();
-    let deserialized: Workflow = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string(&workflow).expect("Workflow serialization must succeed");
+    let deserialized: Workflow = serde_json::from_str(&json).expect("Workflow deserialization must succeed");
 
     assert_eq!(workflow.nodes.len(), deserialized.nodes.len());
     assert_eq!(workflow.connections.len(), deserialized.connections.len());

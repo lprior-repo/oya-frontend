@@ -2,6 +2,8 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 #![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cognitive_complexity)]
 #![forbid(unsafe_code)]
 
 use crate::hooks::use_canvas_interaction::CanvasInteraction;

@@ -424,8 +424,8 @@ fn proptest_indegree_sum_equals_edge_count() {
         let mut seed = num_edges as u64;
         for _ in 0..num_edges {
             seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-            let source_idx = (seed % (num_nodes as u64)) as usize;
-            let target_idx = ((seed >> 8) % (num_nodes as u64)) as usize;
+            let source_idx = usize::try_from(seed % (num_nodes as u64)).expect("modulo result fits in usize");
+            let target_idx = usize::try_from((seed >> 8) % (num_nodes as u64)).expect("modulo result fits in usize");
 
             // Skip self-loops and duplicate edges
             if source_idx != target_idx && seen_edges.insert((source_idx, target_idx)) {

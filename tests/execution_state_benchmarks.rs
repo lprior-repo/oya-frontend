@@ -102,7 +102,7 @@ fn bench_deserialize_state(c: &mut Criterion) {
 fn bench_serialize_roundtrip(c: &mut Criterion) {
     c.bench_function("serialize_deserialize_roundtrip", |b| {
         let state = ExecutionState::Running;
-        let json = serde_json::to_string(&state).unwrap();
+        let json = serde_json::to_string(&state).expect("ExecutionState serialization must succeed for benchmark setup");
         b.iter(|| {
             let _ = serde_json::from_str::<ExecutionState>(&json);
         })

@@ -211,8 +211,8 @@ impl DagLayout {
 
 #[cfg(test)]
 mod tests {
-    use super::{DagLayout, LEFT_PADDING, TOP_PADDING};
-    use crate::graph::{Connection, PortName, Workflow};
+    use super::{DagLayout, LEFT_PADDING, NODE_WIDTH, TOP_PADDING};
+    use crate::graph::{Connection, NodeId, PortName, Workflow};
 
     #[test]
     fn given_cycle_when_applying_layout_then_node_positions_remain_unchanged() {
@@ -297,5 +297,254 @@ mod tests {
         let min_y = workflow.nodes.iter().map(|n| n.y).reduce(f32::min);
         assert!(min_x.is_some_and(|value| (value - LEFT_PADDING).abs() < 0.001));
         assert!(min_y.is_some_and(|value| (value - TOP_PADDING).abs() < 0.001));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Coordinate normalization / normalization with padding
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_positive_coordinates_when_applying_layout_then_minimum_x_equals_left_padding() {
+        let mut workflow = Workflow::new();
+        workflow.add_node("run", 0.0, 0.0);
+        workflow.add_node("run", 100.0, 100.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let min_x = workflow
+            .nodes
+            .iter()
+            .map(|n| n.x)
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            (min_x - LEFT_PADDING).abs() < 0.001,
+            "min_x {min_x} should equal LEFT_PADDING {LEFT_PADDING}"
+        );
+    }
+
+    #[test]
+    fn given_positive_coordinates_when_applying_layout_then_minimum_y_equals_top_padding() {
+        let mut workflow = Workflow::new();
+        workflow.add_node("run", 0.0, 0.0);
+        workflow.add_node("run", 100.0, 100.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let min_y = workflow
+            .nodes
+            .iter()
+            .map(|n| n.y)
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            (min_y - TOP_PADDING).abs() < 0.001,
+            "min_y {min_y} should equal TOP_PADDING {TOP_PADDING}"
+        );
+    }
+
+    #[test]
+    fn given_zero_coordinates_when_applying_layout_then_positions_are_at_padding_offset() {
+        let mut workflow = Workflow::new();
+        workflow.add_node("run", 0.0, 0.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let node = workflow.nodes.first().expect("one node");
+        assert!(
+            (node.x - LEFT_PADDING).abs() < 0.001,
+            "x should be LEFT_PADDING"
+        );
+        assert!(
+            (node.y - TOP_PADDING).abs() < 0.001,
+            "y should be TOP_PADDING"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Empty / single-node graph
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_empty_workflow_when_applying_layout_then_no_panic_occurs() {
+        let mut workflow = Workflow::new();
+        DagLayout::default().apply(&mut workflow);
+        assert!(workflow.nodes.is_empty());
+    }
+
+    #[test]
+    fn given_single_node_when_applying_layout_then_position_is_at_padding() {
+        let mut workflow = Workflow::new();
+        workflow.add_node("run", 999.0, 888.0);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let node = workflow.nodes.first().expect("one node");
+        assert!(
+            (node.x - LEFT_PADDING).abs() < 0.001,
+            "single node x should be LEFT_PADDING"
+        );
+        assert!(
+            (node.y - TOP_PADDING).abs() < 0.001,
+            "single node y should be TOP_PADDING"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Layer assignment — nodes spread across layers based on depth
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_linear_chain_when_applying_layout_then_nodes_are_in_ascending_x_order() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("http-handler", 0.0, 0.0);
+        let b = workflow.add_node("run", 100.0, 0.0);
+        let c = workflow.add_node("run", 200.0, 0.0);
+        let main = PortName::from("main");
+
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+        let _ = workflow.add_connection_checked(b, c, &main, &main);
+
+        DagLayout::default().apply(&mut workflow);
+
+        let positions: Vec<(NodeId, f32)> =
+            workflow.nodes.iter().map(|n| (n.id, n.x)).collect();
+
+        let x_a = positions.iter().find(|(id, _)| *id == a).map(|(_, x)| *x);
+        let x_b = positions.iter().find(|(id, _)| *id == b).map(|(_, x)| *x);
+        let x_c = positions.iter().find(|(id, _)| *id == c).map(|(_, x)| *x);
+
+        let (x_a, x_b, x_c) = (
+            x_a.expect("a"),
+            x_b.expect("b"),
+            x_c.expect("c"),
+        );
+
+        assert!(
+            x_a < x_b,
+            "a.x ({x_a}) should be < b.x ({x_b}) in linear chain"
+        );
+        assert!(
+            x_b < x_c,
+            "b.x ({x_b}) should be < c.x ({x_c}) in linear chain"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Crossing minimization — deterministic output
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_diamond_dag_when_applying_layout_twice_then_results_are_identical() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("http-handler", 0.0, 0.0);
+        let b = workflow.add_node("run", 100.0, 0.0);
+        let c = workflow.add_node("run", 100.0, 100.0);
+        let d = workflow.add_node("run", 200.0, 50.0);
+        let main = PortName::from("main");
+
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+        let _ = workflow.add_connection_checked(a, c, &main, &main);
+        let _ = workflow.add_connection_checked(b, d, &main, &main);
+        let _ = workflow.add_connection_checked(c, d, &main, &main);
+
+        let layout = DagLayout::default();
+        layout.apply(&mut workflow);
+        let first: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
+
+        layout.apply(&mut workflow);
+        let second: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
+
+        assert_eq!(first, second, "layout should be deterministic");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Custom spacing
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_custom_layer_spacing_when_applying_layout_then_nodes_honor_spacing() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("http-handler", 0.0, 0.0);
+        let b = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName::from("main");
+
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+
+        let custom_layout = DagLayout {
+            layer_spacing: 300.0,
+            node_spacing: 80.0,
+        };
+        custom_layout.apply(&mut workflow);
+
+        let x_a = workflow.nodes.iter().find(|n| n.id == a).map(|n| n.x);
+        let x_b = workflow.nodes.iter().find(|n| n.id == b).map(|n| n.x);
+
+        let (x_a, x_b) = (x_a.expect("a"), x_b.expect("b"));
+        let distance = x_b - x_a;
+
+        // With custom layer_spacing of 300.0, the gap between layers should
+        // be NODE_WIDTH (220) + layer_spacing (300) = 520
+        let expected_gap = NODE_WIDTH + 300.0_f32;
+        assert!(
+            (distance - expected_gap).abs() < 0.001,
+            "gap {distance} should be ~{expected_gap}"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Disconnected graph — all nodes should get distinct positions
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_many_disconnected_nodes_when_applying_layout_then_all_have_unique_positions() {
+        let mut workflow = Workflow::new();
+        for i in 0..10 {
+            workflow.add_node("run", i as f32 * 10.0, 0.0);
+        }
+
+        DagLayout::default().apply(&mut workflow);
+
+        let positions: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
+        let mut unique = positions.clone();
+        unique.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)));
+        unique.dedup_by(|a, b| (a.0 - b.0).abs() < 0.001 && (a.1 - b.1).abs() < 0.001);
+
+        assert_eq!(
+            unique.len(),
+            10,
+            "all 10 disconnected nodes should have unique positions"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // All coordinates are finite
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_varied_node_positions_when_applying_layout_then_all_coordinates_are_finite() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("http-handler", -1000.0, 1000.0);
+        let b = workflow.add_node("run", 0.0, -500.0);
+        let c = workflow.add_node("run", 500.0, 0.0);
+        let main = PortName::from("main");
+
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+        let _ = workflow.add_connection_checked(b, c, &main, &main);
+
+        DagLayout::default().apply(&mut workflow);
+
+        for node in &workflow.nodes {
+            assert!(
+                node.x.is_finite(),
+                "node {} x={}\u{00a0}is not finite",
+                node.id,
+                node.x
+            );
+            assert!(
+                node.y.is_finite(),
+                "node {} y={}\u{00a0}is not finite",
+                node.id,
+                node.y
+            );
+        }
     }
 }

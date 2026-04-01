@@ -168,7 +168,7 @@ fn e2e_config_sync_across_all_transitions() {
 
     // Initial state: Idle, no config status
     assert_eq!(node.execution_state, ExecutionState::Idle);
-    assert!(!node.config.is_object() || !node.config.as_object().unwrap().contains_key("status"));
+    assert!(!node.config.is_object() || !node.config.as_object().expect("is_object checked above").contains_key("status"));
 
     // Idle -> Queued
     let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
