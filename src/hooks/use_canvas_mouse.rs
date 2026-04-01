@@ -1,6 +1,7 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
+#![allow(clippy::cast_possible_truncation)]
 #![forbid(unsafe_code)]
 
 use crate::hooks::use_canvas_interaction::CanvasInteraction;
@@ -27,9 +28,7 @@ pub fn handle_canvas_mouseenter_event(evt: &MouseEvent, canvas: CanvasInteractio
         origin
     } else {
         let element = evt.element_coordinates();
-        #[allow(clippy::cast_possible_truncation)]
         let fallback_x = page.x as f32 - element.x as f32;
-        #[allow(clippy::cast_possible_truncation)]
         let fallback_y = page.y as f32 - element.y as f32;
         (fallback_x, fallback_y)
     };
@@ -54,11 +53,8 @@ pub fn handle_canvas_wheel_event(
     let origin = *canvas.canvas_origin().read();
     let origin_x = origin.x;
     let origin_y = origin.y;
-    #[allow(clippy::cast_possible_truncation)]
     let delta = -evt.delta().strip_units().y as f32 * 0.001;
-    #[allow(clippy::cast_possible_truncation)]
     let zoom_x = page.x as f32 - origin_x;
-    #[allow(clippy::cast_possible_truncation)]
     let zoom_y = page.y as f32 - origin_y;
     if delta.is_finite() && zoom_x.is_finite() && zoom_y.is_finite() {
         (*workflow).zoom(delta, zoom_x, zoom_y);
@@ -125,14 +121,11 @@ pub fn handle_canvas_mousedown_event(
             origin
         } else {
             let coordinates = evt.element_coordinates();
-            #[allow(clippy::cast_possible_truncation)]
             let fallback_x = page.x as f32 - coordinates.x as f32;
-            #[allow(clippy::cast_possible_truncation)]
             let fallback_y = page.y as f32 - coordinates.y as f32;
             (fallback_x, fallback_y)
         };
         canvas.set_origin(origin);
-        #[allow(clippy::cast_possible_truncation)]
         let page_point = (page.x as f32, page.y as f32);
         let Some(mouse_pos) =
             crate::ui::interaction_guards::safe_canvas_point(page_point, origin)

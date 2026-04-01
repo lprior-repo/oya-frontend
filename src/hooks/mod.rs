@@ -1,5 +1,6 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
+#![deny(clippy::pedantic)]
 
 pub mod use_canvas_events;
 pub mod use_canvas_interaction;

@@ -18,10 +18,10 @@ impl Workflow {
     ) -> Result<(), super::InvalidTransition> {
         // Validate state transition using the state machine
         if !can_transition(node.execution_state, proposed_status) {
-            return Err(super::InvalidTransition {
-                from: node.execution_state,
-                to: proposed_status,
-            });
+            return Err(super::InvalidTransition::new(
+                node.execution_state,
+                proposed_status,
+            ));
         }
 
         node.execution_state = proposed_status;
@@ -54,10 +54,10 @@ impl Workflow {
         let is_valid_transition = can_transition(node.execution_state, ExecutionState::Queued)
             || (node.execution_state == ExecutionState::Queued);
         if !is_valid_transition {
-            return Err(super::InvalidTransition {
-                from: node.execution_state,
-                to: ExecutionState::Queued,
-            });
+            return Err(super::InvalidTransition::new(
+                node.execution_state,
+                ExecutionState::Queued,
+            ));
         }
 
         node.execution_state = ExecutionState::Queued;
@@ -197,8 +197,8 @@ mod tests {
         let c = workflow.add_node("run", 200.0, 0.0);
         let main = PortName::from("main");
 
-        workflow.add_connection_checked(a, b, &main, &main);
-        workflow.add_connection_checked(b, c, &main, &main);
+        let _ = workflow.add_connection_checked(a, b, &main, &main);
+        let _ = workflow.add_connection_checked(b, c, &main, &main);
 
         workflow.remove_node(b);
 
@@ -219,10 +219,10 @@ mod tests {
         );
 
         // Node starts in Idle state, need to transition to Queued first
-        Workflow::set_node_status(&mut node, ExecutionState::Queued);
+        let _ = Workflow::set_node_status(&mut node, ExecutionState::Queued);
 
         // Now we can transition from Queued to Running
-        Workflow::set_node_status(&mut node, ExecutionState::Running);
+        let _ = Workflow::set_node_status(&mut node, ExecutionState::Running);
 
         // execution_state should be updated
         assert_eq!(node.execution_state, ExecutionState::Running);

@@ -164,10 +164,7 @@ fn set_node_status_returns_error_on_completed_to_running() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Completed,
-            to: ExecutionState::Running
-        }
+        InvalidTransition::new(ExecutionState::Completed, ExecutionState::Running)
     );
     // State should remain Completed
     assert_eq!(node.execution_state, ExecutionState::Completed);
@@ -193,10 +190,7 @@ fn set_node_status_returns_error_on_running_to_idle() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Running,
-            to: ExecutionState::Idle
-        }
+        InvalidTransition::new(ExecutionState::Running, ExecutionState::Idle)
     );
     // State should remain Running
     assert_eq!(node.execution_state, ExecutionState::Running);
@@ -217,10 +211,7 @@ fn set_node_status_returns_error_on_idle_to_running() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Running
-        }
+        InvalidTransition::new(ExecutionState::Idle, ExecutionState::Running)
     );
 }
 
@@ -239,10 +230,7 @@ fn set_node_status_returns_error_on_queued_to_completed() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Completed
-        }
+        InvalidTransition::new(ExecutionState::Idle, ExecutionState::Completed)
     );
 }
 
@@ -261,10 +249,7 @@ fn set_node_status_returns_error_on_failed_to_running() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Running
-        }
+        InvalidTransition::new(ExecutionState::Idle, ExecutionState::Running)
     );
 }
 
@@ -289,10 +274,7 @@ fn set_node_status_returns_error_on_skipped_to_queued() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Skipped,
-            to: ExecutionState::Queued
-        }
+        InvalidTransition::new(ExecutionState::Skipped, ExecutionState::Queued)
     );
 }
 
@@ -475,10 +457,7 @@ fn set_node_pending_status_rejects_running_to_queued() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Running,
-            to: ExecutionState::Queued
-        }
+        InvalidTransition::new(ExecutionState::Running, ExecutionState::Queued)
     );
 }
 
@@ -503,10 +482,7 @@ fn set_node_pending_status_rejects_completed_to_queued() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Completed,
-            to: ExecutionState::Queued
-        }
+        InvalidTransition::new(ExecutionState::Completed, ExecutionState::Queued)
     );
 }
 
@@ -531,10 +507,7 @@ fn set_node_pending_status_rejects_failed_to_queued() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Failed,
-            to: ExecutionState::Queued
-        }
+        InvalidTransition::new(ExecutionState::Failed, ExecutionState::Queued)
     );
 }
 
@@ -557,10 +530,7 @@ fn set_node_pending_status_rejects_skipped_to_queued() {
     let err = result.unwrap_err();
     assert_eq!(
         err,
-        InvalidTransition {
-            from: ExecutionState::Skipped,
-            to: ExecutionState::Queued
-        }
+        InvalidTransition::new(ExecutionState::Skipped, ExecutionState::Queued)
     );
 }
 

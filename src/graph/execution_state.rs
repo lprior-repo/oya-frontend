@@ -60,8 +60,25 @@ impl ExecutionState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvalidTransition {
-    pub from: ExecutionState,
-    pub to: ExecutionState,
+    from: ExecutionState,
+    to: ExecutionState,
+}
+
+impl InvalidTransition {
+    #[must_use]
+    pub const fn new(from: ExecutionState, to: ExecutionState) -> Self {
+        Self { from, to }
+    }
+
+    #[must_use]
+    pub const fn from_state(self) -> ExecutionState {
+        self.from
+    }
+
+    #[must_use]
+    pub const fn to_state(self) -> ExecutionState {
+        self.to
+    }
 }
 
 impl fmt::Display for InvalidTransition {
@@ -392,10 +409,7 @@ mod tests {
 
     #[test]
     fn invalid_transition_display_shows_from_and_to() {
-        let err = InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Running,
-        };
+        let err = InvalidTransition::new(ExecutionState::Idle, ExecutionState::Running);
         assert_eq!(
             format!("{}", err),
             "Invalid state transition: idle -> running"
@@ -404,10 +418,7 @@ mod tests {
 
     #[test]
     fn invalid_transition_display_shows_queued_to_failed() {
-        let err = InvalidTransition {
-            from: ExecutionState::Queued,
-            to: ExecutionState::Failed,
-        };
+        let err = InvalidTransition::new(ExecutionState::Queued, ExecutionState::Failed);
         assert_eq!(
             format!("{}", err),
             "Invalid state transition: queued -> failed"
@@ -416,10 +427,7 @@ mod tests {
 
     #[test]
     fn invalid_transition_display_shows_running_to_idle() {
-        let err = InvalidTransition {
-            from: ExecutionState::Running,
-            to: ExecutionState::Idle,
-        };
+        let err = InvalidTransition::new(ExecutionState::Running, ExecutionState::Idle);
         assert_eq!(
             format!("{}", err),
             "Invalid state transition: running -> idle"
@@ -432,10 +440,10 @@ mod tests {
 
     #[test]
     fn invalid_transition_implements_error_trait() {
-        let err: Box<dyn std::error::Error> = Box::new(InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Completed,
-        });
+        let err: Box<dyn std::error::Error> = Box::new(InvalidTransition::new(
+            ExecutionState::Idle,
+            ExecutionState::Completed,
+        ));
         assert!(err.to_string().contains("Invalid state transition"));
     }
 
@@ -1256,25 +1264,19 @@ mod tests {
 
     #[test]
     fn invalid_transition_is_copy() {
-        let err = InvalidTransition {
-            from: ExecutionState::Idle,
-            to: ExecutionState::Running,
-        };
+        let err = InvalidTransition::new(ExecutionState::Idle, ExecutionState::Running);
         let err2 = err;
         let err3 = err;
-        assert_eq!(err2.from, ExecutionState::Idle);
-        assert_eq!(err3.from, ExecutionState::Idle);
+        assert_eq!(err2.from_state(), ExecutionState::Idle);
+        assert_eq!(err3.from_state(), ExecutionState::Idle);
     }
 
     #[test]
     fn invalid_transition_is_clone() {
-        let err = InvalidTransition {
-            from: ExecutionState::Queued,
-            to: ExecutionState::Failed,
-        };
+        let err = InvalidTransition::new(ExecutionState::Queued, ExecutionState::Failed);
         let cloned = err.clone();
-        assert_eq!(cloned.from, ExecutionState::Queued);
-        assert_eq!(cloned.to, ExecutionState::Failed);
+        assert_eq!(cloned.from_state(), ExecutionState::Queued);
+        assert_eq!(cloned.to_state(), ExecutionState::Failed);
     }
 
     // ===========================================================================
