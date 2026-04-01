@@ -1,5 +1,5 @@
 use super::execution_types::ExecutionConfig;
-use super::{can_transition, ExecutionState, Node, NodeId, Viewport, Workflow};
+use super::{can_transition, ExecutionState, Node, NodeId, Viewport, Workflow, ZoomFactor};
 use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
 
@@ -91,7 +91,7 @@ impl Workflow {
             viewport: Viewport {
                 x: 0.0,
                 y: 0.0,
-                zoom: 1.0,
+                zoom: ZoomFactor::default(),
             },
             execution_queue: Vec::new(),
             current_step: 0,
@@ -124,7 +124,7 @@ impl Workflow {
     pub fn add_node_at_viewport_center(&mut self, node_type: &str) {
         let vx = self.viewport.x;
         let vy = self.viewport.y;
-        let vz = self.viewport.zoom;
+        let vz = self.viewport.zoom.value();
         let nx = (400.0 - vx) / vz;
         let ny = (300.0 - vy) / vz;
         self.add_node(node_type, nx, ny);
@@ -180,7 +180,7 @@ mod tests {
         workflow.viewport = Viewport {
             x: -200.0,
             y: -100.0,
-            zoom: 2.0,
+            zoom: ZoomFactor::new_clamped(2.0),
         };
 
         workflow.add_node_at_viewport_center("run");

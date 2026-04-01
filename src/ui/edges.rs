@@ -4,6 +4,7 @@ use oya_frontend::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
 use std::fmt::Write;
 
+use crate::ui::constants::EDGE_CORNER_RADIUS;
 use crate::ui::editor_interactions::{NODE_HEIGHT, NODE_WIDTH};
 use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox, ParallelGroup};
 
@@ -44,7 +45,7 @@ fn get_target_point(node: &Node) -> Position {
 
 fn create_smooth_step_path(from: Position, to: Position, bend_y: f32) -> (String, Position) {
     let mid_y = f32::midpoint(from.y, to.y) + bend_y.clamp(-BEND_CLAMP, BEND_CLAMP);
-    let radius: f32 = 8.0;
+    let radius: f32 = EDGE_CORNER_RADIUS;
 
     let dx = to.x - from.x;
     let dy = to.y - from.y;

@@ -4,18 +4,25 @@ use crate::ui::icons::{
 };
 use dioxus::prelude::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ButtonState {
+    Enabled,
+    Disabled,
+}
+
 #[component]
 fn ToolbarButton(
     label: &'static str,
-    disabled: bool,
+    state: ButtonState,
     on_click: EventHandler<MouseEvent>,
     children: Element,
 ) -> Element {
-    let disabled_classes = if disabled {
+    let disabled_classes = if state == ButtonState::Disabled {
         "opacity-40 pointer-events-none"
     } else {
         ""
     };
+    let is_disabled = state == ButtonState::Disabled;
 
     rsx! {
         button {
@@ -23,7 +30,7 @@ fn ToolbarButton(
             r#type: "button",
             aria_label: "{label}",
             title: "{label}",
-            disabled,
+            disabled: is_disabled,
             onclick: move |evt| on_click.call(evt),
             {children}
         }
@@ -79,28 +86,28 @@ pub fn FlowToolbar(
             div { class: "hidden items-center gap-0.5 rounded-xl border border-slate-200/80 bg-white px-1 py-1 shadow-sm md:flex",
                 ToolbarButton {
                     label: "Zoom Out",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_zoom_out.call(evt),
                     ZoomOutIcon { class: "h-4 w-4" }
                 }
                 span { class: "min-w-[3rem] text-center font-mono text-[11px] text-slate-600", "{zoom_label.read()}" }
                 ToolbarButton {
                     label: "Zoom In",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_zoom_in.call(evt),
                     ZoomInIcon { class: "h-4 w-4" }
                 }
                 div { class: "mx-1 h-5 w-px bg-slate-300" }
                 ToolbarButton {
                     label: "Fit View",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_fit_view.call(evt),
                     MaximizeIcon { class: "h-4 w-4" }
                 }
                 div { class: "mx-1 h-5 w-px bg-slate-300" }
                 ToolbarButton {
                     label: "Auto Layout",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_layout.call(evt),
                     LayersIcon { class: "h-4 w-4" }
                 }
@@ -110,13 +117,13 @@ pub fn FlowToolbar(
             div { class: "flex items-center gap-0.5 md:hidden",
                 ToolbarButton {
                     label: "Fit View",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_fit_view.call(evt),
                     MaximizeIcon { class: "h-4 w-4" }
                 }
                 ToolbarButton {
                     label: "Auto Layout",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_layout.call(evt),
                     LayersIcon { class: "h-4 w-4" }
                 }
@@ -125,26 +132,26 @@ pub fn FlowToolbar(
             div { class: "flex items-center gap-0.5 md:gap-1",
                 ToolbarButton {
                     label: "Undo",
-                    disabled: !*can_undo.read(),
+                    state: if *can_undo.read() { ButtonState::Enabled } else { ButtonState::Disabled },
                     on_click: move |evt| on_undo.call(evt),
                     UndoIcon { class: "h-4 w-4" }
                 }
                 ToolbarButton {
                     label: "Redo",
-                    disabled: !*can_redo.read(),
+                    state: if *can_redo.read() { ButtonState::Enabled } else { ButtonState::Disabled },
                     on_click: move |evt| on_redo.call(evt),
                     RedoIcon { class: "h-4 w-4" }
                 }
                 div { class: "mx-1 h-5 w-px bg-slate-300" }
                 ToolbarButton {
                     label: "Save Workflow",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_save.call(evt),
                     SaveIcon { class: "h-4 w-4" }
                 }
                 ToolbarButton {
                     label: "Settings",
-                    disabled: false,
+                    state: ButtonState::Enabled,
                     on_click: move |evt| on_settings.call(evt),
                     SettingsIcon { class: "h-4 w-4" }
                 }

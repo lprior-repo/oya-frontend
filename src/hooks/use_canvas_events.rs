@@ -8,6 +8,10 @@ use crate::hooks::use_canvas_interaction::CanvasInteraction;
 use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
+use crate::ui::constants::{
+    ARROW_KEY_DELTA, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, ZOOM_CENTER_X,
+    ZOOM_CENTER_Y, ZOOM_DELTA,
+};
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::ExtensionPatchPreview;
 
@@ -77,9 +81,9 @@ pub struct ZoomConfig {
     pub center_y: f32,
 }
 
-/// Fit view padding constant.
+/// Fit view padding constant (re-exported from ui::constants).
 #[allow(dead_code)]
-pub const FIT_VIEW_PADDING: f32 = 200.0;
+pub use crate::ui::constants::FIT_VIEW_PADDING;
 
 /// Handle a canvas keydown event.
 ///
@@ -131,13 +135,13 @@ pub fn handle_canvas_keydown(
         evt.prevent_default();
         match cmd {
             EditorCommand::ZoomIn => {
-                (*workflow).zoom(0.12, 640.0, 400.0);
+                (*workflow).zoom(ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y);
             }
             EditorCommand::ZoomOut => {
-                (*workflow).zoom(-0.12, 640.0, 400.0);
+                (*workflow).zoom(-ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y);
             }
             EditorCommand::FitView => {
-                (*workflow).fit_view(1280.0, 760.0, 200.0);
+                (*workflow).fit_view(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, FIT_VIEW_PADDING);
             }
             EditorCommand::AutoLayout => {
                 (*workflow).apply_layout();
@@ -199,32 +203,31 @@ pub fn handle_canvas_keydown(
         return;
     }
 
-    let arrow_delta = 20.0_f32;
     if key == "arrowup" {
         if let Some(node_id) = *selection.selected_id().read() {
             evt.prevent_default();
-            (*workflow).move_node_by(node_id, 0.0, -arrow_delta);
+            (*workflow).move_node_by(node_id, 0.0, -ARROW_KEY_DELTA);
         }
         return;
     }
     if key == "arrowdown" {
         if let Some(node_id) = *selection.selected_id().read() {
             evt.prevent_default();
-            (*workflow).move_node_by(node_id, 0.0, arrow_delta);
+            (*workflow).move_node_by(node_id, 0.0, ARROW_KEY_DELTA);
         }
         return;
     }
     if key == "arrowleft" {
         if let Some(node_id) = *selection.selected_id().read() {
             evt.prevent_default();
-            (*workflow).move_node_by(node_id, -arrow_delta, 0.0);
+            (*workflow).move_node_by(node_id, -ARROW_KEY_DELTA, 0.0);
         }
         return;
     }
     if key == "arrowright" {
         if let Some(node_id) = *selection.selected_id().read() {
             evt.prevent_default();
-            (*workflow).move_node_by(node_id, arrow_delta, 0.0);
+            (*workflow).move_node_by(node_id, ARROW_KEY_DELTA, 0.0);
         }
     }
 }

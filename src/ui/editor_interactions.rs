@@ -4,8 +4,8 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-pub const NODE_WIDTH: f32 = 220.0;
-pub const NODE_HEIGHT: f32 = 68.0;
+pub use crate::ui::constants::{NODE_HANDLE_Y_OFFSET, NODE_HEIGHT, NODE_WIDTH};
+
 pub type SelectionRect = (f32, f32, f32, f32);
 
 #[must_use]
@@ -45,16 +45,17 @@ pub fn snap_handle(
 )> {
     const SCREEN_SNAP_RADIUS: f32 = 24.0;
 
-    if !viewport.zoom.is_finite() || viewport.zoom.abs() <= f32::EPSILON {
+    let zoom_val = viewport.zoom.value();
+    if !zoom_val.is_finite() || zoom_val.abs() <= f32::EPSILON {
         return None;
     }
 
     // Convert screen-space radius to canvas-space for zoom-invariant behavior
-    let canvas_radius = SCREEN_SNAP_RADIUS / viewport.zoom.abs();
+    let canvas_radius = SCREEN_SNAP_RADIUS / zoom_val.abs();
     let radius_sq = canvas_radius * canvas_radius;
 
-    let canvas_x = (mx - viewport.x) / viewport.zoom;
-    let canvas_y = (my - viewport.y) / viewport.zoom;
+    let canvas_x = (mx - viewport.x) / zoom_val;
+    let canvas_y = (my - viewport.y) / zoom_val;
 
     let mut best: Option<(
         oya_frontend::graph::NodeId,
@@ -64,7 +65,7 @@ pub fn snap_handle(
     )> = None;
 
     for node in nodes {
-        let handle_y = node.y + NODE_HEIGHT / 2.0;
+        let handle_y = node.y + NODE_HANDLE_Y_OFFSET;
         let candidates = [
             (
                 "target",
@@ -122,7 +123,7 @@ pub fn snap_handle(
 #[cfg(test)]
 mod tests {
     use super::{node_intersects_rect, normalize_rect, rect_contains, snap_handle};
-    use oya_frontend::graph::{Viewport, Workflow};
+    use oya_frontend::graph::{Viewport, Workflow, ZoomFactor};
 
     #[test]
     fn given_drag_points_when_normalizing_then_rect_bounds_are_ordered() {
@@ -146,10 +147,11 @@ mod tests {
     }
 
     #[test]
-    fn given_invalid_zoom_when_snapping_handle_then_no_handle_is_returned() {
+    fn given_min_clamped_zoom_when_snapping_handle_then_zoom_is_valid() {
         let mut workflow = Workflow::new();
         let _ = workflow.add_node("http-handler", 200.0, 200.0);
 
+        // new_clamped(0.0) produces MIN_ZOOM (0.15), which is valid
         let result = snap_handle(
             &workflow.nodes,
             200.0,
@@ -157,10 +159,13 @@ mod tests {
             &Viewport {
                 x: 0.0,
                 y: 0.0,
-                zoom: 0.0,
+                zoom: ZoomFactor::new_clamped(0.0),
             },
         );
 
+        // ZoomFactor guarantees valid zoom, so snap_handle proceeds normally
+        // The cursor is far from any handle at this position, so result is None
+        // but NOT because of invalid zoom
         assert!(result.is_none());
     }
 
@@ -177,14 +182,14 @@ mod tests {
         let viewport_1x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 1.0,
+            zoom: ZoomFactor::new(1.0).unwrap_or_default(),
         };
         let snapped_1x = snap_handle(&workflow.nodes, 318.0, 134.0, &viewport_1x);
 
         let viewport_05x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 0.5,
+            zoom: ZoomFactor::new(0.5).unwrap_or_default(),
         };
         // Corrected: screen_x = canvas_x * zoom = 318 * 0.5 = 159
         let snapped_05x = snap_handle(&workflow.nodes, 159.0, 67.0, &viewport_05x);
@@ -192,7 +197,7 @@ mod tests {
         let viewport_2x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 2.0,
+            zoom: ZoomFactor::new_clamped(2.0),
         };
         // Corrected: screen = canvas * zoom to achieve same canvas position (318, 134)
         // canvas_x = mx / 2.0 = 318 → mx = 636
@@ -233,7 +238,7 @@ mod tests {
         let viewport = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 1.0,
+            zoom: ZoomFactor::default(),
         };
 
         // Cursor at (340, 134) is equidistant (20 units) from both source handles
@@ -261,40 +266,14 @@ mod tests {
     }
 
     #[test]
-    fn given_infinite_zoom_when_snapping_then_no_handle_is_returned() {
-        let mut workflow = Workflow::new();
-        let _ = workflow.add_node("test", 100.0, 100.0);
-
-        let result = snap_handle(
-            &workflow.nodes,
-            100.0,
-            100.0,
-            &Viewport {
-                x: 0.0,
-                y: 0.0,
-                zoom: f32::INFINITY,
-            },
-        );
-
-        assert!(result.is_none());
+    fn given_infinite_zoom_rejected_by_new_then_zoom_factor_is_none() {
+        // ZoomFactor::new rejects values outside [0.15, 3.0], including infinity
+        assert!(ZoomFactor::new(f32::INFINITY).is_none());
     }
 
     #[test]
-    fn given_nan_zoom_when_snapping_then_no_handle_is_returned() {
-        let mut workflow = Workflow::new();
-        let _ = workflow.add_node("test", 100.0, 100.0);
-
-        let result = snap_handle(
-            &workflow.nodes,
-            100.0,
-            100.0,
-            &Viewport {
-                x: 0.0,
-                y: 0.0,
-                zoom: f32::NAN,
-            },
-        );
-
-        assert!(result.is_none());
+    fn given_nan_zoom_rejected_by_new_then_zoom_factor_is_none() {
+        // ZoomFactor::new rejects NaN (NaN comparisons always return false)
+        assert!(ZoomFactor::new(f32::NAN).is_none());
     }
 }

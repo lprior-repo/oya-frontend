@@ -8,6 +8,10 @@ use crate::hooks::use_canvas_interaction::CanvasInteraction;
 use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
+use crate::ui::constants::{
+    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, ZOOM_CENTER_X, ZOOM_CENTER_Y,
+    ZOOM_DELTA,
+};
 use crate::ui::{
     FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition, ParallelGroupOverlay,
 };
@@ -250,19 +254,19 @@ pub fn CanvasArea(
             edges: connections,
             selected_node_id: selection.selected_id(),
             viewport: workflow.viewport(),
-            canvas_width: 1280.0,
-            canvas_height: 760.0,
+            canvas_width: DEFAULT_CANVAS_WIDTH,
+            canvas_height: DEFAULT_CANVAS_HEIGHT,
             on_zoom_in: move |evt: MouseEvent| {
                 evt.stop_propagation();
-                workflow.zoom(0.12, 640.0, 400.0);
+                workflow.zoom(ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y);
             },
             on_zoom_out: move |evt: MouseEvent| {
                 evt.stop_propagation();
-                workflow.zoom(-0.12, 640.0, 400.0);
+                workflow.zoom(-ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y);
             },
             on_fit_view: move |evt: MouseEvent| {
                 evt.stop_propagation();
-                workflow.fit_view(1280.0, 760.0, 200.0);
+                workflow.fit_view(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, FIT_VIEW_PADDING);
             }
         }
     }

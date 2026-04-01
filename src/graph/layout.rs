@@ -4,6 +4,9 @@ use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 use std::collections::HashMap;
 
+/// Re-export node dimensions from the canonical source.
+use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
+
 pub struct DagLayout {
     pub layer_spacing: f32,
     pub node_spacing: f32,
@@ -18,8 +21,6 @@ impl Default for DagLayout {
     }
 }
 
-const NODE_WIDTH: f32 = 220.0;
-const NODE_HEIGHT: f32 = 68.0;
 const LEFT_PADDING: f32 = 120.0;
 const TOP_PADDING: f32 = 80.0;
 

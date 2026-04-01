@@ -1,3 +1,5 @@
+pub mod preview_calc;
+
 use crate::graph::workflow_node::WorkflowNode;
 use crate::graph::{Node, NodeCategory, NodeId, PortName, Workflow};
 use serde::{Deserialize, Serialize};

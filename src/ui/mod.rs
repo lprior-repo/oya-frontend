@@ -4,6 +4,7 @@ pub mod canvas_area;
 pub mod canvas_context_menu;
 pub mod command_palette;
 pub mod config_panel;
+pub mod constants;
 pub mod domain_types;
 pub mod edges;
 pub mod editor_interactions;

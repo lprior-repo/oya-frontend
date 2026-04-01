@@ -1,4 +1,4 @@
-use oya_frontend::graph::Viewport;
+use oya_frontend::graph::{Viewport, ZoomFactor};
 
 #[must_use]
 pub fn is_valid_zoom(zoom: f32) -> bool {
@@ -20,21 +20,22 @@ pub fn safe_canvas_from_viewport(
     origin: (f32, f32),
     viewport: &Viewport,
 ) -> Option<(f32, f32)> {
-    if !is_valid_zoom(viewport.zoom) {
+    let zoom_val = viewport.zoom.value();
+    if !is_valid_zoom(zoom_val) {
         return None;
     }
 
     let (mx, my) = safe_canvas_point(page, origin)?;
     Some((
-        (mx - viewport.x) / viewport.zoom,
-        (my - viewport.y) / viewport.zoom,
+        (mx - viewport.x) / zoom_val,
+        (my - viewport.y) / zoom_val,
     ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{is_valid_zoom, safe_canvas_from_viewport, safe_canvas_point};
-    use oya_frontend::graph::Viewport;
+    use oya_frontend::graph::{Viewport, ZoomFactor};
 
     #[test]
     fn given_zero_zoom_when_validating_then_zoom_is_invalid() {
@@ -70,7 +71,7 @@ mod tests {
         let viewport = Viewport {
             x: 10.0,
             y: 20.0,
-            zoom: 2.0,
+            zoom: ZoomFactor::new_clamped(2.0),
         };
 
         let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
@@ -97,17 +98,10 @@ mod tests {
     }
 
     #[test]
-    fn given_negative_zoom_when_mapping_to_viewport_then_point_is_transformed() {
-        let viewport = Viewport {
-            x: 0.0,
-            y: 0.0,
-            zoom: -2.0,
-        };
-
-        let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
-
-        // With negative zoom (-2.0), transformation works: (50/(-2), 70/(-2)) = (-25, -35)
-        // is_valid_zoom returns true for negative values (just inverts the canvas)
-        assert_eq!(result, Some((-25.0, -35.0)));
+    fn given_zoom_factor_rejects_negative_then_negative_cannot_be_constructed() {
+        // ZoomFactor enforces [0.15, 3.0], so negative values are rejected
+        assert!(ZoomFactor::new(-2.0).is_none());
+        // new_clamped clamps to MIN_ZOOM instead
+        assert_eq!(ZoomFactor::new_clamped(-2.0).value(), 0.15);
     }
 }

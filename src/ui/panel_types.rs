@@ -265,18 +265,6 @@ impl StatusBadgeStyle {
     pub const fn new(bg: &'static str, text: &'static str, border: &'static str) -> Self {
         Self { bg, text, border }
     }
-
-    #[must_use]
-    #[allow(dead_code)]
-    pub fn to_classes(self) -> String {
-        let mut classes = String::with_capacity(128);
-        classes.push_str(self.bg);
-        classes.push(' ');
-        classes.push_str(self.text);
-        classes.push(' ');
-        classes.push_str(self.border);
-        classes
-    }
 }
 
 #[must_use]
@@ -307,26 +295,6 @@ pub const fn invocation_badge_style(status: InvocationStatus) -> StatusBadgeStyl
         InvocationStatus::Retrying => {
             StatusBadgeStyle::new("bg-amber-500/15", "text-amber-400", "border-amber-500/30")
         }
-    }
-}
-
-#[must_use]
-#[allow(dead_code)]
-pub const fn outcome_badge_style(outcome: RunOutcome) -> StatusBadgeStyle {
-    match outcome {
-        RunOutcome::Success => {
-            StatusBadgeStyle::new("bg-emerald-50", "text-emerald-700", "border-emerald-200")
-        }
-        RunOutcome::Failure => StatusBadgeStyle::new("bg-red-50", "text-red-700", "border-red-200"),
-    }
-}
-
-#[must_use]
-#[allow(dead_code)]
-pub const fn outcome_icon_class(outcome: RunOutcome) -> &'static str {
-    match outcome {
-        RunOutcome::Success => "h-3 w-3 text-emerald-500",
-        RunOutcome::Failure => "h-3 w-3 text-red-500",
     }
 }
 
@@ -433,6 +401,7 @@ impl CollapseState {
         matches!(self, Self::Collapsed)
     }
 
+    // Used only in tests - toggle for programmatic collapse state changes
     #[allow(dead_code)]
     pub fn toggle(&mut self) {
         *self = match self {

@@ -84,14 +84,6 @@ pub fn ValidationPanel(
     }
 }
 
-#[derive(Clone, Debug)]
-#[allow(dead_code)]
-struct IssueData {
-    node_id: Option<NodeId>,
-    severity: ValidationSeverity,
-    message: String,
-}
-
 #[component]
 fn IssueRow(
     issue: oya_frontend::graph::ValidationIssue,

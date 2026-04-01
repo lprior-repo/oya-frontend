@@ -3,10 +3,13 @@
 #![deny(clippy::panic)]
 
 use crate::errors::{WorkflowError, WorkflowResult};
+use crate::ui::constants::{
+    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET,
+};
 use dioxus::prelude::*;
 use oya_frontend::graph::{
     Connection, ConnectionResult, ConnectivityConnectionError, Node, NodeId, PortName, Viewport,
-    Workflow,
+    Workflow, ZoomFactor,
 };
 use std::collections::HashMap;
 
@@ -54,10 +57,11 @@ fn viewport_center_node_origin(
     canvas_width: f32,
     canvas_height: f32,
 ) -> Option<(f32, f32)> {
+    let zoom_val = viewport.zoom.value();
     if !viewport.x.is_finite()
         || !viewport.y.is_finite()
-        || !viewport.zoom.is_finite()
-        || viewport.zoom <= 0.0
+        || !zoom_val.is_finite()
+        || zoom_val <= 0.0
         || !canvas_width.is_finite()
         || !canvas_height.is_finite()
         || canvas_width <= 0.0
@@ -66,13 +70,13 @@ fn viewport_center_node_origin(
         return None;
     }
 
-    let center_x = (canvas_width * 0.5 - viewport.x) / viewport.zoom;
-    let center_y = (canvas_height * 0.5 - viewport.y) / viewport.zoom;
+    let center_x = (canvas_width * 0.5 - viewport.x) / zoom_val;
+    let center_y = (canvas_height * 0.5 - viewport.y) / zoom_val;
     if !center_x.is_finite() || !center_y.is_finite() {
         return None;
     }
 
-    Some((center_x - 110.0, center_y - 34.0))
+    Some((center_x - NODE_CENTER_X_OFFSET, center_y - NODE_HANDLE_Y_OFFSET))
 }
 
 fn merge_run_result(mut current: Workflow, completed: Workflow) -> Workflow {
@@ -211,18 +215,6 @@ impl WorkflowState {
         self.viewport.into()
     }
 
-    /// Access to undo stack signal
-    #[allow(dead_code)]
-    pub fn undo_stack(&self) -> ReadSignal<Vec<Workflow>> {
-        self.undo_stack.into()
-    }
-
-    /// Access to redo stack signal
-    #[allow(dead_code)]
-    pub fn redo_stack(&self) -> ReadSignal<Vec<Workflow>> {
-        self.redo_stack.into()
-    }
-
     /// Save current state to undo stack before mutation
     pub fn save_undo_point(mut self) {
         let current = self.workflow.read().clone();
@@ -234,12 +226,6 @@ impl WorkflowState {
     pub fn add_node(mut self, node_type: &str, x: f32, y: f32) -> NodeId {
         self.save_undo_point();
         self.workflow.write().add_node(node_type, x, y)
-    }
-
-    /// Add a node at the viewport center
-    #[allow(dead_code)]
-    pub fn add_node_at_viewport_center(self, node_type: &str) -> NodeId {
-        self.add_node_at_viewport_center_with_canvas(node_type, 1280.0, 760.0)
     }
 
     /// Add a node at the viewport center using explicit canvas dimensions
@@ -256,12 +242,6 @@ impl WorkflowState {
         } else {
             self.workflow.write().add_node(node_type, 0.0, 0.0)
         }
-    }
-
-    /// Remove a node by ID - returns error if not found
-    #[allow(dead_code)]
-    pub fn remove_node(self, node_id: NodeId) -> WorkflowResult<()> {
-        self.remove_nodes(&[node_id])
     }
 
     /// Remove multiple nodes as a single undo transaction
@@ -565,7 +545,7 @@ mod tests {
         let viewport = Viewport {
             x: -200.0,
             y: -100.0,
-            zoom: 2.0,
+            zoom: ZoomFactor::new_clamped(2.0),
         };
 
         let origin = viewport_center_node_origin(&viewport, 1280.0, 760.0);
@@ -574,16 +554,16 @@ mod tests {
     }
 
     #[test]
-    fn given_invalid_zoom_when_computing_center_origin_then_none_is_returned() {
+    fn given_min_zoom_when_computing_center_origin_then_some_is_returned() {
         let viewport = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 0.0,
+            zoom: ZoomFactor::new_clamped(0.0), // clamps to MIN_ZOOM
         };
 
         let origin = viewport_center_node_origin(&viewport, 1280.0, 760.0);
 
-        assert_eq!(origin, None);
+        assert!(origin.is_some());
     }
 
     #[test]

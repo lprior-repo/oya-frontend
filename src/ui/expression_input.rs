@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use dioxus::prelude::*;
 use serde_json::Value;
 

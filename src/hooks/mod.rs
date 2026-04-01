@@ -2,6 +2,7 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::pedantic)]
 
+pub mod interaction_mode;
 pub mod use_canvas_events;
 pub mod use_canvas_interaction;
 pub mod use_canvas_mouse;

@@ -3,8 +3,8 @@ use oya_frontend::graph::workflow_node::WorkflowNode;
 use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
 use std::collections::HashMap;
 
-const NODE_WIDTH: f32 = 220.0;
-const NODE_HEIGHT: f32 = 68.0;
+use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
+
 const PADDING_X: f32 = 24.0;
 const PADDING_Y: f32 = 32.0;
 const BADGE_OFFSET_X: f32 = 12.0;

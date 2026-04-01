@@ -10,7 +10,7 @@ use crate::ui::{
     PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar, SelectedNodePanel,
 };
 use dioxus::prelude::*;
-use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
+use oya_frontend::flow_extender::ExtensionPatchPreview;
 use oya_frontend::graph::{validate_workflow, ValidationResult};
 use std::fmt::Write;
 
@@ -304,85 +304,15 @@ fn App() -> Element {
     });
 
     let preview_nodes = use_memo(move || {
-        extension_previews
-            .read()
-            .iter()
-            .enumerate()
-            .flat_map(|(patch_idx, patch)| {
-                patch.nodes.iter().map(move |node| {
-                    let mut key = String::with_capacity(32);
-                    let _ = write!(key, "p{patch_idx}-{}", node.temp_id);
-                    (key, node.node_type.clone(), node.x, node.y)
-                })
-            })
-            .collect::<Vec<_>>()
+        oya_frontend::flow_extender::preview_calc::compute_preview_nodes(&extension_previews.read())
     });
 
     let preview_edges = use_memo(move || {
         let existing_nodes = nodes_by_id.read().clone();
-        extension_previews
-            .read()
-            .iter()
-            .enumerate()
-            .flat_map(|(patch_idx, patch)| {
-                let existing_nodes = existing_nodes.clone();
-                let proposed_lookup = patch
-                    .nodes
-                    .iter()
-                    .map(|node| {
-                        let mut key = String::with_capacity(32);
-                        let _ = write!(key, "p{patch_idx}-{}", node.temp_id);
-                        (key, (node.x, node.y))
-                    })
-                    .collect::<std::collections::HashMap<_, _>>();
-
-                patch
-                    .connections
-                    .iter()
-                    .enumerate()
-                    .filter_map(move |(edge_idx, edge)| {
-                        let source = match &edge.source {
-                            PreviewEndpoint::Existing(node_id) => existing_nodes
-                                .get(node_id)
-                                .map(|node| (node.x + 220.0, node.y + 34.0)),
-                            PreviewEndpoint::Proposed(temp_id) => proposed_lookup
-                                .get(&format!("p{patch_idx}-{temp_id}"))
-                                .copied()
-                                .map(|(x, y)| (x + 220.0, y + 34.0)),
-                        };
-                        let target = match &edge.target {
-                            PreviewEndpoint::Existing(node_id) => existing_nodes
-                                .get(node_id)
-                                .map(|node| (node.x, node.y + 34.0)),
-                            PreviewEndpoint::Proposed(temp_id) => proposed_lookup
-                                .get(&format!("p{patch_idx}-{temp_id}"))
-                                .copied()
-                                .map(|(x, y)| (x, y + 34.0)),
-                        };
-
-                        source.and_then(|(sx, sy)| {
-                            target.map(|(tx, ty)| {
-                                let mut edge_key = String::with_capacity(32);
-                                let _ = write!(edge_key, "p{patch_idx}-e{edge_idx}");
-                                let mut svg_path = String::with_capacity(80);
-                                let _ = write!(
-                                    svg_path,
-                                    "M {} {} C {} {}, {} {}, {} {}",
-                                    sx,
-                                    sy,
-                                    f32::midpoint(sx, tx),
-                                    sy,
-                                    f32::midpoint(sx, tx),
-                                    ty,
-                                    tx,
-                                    ty
-                                );
-                                (edge_key, svg_path)
-                            })
-                        })
-                    })
-            })
-            .collect::<Vec<_>>()
+        oya_frontend::flow_extender::preview_calc::compute_preview_edges(
+            &extension_previews.read(),
+            &existing_nodes,
+        )
     });
 
     rsx! {

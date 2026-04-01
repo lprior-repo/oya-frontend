@@ -9,10 +9,10 @@ use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, Node, NodeId, Viewport};
 use std::fmt::Write;
 
+use crate::ui::constants::{NODE_HEIGHTEIGHT, NODE_WIDTHIDTH};
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const NODE_W: f32 = 220.0;
-const NODE_H: f32 = 68.0;
 /// Padding added around node bounds so nodes never sit right on the SVG edge.
 const SCENE_PAD: f32 = 60.0;
 
@@ -53,8 +53,8 @@ fn scene_bounds(nodes: &[Node]) -> SceneBounds {
     nodes
         .iter()
         .fold(None::<(f32, f32, f32, f32)>, |acc, n| {
-            let r = n.x + NODE_W;
-            let b = n.y + NODE_H;
+            let r = n.x + NODE_WIDTH;
+            let b = n.y + NODE_HEIGHT;
             Some(match acc {
                 Some((x0, y0, x1, y1)) => (x0.min(n.x), y0.min(n.y), x1.max(r), y1.max(b)),
                 None => (n.x, n.y, r, b),
@@ -216,9 +216,9 @@ pub fn FlowMinimap(
                             (Some(src), Some(tgt)) => rsx! {
                                 line {
                                     key: "e-{edge.id}",
-                                    x1: "{src.x + NODE_W / 2.0}",
-                                    y1: "{src.y + NODE_H}",
-                                    x2: "{tgt.x + NODE_W / 2.0}",
+                                    x1: "{src.x + NODE_WIDTH / 2.0}",
+                                    y1: "{src.y + NODE_HEIGHT}",
+                                    x2: "{tgt.x + NODE_WIDTH / 2.0}",
                                     y2: "{tgt.y}",
                                     stroke: "rgba(148,163,184,0.42)",
                                     stroke_width: "4",
@@ -241,8 +241,8 @@ pub fn FlowMinimap(
                                 key: "n-{node.id}",
                                 x: "{node.x}",
                                 y: "{node.y}",
-                                width: "{NODE_W}",
-                                height: "{NODE_H}",
+                                width: "{NODE_WIDTH}",
+                                height: "{NODE_HEIGHT}",
                                 rx: "6",
                                 fill: "{colors.fill}",
                                 stroke: "{colors.stroke}",

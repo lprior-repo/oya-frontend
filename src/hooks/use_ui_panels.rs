@@ -27,12 +27,6 @@ impl PanelState {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Store)]
-#[allow(dead_code)]
-pub struct ContextMenuData {
-    pub position: MenuPosition,
-}
-
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct MenuPosition {
     pub x: f32,
@@ -118,14 +112,6 @@ impl PaletteState {
 
     pub fn close() -> Self {
         Self::default()
-    }
-
-    #[allow(dead_code)]
-    pub fn with_query(query: String) -> Self {
-        Self {
-            visibility: PanelState::Open,
-            query,
-        }
     }
 }
 
