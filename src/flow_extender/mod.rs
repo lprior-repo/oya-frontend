@@ -1232,7 +1232,7 @@ fn sort_keys(keys: &mut [ExtensionKey]) {
     });
 }
 
-fn priority_rank(key: ExtensionKey) -> u8 {
+const fn priority_rank(key: ExtensionKey) -> u8 {
     match key {
         ExtensionKey::AddEntryTrigger
         | ExtensionKey::AddReliabilityBundle
@@ -1243,7 +1243,7 @@ fn priority_rank(key: ExtensionKey) -> u8 {
     }
 }
 
-fn extension_dependencies(key: ExtensionKey) -> &'static [ExtensionKey] {
+const fn extension_dependencies(key: ExtensionKey) -> &'static [ExtensionKey] {
     match key {
         ExtensionKey::AddEntryTrigger => &[],
         ExtensionKey::AddDurableCheckpoint => &[ExtensionKey::AddTimeoutGuard],
@@ -1325,7 +1325,7 @@ fn confidence_score_for(key: ExtensionKey, workflow: &Workflow) -> f32 {
     }
 }
 
-fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
+const fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
     match key {
         ExtensionKey::AddEntryTrigger => RationaleClass::StructuralCoverage,
         ExtensionKey::AddReliabilityBundle => RationaleClass::ReliabilityBundle,
@@ -1336,7 +1336,7 @@ fn rationale_class_for(key: ExtensionKey) -> RationaleClass {
     }
 }
 
-fn reliability_bundle_members() -> &'static [ExtensionKey] {
+const fn reliability_bundle_members() -> &'static [ExtensionKey] {
     &[
         ExtensionKey::AddTimeoutGuard,
         ExtensionKey::AddDurableCheckpoint,
@@ -1384,7 +1384,7 @@ fn hide_isolated_reliability_analysis(
         .collect()
 }
 
-fn is_side_effecting_durable(node: &Node) -> bool {
+const fn is_side_effecting_durable(node: &Node) -> bool {
     matches!(
         node.node,
         WorkflowNode::Run(_)

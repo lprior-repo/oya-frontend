@@ -1,17 +1,11 @@
 use crate::ui::workflow_nodes::schema::{SendMessageConfig, TargetType};
+use crate::ui::workflow_nodes::shared::{
+    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
+    parse_json_draft, CARD_CLASSES, LABEL_CLASSES,
+};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
-
-fn json_to_display(value: &serde_json::Value) -> String {
-    serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |value| value)
-}
-
-fn parse_json_draft(input: &str) -> Result<serde_json::Value, String> {
-    serde_json::from_str(input).map_err(|error| format!("Invalid JSON: {error}"))
-}
+const FOCUS_RING: &str = "yellow";
 
 fn normalize_optional_key(input: &str) -> Option<String> {
     let trimmed = input.trim();
@@ -64,6 +58,9 @@ impl Default for SendMessageNode {
 
 #[component]
 pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
+    let input_cls = input_classes(FOCUS_RING);
+    let textarea_cls = textarea_classes(FOCUS_RING);
+
     let initial_draft = json_to_display(&config.read().input);
     let draft = use_signal(move || initial_draft);
     let parse_error = use_signal(|| None::<String>);
@@ -85,11 +82,10 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     " - Send a message and continue without waiting."
                 }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "Send to" }
+            FormField {
+                label: "Send to",
                 select {
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     value: match &*config.read() {
                         SendMessageConfig { target_type: TargetType::Service, .. } => "Service",
                         SendMessageConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
@@ -108,45 +104,43 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     option { value: "Workflow", "Workflow" }
                 }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "Service Name" }
+            FormField {
+                label: "Service Name",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., notification_service",
                     value: "{config.service_name}",
                     oninput: move |e| config.write().service_name = e.value().clone(),
                 }
             }
-            div {
-                class: "form-field",
-                visible: matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow),
-                label { class: "{LABEL_CLASSES}", "Key (for objects/workflows)" }
-                input {
-                    r#type: "text",
-                    class: "{INPUT_CLASSES}",
-                    placeholder: "e.g., user-456",
-                    value: "{key_value}",
-                    oninput: move |e| config.write().key = normalize_optional_key(e.value().as_str()),
+            FormField {
+                label: "Key (for objects/workflows)",
+                div {
+                    class: if matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow) { "" } else { "hidden" },
+                    input {
+                        r#type: "text",
+                        class: "{input_cls}",
+                        placeholder: "e.g., user-456",
+                        value: "{key_value}",
+                        oninput: move |e| config.write().key = normalize_optional_key(e.value().as_str()),
+                    }
                 }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "Handler" }
+            FormField {
+                label: "Handler",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., send_email",
                     value: "{config.handler_name}",
                     oninput: move |e| config.write().handler_name = e.value().clone(),
                 }
             }
-            div {
-                class: "form-field",
-                label { class: "{LABEL_CLASSES}", "Message (JSON)" }
+            FormField {
+                label: "Message (JSON)",
                 textarea {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono text-sm",
+                    class: "{textarea_cls}",
                     rows: 3,
                     value: "{draft}",
                     oninput: move |e| {
@@ -175,7 +169,8 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_optional_key, parse_json_draft};
+    use super::normalize_optional_key;
+    use crate::ui::workflow_nodes::shared::parse_json_draft;
 
     #[test]
     fn normalize_optional_key_none_for_blank() {
@@ -196,14 +191,11 @@ mod tests {
 #[component]
 pub fn SendMessageNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-            div { class: "w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center", span { class: "text-xl", "📤" } },
-            div {
-                class: "flex-1",
-                h3 { class: "font-medium text-gray-900", "Send Message" }
-                p { class: "text-sm text-gray-500", "Send without waiting for response" }
-            }
+        NodeCard {
+            icon_bg: "bg-yellow-100",
+            icon: "📤",
+            title: "Send Message",
+            subtitle: "Send without waiting for response",
         }
     }
 }

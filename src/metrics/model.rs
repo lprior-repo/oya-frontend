@@ -267,37 +267,37 @@ impl FeedbackLevel {
     }
 
     #[must_use]
-    pub fn value(self) -> u8 {
+    pub const fn value(self) -> u8 {
         self.0
     }
 
     #[must_use]
-    pub fn is_minimal(self) -> bool {
+    pub const fn is_minimal(self) -> bool {
         self.0 == Self::MIN
     }
 
     #[must_use]
-    pub fn is_transparent(self) -> bool {
+    pub const fn is_transparent(self) -> bool {
         self.0 == Self::MAX
     }
 
-    pub fn minimal() -> Self {
+    pub const fn minimal() -> Self {
         Self(1)
     }
 
-    pub fn categorical() -> Self {
+    pub const fn categorical() -> Self {
         Self(2)
     }
 
-    pub fn guided() -> Self {
+    pub const fn guided() -> Self {
         Self(3)
     }
 
-    pub fn diagnostic() -> Self {
+    pub const fn diagnostic() -> Self {
         Self(4)
     }
 
-    pub fn transparent() -> Self {
+    pub const fn transparent() -> Self {
         Self(5)
     }
 }
@@ -337,7 +337,7 @@ impl Priority {
     pub const LOW: Self = Self(3);
     pub const BACKLOG: Self = Self(4);
 
-    pub fn new(level: u8) -> Result<Self, MetricsError> {
+    pub const fn new(level: u8) -> Result<Self, MetricsError> {
         if level <= 4 {
             Ok(Self(level))
         } else {
@@ -346,7 +346,7 @@ impl Priority {
     }
 
     #[must_use]
-    pub fn value(self) -> u8 {
+    pub const fn value(self) -> u8 {
         self.0
     }
 }
@@ -361,17 +361,17 @@ impl Default for Priority {
 pub struct IterationNumber(u32);
 
 impl IterationNumber {
-    pub fn new(n: u32) -> Self {
+    pub const fn new(n: u32) -> Self {
         Self(n)
     }
 
     #[must_use]
-    pub fn value(self) -> u32 {
+    pub const fn value(self) -> u32 {
         self.0
     }
 
     #[must_use]
-    pub fn increment(self) -> Self {
+    pub const fn increment(self) -> Self {
         Self(self.0 + 1)
     }
 }

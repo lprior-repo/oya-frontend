@@ -16,7 +16,7 @@ impl FeedbackLevel {
     /// # Errors
     ///
     /// Returns `FeedbackConfigError` if the level is invalid.
-    pub fn new(level: u8) -> Result<Self, FeedbackConfigError> {
+    pub const fn new(level: u8) -> Result<Self, FeedbackConfigError> {
         match level {
             1 => Ok(Self::MINIMAL),
             2 => Ok(Self::CATEGORICAL),
@@ -28,22 +28,22 @@ impl FeedbackLevel {
     }
 
     #[must_use]
-    pub fn value(&self) -> u8 {
+    pub const fn value(&self) -> u8 {
         self.0
     }
 
     #[must_use]
-    pub fn is_minimal(&self) -> bool {
+    pub const fn is_minimal(&self) -> bool {
         self.0 == Self::MINIMAL.0
     }
 
     #[must_use]
-    pub fn is_transparent(&self) -> bool {
+    pub const fn is_transparent(&self) -> bool {
         self.0 == Self::TRANSPARENT.0
     }
 
     #[must_use]
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self.0 {
             1 => "minimal",
             2 => "categorical",

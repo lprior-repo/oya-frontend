@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use oya_frontend::graph::workflow_node::WorkflowNode;
 use oya_frontend::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use crate::ui::editor_interactions::{NODE_HEIGHT, NODE_WIDTH};
 use crate::ui::parallel_group_overlay::{AggregateStatus, BoundingBox, ParallelGroup};
@@ -48,37 +49,35 @@ fn create_smooth_step_path(from: Position, to: Position, bend_y: f32) -> (String
     let dx = to.x - from.x;
     let dy = to.y - from.y;
 
+    let midpoint = Position {
+        x: f32::midpoint(from.x, to.x),
+        y: mid_y,
+    };
+
     if dx.abs() < 2.0 || !dx.is_finite() || !dy.is_finite() {
-        return (
-            format!("M {} {} L {} {}", from.x, from.y, to.x, to.y),
-            Position {
-                x: f32::midpoint(from.x, to.x),
-                y: mid_y,
-            },
-        );
+        let mut path = String::with_capacity(48);
+        let _ = write!(path, "M {} {} L {} {}", from.x, from.y, to.x, to.y);
+        return (path, midpoint);
     }
 
     let sign_x = if dx > 0.0 { 1.0 } else { -1.0 };
     let r = radius.min(dx.abs() / 2.0).min(dy.abs() / 4.0);
 
-    (
-        format!(
-            "M {fx} {fy} L {fx} {my_r} Q {fx} {my} {fx_r} {my} L {tx_r} {my} Q {tx} {my} {tx} {my_r2} L {tx} {ty}",
-            fx = from.x,
-            fy = from.y,
-            my = mid_y,
-            my_r = mid_y - r,
-            my_r2 = mid_y + r,
-            fx_r = from.x + sign_x * r,
-            tx_r = to.x - sign_x * r,
-            tx = to.x,
-            ty = to.y
-        ),
-        Position {
-            x: f32::midpoint(from.x, to.x),
-            y: mid_y,
-        },
-    )
+    let mut path = String::with_capacity(160);
+    let _ = write!(
+        path,
+        "M {fx} {fy} L {fx} {my_r} Q {fx} {my} {fx_r} {my} L {tx_r} {my} Q {tx} {my} {tx} {my_r2} L {tx} {ty}",
+        fx = from.x,
+        fy = from.y,
+        my = mid_y,
+        my_r = mid_y - r,
+        my_r2 = mid_y + r,
+        fx_r = from.x + sign_x * r,
+        tx_r = to.x - sign_x * r,
+        tx = to.x,
+        ty = to.y
+    );
+    (path, midpoint)
 }
 
 fn resolve_edge_anchors(edges: &[Connection], nodes: &[Node]) -> HashMap<String, EdgeAnchor> {
@@ -1205,7 +1204,8 @@ pub fn FlowEdges(
                     } else {
                         None
                     };
-                    let key = format!("parallel-group-{}-{}", group.bounding_box.x, group.bounding_box.y);
+                    let mut key = String::with_capacity(48);
+                    let _ = write!(key, "parallel-group-{}-{}", group.bounding_box.x, group.bounding_box.y);
 
                     let badge_left = group.bounding_box.x + group.bounding_box.width + 8.0;
                     let badge_top = group.bounding_box.y - 24.0;

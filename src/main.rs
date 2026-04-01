@@ -11,9 +11,7 @@ use crate::ui::{
 };
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
-use oya_frontend::graph::{validate_workflow, PortName, ValidationResult};
-
-const DRAG_THRESHOLD_PX: f32 = 4.0;
+use oya_frontend::graph::{validate_workflow, ValidationResult};
 
 mod errors;
 mod hooks;

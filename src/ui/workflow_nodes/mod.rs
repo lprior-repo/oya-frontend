@@ -1,6 +1,8 @@
 pub mod schema;
+pub mod shared;
 
 pub use schema::*;
+pub use shared::*;
 
 pub mod http_trigger;
 pub mod schedule_trigger;

@@ -11,8 +11,13 @@ use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_sidebar::SidebarState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
+use crate::ui::edges::Position as FlowPosition;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
+use oya_frontend::graph::PortName;
+
+/// Minimum pixel movement before a click becomes a drag.
+pub const DRAG_THRESHOLD_PX: f32 = 4.0;
 
 // ---------------------------------------------------------------------------
 // onmouseenter
@@ -146,6 +151,239 @@ pub fn handle_canvas_mousedown_event(
             canvas.start_marquee(mouse_pos);
         }
     } else {
+        selection.clear();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// onmousemove
+// ---------------------------------------------------------------------------
+
+/// Handle canvas `onmousemove`.
+///
+/// Routes mouse movement based on the current interaction mode:
+/// - **Idle with drag anchor**: Checks drag threshold, then starts dragging
+/// - **Dragging**: Moves selected nodes with edge-auto-panning
+/// - **Connecting**: Snaps to handles or shows temp edge
+/// - **Marquee**: Updates selection rectangle
+/// - **Panning**: Pans the viewport
+pub fn handle_canvas_mousemove_event(
+    evt: &MouseEvent,
+    canvas: CanvasInteraction,
+    selection: SelectionState,
+    sidebar: SidebarState,
+    workflow: &WorkflowState,
+) {
+    let page = evt.page_coordinates();
+    let origin = *canvas.canvas_origin().read();
+    let origin_x = origin.x;
+    let origin_y = origin.y;
+    let (mx, my) = (page.x as f32 - origin_x, page.y as f32 - origin_y);
+    if !mx.is_finite() || !my.is_finite() {
+        return;
+    }
+    let mouse_pos = *canvas.mouse_pos().read();
+    let lx = mouse_pos.x;
+    let ly = mouse_pos.y;
+    let dx = mx - lx;
+    let dy = my - ly;
+    canvas.update_mouse((mx, my));
+
+    if canvas.drag_anchor().is_some()
+        && !canvas.is_dragging()
+        && (canvas.is_panning() || canvas.is_marquee() || canvas.is_connecting())
+    {
+        canvas.clear_drag_anchor();
+        selection.clear_pending_drag();
+    }
+
+    let current_vp = workflow.viewport().read().clone();
+    let zoom = current_vp.zoom;
+    if !crate::ui::interaction_guards::is_valid_zoom(zoom) {
+        return;
+    }
+
+    if canvas.drag_anchor().is_some() && !canvas.is_dragging() {
+        if let Some((ax, ay)) = canvas.drag_anchor() {
+            let moved = (mx - ax).hypot(my - ay);
+            if moved >= DRAG_THRESHOLD_PX {
+                if let Some(node_ids) = selection.take_pending_drag() {
+                    if let Some(primary_id) = node_ids.first().copied() {
+                        canvas.start_drag(primary_id, node_ids);
+                    }
+                }
+                canvas.clear_drag_anchor();
+            }
+        }
+    }
+
+    if canvas.is_dragging() {
+        let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
+            .map_or((960.0, 720.0), std::convert::identity);
+        let edge = 56.0_f32;
+        let max_pan = 18.0_f32;
+
+        let pan_x = if mx < edge {
+            ((edge - mx) / edge).clamp(0.0, 1.0) * max_pan
+        } else if mx > canvas_w - edge {
+            -(((mx - (canvas_w - edge)) / edge).clamp(0.0, 1.0) * max_pan)
+        } else {
+            0.0
+        };
+
+        let pan_y = if my < edge {
+            ((edge - my) / edge).clamp(0.0, 1.0) * max_pan
+        } else if my > canvas_h - edge {
+            -(((my - (canvas_h - edge)) / edge).clamp(0.0, 1.0) * max_pan)
+        } else {
+            0.0
+        };
+
+        if pan_x != 0.0 || pan_y != 0.0 {
+            workflow.pan(pan_x, pan_y);
+        }
+
+        let node_dx = (dx - pan_x) / zoom;
+        let node_dy = (dy - pan_y) / zoom;
+        if let Some(node_ids) = canvas.dragging_node_ids() {
+            for node_id in node_ids {
+                workflow.update_node_position(node_id, node_dx, node_dy);
+            }
+        }
+    } else if canvas.is_connecting() {
+        let canvas_x = (mx - current_vp.x) / zoom;
+        let canvas_y = (my - current_vp.y) / zoom;
+
+        if let Some((source_id, source_kind)) = canvas.connecting_from() {
+            let node_list = workflow.nodes().read().clone();
+            let snapped = crate::ui::editor_interactions::snap_handle(
+                &node_list,
+                mx,
+                my,
+                &current_vp,
+            )
+            .filter(|(node_id, handle_kind, _)| {
+                *node_id != source_id && *handle_kind != source_kind
+            });
+
+            if let Some((node_id, handle_kind, snapped_pos)) = snapped {
+                canvas.set_hovered_handle(Some((node_id, handle_kind)));
+                canvas.set_temp_edge(Some((snapped_pos, snapped_pos)));
+            } else {
+                canvas.set_hovered_handle(None);
+                canvas.set_temp_edge(Some((
+                    FlowPosition { x: canvas_x, y: canvas_y },
+                    FlowPosition { x: canvas_x, y: canvas_y },
+                )));
+            }
+        }
+    } else if canvas.is_marquee() {
+        if let Some((start, _)) = canvas.marquee_rect() {
+            canvas.update_marquee((mx, my));
+            let start_canvas = (
+                (start.0 - current_vp.x) / zoom,
+                (start.1 - current_vp.y) / zoom,
+            );
+            let end_canvas = (
+                (mx - current_vp.x) / zoom,
+                (my - current_vp.y) / zoom,
+            );
+            let rect = crate::ui::editor_interactions::normalize_rect(
+                start_canvas,
+                end_canvas,
+            );
+            let selected = workflow
+                .nodes()
+                .read()
+                .iter()
+                .filter(|node| {
+                    crate::ui::editor_interactions::node_intersects_rect(
+                        node.x, node.y, rect,
+                    )
+                })
+                .map(|node| node.id)
+                .collect::<Vec<_>>();
+            selection.set_multiple(selected);
+        }
+    } else if canvas.is_panning() {
+        workflow.pan(dx, dy);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// onmouseup
+// ---------------------------------------------------------------------------
+
+/// Handle canvas `onmouseup`.
+///
+/// Finalizes the current interaction:
+/// - **Connecting**: Creates a connection if snapped to a valid handle
+/// - **Marquee click**: Clears selection if it was a tiny click
+/// - **Sidebar drop**: Places a new node at cursor position
+/// - Always ends interaction and clears pending states
+pub fn handle_canvas_mouseup_event(
+    evt: &MouseEvent,
+    canvas: CanvasInteraction,
+    selection: SelectionState,
+    sidebar: SidebarState,
+    workflow: &WorkflowState,
+) {
+    let from = canvas.connecting_from();
+    let over = canvas.hovered_handle().read().as_tuple();
+    let is_dragging = canvas.is_dragging();
+    let pending_drop = sidebar.pending_drop();
+    let mut should_clear_selection = false;
+
+    if let Some((start, end)) = canvas.marquee_rect() {
+        let rect = crate::ui::editor_interactions::normalize_rect(start, end);
+        let tiny_click = (rect.2 - rect.0).abs() < 2.0 && (rect.3 - rect.1).abs() < 2.0;
+        if tiny_click
+            && crate::ui::editor_interactions::rect_contains(rect, start)
+            && !is_dragging
+        {
+            should_clear_selection = true;
+        }
+    }
+
+    if let (Some((src_id, src_handle)), Some((tgt_id, _))) = (from, over) {
+        if src_id != tgt_id {
+            let (source, target) = if src_handle == "source" {
+                (src_id, tgt_id)
+            } else {
+                (tgt_id, src_id)
+            };
+
+            let _ = workflow.add_connection(
+                source,
+                target,
+                &PortName("main".to_string()),
+                &PortName("main".to_string()),
+            );
+        }
+    } else if !is_dragging && !canvas.is_marquee() {
+        if let Some(node_type) = pending_drop {
+            let coords = evt.page_coordinates();
+            let origin = *canvas.canvas_origin().read();
+            let origin_x = origin.x;
+            let origin_y = origin.y;
+            let mx = coords.x as f32 - origin_x;
+            let my = coords.y as f32 - origin_y;
+            if mx.is_finite() && my.is_finite() {
+                let current_vp = workflow.viewport().read().clone();
+                if crate::ui::interaction_guards::is_valid_zoom(current_vp.zoom) {
+                    let canvas_x = (mx - current_vp.x) / current_vp.zoom - 110.0;
+                    let canvas_y = (my - current_vp.y) / current_vp.zoom - 34.0;
+                    workflow.add_node(node_type.as_str(), canvas_x, canvas_y);
+                }
+            }
+        }
+    }
+
+    canvas.end_interaction();
+    sidebar.clear_pending_drop();
+    selection.clear_pending_drag();
+
+    if should_clear_selection {
         selection.clear();
     }
 }

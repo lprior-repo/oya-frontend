@@ -9,6 +9,7 @@ pub mod calc;
 pub mod connectivity;
 pub mod core;
 mod core_types;
+pub mod graph_ops;
 #[cfg(test)]
 mod cycle_detection_tests;
 mod domain_types;

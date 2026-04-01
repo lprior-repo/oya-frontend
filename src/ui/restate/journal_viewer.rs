@@ -50,11 +50,14 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                     div {
                         class: {
                             let base = "flex items-center gap-3 p-3 cursor-pointer ";
+                            let mut class = String::with_capacity(80);
+                            class.push_str(base);
                             if expanded.read().contains(&entry.index) {
-                                format!("{base} bg-gray-50 dark:bg-gray-800")
+                                class.push_str("bg-gray-50 dark:bg-gray-800");
                             } else {
-                                format!("{base} hover:bg-gray-50 dark:hover:bg-gray-800")
+                                class.push_str("hover:bg-gray-50 dark:hover:bg-gray-800");
                             }
+                            class
                         },
                         onclick: {
                             let idx = entry.index;
@@ -78,8 +81,10 @@ pub fn RestateJournalViewer(props: RestateJournalViewerProps) -> Element {
                         // Entry type badge
                         span {
                             class: {
-                                let base = "px-2 py-0.5 rounded text-xs font-medium ";
-                                format!("{}{}", base, entry_type_color(&entry.entry_type))
+                                let mut class = String::with_capacity(80);
+                                class.push_str("px-2 py-0.5 rounded text-xs font-medium ");
+                                class.push_str(entry_type_color(&entry.entry_type));
+                                class
                             },
                             {entry.raw_entry_type.clone()}
                         }

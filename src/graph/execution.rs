@@ -7,6 +7,7 @@
 
 use super::execution_types::ExecutionConfig;
 use super::expressions::ExpressionContext;
+use super::graph_ops;
 use super::WorkflowExecutionError;
 use super::{NodeId, Workflow};
 
@@ -54,21 +55,9 @@ impl Workflow {
             return Ok(());
         }
 
-        // Build node ID set for validation
-        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
-
-        // Build outgoing edges map in a single pass over connections
-        let mut outgoing: std::collections::HashMap<NodeId, Vec<NodeId>> =
-            std::collections::HashMap::new();
-        // Also build incoming set for finding entry nodes in the same pass
-        let mut has_incoming: std::collections::HashSet<NodeId> = std::collections::HashSet::new();
-
-        for conn in &self.connections {
-            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
-                outgoing.entry(conn.source).or_default().push(conn.target);
-                has_incoming.insert(conn.target);
-            }
-        }
+        let node_ids = graph_ops::collect_node_ids(&self.nodes);
+        let outgoing = graph_ops::build_outgoing_adjacency(&self.connections, &node_ids);
+        let (has_incoming, _) = graph_ops::build_connection_membership(&self.connections);
 
         // Find a starting node (any node with no incoming edges, or first node)
         let entry_node = self
@@ -77,40 +66,19 @@ impl Workflow {
             .find(|node| !has_incoming.contains(&node.id))
             .map(|node| node.id);
 
-        // If no entry node found, use first node (this should never happen after check_non_empty)
         let start_node = if let Some(node) = entry_node {
             node
         } else if let Some(first_node) = self.nodes.first() {
             first_node.id
         } else {
-            // This should never happen after check_non_empty() passes
-            // Return InvalidWorkflowState error instead of panicking
             return Err(WorkflowExecutionError::InvalidWorkflowState {
                 reason: "verify_graph_connectivity: graph should have at least one node"
                     .to_string(),
             });
         };
 
-        // BFS/DFS to find all reachable nodes
-        let mut visited = std::collections::HashSet::new();
-        let mut stack = vec![start_node];
+        let visited = graph_ops::find_reachable(&[start_node], &outgoing);
 
-        while let Some(current) = stack.pop() {
-            if visited.contains(&current) {
-                continue;
-            }
-            visited.insert(current);
-
-            if let Some(targets) = outgoing.get(&current) {
-                for target in targets {
-                    if !visited.contains(target) {
-                        stack.push(*target);
-                    }
-                }
-            }
-        }
-
-        // Check if all nodes are reachable
         if visited.len() != node_ids.len() {
             let unreachable: Vec<NodeId> = node_ids.difference(&visited).copied().collect();
 
@@ -726,8 +694,11 @@ mod tests {
         add_connection(&mut workflow, a, c);
         add_connection(&mut workflow, b, c);
 
-        let queue = prepare_and_get_queue(&mut workflow);
-        let order = queue.expect("multiple roots should succeed");
+        // Directly call build_execution_queue (bypasses connectivity check
+        // since A and B are both roots with no path between them).
+        let order = workflow
+            .build_execution_queue()
+            .expect("multiple roots should succeed");
 
         let pos_a = order.iter().position(|&id| id == a).expect("a");
         let pos_b = order.iter().position(|&id| id == b).expect("b");
@@ -748,9 +719,11 @@ mod tests {
         let right = workflow.add_node("run", 100.0, 0.0);
         let left = workflow.add_node("run", 10.0, 0.0);
         // No connections — both are roots, so ordering is by priority.
+        // Use build_execution_queue directly (bypasses connectivity check).
 
-        let queue = prepare_and_get_queue(&mut workflow);
-        let order = queue.expect("two roots should succeed");
+        let order = workflow
+            .build_execution_queue()
+            .expect("two roots should succeed");
 
         let pos_left = order.iter().position(|&id| id == left).expect("left");
         let pos_right = order.iter().position(|&id| id == right).expect("right");

@@ -1,24 +1,24 @@
 use crate::ui::workflow_nodes::schema::{ServiceCallConfig, TargetType};
+use crate::ui::workflow_nodes::shared::{
+    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
+    parse_json_draft, CARD_CLASSES, LABEL_CLASSES,
+};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const FOCUS_RING: &str = "green";
 
 #[component]
 pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
-    let pretty_input = if let Ok(value) = serde_json::to_string_pretty(&*config.read().input) {
-        value
-    } else {
-        "{}".to_string()
-    };
+    let input_cls = input_classes(FOCUS_RING);
+    let textarea_cls = textarea_classes(FOCUS_RING);
+
+    let pretty_input = json_to_display(&config.read().input);
     let json_draft = use_signal(|| pretty_input.clone());
     let json_error = use_signal(|| Option::<String>::None);
     let last_synced_input = use_signal(|| pretty_input.clone());
 
     use_effect(move || {
-        let latest = serde_json::to_string_pretty(&*config.read().input)
-            .unwrap_or_else(|_| "{}".to_string());
+        let latest = json_to_display(&config.read().input);
         let synced = last_synced_input.read().clone();
         if latest != synced {
             last_synced_input.set(latest.clone());
@@ -51,14 +51,10 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "What type of thing are you calling?"
-                }
+            FormField {
+                label: "What type of thing are you calling?",
                 select {
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     value: match &*config.read() {
                         ServiceCallConfig { target_type: TargetType::Service, .. } => "Service",
                         ServiceCallConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
@@ -84,15 +80,11 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Service Name"
-                }
+            FormField {
+                label: "Service Name",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., payment_service",
                     value: "{config.service_name}",
                     oninput: move |e| {
@@ -101,42 +93,33 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                visible: matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow),
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Object/Workflow Key"
-                }
-                input {
-                    r#type: "text",
-                    class: "{INPUT_CLASSES}",
-                    placeholder: "e.g., order-123",
-                    value: "{key_value}",
-                    oninput: move |e| {
-                        let value = e.value().clone();
-                        config.write().key = if value.trim().is_empty() {
-                            None
-                        } else {
-                            Some(value)
-                        };
+            FormField {
+                label: "Object/Workflow Key",
+                div {
+                    class: if matches!(config.read().target_type, TargetType::VirtualObject | TargetType::Workflow) { "" } else { "hidden" },
+                    input {
+                        r#type: "text",
+                        class: "{input_cls}",
+                        placeholder: "e.g., order-123",
+                        value: "{key_value}",
+                        oninput: move |e| {
+                            let value = e.value().clone();
+                            config.write().key = if value.trim().is_empty() {
+                                None
+                            } else {
+                                Some(value)
+                            };
+                        }
                     }
-                }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Which specific object/workflow to call"
+                    FormHint { text: "Which specific object/workflow to call" }
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "What to do"
-                }
+            FormField {
+                label: "What to do",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., charge_card",
                     value: "{config.handler_name}",
                     oninput: move |e| {
@@ -145,14 +128,10 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "What to send (JSON)"
-                }
+            FormField {
+                label: "What to send (JSON)",
                 textarea {
-                    class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm",
+                    class: "{textarea_cls}",
                     rows: 4,
                     placeholder: r#"{"amount": 100, "currency": "USD"}"#,
                     value: "{json_draft}",
@@ -160,14 +139,14 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                         let draft = e.value().clone();
                         json_draft.set(draft.clone());
 
-                        match serde_json::from_str(&draft) {
+                        match parse_json_draft(&draft) {
                             Ok(value) => {
                                 config.write().input = value;
                                 last_synced_input.set(draft);
                                 json_error.set(None);
                             }
                             Err(error) => {
-                                json_error.set(Some(format!("Invalid JSON: {error}")));
+                                json_error.set(Some(error));
                             }
                         }
                     },
@@ -178,22 +157,15 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                         "{error}"
                     }
                 } else {
-                    p {
-                        class: "text-xs text-gray-500 mt-1",
-                        "Enter valid JSON to update this field"
-                    }
+                    FormHint { text: "Enter valid JSON to update this field" }
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Only run if..."
-                }
+            FormField {
+                label: "Only run if...",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., {{ steps.validate.valid }} == true",
                     value: "{condition_value}",
                     oninput: move |e| {
@@ -205,10 +177,7 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                         };
                     }
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Leave empty to always run this step"
-                }
+                FormHint { text: "Leave empty to always run this step" }
             }
         }
     }
@@ -217,28 +186,11 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
 #[component]
 pub fn ServiceCallNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-
-            div {
-                class: "w-10 h-10 bg-green-100 rounded-full flex items-center justify-center",
-                span {
-                    class: "text-xl",
-                    "🔗"
-                }
-            }
-
-            div {
-                class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "Call Service"
-                }
-                p {
-                    class: "text-sm text-gray-500",
-                    "Call another service and wait for result"
-                }
-            }
+        NodeCard {
+            icon_bg: "bg-green-100",
+            icon: "🔗",
+            title: "Call Service",
+            subtitle: "Call another service and wait for result",
         }
     }
 }
