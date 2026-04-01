@@ -99,7 +99,6 @@ impl std::error::Error for ConnectionError {}
 /// let result = get_node_by_id(node_id, &nodes);
 /// assert!(result.is_ok());
 /// ```
-#[must_use]
 pub fn get_node_by_id(id: NodeId, nodes: &[Node]) -> Result<&Node, ConnectionError> {
     nodes
         .iter()

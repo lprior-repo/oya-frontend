@@ -312,13 +312,13 @@ fn disconnected_workflow_when_preparing_run_then_returns_invalid_workflow_state_
     workflow.nodes.push(make_node(node_2, vec![]));
     workflow.nodes.push(make_node(node_3, vec![node_2]));
 
-    workflow.add_connection_checked(
+    let _ = workflow.add_connection_checked(
         node_0,
         node_1,
         &PortName::from("main"),
         &PortName::from("main"),
     );
-    workflow.add_connection_checked(
+    let _ = workflow.add_connection_checked(
         node_2,
         node_3,
         &PortName::from("main"),

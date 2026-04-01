@@ -84,8 +84,9 @@ fn integration_validation_collects_multiple_issues() {
     let result = validate_workflow(&workflow);
 
     // Should have at least entry validation passing, but orphan detection should run
-    assert!(result.error_count() >= 0);
-    assert!(result.issues.len() >= 0);
+    // error_count() and issues.len() return usize, always >= 0; just verify no panic
+    let _ = result.error_count();
+    let _ = result.issues.len();
 }
 
 /// Tests that validation never mutates the input workflow
@@ -98,7 +99,7 @@ fn integration_validation_never_mutates_input() {
         executing: true,
         ..Default::default()
     };
-    let mut workflow = Workflow {
+    let workflow = Workflow {
         nodes: vec![node],
         connections: vec![],
         ..Default::default()
@@ -274,6 +275,6 @@ fn integration_validation_detects_unreachable_nodes() {
 
     let result = validate_workflow(&workflow);
 
-    // Should detect unreachable node as warning
-    assert!(result.issues.len() >= 0);
+    // Should detect unreachable node as warning; issues.len() is usize, always >= 0
+    let _ = result.issues.len();
 }

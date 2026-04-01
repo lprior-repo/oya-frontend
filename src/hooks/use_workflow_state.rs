@@ -148,9 +148,9 @@ fn remove_nodes_transaction(
     }
 
     let snapshot = workflow.clone();
-    node_ids.iter().for_each(|node_id| {
+    for node_id in node_ids {
         workflow.remove_node(*node_id);
-    });
+    }
     push_undo_snapshot(undo_stack, snapshot, 60);
     redo_stack.clear();
     Ok(())

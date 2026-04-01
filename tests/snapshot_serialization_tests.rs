@@ -26,7 +26,7 @@ fn fixed_node_id(seed: u8) -> NodeId {
     // Build a UUID where the last two hex chars encode the seed.
     // e.g. seed=1 => "00000000-0000-0000-0000-000000000001"
     let hex = format!("{seed:032x}");
-    NodeId(Uuid::parse_str(&hex).unwrap())
+    NodeId(Uuid::parse_str(&hex).expect("seed-based UUID is always valid hex"))
 }
 
 /// Create a Node with a deterministic id so snapshots are stable.
@@ -244,7 +244,7 @@ fn snapshot_workflow_node_variants_json() {
 #[test]
 fn snapshot_connection_json() {
     let conn = Connection {
-        id: Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap(),
+        id: Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").expect("hardcoded UUID is valid"),
         source: fixed_node_id(1),
         target: fixed_node_id(2),
         source_port: PortName::from("main"),
@@ -256,7 +256,7 @@ fn snapshot_connection_json() {
 #[test]
 fn snapshot_connection_yaml() {
     let conn = Connection {
-        id: Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap(),
+        id: Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").expect("hardcoded UUID is valid"),
         source: fixed_node_id(1),
         target: fixed_node_id(2),
         source_port: PortName::from("true"),

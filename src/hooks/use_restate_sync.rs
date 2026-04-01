@@ -115,10 +115,7 @@ pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
         } else {
             host
         },
-        port: match port {
-            Some(p) => p,
-            None => 9070,
-        },
+        port: port.unwrap_or(9070),
         timeout_secs: 10,
     }
 }

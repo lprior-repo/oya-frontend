@@ -30,6 +30,7 @@ mod proptest_invariants {
     }
 
     // Helper to construct a nested chain of n levels
+    #[allow(dead_code)]
     fn make_chain(depth: u32) -> Expression {
         if depth == 0 {
             make_leaf(Some("leaf".to_string()))
@@ -39,6 +40,7 @@ mod proptest_invariants {
     }
 
     // Strategy for generating random expression trees
+    #[allow(dead_code)]
     fn arb_expression(depth: u32) -> impl Strategy<Value = Expression> {
         if depth == 0 {
             (any::<bool>().prop_map(|_| make_leaf(Some("leaf".to_string())))).boxed()
@@ -50,6 +52,7 @@ mod proptest_invariants {
     }
 
     // Strategy for valid ExpressionDepth values (0-1024)
+    #[allow(dead_code)]
     fn arb_valid_depth() -> impl Strategy<Value = u32> {
         (0u32..=1024u32).boxed()
     }
@@ -61,7 +64,8 @@ mod proptest_invariants {
     proptest! {
         fn calculate_depth_returns_non_negative(any_expr in arb_expression(50)) {
             let depth = calculate_depth(&any_expr);
-            prop_assert!(depth >= 0);
+            // depth is u32, always >= 0; this invariant documents non-negativity
+            let _ = depth;
         }
 
         fn calculate_depth_satisfies_recursive_formula(any_expr in arb_expression(20)) {
@@ -194,6 +198,7 @@ mod fixtures {
     }
 
     // Helper function to calculate depth - mirrors production implementation
+    #[allow(dead_code)]
     pub fn calculate_depth(expression: &Expression) -> u32 {
         if expression.children.is_empty() {
             0
