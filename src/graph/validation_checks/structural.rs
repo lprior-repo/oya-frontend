@@ -1,6 +1,9 @@
 //! Structural validations for workflows.
 
+use crate::graph::graph_ops;
 use crate::graph::{NodeCategory, NodeId, ValidationIssue, Workflow};
+
+use std::collections::HashSet;
 
 // ===========================================================================
 // Structural Validations (Reachability, Entry Points, Orphans)
@@ -23,7 +26,7 @@ pub fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIss
         return;
     }
 
-    let entry_ids: std::collections::HashSet<NodeId> = workflow
+    let entry_ids: HashSet<NodeId> = workflow
         .nodes
         .iter()
         .filter(|n| n.category == NodeCategory::Entry)
@@ -34,18 +37,10 @@ pub fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIss
         return;
     }
 
-    let mut reachable = std::collections::HashSet::new();
-    let mut stack: Vec<NodeId> = entry_ids.iter().copied().collect();
-
-    while let Some(current) = stack.pop() {
-        if reachable.insert(current) {
-            for conn in workflow.connections.iter().filter(|c| c.source == current) {
-                if !reachable.contains(&conn.target) {
-                    stack.push(conn.target);
-                }
-            }
-        }
-    }
+    let node_ids = graph_ops::collect_node_ids(&workflow.nodes);
+    let outgoing = graph_ops::build_outgoing_adjacency(&workflow.connections, &node_ids);
+    let start_ids: Vec<NodeId> = entry_ids.iter().copied().collect();
+    let reachable = graph_ops::find_reachable(&start_ids, &outgoing);
 
     for node in &workflow.nodes {
         if !reachable.contains(&node.id) && node.category != NodeCategory::Entry {
@@ -60,16 +55,7 @@ pub fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIss
 /// Single-pass connection scan: build incoming/outgoing sets once (O(n+m))
 /// instead of scanning all connections per node (O(n*m)).
 pub fn validate_orphan_nodes(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
-    use std::collections::HashSet;
-
-    // Build sets of nodes that have incoming and outgoing connections in one pass
-    let mut has_incoming: HashSet<NodeId> = HashSet::new();
-    let mut has_outgoing: HashSet<NodeId> = HashSet::new();
-
-    for conn in &workflow.connections {
-        has_outgoing.insert(conn.source);
-        has_incoming.insert(conn.target);
-    }
+    let (has_incoming, has_outgoing) = graph_ops::build_connection_membership(&workflow.connections);
 
     for node in &workflow.nodes {
         if node.category == NodeCategory::Entry {

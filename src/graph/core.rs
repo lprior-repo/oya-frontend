@@ -234,4 +234,308 @@ mod tests {
             Some("running")
         );
     }
+
+    // ---------------------------------------------------------------------------
+    // set_node_status — error path: terminal state transitions
+    // ---------------------------------------------------------------------------
+
+    fn node_in_state(state: ExecutionState) -> Node {
+        let mut node = Node::from_workflow_node(
+            "n".to_string(),
+            WorkflowNode::Run(RunConfig::default()),
+            0.0,
+            0.0,
+        );
+        node.execution_state = state;
+        node
+    }
+
+    #[test]
+    fn given_completed_node_when_transitioning_to_idle_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Idle);
+        assert_eq!(node.execution_state, ExecutionState::Completed,
+            "node state should remain unchanged after failed transition");
+    }
+
+    #[test]
+    fn given_completed_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_completed_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Running);
+    }
+
+    #[test]
+    fn given_completed_node_when_transitioning_to_failed_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Failed);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Failed);
+    }
+
+    #[test]
+    fn given_completed_node_when_transitioning_to_skipped_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Skipped);
+    }
+
+    #[test]
+    fn given_failed_node_when_transitioning_to_idle_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Failed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Failed);
+        assert_eq!(err.to_state(), ExecutionState::Idle);
+        assert_eq!(node.execution_state, ExecutionState::Failed,
+            "node state should remain unchanged after failed transition");
+    }
+
+    #[test]
+    fn given_failed_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Failed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Failed);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_failed_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Failed);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Failed);
+        assert_eq!(err.to_state(), ExecutionState::Running);
+    }
+
+    #[test]
+    fn given_skipped_node_when_transitioning_to_idle_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Skipped);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Skipped);
+        assert_eq!(err.to_state(), ExecutionState::Idle);
+        assert_eq!(node.execution_state, ExecutionState::Skipped,
+            "node state should remain unchanged after failed transition");
+    }
+
+    #[test]
+    fn given_skipped_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Skipped);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Skipped);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_skipped_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Skipped);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Skipped);
+        assert_eq!(err.to_state(), ExecutionState::Running);
+    }
+
+    // ---------------------------------------------------------------------------
+    // set_node_status — error path: invalid non-terminal transitions
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_idle_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Idle);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Idle);
+        assert_eq!(err.to_state(), ExecutionState::Running);
+    }
+
+    #[test]
+    fn given_idle_node_when_transitioning_to_completed_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Idle);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Completed);
+
+        assert!(result.is_err());
+        assert_eq!(node.execution_state, ExecutionState::Idle);
+    }
+
+    #[test]
+    fn given_idle_node_when_transitioning_to_failed_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Idle);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Failed);
+
+        assert!(result.is_err());
+        assert_eq!(node.execution_state, ExecutionState::Idle);
+    }
+
+    #[test]
+    fn given_queued_node_when_transitioning_to_completed_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Queued);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Completed);
+
+        assert!(result.is_err());
+        assert_eq!(node.execution_state, ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_running_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Running);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
+
+        assert!(result.is_err());
+        assert_eq!(node.execution_state, ExecutionState::Running);
+    }
+
+    #[test]
+    fn given_running_node_when_transitioning_to_idle_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Running);
+        let result = Workflow::set_node_status(&mut node, ExecutionState::Idle);
+
+        assert!(result.is_err());
+        assert_eq!(node.execution_state, ExecutionState::Running);
+    }
+
+    // ---------------------------------------------------------------------------
+    // set_node_pending_status — error path: terminal states
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_completed_node_when_setting_pending_status_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Completed);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Completed);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_failed_node_when_setting_pending_status_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Failed);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Failed);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_skipped_node_when_setting_pending_status_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Skipped);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Skipped);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    #[test]
+    fn given_running_node_when_setting_pending_status_then_invalid_transition_error_is_returned() {
+        let mut node = node_in_state(ExecutionState::Running);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_err());
+        let err = result.err().expect("should have error");
+        assert_eq!(err.from_state(), ExecutionState::Running);
+        assert_eq!(err.to_state(), ExecutionState::Queued);
+    }
+
+    // ---------------------------------------------------------------------------
+    // set_node_pending_status — valid paths (ensure they work)
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_idle_node_when_setting_pending_status_then_status_is_queued() {
+        let mut node = node_in_state(ExecutionState::Idle);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_ok());
+        assert_eq!(node.execution_state, ExecutionState::Queued);
+        assert_eq!(
+            node.config
+                .get("status")
+                .and_then(serde_json::Value::as_str),
+            Some("pending")
+        );
+    }
+
+    #[test]
+    fn given_queued_node_when_setting_pending_status_then_status_remains_queued() {
+        let mut node = node_in_state(ExecutionState::Queued);
+        let result = Workflow::set_node_pending_status(&mut node);
+
+        assert!(result.is_ok());
+        assert_eq!(node.execution_state, ExecutionState::Queued);
+    }
+
+    // ---------------------------------------------------------------------------
+    // empty workflow operations
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_empty_workflow_when_deselecting_all_then_no_panic() {
+        let mut workflow = Workflow::new();
+        workflow.deselect_all();
+        assert!(workflow.nodes.is_empty());
+    }
+
+    #[test]
+    fn given_empty_workflow_when_removing_nonexistent_node_then_no_panic() {
+        let mut workflow = Workflow::new();
+        workflow.remove_node(NodeId::new());
+        assert!(workflow.nodes.is_empty());
+        assert!(workflow.connections.is_empty());
+    }
+
+    #[test]
+    fn given_empty_workflow_when_updating_nonexistent_node_position_then_no_panic() {
+        let mut workflow = Workflow::new();
+        workflow.update_node_position(NodeId::new(), 10.0, 20.0);
+        assert!(workflow.nodes.is_empty());
+    }
 }

@@ -124,7 +124,10 @@ impl<S: std::hash::BuildHasher + Send + Sync> ScenarioRunner<S> {
                 match req.send().await {
                     Ok(response) => {
                         let status = response.status().as_u16();
-                        let body = response.text().await.unwrap_or_default();
+                        let body = match response.text().await {
+                            Ok(text) => text,
+                            Err(e) => format!("<failed to read response body: {e}>"),
+                        };
                         ActionResult {
                             status,
                             body,

@@ -7,6 +7,7 @@
 
 use dioxus::prelude::*;
 use oya_frontend::graph::{ExecutionState, Node};
+use std::fmt::Write;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InspectorTab {
@@ -30,18 +31,24 @@ pub const fn status_badge_class(state: ExecutionState) -> &'static str {
 #[must_use]
 pub fn format_duration(ms: Option<i64>) -> String {
     match ms {
-        None => "—".to_string(),
-        Some(v) if v < 1000 => format!("{v}ms"),
+        None => "—".to_owned(),
+        Some(v) if v < 1000 => {
+            let mut s = String::with_capacity(16);
+            let _ = write!(s, "{v}ms");
+            s
+        }
         Some(v) => {
             #[allow(clippy::cast_precision_loss)]
             let secs = v as f64 / 1000.0;
-            format!("{secs:.2}s")
+            let mut s = String::with_capacity(16);
+            let _ = write!(s, "{secs:.2}s");
+            s
         }
     }
 }
 
 fn pretty_json(value: &serde_json::Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_string())
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_owned())
 }
 
 fn filter_lines(text: &str, query: &str) -> String {
@@ -171,7 +178,11 @@ pub fn InspectorPanel(
         InspectorTab::Input => input_json_text.clone(),
         InspectorTab::Output => {
             if is_failed {
-                format!("{error_text}\n\n{stack_text}")
+                let mut s = String::with_capacity(error_text.len() + stack_text.len() + 4);
+                s.push_str(&error_text);
+                s.push_str("\n\n");
+                s.push_str(&stack_text);
+                s
             } else {
                 output_json_text.clone()
             }

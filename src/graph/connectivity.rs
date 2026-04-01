@@ -1,5 +1,6 @@
 use uuid::Uuid;
 
+use super::graph_ops;
 use super::{Connection, NodeId, PortName, Workflow};
 use crate::graph::restate_types::PortType;
 use crate::graph::restate_types::{types_compatible, ParsePortTypeError};
@@ -139,7 +140,7 @@ impl Workflow {
             return Err(ConnectionError::MissingTargetNode(target));
         }
 
-        if Self::path_exists(connections, target, source) {
+        if graph_ops::path_exists(connections, target, source) {
             return Err(ConnectionError::WouldCreateCycle);
         }
 
@@ -175,18 +176,6 @@ impl Workflow {
             source_port: validation.source_port,
             target_port: validation.target_port,
         });
-    }
-
-    /// Returns the validated connection state for mutation.
-    #[must_use]
-    fn new_connection(validation: &ValidationState) -> Connection {
-        Connection {
-            id: Uuid::new_v4(),
-            source: validation.source,
-            target: validation.target,
-            source_port: validation.source_port.clone(),
-            target_port: validation.target_port.clone(),
-        }
     }
 
     /// Single-pass node lookup: finds both source and target in one iteration
@@ -254,37 +243,14 @@ impl Workflow {
 
     #[must_use]
     pub fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
-        // If from == to, only return true if there's a self-loop
-        if from == to {
-            return connections
-                .iter()
-                .any(|conn| conn.source == from && conn.target == from);
-        }
-
-        let mut visited = std::collections::HashSet::new();
-        let mut stack = vec![from];
-
-        while let Some(current) = stack.pop() {
-            if current == to {
-                return true;
-            }
-
-            if visited.insert(current) {
-                connections
-                    .iter()
-                    .filter(|connection| connection.source == current)
-                    .for_each(|connection| stack.push(connection.target));
-            }
-        }
-
-        false
+        graph_ops::path_exists(connections, from, to)
     }
 }
 
 /// Helper function for tests to access `path_exists` directly
 #[must_use]
 pub fn path_exists_internal(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
-    Workflow::path_exists(connections, from, to)
+    graph_ops::path_exists(connections, from, to)
 }
 
 /// Helper function for tests to access `check_port_type_compatibility` directly
@@ -657,5 +623,117 @@ mod tests {
         let result = Workflow::find_source_and_target_nodes(&nodes, source, target);
 
         assert_eq!(result, Err(ConnectionError::MissingSourceNode(source)));
+    }
+
+    // ---------------------------------------------------------------------------
+    // add_connection (bool) — error path returns false without mutating
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_missing_source_when_adding_unchecked_then_false_is_returned_and_no_connection_added() {
+        let mut workflow = Workflow::new();
+        let target = workflow.add_node("run", 0.0, 0.0);
+        let ghost_source = NodeId(Uuid::new_v4());
+        let main = PortName("main".to_string());
+
+        let added = workflow.add_connection(ghost_source, target, &main, &main);
+
+        assert!(!added);
+        assert!(workflow.connections.is_empty());
+    }
+
+    #[test]
+    fn given_missing_target_when_adding_unchecked_then_false_is_returned_and_no_connection_added() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let ghost_target = NodeId(Uuid::new_v4());
+        let main = PortName("main".to_string());
+
+        let added = workflow.add_connection(source, ghost_target, &main, &main);
+
+        assert!(!added);
+        assert!(workflow.connections.is_empty());
+    }
+
+    #[test]
+    fn given_duplicate_connection_when_adding_unchecked_then_false_is_returned() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let target = workflow.add_node("run", 100.0, 0.0);
+        let main = PortName("main".to_string());
+
+        let first = workflow.add_connection(source, target, &main, &main);
+        assert!(first);
+
+        let duplicate = workflow.add_connection(source, target, &main, &main);
+        assert!(!duplicate);
+        assert_eq!(workflow.connections.len(), 1, "only the first connection should exist");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ConnectionError Display — error message coverage
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_self_connection_error_when_displaying_then_message_contains_self_connection_text() {
+        let err = ConnectionError::SelfConnection;
+        let msg = format!("{err}");
+        assert!(msg.contains("itself"), "expected self-reference in message, got: {msg}");
+    }
+
+    #[test]
+    fn given_missing_source_error_when_displaying_then_message_contains_node_id() {
+        let id = NodeId(Uuid::new_v4());
+        let err = ConnectionError::MissingSourceNode(id);
+        let msg = format!("{err}");
+        assert!(msg.contains(&id.to_string()), "expected node id in message, got: {msg}");
+    }
+
+    #[test]
+    fn given_missing_target_error_when_displaying_then_message_contains_node_id() {
+        let id = NodeId(Uuid::new_v4());
+        let err = ConnectionError::MissingTargetNode(id);
+        let msg = format!("{err}");
+        assert!(msg.contains(&id.to_string()), "expected node id in message, got: {msg}");
+    }
+
+    #[test]
+    fn given_would_create_cycle_error_when_displaying_then_message_contains_cycle_text() {
+        let err = ConnectionError::WouldCreateCycle;
+        let msg = format!("{err}");
+        assert!(msg.contains("cycle"), "expected 'cycle' in message, got: {msg}");
+    }
+
+    #[test]
+    fn given_duplicate_error_when_displaying_then_message_contains_duplicate_text() {
+        let err = ConnectionError::Duplicate;
+        let msg = format!("{err}");
+        assert!(msg.contains("already exists"), "expected 'already exists' in message, got: {msg}");
+    }
+
+    // ---------------------------------------------------------------------------
+    // check_port_type_compatibility_internal — error paths via public helper
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_missing_source_node_when_checking_port_compatibility_then_missing_source_error() {
+        let mut workflow = Workflow::new();
+        let target = workflow.add_node("run", 0.0, 0.0);
+        let ghost_source = NodeId(Uuid::new_v4());
+
+        let result = check_port_type_compatibility_internal(&workflow.nodes, ghost_source, target);
+
+        assert_eq!(result, Err(ConnectionError::MissingSourceNode(ghost_source)));
+    }
+
+    #[test]
+    fn given_missing_target_node_when_checking_port_compatibility_then_missing_target_error() {
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("http-handler", 0.0, 0.0);
+        let ghost_target = NodeId(Uuid::new_v4());
+
+        let result = check_port_type_compatibility_internal(&workflow.nodes, source, ghost_target);
+
+        assert_eq!(result, Err(ConnectionError::MissingTargetNode(ghost_target)));
     }
 }

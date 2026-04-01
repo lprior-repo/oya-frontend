@@ -35,6 +35,12 @@ impl RestateClient {
         &self.base_url
     }
 
+    /// Fetches keyed state from the Restate ingress endpoint.
+    ///
+    /// # Errors
+    ///
+    /// Returns `RestateClientError::RequestFailed` if the HTTP request fails.
+    /// Returns `RestateClientError::ApiError` if the server responds with a non-success status.
     pub async fn get_keyed_state(
         &self,
         service_name: &str,
@@ -49,13 +55,15 @@ impl RestateClient {
             .map_err(RestateClientError::RequestFailed)?;
 
         if !response.status().is_success() {
-            return Err(RestateClientError::ApiError {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            let status = response.status().as_u16();
+            let message = match response.text().await {
+                Ok(text) => text,
+                Err(e) => format!("<failed to read response body: {e}>"),
+            };
+            return Err(RestateClientError::ApiError { status, message });
         }
 
-        let value: serde_json::Value = response.json().await?;
+        let value: serde_json::Value = response.json().await.map_err(RestateClientError::RequestFailed)?;
 
         Ok(KeyedState {
             service: service_name.to_string(),

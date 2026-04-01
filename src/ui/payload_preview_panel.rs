@@ -32,7 +32,7 @@ fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_jso
 }
 
 fn pretty_json(value: &serde_json::Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_string())
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".to_owned())
 }
 
 #[component]

@@ -140,12 +140,6 @@ impl std::fmt::Display for ExpressionDepth {
     }
 }
 
-/// Checks if a value looks like a reference (contains special characters).
-fn looks_like_reference(value: &str) -> bool {
-    // References typically contain special characters like {, }, [, ], etc.
-    value.contains('{') || value.contains('}') || value.contains('[') || value.contains(']')
-}
-
 /// Error taxonomy for expression resolution
 ///
 /// This enum provides comprehensive error coverage for all failure modes in

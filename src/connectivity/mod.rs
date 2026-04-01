@@ -371,12 +371,14 @@ impl GlobalConnectionStore {
     }
 
     /// Lists all connections.
+    ///
+    /// Returns an empty vector if the lock cannot be acquired or listing fails.
     #[must_use]
     pub fn list_connections(&self) -> Vec<Connection> {
         let Ok(store) = self.store.read() else {
             return Vec::new();
         };
-        store.list_connections().ok().unwrap_or_default()
+        store.list_connections().unwrap_or_default()
     }
 
     /// Clears all connections.

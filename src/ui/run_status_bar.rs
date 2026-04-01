@@ -7,6 +7,7 @@
 
 use dioxus::prelude::*;
 use oya_frontend::graph::ExecutionState;
+use std::fmt::Write;
 
 /// Returns the Tailwind background + border classes for the bar.
 #[must_use]
@@ -27,10 +28,20 @@ pub const fn bar_bg_class(status: ExecutionState, frozen: bool) -> &'static str 
 pub fn status_text(status: ExecutionState, step: usize, total: usize, name: &str) -> String {
     match status {
         ExecutionState::Running | ExecutionState::Queued => {
-            format!("Running step {step} of {total} \u{2014} {name}")
+            let mut s = String::with_capacity(64);
+            let _ = write!(s, "Running step {step} of {total} \u{2014} {name}");
+            s
         }
-        ExecutionState::Completed => format!("Completed {total} steps"),
-        ExecutionState::Failed => format!("Failed at step {step} \u{2014} {name}"),
+        ExecutionState::Completed => {
+            let mut s = String::with_capacity(32);
+            let _ = write!(s, "Completed {total} steps");
+            s
+        }
+        ExecutionState::Failed => {
+            let mut s = String::with_capacity(64);
+            let _ = write!(s, "Failed at step {step} \u{2014} {name}");
+            s
+        }
         ExecutionState::Idle | ExecutionState::Skipped => "Ready".to_owned(),
     }
 }
@@ -64,7 +75,12 @@ pub fn RunStatusBar(
                         let run_id = frozen_run_id.read();
                     run_id.as_deref().map_or_else(
                         || "Viewing historical run".to_owned(),
-                        |id| format!("Viewing historical run {id}"),
+                        |id| {
+                            let mut s = String::with_capacity(48);
+                            s.push_str("Viewing historical run ");
+                            s.push_str(id);
+                            s
+                        },
                     )
                     }
                 }

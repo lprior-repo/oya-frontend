@@ -83,7 +83,7 @@ pub fn NodeConfigEditor(
                                     if let Some(obj) = new_config.as_object_mut() {
                                         match payload {
                                             Some(value) => {
-                                                obj.insert("pinnedOutputSample".to_string(), value);
+                                                obj.insert("pinnedOutputSample".to_owned(), value);
                                             }
                                             None => {
                                                 obj.remove("pinnedOutputSample");

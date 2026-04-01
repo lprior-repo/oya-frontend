@@ -1,5 +1,7 @@
+#[cfg(test)]
 use super::NodeCategory;
 
+#[cfg(test)]
 #[allow(clippy::too_many_lines)]
 pub(super) fn node_metadata(node_type: &str) -> (NodeCategory, String, String) {
     match node_type {

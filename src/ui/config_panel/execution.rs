@@ -266,9 +266,9 @@ pub(super) fn ExecutionTab(
 fn StatusBadge(status: InvocationStatus) -> Element {
     let style = invocation_badge_style(status);
     let icon_class = if status.is_spinning() {
-        "h-3 w-3 animate-spin".to_string()
+        "h-3 w-3 animate-spin".to_owned()
     } else {
-        "h-3 w-3".to_string()
+        "h-3 w-3".to_owned()
     };
 
     rsx! {
@@ -305,13 +305,13 @@ fn build_execution_timeline(
 ) -> Vec<ExecutionTimelineEvent> {
     let status_event = status.map(|s| ExecutionTimelineEvent {
         category: ExecutionEventCategory::Status,
-        label: "Invocation status updated".to_string(),
-        detail: s.as_str().to_string(),
+        label: "Invocation status updated".to_owned(),
+        detail: s.as_str().to_owned(),
     });
 
     let journal_event = journal_idx.map(|index| ExecutionTimelineEvent {
         category: ExecutionEventCategory::Journal,
-        label: "Durable journal checkpoint".to_string(),
+        label: "Durable journal checkpoint".to_owned(),
         detail: format!("journal #{index}"),
     });
 
@@ -319,7 +319,7 @@ fn build_execution_timeline(
         .filter(|&retry| retry > 0)
         .map(|retry| ExecutionTimelineEvent {
             category: ExecutionEventCategory::Retry,
-            label: "Retry attempts recorded".to_string(),
+            label: "Retry attempts recorded".to_owned(),
             detail: format!("{retry} retries"),
         });
 

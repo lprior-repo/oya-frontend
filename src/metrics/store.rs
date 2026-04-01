@@ -10,12 +10,28 @@ use super::model::{
 };
 
 impl MetricsStore {
+    /// Creates a new `MetricsStore` backed by the given directory.
+    ///
+    /// If the directory cannot be created, logs the error and continues.
+    /// If persisted data cannot be loaded, starts with default empty data.
     #[must_use]
     pub fn new(base_path: &Path) -> Self {
         let data_path = base_path.join("quality-metrics");
-        std::fs::create_dir_all(&data_path).ok();
 
-        let data: MetricsData = Self::load_data(&data_path).unwrap_or_default();
+        match std::fs::create_dir_all(&data_path) {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!("Warning: could not create metrics directory {data_path:?}: {e}");
+            }
+        }
+
+        let data: MetricsData = match Self::load_data(&data_path) {
+            Ok(loaded) => loaded,
+            Err(e) => {
+                eprintln!("Warning: could not load metrics data: {e}");
+                MetricsData::default()
+            }
+        };
 
         Self {
             base_path: data_path,

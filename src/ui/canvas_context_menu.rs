@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use std::fmt::Write;
 use web_sys::window;
 
 /// Menu dimensions (width: 224px = w-56, estimated height ~180px)
@@ -30,7 +31,9 @@ pub fn clamp_menu_position(
 #[inline]
 pub fn generate_menu_style(x: f32, y: f32, viewport_width: f32, viewport_height: f32) -> String {
     let (clamped_x, clamped_y) = clamp_menu_position(x, y, viewport_width, viewport_height);
-    format!("left: {clamped_x}px; top: {clamped_y}px;")
+    let mut style = String::with_capacity(48);
+    let _ = write!(style, "left: {clamped_x}px; top: {clamped_y}px;");
+    style
 }
 
 #[component]

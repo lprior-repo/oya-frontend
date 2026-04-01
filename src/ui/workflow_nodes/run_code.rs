@@ -1,9 +1,8 @@
 use crate::ui::workflow_nodes::schema::{CodeLanguage, RunCodeConfig};
+use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const FOCUS_RING: &str = "red";
 
 #[derive(Clone)]
 struct LanguageDrafts {
@@ -54,6 +53,8 @@ fn with_language_draft(drafts: &LanguageDrafts, language: &CodeLanguage, code: S
 
 #[component]
 pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
+    let input_cls = input_classes(FOCUS_RING);
+
     let initial_config = config.read().clone();
     let drafts = use_signal(move || {
         let expression = match &initial_config.language {
@@ -106,14 +107,10 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Language"
-                }
+            FormField {
+                label: "Language",
                 select {
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     value: match &*config.read() {
                         RunCodeConfig { language: CodeLanguage::JavaScript, .. } => "JavaScript",
                         RunCodeConfig { language: CodeLanguage::Python, .. } => "Python",
@@ -150,15 +147,11 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
             match &*config.read() {
                 RunCodeConfig { language: CodeLanguage::Expression, .. } => {
                     rsx! {
-                        div {
-                            class: "form-field",
-                            label {
-                                class: "{LABEL_CLASSES}",
-                                "Expression"
-                            }
+                        FormField {
+                            label: "Expression",
                             input {
                                 r#type: "text",
-                                class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 font-mono",
+                                class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-{FOCUS_RING}-500 font-mono",
                                 placeholder: "{{ steps.total.amount }} * 1.2",
                                 value: "{config.code}",
                                 oninput: move |e| {
@@ -171,23 +164,16 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                                     });
                                 }
                             }
-                            p {
-                                class: "text-xs text-gray-500 mt-1",
-                                "Use double braces like {{ and }} to render literals"
-                            }
+                            FormHint { text: "Use double braces like {{ and }} to render literals" }
                         }
                     }
                 }
                 _ => {
                     rsx! {
-                        div {
-                            class: "form-field",
-                            label {
-                                class: "{LABEL_CLASSES}",
-                                "Code"
-                            }
+                        FormField {
+                            label: "Code",
                             textarea {
-                                class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 font-mono text-sm",
+                                class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-{FOCUS_RING}-500 font-mono text-sm",
                                 rows: 8,
                                 placeholder: "// Available: input (from previous step)\n// Return value is saved\n\nconst result = input.amount * 1.2;\nreturn { total: result };",
                                 value: "{config.code}",
@@ -201,10 +187,7 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
                                     });
                                 }
                             }
-                            p {
-                                class: "text-xs text-gray-500 mt-1",
-                                "Use double braces like {{ and }} to render literals"
-                            }
+                            FormHint { text: "Use double braces like {{ and }} to render literals" }
                         }
                     }
                 }
@@ -224,28 +207,11 @@ pub fn RunCodeForm(config: Signal<RunCodeConfig>) -> Element {
 #[component]
 pub fn RunCodeNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-
-            div {
-                class: "w-10 h-10 bg-red-100 rounded-full flex items-center justify-center",
-                span {
-                    class: "text-xl",
-                    "⚡"
-                }
-            },
-
-            div {
-                class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "Run Code"
-                }
-                p {
-                    class: "text-sm text-gray-500",
-                    "Execute custom logic"
-                }
-            }
+        NodeCard {
+            icon_bg: "bg-red-100",
+            icon: "⚡",
+            title: "Run Code",
+            subtitle: "Execute custom logic",
         }
     }
 }

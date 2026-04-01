@@ -150,6 +150,6 @@ fn build_status_text(error_count: usize, warning_count: usize) -> String {
                 if warning_count == 1 { "" } else { "s" }
             )
         }
-        ValidationResultCategory::Valid => "Workflow valid".to_string(),
+        ValidationResultCategory::Valid => "Workflow valid".to_owned(),
     }
 }

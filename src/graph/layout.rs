@@ -547,4 +547,139 @@ mod tests {
             );
         }
     }
+
+    // ---------------------------------------------------------------------------
+    // Property-based tests (proptest)
+    // ---------------------------------------------------------------------------
+
+    use proptest::prelude::*;
+
+    /// Node dimensions -- must match the values used throughout the codebase
+    /// (editor_interactions, layout constants, etc.).
+    const PROP_NODE_W: f32 = 220.0;
+    const PROP_NODE_H: f32 = 68.0;
+
+    /// Inlined mirror of `editor_interactions::normalize_rect` for use in
+    /// property tests (the `ui` module is gated to the binary crate).
+    fn normalize_rect(start: (f32, f32), end: (f32, f32)) -> (f32, f32, f32, f32) {
+        (
+            start.0.min(end.0),
+            start.1.min(end.1),
+            start.0.max(end.0),
+            start.1.max(end.1),
+        )
+    }
+
+    /// Inlined mirror of `editor_interactions::rect_contains`.
+    fn rect_contains(rect: (f32, f32, f32, f32), point: (f32, f32)) -> bool {
+        point.0 >= rect.0 && point.0 <= rect.2 && point.1 >= rect.1 && point.1 <= rect.3
+    }
+
+    /// Inlined mirror of `editor_interactions::node_intersects_rect`.
+    fn node_intersects_rect(node_x: f32, node_y: f32, rect: (f32, f32, f32, f32)) -> bool {
+        let node_right = node_x + PROP_NODE_W;
+        let node_bottom = node_y + PROP_NODE_H;
+        !(node_right < rect.0 || node_x > rect.2 || node_bottom < rect.1 || node_y > rect.3)
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(64))]
+
+        // Property: normalize_rect always produces a valid rectangle where
+        // min <= max for both dimensions, regardless of input ordering.
+        #[test]
+        fn given_random_rect_when_normalizing_then_min_lte_max(
+            x1 in any::<f32>(),
+            y1 in any::<f32>(),
+            x2 in any::<f32>(),
+            y2 in any::<f32>(),
+        ) {
+            prop_assume!(x1.is_finite() && y1.is_finite() && x2.is_finite() && y2.is_finite());
+
+            let (min_x, min_y, max_x, max_y) = normalize_rect((x1, y1), (x2, y2));
+
+            prop_assert!(min_x <= max_x);
+            prop_assert!(min_y <= max_y);
+        }
+
+        // Property: node_intersects_rect is commutative -- if node A's
+        // bounding box intersects node B's bounding box, then B also
+        // intersects A.
+        #[test]
+        fn given_two_nodes_when_checking_intersection_then_result_is_commutative(
+            ax in any::<f32>(),
+            ay in any::<f32>(),
+            bx in any::<f32>(),
+            by in any::<f32>(),
+        ) {
+            prop_assume!(ax.is_finite() && ay.is_finite() && bx.is_finite() && by.is_finite());
+
+            let rect_a = (ax, ay, ax + PROP_NODE_W, ay + PROP_NODE_H);
+            let rect_b = (bx, by, bx + PROP_NODE_W, by + PROP_NODE_H);
+
+            let a_hits_b = node_intersects_rect(ax, ay, rect_b);
+            let b_hits_a = node_intersects_rect(bx, by, rect_a);
+
+            prop_assert_eq!(a_hits_b, b_hits_a);
+        }
+
+        // Property: rect_contains returns true for a point inside the rect
+        // and false for points outside the rect.
+        #[test]
+        fn given_valid_rect_when_checking_contains_then_inside_true_outside_false(
+            min_x in 0.0_f32..1000.0,
+            min_y in 0.0_f32..1000.0,
+            width in 1.0_f32..500.0,
+            height in 1.0_f32..500.0,
+        ) {
+            let max_x = min_x + width;
+            let max_y = min_y + height;
+            let rect = (min_x, min_y, max_x, max_y);
+
+            // Midpoint must be contained
+            let mid_x = f32::midpoint(min_x, max_x);
+            let mid_y = f32::midpoint(min_y, max_y);
+            prop_assert!(rect_contains(rect, (mid_x, mid_y)));
+
+            // Point beyond max corner must not be contained
+            prop_assert!(!rect_contains(rect, (max_x + 1.0, max_y + 1.0)));
+
+            // Point before min corner must not be contained
+            let before_x = min_x - 1.0;
+            let before_y = min_y - 1.0;
+            prop_assume!(before_x.is_finite() && before_y.is_finite());
+            prop_assert!(!rect_contains(rect, (before_x, before_y)));
+        }
+
+        // Property: DagLayout::apply produces non-overlapping node bounding
+        // boxes when all nodes start at distinct positions.
+        #[test]
+        fn given_distinct_nodes_when_applying_layout_then_no_bounding_boxes_overlap(
+            xs in prop::collection::vec(0.0_f32..2000.0, 2..8),
+            ys in prop::collection::vec(0.0_f32..2000.0, 2..8),
+        ) {
+            let mut workflow = Workflow::new();
+            for (&x, &y) in xs.iter().zip(ys.iter()) {
+                workflow.add_node("run", x, y);
+            }
+
+            DagLayout::default().apply(&mut workflow);
+
+            let boxes: Vec<(f32, f32, f32, f32)> = workflow
+                .nodes
+                .iter()
+                .map(|n| (n.x, n.y, n.x + PROP_NODE_W, n.y + PROP_NODE_H))
+                .collect();
+
+            for i in 0..boxes.len() {
+                for j in (i + 1)..boxes.len() {
+                    let (l1, t1, r1, b1) = boxes[i];
+                    let (l2, t2, r2, b2) = boxes[j];
+
+                    let overlaps = !(r1 <= l2 || r2 <= l1 || b1 <= t2 || b2 <= t1);
+                    prop_assert!(!overlaps);
+                }
+            }
+        }
+    }
 }

@@ -206,6 +206,7 @@ pub struct SanitizedFeedback {
 }
 
 pub struct FeedbackSanitizer {
+    #[allow(dead_code)]
     config: FeedbackConfig,
 }
 

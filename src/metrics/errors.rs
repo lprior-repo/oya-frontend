@@ -7,9 +7,9 @@ pub enum MetricsError {
     #[error("Failed to read metrics file: {0}")]
     ReadError(#[from] std::io::Error),
     #[error("Failed to write metrics file: {0}")]
-    WriteError(std::io::Error),
+    WriteError(#[source] std::io::Error),
     #[error("Failed to parse metrics data: {0}")]
-    ParseError(serde_json::Error),
+    ParseError(#[source] serde_json::Error),
     #[error("Invalid session id: {0}")]
     InvalidSessionId(String),
     #[error("Session not found: {0}")]

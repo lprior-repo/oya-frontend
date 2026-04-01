@@ -4,6 +4,8 @@
 //! to eliminate duplication across `connectivity`, `execution`,
 //! `execution_engine`, and `validation_checks`.
 
+#![allow(clippy::implicit_hasher)]
+
 use crate::graph::{Connection, Node, NodeId};
 use std::collections::{HashMap, HashSet};
 
@@ -16,13 +18,13 @@ use std::collections::{HashMap, HashSet};
 /// O(n) construction, then O(1) lookups. Use this instead of repeated
 /// `nodes.iter().find(|n| n.id == id)` calls which are O(n) each.
 #[must_use]
-pub fn build_node_lookup<'a>(nodes: &'a [Node]) -> HashMap<NodeId, &'a Node> {
+pub fn build_node_lookup(nodes: &[Node]) -> HashMap<NodeId, &Node> {
     nodes.iter().map(|n| (n.id, n)).collect()
 }
 
 /// Build a `NodeId -> &mut Node` lookup map from a mutable node slice.
 #[must_use]
-pub fn build_node_lookup_mut<'a>(nodes: &'a mut [Node]) -> HashMap<NodeId, &'a mut Node> {
+pub fn build_node_lookup_mut(nodes: &mut [Node]) -> HashMap<NodeId, &mut Node> {
     nodes.iter_mut().map(|n| (n.id, n)).collect()
 }
 
@@ -193,6 +195,11 @@ pub fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool
 /// * `in_degree` - Pre-computed in-degree counts
 /// * `compare` - Optional comparison function for tie-breaking among nodes
 ///   with the same in-degree
+///
+/// # Errors
+///
+/// Returns `Err(HashSet<NodeId>)` containing all nodes that could not be
+/// ordered (i.e., nodes involved in cycles).
 pub fn topological_sort<F>(
     node_ids: &HashSet<NodeId>,
     adjacency: &HashMap<NodeId, Vec<NodeId>>,

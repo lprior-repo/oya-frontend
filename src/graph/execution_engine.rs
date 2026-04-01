@@ -7,6 +7,7 @@
 //!
 //! All functions are pure (no side effects) and follow Data -> Calc -> Actions architecture.
 
+use super::graph_ops;
 use super::{Node, NodeId, Workflow, WorkflowExecutionError};
 use crate::graph::execution_types::ExecutionPlan;
 use std::collections::{HashMap, HashSet};
@@ -50,7 +51,7 @@ pub fn prepare_execution(workflow: &Workflow) -> Result<ExecutionPlan, WorkflowE
     }
 
     // Build node lookup map once, used throughout (eliminates redundant HashMap build)
-    let node_map: HashMap<NodeId, &Node> = workflow.nodes.iter().map(|n| (n.id, n)).collect();
+    let node_map = graph_ops::build_node_lookup(&workflow.nodes);
 
     // Validate all connection references exist
     for conn in &workflow.connections {

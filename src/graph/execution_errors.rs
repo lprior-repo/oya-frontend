@@ -106,17 +106,15 @@ impl std::fmt::Display for WorkflowExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::CycleDetected { cycle_nodes } => {
+                let first = cycle_nodes
+                    .first()
+                    .map_or_else(|| "<empty>".to_string(), std::string::ToString::to_string);
+                let second = cycle_nodes
+                    .get(1)
+                    .map_or_else(|| "...".to_string(), std::string::ToString::to_string);
                 write!(
                     f,
-                    "Cycle detected in workflow: {} -> {} -> ...",
-                    cycle_nodes
-                        .first()
-                        .map(std::string::ToString::to_string)
-                        .unwrap_or_default(),
-                    cycle_nodes
-                        .get(1)
-                        .map(std::string::ToString::to_string)
-                        .unwrap_or_default()
+                    "Cycle detected in workflow: {first} -> {second} -> ..."
                 )
             }
             Self::UnresolvedDependencies {

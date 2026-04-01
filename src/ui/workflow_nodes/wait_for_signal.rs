@@ -1,13 +1,13 @@
 use crate::ui::workflow_nodes::schema::WaitForSignalConfig;
+use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES, PRESET_BTN_CLASSES};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
-const PRESET_BTN_CLASSES: &str = "px-3 py-2 text-sm border rounded-md hover:bg-gray-50";
+const FOCUS_RING: &str = "rose";
 
 #[component]
 pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
+    let input_cls = input_classes(FOCUS_RING);
+
     rsx! {
         div {
             class: "space-y-4",
@@ -22,33 +22,22 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Promise Name"
-                }
+            FormField {
+                label: "Promise Name",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., payment_complete, order_shipped",
                     value: "{config.promise_name}",
                     oninput: move |e| {
                         config.write().promise_name = e.value().clone();
                     }
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Another workflow resolves this promise by name"
-                }
+                FormHint { text: "Another workflow resolves this promise by name" }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Give up after..."
-                }
+            FormField {
+                label: "Give up after...",
                 div {
                     class: "grid grid-cols-3 gap-2",
                     role: "group",
@@ -91,28 +80,11 @@ pub fn WaitForSignalForm(config: Signal<WaitForSignalConfig>) -> Element {
 #[component]
 pub fn WaitForSignalNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-
-            div {
-                class: "w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center",
-                span {
-                    class: "text-xl",
-                    "📡"
-                }
-            },
-
-            div {
-                class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "Wait for Signal"
-                }
-                p {
-                    class: "text-sm text-gray-500",
-                    "Wait for another workflow"
-                }
-            }
+        NodeCard {
+            icon_bg: "bg-rose-100",
+            icon: "📡",
+            title: "Wait for Signal",
+            subtitle: "Wait for another workflow",
         }
     }
 }

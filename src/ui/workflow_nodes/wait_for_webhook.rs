@@ -1,13 +1,13 @@
 use crate::ui::workflow_nodes::schema::WaitForWebhookConfig;
+use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES, PRESET_BTN_CLASSES};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
-const PRESET_BTN_CLASSES: &str = "px-3 py-2 text-sm border rounded-md hover:bg-gray-50";
+const FOCUS_RING: &str = "teal";
 
 #[component]
 pub fn WaitForWebhookForm(config: Signal<WaitForWebhookConfig>) -> Element {
+    let input_cls = input_classes(FOCUS_RING);
+
     rsx! {
         div {
             class: "space-y-4",
@@ -30,33 +30,22 @@ pub fn WaitForWebhookForm(config: Signal<WaitForWebhookConfig>) -> Element {
                 }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Awakeable ID"
-                }
+            FormField {
+                label: "Awakeable ID",
                 input {
                     r#type: "text",
-                    class: "{INPUT_CLASSES}",
+                    class: "{input_cls}",
                     placeholder: "e.g., payment_callback, approval_response",
                     value: "{config.awakeable_id}",
                     oninput: move |e| {
                         config.write().awakeable_id = e.value().clone();
                     }
                 }
-                p {
-                    class: "text-xs text-gray-500 mt-1",
-                    "Use the same awakeable ID in your callback resolver"
-                }
+                FormHint { text: "Use the same awakeable ID in your callback resolver" }
             }
 
-            div {
-                class: "form-field",
-                label {
-                    class: "{LABEL_CLASSES}",
-                    "Give up after..."
-                }
+            FormField {
+                label: "Give up after...",
                 div {
                     class: "grid grid-cols-3 gap-2",
                     role: "group",
@@ -99,28 +88,11 @@ pub fn WaitForWebhookForm(config: Signal<WaitForWebhookConfig>) -> Element {
 #[component]
 pub fn WaitForWebhookNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-
-            div {
-                class: "w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center",
-                span {
-                    class: "text-xl",
-                    "🪝"
-                }
-            },
-
-            div {
-                class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "Wait for Webhook"
-                }
-                p {
-                    class: "text-sm text-gray-500",
-                    "Pause until external callback"
-                }
-            }
+        NodeCard {
+            icon_bg: "bg-teal-100",
+            icon: "🪝",
+            title: "Wait for Webhook",
+            subtitle: "Pause until external callback",
         }
     }
 }

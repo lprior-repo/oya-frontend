@@ -171,7 +171,7 @@ pub fn handle_canvas_mousemove_event(
     evt: &MouseEvent,
     canvas: CanvasInteraction,
     selection: SelectionState,
-    sidebar: SidebarState,
+    _sidebar: SidebarState,
     workflow: &WorkflowState,
 ) {
     let page = evt.page_coordinates();
@@ -243,11 +243,11 @@ pub fn handle_canvas_mousemove_event(
             workflow.pan(pan_x, pan_y);
         }
 
-        let node_dx = (dx - pan_x) / zoom;
-        let node_dy = (dy - pan_y) / zoom;
+        let offset_x = (dx - pan_x) / zoom;
+        let offset_y = (dy - pan_y) / zoom;
         if let Some(node_ids) = canvas.dragging_node_ids() {
             for node_id in node_ids {
-                workflow.update_node_position(node_id, node_dx, node_dy);
+                workflow.update_node_position(node_id, offset_x, offset_y);
             }
         }
     } else if canvas.is_connecting() {

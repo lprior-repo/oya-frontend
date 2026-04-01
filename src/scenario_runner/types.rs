@@ -146,8 +146,10 @@ pub enum ScenarioError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ScenarioCategory(String);
 
+#[allow(dead_code)]
 impl ScenarioCategory {
     pub fn new(cat: impl Into<String>) -> Self {
         Self(cat.into())
@@ -177,8 +179,10 @@ impl std::fmt::Display for ScenarioCategory {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct HttpMethod(String);
 
+#[allow(dead_code)]
 impl HttpMethod {
     pub fn new(method: impl Into<String>) -> Self {
         Self(method.into())

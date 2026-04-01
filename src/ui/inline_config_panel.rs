@@ -69,7 +69,7 @@ fn entry_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> E
                             let mut new_config = config_clone.clone();
                             if let Some(obj) = new_config.as_object_mut() {
                                 let parsed: HttpMethod = e.value().parse().unwrap_or_default();
-                                obj.insert("method".to_string(), Value::String(parsed.to_string()));
+                                obj.insert("method".to_owned(), Value::String(parsed.to_string()));
                                 on_change.call(new_config);
                             }
                         },
@@ -145,7 +145,7 @@ fn flow_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> El
                         oninput: move |e| {
                             let mut new_config = config_clone.clone();
                             if let Some(obj) = new_config.as_object_mut() {
-                                obj.insert("conditionExpression".to_string(), Value::String(e.value()));
+                                obj.insert("conditionExpression".to_owned(), Value::String(e.value()));
                                 on_change.call(new_config);
                             }
                         }
@@ -183,7 +183,7 @@ fn timing_config(icon: &str, config: &Value, on_change: EventHandler<Value>) -> 
                             if let Ok(v) = e.value().parse::<u64>() {
                                 let mut new_config = config_clone.clone();
                                 if let Some(obj) = new_config.as_object_mut() {
-                                    obj.insert("timeoutMs".to_string(), Value::Number(v.into()));
+                                    obj.insert("timeoutMs".to_owned(), Value::Number(v.into()));
                                     on_change.call(new_config);
                                 }
                             }

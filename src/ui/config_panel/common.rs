@@ -30,7 +30,7 @@ pub(super) fn CommonConfig(
                         value: "{max_retries}",
                         oninput: move |e| {
                             if let Ok(val) = e.value().parse::<u64>() {
-                                update_u64.call(("maxRetries".to_string(), val));
+                                update_u64.call(("maxRetries".to_owned(), val));
                             }
                         }
                     }
@@ -43,7 +43,7 @@ pub(super) fn CommonConfig(
                         value: "{backoff_ms}",
                         oninput: move |e| {
                             if let Ok(val) = e.value().parse::<u64>() {
-                                update_u64.call(("backoffMs".to_string(), val));
+                                update_u64.call(("backoffMs".to_owned(), val));
                             }
                         }
                     }
@@ -57,7 +57,7 @@ pub(super) fn CommonConfig(
                 class: "{input_cls}",
                 placeholder: "ctx.rand.uuidv4()",
                 value: "{idempotency_key}",
-                oninput: move |e| update_str.call(("idempotencyKey".to_string(), e.value()))
+                oninput: move |e| update_str.call(("idempotencyKey".to_owned(), e.value()))
             }
             span { class: "text-[10px] text-slate-500", "Auto-generated if blank. Ensures exactly-once execution." }
         }

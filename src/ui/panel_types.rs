@@ -225,9 +225,27 @@ impl PayloadShape {
     #[must_use]
     pub fn to_display(&self) -> String {
         match self {
-            Self::Object { field_count } => format!("object ({field_count})"),
-            Self::Array { element_count } => format!("array ({element_count})"),
-            Self::String { char_count } => format!("string ({char_count})"),
+            Self::Object { field_count } => {
+                let mut s = String::with_capacity(24);
+                s.push_str("object (");
+                let _ = std::fmt::Write::write_fmt(&mut s, format_args!("{field_count}"));
+                s.push(')');
+                s
+            }
+            Self::Array { element_count } => {
+                let mut s = String::with_capacity(24);
+                s.push_str("array (");
+                let _ = std::fmt::Write::write_fmt(&mut s, format_args!("{element_count}"));
+                s.push(')');
+                s
+            }
+            Self::String { char_count } => {
+                let mut s = String::with_capacity(24);
+                s.push_str("string (");
+                let _ = std::fmt::Write::write_fmt(&mut s, format_args!("{char_count}"));
+                s.push(')');
+                s
+            }
             Self::Number => "number".to_owned(),
             Self::Boolean => "boolean".to_owned(),
             Self::Null => "null".to_owned(),
@@ -251,7 +269,13 @@ impl StatusBadgeStyle {
     #[must_use]
     #[allow(dead_code)]
     pub fn to_classes(self) -> String {
-        format!("{} {} {}", self.bg, self.text, self.border)
+        let mut classes = String::with_capacity(128);
+        classes.push_str(self.bg);
+        classes.push(' ');
+        classes.push_str(self.text);
+        classes.push(' ');
+        classes.push_str(self.border);
+        classes
     }
 }
 

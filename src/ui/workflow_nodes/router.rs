@@ -1,9 +1,8 @@
 use crate::ui::workflow_nodes::schema::{RouterBranch, RouterConfig};
+use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES};
 use dioxus::prelude::*;
 
-const CARD_CLASSES: &str = "flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow";
-const INPUT_CLASSES: &str = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500";
-const LABEL_CLASSES: &str = "block text-sm font-medium text-gray-700 mb-1";
+const FOCUS_RING: &str = "pink";
 
 fn add_branch(branches: &[RouterBranch]) -> Vec<RouterBranch> {
     let branch_name = format!("Path {}", branches.len() + 1);
@@ -91,6 +90,7 @@ impl Default for RouterNode {
 
 #[component]
 pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
+    let input_cls = input_classes(FOCUS_RING);
     let branches = config.read().branches.clone();
     let branch_count = branches.len();
     let can_remove_branch = branch_count > 1;
@@ -129,12 +129,11 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
                         }
                     }
 
-                    div {
-                        class: "form-field",
-                        label { class: "{LABEL_CLASSES}", "Name this path" }
+                    FormField {
+                        label: "Name this path",
                         input {
                             r#type: "text",
-                            class: "{INPUT_CLASSES}",
+                            class: "{input_cls}",
                             placeholder: "e.g., If approved, If rejected",
                             value: "{branch.name}",
                             oninput: move |e| {
@@ -143,19 +142,18 @@ pub fn RouterForm(config: Signal<RouterConfig>) -> Element {
                         }
                     }
 
-                    div {
-                        class: "form-field",
-                        label { class: "{LABEL_CLASSES}", "When to take this path?" }
+                    FormField {
+                        label: "When to take this path?",
                         input {
                             r#type: "text",
-                            class: "{INPUT_CLASSES}",
+                            class: "{input_cls}",
                             placeholder: "{{ steps.approve.status }} == 'approved'",
                             value: "{branch.condition}",
                             oninput: move |e| {
                                 config.write().branches = update_branch_condition_by_id(&config.read().branches, branch_id_for_condition.as_str(), e.value().clone());
                             }
                         }
-                        p { class: "text-xs text-gray-500 mt-1", "Use {{ step.field }} to check values" }
+                        FormHint { text: "Use {{ step.field }} to check values" }
                     }
                 }
             }
@@ -229,14 +227,11 @@ mod tests {
 #[component]
 pub fn RouterNodeCard() -> Element {
     rsx! {
-        div {
-            class: "{CARD_CLASSES}",
-            div { class: "w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center", span { class: "text-xl", "🔀" } },
-            div {
-                class: "flex-1",
-                h3 { class: "font-medium text-gray-900", "Router" }
-                p { class: "text-sm text-gray-500", "Go different ways based on conditions" }
-            }
+        NodeCard {
+            icon_bg: "bg-pink-100",
+            icon: "🔀",
+            title: "Router",
+            subtitle: "Go different ways based on conditions",
         }
     }
 }

@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![warn(dead_code)]
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod agent_feedback;
@@ -18,8 +18,8 @@ pub mod graph;
 pub mod linter;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod metrics;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod restate_client;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod restate_sync;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod scenario_runner;

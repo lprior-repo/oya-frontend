@@ -12,6 +12,7 @@ use crate::ui::{
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::{ExtensionPatchPreview, PreviewEndpoint};
 use oya_frontend::graph::{validate_workflow, ValidationResult};
+use std::fmt::Write;
 
 mod errors;
 mod hooks;
@@ -73,11 +74,9 @@ fn register_global_mouseup_listener(
         selection_end.clear_pending_drag();
     });
 
-    if window
-        .add_event_listener_with_callback("mouseup", callback.as_ref().unchecked_ref())
-        .is_err()
-    {
-        return None;
+    match window.add_event_listener_with_callback("mouseup", callback.as_ref().unchecked_ref()) {
+        Ok(()) => {}
+        Err(_) => return None,
     }
 
     Some(GlobalMouseupListener {
@@ -130,7 +129,12 @@ fn App() -> Element {
             #[cfg(target_arch = "wasm32")]
             {
                 use web_sys::window;
-                let storage = window().and_then(|w| w.local_storage().ok()).flatten();
+                let storage = window().and_then(|w| {
+                    match w.local_storage() {
+                        Ok(s) => s,
+                        Err(_) => None,
+                    }
+                });
                 if let Some(s) = storage {
                     let _ = s.set_item("flow-wasm-v1-workflow", &_json);
                 }
@@ -144,10 +148,13 @@ fn App() -> Element {
     let _connections = workflow.connections();
     let node_count = use_memo(move || workflow.nodes().read().len());
     let edge_count = use_memo(move || workflow.connections().read().len());
-    let zoom_label = use_memo(move || format!("{:.0}%", workflow.viewport().read().zoom * 100.0));
+    let zoom_label = use_memo(move || {
+        let mut s = String::with_capacity(16);
+        let _ = write!(s, "{:.0}%", workflow.viewport().read().zoom * 100.0);
+        s
+    });
     let can_undo = use_memo(move || workflow.can_undo());
     let can_redo = use_memo(move || workflow.can_redo());
-    let viewport_state = workflow.viewport();
     let mut extension_previews = use_signal(Vec::<ExtensionPatchPreview>::new);
     let mut validation_collapsed = use_signal(|| false);
     let validation_result: Memo<ValidationResult> = use_memo(move || {
@@ -303,12 +310,9 @@ fn App() -> Element {
             .enumerate()
             .flat_map(|(patch_idx, patch)| {
                 patch.nodes.iter().map(move |node| {
-                    (
-                        format!("p{patch_idx}-{}", node.temp_id),
-                        node.node_type.clone(),
-                        node.x,
-                        node.y,
-                    )
+                    let mut key = String::with_capacity(32);
+                    let _ = write!(key, "p{patch_idx}-{}", node.temp_id);
+                    (key, node.node_type.clone(), node.x, node.y)
                 })
             })
             .collect::<Vec<_>>()
@@ -325,7 +329,11 @@ fn App() -> Element {
                 let proposed_lookup = patch
                     .nodes
                     .iter()
-                    .map(|node| (format!("p{patch_idx}-{}", node.temp_id), (node.x, node.y)))
+                    .map(|node| {
+                        let mut key = String::with_capacity(32);
+                        let _ = write!(key, "p{patch_idx}-{}", node.temp_id);
+                        (key, (node.x, node.y))
+                    })
                     .collect::<std::collections::HashMap<_, _>>();
 
                 patch
@@ -354,20 +362,22 @@ fn App() -> Element {
 
                         source.and_then(|(sx, sy)| {
                             target.map(|(tx, ty)| {
-                                (
-                                    format!("p{patch_idx}-e{edge_idx}"),
-                                    format!(
-                                        "M {} {} C {} {}, {} {}, {} {}",
-                                        sx,
-                                        sy,
-                                        f32::midpoint(sx, tx),
-                                        sy,
-                                        f32::midpoint(sx, tx),
-                                        ty,
-                                        tx,
-                                        ty
-                                    ),
-                                )
+                                let mut edge_key = String::with_capacity(32);
+                                let _ = write!(edge_key, "p{patch_idx}-e{edge_idx}");
+                                let mut svg_path = String::with_capacity(80);
+                                let _ = write!(
+                                    svg_path,
+                                    "M {} {} C {} {}, {} {}, {} {}",
+                                    sx,
+                                    sy,
+                                    f32::midpoint(sx, tx),
+                                    sy,
+                                    f32::midpoint(sx, tx),
+                                    ty,
+                                    tx,
+                                    ty
+                                );
+                                (edge_key, svg_path)
                             })
                         })
                     })

@@ -420,3 +420,367 @@ fn snapshot_workflow_round_trip() {
 
     insta::assert_json_snapshot!("workflow_round_trip", &workflow);
 }
+
+// ===========================================================================
+// 8. Exhaustive snapshot tests for all 25 WorkflowNode variants
+// ===========================================================================
+//
+// Each test creates a Node via make_node with a deterministic id_seed (starting
+// at 50 to avoid collisions with earlier tests), then asserts a JSON snapshot.
+// Function names follow the convention:
+//   given_<node_type>_node_when_serializing_then_snapshot_matches
+
+#[test]
+fn given_http_handler_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "HTTP Handler",
+        WorkflowNode::HttpHandler(HttpHandlerConfig {
+            path: Some("/api/ping".to_string()),
+            method: Some("GET".to_string()),
+        }),
+        10.0,
+        20.0,
+        50,
+    );
+    insta::assert_json_snapshot!("given_http_handler_node", &node);
+}
+
+#[test]
+fn given_http_call_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "HTTP Call",
+        WorkflowNode::HttpCall(HttpCallConfig {
+            url: Some("https://api.example.com/v1/data".to_string()),
+        }),
+        30.0,
+        40.0,
+        51,
+    );
+    insta::assert_json_snapshot!("given_http_call_node", &node);
+}
+
+#[test]
+fn given_kafka_handler_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Kafka Handler",
+        WorkflowNode::KafkaHandler(KafkaHandlerConfig {
+            topic: Some("orders.created".to_string()),
+        }),
+        50.0,
+        60.0,
+        52,
+    );
+    insta::assert_json_snapshot!("given_kafka_handler_node", &node);
+}
+
+#[test]
+fn given_cron_trigger_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Cron Trigger",
+        WorkflowNode::CronTrigger(CronTriggerConfig {
+            schedule: Some("0 */5 * * *".to_string()),
+        }),
+        70.0,
+        80.0,
+        53,
+    );
+    insta::assert_json_snapshot!("given_cron_trigger_node", &node);
+}
+
+#[test]
+fn given_workflow_submit_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Workflow Submit",
+        WorkflowNode::WorkflowSubmit(WorkflowSubmitConfig {
+            workflow_name: Some("process-order".to_string()),
+        }),
+        90.0,
+        100.0,
+        54,
+    );
+    insta::assert_json_snapshot!("given_workflow_submit_node", &node);
+}
+
+#[test]
+fn given_run_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Run Code",
+        WorkflowNode::Run(RunConfig {
+            mapping: Some(serde_json::json!({"input": "$.body"})),
+            code: Some("return input;".to_string()),
+            durable_step_name: Some("transform-step".to_string()),
+        }),
+        110.0,
+        120.0,
+        55,
+    );
+    insta::assert_json_snapshot!("given_run_node", &node);
+}
+
+#[test]
+fn given_service_call_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Service Call",
+        WorkflowNode::ServiceCall(ServiceCallConfig {
+            service: Some("payment-service".to_string()),
+        }),
+        130.0,
+        140.0,
+        56,
+    );
+    insta::assert_json_snapshot!("given_service_call_node", &node);
+}
+
+#[test]
+fn given_object_call_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Object Call",
+        WorkflowNode::ObjectCall(ObjectCallConfig {
+            object_name: Some("order-object".to_string()),
+        }),
+        150.0,
+        160.0,
+        57,
+    );
+    insta::assert_json_snapshot!("given_object_call_node", &node);
+}
+
+#[test]
+fn given_workflow_call_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Workflow Call",
+        WorkflowNode::WorkflowCall(WorkflowCallConfig {
+            workflow_name: Some("handle-refund".to_string()),
+        }),
+        170.0,
+        180.0,
+        58,
+    );
+    insta::assert_json_snapshot!("given_workflow_call_node", &node);
+}
+
+#[test]
+fn given_send_message_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Send Message",
+        WorkflowNode::SendMessage(SendMessageConfig {
+            target: Some("notification-queue".to_string()),
+        }),
+        190.0,
+        200.0,
+        59,
+    );
+    insta::assert_json_snapshot!("given_send_message_node", &node);
+}
+
+#[test]
+fn given_delayed_send_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Delayed Send",
+        WorkflowNode::DelayedSend(DelayedSendConfig {
+            target: Some("reminder-queue".to_string()),
+            delay_ms: Some(30_000),
+        }),
+        210.0,
+        220.0,
+        60,
+    );
+    insta::assert_json_snapshot!("given_delayed_send_node", &node);
+}
+
+#[test]
+fn given_get_state_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Get State",
+        WorkflowNode::GetState(GetStateConfig {
+            key: Some("user-session".to_string()),
+        }),
+        230.0,
+        240.0,
+        61,
+    );
+    insta::assert_json_snapshot!("given_get_state_node", &node);
+}
+
+#[test]
+fn given_set_state_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Set State",
+        WorkflowNode::SetState(SetStateConfig {
+            key: Some("user-session".to_string()),
+            value: Some("{\"active\":true}".to_string()),
+        }),
+        250.0,
+        260.0,
+        62,
+    );
+    insta::assert_json_snapshot!("given_set_state_node", &node);
+}
+
+#[test]
+fn given_clear_state_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Clear State",
+        WorkflowNode::ClearState(ClearStateConfig {
+            key: Some("user-session".to_string()),
+        }),
+        270.0,
+        280.0,
+        63,
+    );
+    insta::assert_json_snapshot!("given_clear_state_node", &node);
+}
+
+#[test]
+fn given_condition_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Condition",
+        WorkflowNode::Condition(ConditionConfig {
+            expression: Some("$.amount > 100".to_string()),
+        }),
+        290.0,
+        300.0,
+        64,
+    );
+    insta::assert_json_snapshot!("given_condition_node", &node);
+}
+
+#[test]
+fn given_switch_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Switch",
+        WorkflowNode::Switch(SwitchConfig {
+            expression: Some("$.status".to_string()),
+        }),
+        310.0,
+        320.0,
+        65,
+    );
+    insta::assert_json_snapshot!("given_switch_node", &node);
+}
+
+#[test]
+fn given_loop_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Loop",
+        WorkflowNode::Loop(LoopConfig {
+            iterator: Some("$.items".to_string()),
+        }),
+        330.0,
+        340.0,
+        66,
+    );
+    insta::assert_json_snapshot!("given_loop_node", &node);
+}
+
+#[test]
+fn given_parallel_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Parallel",
+        WorkflowNode::Parallel(ParallelConfig {
+            branches: Some(3),
+        }),
+        350.0,
+        360.0,
+        67,
+    );
+    insta::assert_json_snapshot!("given_parallel_node", &node);
+}
+
+#[test]
+fn given_compensate_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Compensate",
+        WorkflowNode::Compensate(CompensateConfig {
+            target_step: Some("charge-card".to_string()),
+        }),
+        370.0,
+        380.0,
+        68,
+    );
+    insta::assert_json_snapshot!("given_compensate_node", &node);
+}
+
+#[test]
+fn given_sleep_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Sleep",
+        WorkflowNode::Sleep(SleepConfig {
+            duration_ms: Some(10_000),
+        }),
+        390.0,
+        400.0,
+        69,
+    );
+    insta::assert_json_snapshot!("given_sleep_node", &node);
+}
+
+#[test]
+fn given_timeout_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Timeout",
+        WorkflowNode::Timeout(TimeoutConfig {
+            timeout_ms: Some(5_000),
+        }),
+        410.0,
+        420.0,
+        70,
+    );
+    insta::assert_json_snapshot!("given_timeout_node", &node);
+}
+
+#[test]
+fn given_durable_promise_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Durable Promise",
+        WorkflowNode::DurablePromise(DurablePromiseConfig {
+            promise_name: Some("await-approval".to_string()),
+        }),
+        430.0,
+        440.0,
+        71,
+    );
+    insta::assert_json_snapshot!("given_durable_promise_node", &node);
+}
+
+#[test]
+fn given_awakeable_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Awakeable",
+        WorkflowNode::Awakeable(AwakeableConfig {
+            awakeable_id: Some("callback-123".to_string()),
+        }),
+        450.0,
+        460.0,
+        72,
+    );
+    insta::assert_json_snapshot!("given_awakeable_node", &node);
+}
+
+#[test]
+fn given_resolve_promise_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Resolve Promise",
+        WorkflowNode::ResolvePromise(ResolvePromiseConfig {
+            promise_name: Some("await-approval".to_string()),
+        }),
+        470.0,
+        480.0,
+        73,
+    );
+    insta::assert_json_snapshot!("given_resolve_promise_node", &node);
+}
+
+#[test]
+fn given_signal_handler_node_when_serializing_then_snapshot_matches() {
+    let node = make_node(
+        "Signal Handler",
+        WorkflowNode::SignalHandler(SignalHandlerConfig {
+            signal_name: Some("order-cancelled".to_string()),
+        }),
+        490.0,
+        500.0,
+        74,
+    );
+    insta::assert_json_snapshot!("given_signal_handler_node", &node);
+}

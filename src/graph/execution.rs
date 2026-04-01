@@ -249,73 +249,22 @@ impl Workflow {
     /// lookup `HashMap` so that each comparison during sort is O(1) instead of O(n),
     /// and finding dependents is O(k) instead of O(m).
     fn build_execution_queue(&self) -> Result<Vec<NodeId>, WorkflowExecutionError> {
-        let mut queue = Vec::with_capacity(self.nodes.len());
-        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
+        let node_ids = graph_ops::collect_node_ids(&self.nodes);
 
         // Pre-build node lookup for O(1) comparisons during sort
-        let node_map: std::collections::HashMap<NodeId, &super::Node> =
-            self.nodes.iter().map(|n| (n.id, n)).collect();
+        let node_map = graph_ops::build_node_lookup(&self.nodes);
 
-        // Pre-build adjacency map: source -> list of targets, in a single pass
-        let mut adjacency: std::collections::HashMap<NodeId, Vec<NodeId>> =
-            std::collections::HashMap::new();
-        let mut in_degree: std::collections::HashMap<NodeId, usize> =
-            self.nodes.iter().map(|n| (n.id, 0)).collect();
+        // Pre-build adjacency map and in-degrees in a single pass
+        let (adjacency, in_degree) =
+            graph_ops::build_adjacency_with_in_degree(&self.connections, &node_ids);
 
-        for conn in &self.connections {
-            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
-                adjacency.entry(conn.source).or_default().push(conn.target);
-                if let Some(count) = in_degree.get_mut(&conn.target) {
-                    *count += 1;
-                }
-            }
-        }
-
-        // Start with all nodes that have no dependencies
-        let mut available: Vec<NodeId> = self
-            .nodes
-            .iter()
-            .filter(|n| in_degree.get(&n.id).is_some_and(|&d| d == 0))
-            .map(|n| n.id)
-            .collect();
-
-        available.sort_by(|a, b| Self::compare_execution_priority(&node_map, *a, *b));
-
-        // Process nodes in topological order
-        while !available.is_empty() {
-            let id = available.remove(0);
-            queue.push(id);
-
-            // Use pre-built adjacency map for O(k) lookup instead of O(m) scan
-            if let Some(targets) = adjacency.get(&id) {
-                for target in targets {
-                    if let Some(count) = in_degree.get_mut(target) {
-                        *count -= 1;
-                        if *count == 0 {
-                            available.push(*target);
-                        }
-                    }
-                }
-            }
-
-            available.sort_by(|a, b| Self::compare_execution_priority(&node_map, *a, *b));
-        }
-
-        // Verify all nodes were processed (no cycles)
-        if queue.len() != self.nodes.len() {
-            let queue_set: std::collections::HashSet<NodeId> =
-                queue.iter().copied().collect();
-            let remaining: Vec<NodeId> = node_ids
-                .difference(&queue_set)
-                .copied()
-                .collect();
-
-            return Err(WorkflowExecutionError::CycleDetected {
-                cycle_nodes: remaining,
-            });
-        }
-
-        Ok(queue)
+        // Delegate to shared topological sort
+        graph_ops::topological_sort(&node_ids, &adjacency, &in_degree, |a, b| {
+            Self::compare_execution_priority(&node_map, *a, *b)
+        })
+        .map_err(|remaining| WorkflowExecutionError::CycleDetected {
+            cycle_nodes: remaining.into_iter().collect(),
+        })
     }
 
     /// DFS-based cycle detection that returns actual cycle nodes.
@@ -372,22 +321,13 @@ impl Workflow {
     /// Builds a reverse adjacency map once for O(n+m) complexity instead
     /// of O(n*m) from scanning connections on each DFS step.
     fn find_cycle(&self) -> Option<Vec<NodeId>> {
-        let node_ids: std::collections::HashSet<NodeId> = self.nodes.iter().map(|n| n.id).collect();
-
-        // Build reverse adjacency: target -> list of sources (dependents)
-        let mut reverse_adj: std::collections::HashMap<NodeId, Vec<NodeId>> =
-            std::collections::HashMap::new();
-        for conn in &self.connections {
-            if node_ids.contains(&conn.source) && node_ids.contains(&conn.target) {
-                reverse_adj.entry(conn.target).or_default().push(conn.source);
-            }
-        }
+        let node_ids = graph_ops::collect_node_ids(&self.nodes);
+        let reverse_adj = graph_ops::build_reverse_adjacency(&self.connections, &node_ids);
 
         let mut visited = std::collections::HashSet::new();
         let mut path = Vec::new();
         let mut path_set = std::collections::HashSet::new();
 
-        // Try starting from each node
         for node in &self.nodes {
             if !visited.contains(&node.id) {
                 if let Some(cycle) = Self::detect_cycle_dfs(
@@ -409,27 +349,9 @@ impl Workflow {
         &self,
         start_ids: &[NodeId],
     ) -> std::collections::HashSet<NodeId> {
-        let mut visited = std::collections::HashSet::new();
-        let mut stack: Vec<NodeId> = start_ids.to_vec();
-
-        while let Some(current) = stack.pop() {
-            if !visited.insert(current) {
-                continue;
-            }
-
-            for target in self
-                .connections
-                .iter()
-                .filter(|c| c.source == current)
-                .map(|c| c.target)
-            {
-                if !visited.contains(&target) {
-                    stack.push(target);
-                }
-            }
-        }
-
-        visited
+        let node_ids = graph_ops::collect_node_ids(&self.nodes);
+        let outgoing = graph_ops::build_outgoing_adjacency(&self.connections, &node_ids);
+        graph_ops::find_reachable(start_ids, &outgoing)
     }
 
     // ===========================================================================
@@ -990,5 +912,129 @@ mod tests {
                 tgt_pos
             );
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    // check_dirty_state — node executing flag
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_node_in_executing_state_when_preparing_run_then_invalid_state_error_is_returned() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("run", 0.0, 0.0);
+        let b = workflow.add_node("run", 10.0, 0.0);
+        add_connection(&mut workflow, a, b);
+
+        // Manually set a node to executing state to simulate dirty state
+        workflow.nodes[0].executing = true;
+
+        let result = workflow.prepare_run();
+        assert!(
+            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            "executing node should cause dirty state error, got {result:?}"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // verify_graph_connectivity — multiple isolated subgraphs
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_two_disconnected_components_when_preparing_run_then_connectivity_error_is_returned() {
+        let mut workflow = Workflow::new();
+        // Component 1: A -> B
+        let a = workflow.add_node("run", 0.0, 0.0);
+        let b = workflow.add_node("run", 10.0, 0.0);
+        add_connection(&mut workflow, a, b);
+
+        // Component 2: C -> D  (disconnected from A-B)
+        let c = workflow.add_node("run", 0.0, 100.0);
+        let d = workflow.add_node("run", 10.0, 100.0);
+        add_connection(&mut workflow, c, d);
+
+        let result = workflow.prepare_run();
+        assert!(
+            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            "two disconnected components should cause connectivity error, got {result:?}"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // validate_dependencies_exist — connection from nonexistent source
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_connection_from_nonexistent_source_when_preparing_run_then_no_unresolved_deps_error() {
+        // When the source node is missing, the connection is skipped per the
+        // implementation (only checks targets). This test verifies that behavior.
+        let mut workflow = Workflow::new();
+        let target = workflow.add_node("run", 0.0, 0.0);
+        let ghost_source = NodeId::new();
+
+        // Inject connection from ghost source to existing target
+        workflow.connections.push(Connection {
+            id: Uuid::new_v4(),
+            source: ghost_source,
+            target,
+            source_port: main_port(),
+            target_port: main_port(),
+        });
+
+        // The validate_dependencies_exist function skips connections whose source
+        // is not in node_ids, so this particular case passes dependency validation
+        // (but may fail elsewhere, e.g. connectivity check).
+        let result = workflow.prepare_run();
+        // It should NOT return UnresolvedDependencies since the source is skipped
+        assert!(
+            !matches!(result, Err(WorkflowExecutionError::UnresolvedDependencies { .. })),
+            "missing source should not trigger unresolved deps error, got {result:?}"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // resolve_expressions — depth guard
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_deeply_nested_config_when_resolving_expressions_then_no_stack_overflow() {
+        let workflow = Workflow::new();
+
+        // Build a deeply nested JSON structure (150 levels deep)
+        let mut config = serde_json::Value::String("leaf".to_string());
+        for _ in 0..150 {
+            let mut map = serde_json::Map::new();
+            map.insert("nested".to_string(), config);
+            config = serde_json::Value::Object(map);
+        }
+
+        // Should not panic or stack overflow; depth limit returns config unchanged
+        let result = workflow.resolve_expressions(&config);
+        assert!(result.is_object(), "deeply nested config should still resolve to an object");
+    }
+
+    // ---------------------------------------------------------------------------
+    // check_self_references — direct self-loop
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_connection_with_same_source_and_target_when_preparing_run_then_cycle_detected() {
+        let mut workflow = Workflow::new();
+        let a = workflow.add_node("run", 0.0, 0.0);
+
+        // Directly inject a self-referencing connection (bypasses add_connection_checked
+        // which would reject self-connections)
+        workflow.connections.push(Connection {
+            id: Uuid::new_v4(),
+            source: a,
+            target: a,
+            source_port: main_port(),
+            target_port: main_port(),
+        });
+
+        let result = workflow.prepare_run();
+        assert!(
+            matches!(result, Err(WorkflowExecutionError::CycleDetected { .. })),
+            "self-referencing connection should cause CycleDetected, got {result:?}"
+        );
     }
 }

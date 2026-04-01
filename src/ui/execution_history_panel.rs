@@ -11,6 +11,7 @@ use crate::ui::panel_types::{
 use dioxus::prelude::*;
 use oya_frontend::graph::{NodeId, RunRecord};
 use std::collections::HashSet;
+use std::fmt::Write;
 
 const fn status_badge_classes(outcome: RunOutcome) -> &'static str {
     match outcome {
@@ -35,11 +36,17 @@ fn format_elapsed(ts: &chrono::DateTime<chrono::Utc>) -> String {
     if elapsed.num_minutes() < 1 {
         "just now".to_owned()
     } else if elapsed.num_hours() < 1 {
-        format!("{}m ago", elapsed.num_minutes())
+        let mut s = String::with_capacity(16);
+        let _ = write!(s, "{}m ago", elapsed.num_minutes());
+        s
     } else if elapsed.num_days() < 1 {
-        format!("{}h ago", elapsed.num_hours())
+        let mut s = String::with_capacity(16);
+        let _ = write!(s, "{}h ago", elapsed.num_hours());
+        s
     } else {
-        format!("{}d ago", elapsed.num_days())
+        let mut s = String::with_capacity(16);
+        let _ = write!(s, "{}d ago", elapsed.num_days());
+        s
     }
 }
 
@@ -479,13 +486,13 @@ pub fn ExecutionHistoryPanel(
                                                                 .read()
                                                                 .get(node_id)
                                                                 .map_or_else(
-                                                                    || "Unknown".to_string(),
+                                                                    || "Unknown".to_owned(),
                                                                     |n| n.name.clone(),
                                                                 );
                                                             let node_id_for_click = *node_id;
                                                             let result_preview = match serde_json::to_string(result) {
                                                                 Ok(serialized) => serialized,
-                                                                Err(_) => "{}".to_string(),
+                                                                Err(_) => "{}".to_owned(),
                                                             };
                                                             let truncated_result = truncate_preview(&result_preview, 30);
 

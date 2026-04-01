@@ -328,8 +328,10 @@ impl<'de> Deserialize<'de> for FeedbackLevel {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
+#[allow(dead_code)]
 pub struct Priority(u8);
 
+#[allow(dead_code)]
 impl Priority {
     pub const CRITICAL: Self = Self(0);
     pub const HIGH: Self = Self(1);
@@ -396,8 +398,10 @@ impl std::fmt::Display for FailureCategoryName {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SpecRef(pub String);
 
+#[allow(dead_code)]
 impl SpecRef {
     pub fn new(reference: impl Into<String>) -> Self {
         Self(reference.into())

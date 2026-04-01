@@ -118,7 +118,9 @@ impl RestateClient {
 
         let status = response.status();
         if !status.is_success() {
-            let message: String = response.text().await.unwrap_or_default();
+            let message: String = response.text().await.unwrap_or_else(|_| {
+                format!("<failed to read response body, HTTP {}>", status.as_u16())
+            });
             return Err(ClientError::HttpError {
                 status: status.as_u16(),
                 message,
