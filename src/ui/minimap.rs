@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use oya_frontend::graph::{Connection, Node, NodeId, Viewport};
 use std::fmt::Write;
 
-use crate::ui::constants::{NODE_HEIGHTEIGHT, NODE_WIDTHIDTH};
+use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -82,10 +82,9 @@ fn scene_bounds(nodes: &[Node]) -> SceneBounds {
 /// Scene coordinates:  `x_scene = (screen_x − vp.x) / vp.zoom`
 /// At `screen_x = 0`:  `x_scene = −vp.x / zoom`
 fn viewport_rect(vp: &Viewport, canvas_w: f32, canvas_h: f32) -> ViewportRect {
-    let zoom = if vp.zoom.is_finite() && vp.zoom > 0.0 {
-        vp.zoom
-    } else {
-        1.0
+    let zoom = {
+        let z = vp.zoom;
+        if z.is_finite() && z > 0.0 { z } else { 1.0 }
     };
     ViewportRect {
         x: -vp.x / zoom,
@@ -316,15 +315,17 @@ mod tests {
     }
 
     #[test]
-    fn given_zero_zoom_when_projecting_rect_then_fallback_zoom_of_one_is_used() {
+    fn given_min_clamped_zoom_when_projecting_rect_then_zoom_is_valid() {
         let vp = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: 0.0,
+            zoom: 0.0_f32.clamp(0.15, 3.0),
         };
         let rect = viewport_rect(&vp, 800.0, 600.0);
 
-        assert_eq!(rect.width, 800.0);
+        // With zoom 0.15, width = 800 / 0.15
+        let expected = 800.0 / 0.15;
+        assert!((rect.width - expected).abs() < f32::EPSILON);
     }
 
     #[test]

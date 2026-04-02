@@ -9,6 +9,10 @@ use crate::ui::{
     FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar, NodeTemplateId,
     PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar, SelectedNodePanel,
 };
+use crate::ui::constants::{
+    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, NODE_WIDTH, NODE_HANDLE_Y_OFFSET,
+    ZOOM_CENTER_X, ZOOM_CENTER_Y, ZOOM_DELTA,
+};
 use dioxus::prelude::*;
 use oya_frontend::flow_extender::ExtensionPatchPreview;
 use oya_frontend::graph::{validate_workflow, ValidationResult};
@@ -284,13 +288,13 @@ fn App() -> Element {
                 node.map(|n| {
                     let from_pos = if handle.as_str() == "source" {
                         FlowPosition {
-                            x: n.x + 220.0,
-                            y: n.y + 34.0,
+                            x: n.x + NODE_WIDTH,
+                            y: n.y + NODE_HANDLE_Y_OFFSET,
                         }
                     } else {
                         FlowPosition {
                             x: n.x,
-                            y: n.y + 34.0,
+                            y: n.y + NODE_HANDLE_Y_OFFSET,
                         }
                     };
                     (from_pos, to_pos)
@@ -339,9 +343,9 @@ fn App() -> Element {
                 zoom_label: zoom_label,
                 can_undo: can_undo,
                 can_redo: can_redo,
-                on_zoom_in: move |_| workflow.zoom(0.12, 640.0, 400.0),
-                on_zoom_out: move |_| workflow.zoom(-0.12, 640.0, 400.0),
-                on_fit_view: move |_| workflow.fit_view(1280.0, 760.0, 200.0),
+                on_zoom_in: move |_| workflow.zoom(ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y),
+                on_zoom_out: move |_| workflow.zoom(-ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y),
+                on_fit_view: move |_| workflow.fit_view(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, FIT_VIEW_PADDING),
                 on_layout: move |_| workflow.apply_layout(),
                 on_execute: move |_| {
                     let result = validation_result.read();
@@ -412,7 +416,7 @@ fn App() -> Element {
                 on_close: move |()| panels.close_palette(),
                 on_pick: move |node_type: NodeTemplateId| {
                     let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
-                        .map_or((1280.0, 760.0), std::convert::identity);
+                        .map_or((DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT), std::convert::identity);
                     workflow.add_node_at_viewport_center_with_canvas(node_type.as_str(), canvas_w, canvas_h);
                     panels.close_palette();
                 }
@@ -423,7 +427,7 @@ fn App() -> Element {
                 on_close: move |()| prototype_open.set(false),
                 on_add_node: move |node_type: NodeTemplateId| {
                     let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
-                        .map_or((1280.0, 760.0), std::convert::identity);
+                        .map_or((DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT), std::convert::identity);
                     workflow.add_node_at_viewport_center_with_canvas(node_type.as_str(), canvas_w, canvas_h);
                     prototype_open.set(false);
                 }
@@ -440,7 +444,7 @@ fn App() -> Element {
                 },
                 on_fit_view: move |_| {
                     panels.close_context_menu();
-                    workflow.fit_view(1280.0, 760.0, 200.0);
+                    workflow.fit_view(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, FIT_VIEW_PADDING);
                 },
                 on_layout: move |_| {
                     panels.close_context_menu();
@@ -458,7 +462,7 @@ fn App() -> Element {
                     on_add_node: move |node_type: &'static str| {
                         sidebar.clear_pending_drop();
                         let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
-                            .map_or((1280.0, 760.0), std::convert::identity);
+                            .map_or((DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT), std::convert::identity);
                         workflow.add_node_at_viewport_center_with_canvas(node_type, canvas_w, canvas_h);
                     }
                 }

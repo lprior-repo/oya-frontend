@@ -36,7 +36,6 @@ mod validation;
 mod validation_checks;
 pub mod value_objects;
 pub mod workflow_node;
-mod zoom_factor;
 
 pub use connection_errors::{get_node_by_id, ConnectionError as RestateConnectionError};
 pub use connectivity::{
@@ -48,7 +47,6 @@ pub use connectivity::{
 // Tests expect connection_errors::ConnectionError to be available
 pub use connection_errors::ConnectionError;
 pub use core_types::{Node, RunRecord, Viewport, Workflow};
-pub use zoom_factor::ZoomFactor;
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
     RunOutcome, ServiceName, StateKey,

@@ -134,6 +134,7 @@ impl DragAnchor {
         Self::Active { x, y }
     }
 
+    // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
@@ -166,6 +167,7 @@ impl HoveredHandle {
         Self::Active { node_id, handle }
     }
 
+    // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
@@ -200,6 +202,7 @@ impl TempEdge {
         Self::Active { source, target }
     }
 
+    // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None

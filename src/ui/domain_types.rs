@@ -22,6 +22,8 @@ impl HttpMethod {
         }
     }
 
+    // Test-only: case-insensitive parsing
+    // Test-only: case-insensitive HTTP method parser
     #[allow(dead_code)]
     pub fn from_str_ignore_case(s: &str) -> Self {
         match s.to_uppercase().as_str() {
@@ -55,6 +57,7 @@ impl FromStr for HttpMethod {
     }
 }
 
+// Handle direction for a connection endpoint. Test-only at present.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(dead_code)]
 pub enum HandleKind {
@@ -63,6 +66,7 @@ pub enum HandleKind {
 }
 
 impl HandleKind {
+    // Test-only: string representation
     #[allow(dead_code)]
     pub fn as_str(self) -> &'static str {
         match self {

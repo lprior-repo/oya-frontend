@@ -2,6 +2,13 @@ use super::layout::DagLayout;
 use super::Workflow;
 use crate::graph::calc;
 
+const MIN_ZOOM: f32 = 0.15;
+const MAX_ZOOM: f32 = 3.0;
+
+fn clamp_zoom(value: f32) -> f32 {
+    value.clamp(MIN_ZOOM, MAX_ZOOM)
+}
+
 impl Workflow {
     pub fn apply_layout(&mut self) {
         let layout = DagLayout::default();
@@ -9,7 +16,7 @@ impl Workflow {
     }
 
     pub fn zoom(&mut self, delta: f32, cx: f32, cy: f32) {
-        let old_zoom = self.viewport.zoom.value();
+        let old_zoom = self.viewport.zoom;
         let new_zoom = calc::calculate_zoom_delta(delta, old_zoom);
         let (new_x, new_y) = calc::calculate_pan_offset(
             self.viewport.x,
@@ -21,7 +28,7 @@ impl Workflow {
         );
         self.viewport.x = new_x;
         self.viewport.y = new_y;
-        self.viewport.zoom = super::ZoomFactor::new_clamped(new_zoom);
+        self.viewport.zoom = clamp_zoom(new_zoom);
     }
 
     pub fn fit_view(&mut self, viewport_width: f32, viewport_height: f32, padding: f32) {
@@ -32,7 +39,7 @@ impl Workflow {
         {
             self.viewport.x = viewport_x;
             self.viewport.y = viewport_y;
-            self.viewport.zoom = super::ZoomFactor::new_clamped(zoom);
+            self.viewport.zoom = clamp_zoom(zoom);
         }
     }
 }
@@ -61,8 +68,8 @@ mod tests {
 
         workflow.fit_view(1200.0, 800.0, 48.0);
 
-        assert!(workflow.viewport.zoom.value() > 0.0);
-        assert_ne!(workflow.viewport.zoom.value(), 1.0);
+        assert!(workflow.viewport.zoom > 0.0);
+        assert_ne!(workflow.viewport.zoom, 1.0);
     }
 
     #[test]

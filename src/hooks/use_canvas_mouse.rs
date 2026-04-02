@@ -12,7 +12,7 @@ use crate::hooks::use_sidebar::SidebarState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::constants::{
-    DRAG_THRESHOLD_PX, EDGE_AUTO_PAN_MAX, EDGE_AUTO_PAN_ZONE, FALLBACK_CANVAS_HEIGHT,
+    EDGE_AUTO_PAN_MAX, EDGE_AUTO_PAN_ZONE, FALLBACK_CANVAS_HEIGHT,
     FALLBACK_CANVAS_WIDTH, NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET,
 };
 use crate::ui::edges::Position as FlowPosition;
@@ -202,7 +202,7 @@ pub fn handle_canvas_mousemove_event(
     }
 
     let current_vp = workflow.viewport().read().clone();
-    let zoom = current_vp.zoom.value();
+    let zoom = current_vp.zoom;
     if !crate::ui::interaction_guards::is_valid_zoom(zoom) {
         return;
     }
@@ -374,9 +374,9 @@ pub fn handle_canvas_mouseup_event(
             let my = coords.y as f32 - origin_y;
             if mx.is_finite() && my.is_finite() {
                 let current_vp = workflow.viewport().read().clone();
-                if crate::ui::interaction_guards::is_valid_zoom(current_vp.zoom.value()) {
-                    let canvas_x = (mx - current_vp.x) / current_vp.zoom.value() - NODE_CENTER_X_OFFSET;
-                    let canvas_y = (my - current_vp.y) / current_vp.zoom.value() - NODE_HANDLE_Y_OFFSET;
+                if crate::ui::interaction_guards::is_valid_zoom(current_vp.zoom) {
+                    let canvas_x = (mx - current_vp.x) / current_vp.zoom - NODE_CENTER_X_OFFSET;
+                    let canvas_y = (my - current_vp.y) / current_vp.zoom - NODE_HANDLE_Y_OFFSET;
                     workflow.add_node(node_type.as_str(), canvas_x, canvas_y);
                 }
             }

@@ -1,4 +1,4 @@
-use oya_frontend::graph::{Viewport, ZoomFactor};
+use oya_frontend::graph::Viewport;
 
 #[must_use]
 pub fn is_valid_zoom(zoom: f32) -> bool {
@@ -20,7 +20,7 @@ pub fn safe_canvas_from_viewport(
     origin: (f32, f32),
     viewport: &Viewport,
 ) -> Option<(f32, f32)> {
-    let zoom_val = viewport.zoom.value();
+    let zoom_val = viewport.zoom;
     if !is_valid_zoom(zoom_val) {
         return None;
     }
@@ -35,7 +35,7 @@ pub fn safe_canvas_from_viewport(
 #[cfg(test)]
 mod tests {
     use super::{is_valid_zoom, safe_canvas_from_viewport, safe_canvas_point};
-    use oya_frontend::graph::{Viewport, ZoomFactor};
+    use oya_frontend::graph::Viewport;
 
     #[test]
     fn given_zero_zoom_when_validating_then_zoom_is_invalid() {
@@ -71,7 +71,7 @@ mod tests {
         let viewport = Viewport {
             x: 10.0,
             y: 20.0,
-            zoom: ZoomFactor::new_clamped(2.0),
+            zoom: 2.0_f32.clamp(0.15, 3.0),
         };
 
         let result = safe_canvas_from_viewport((50.0, 70.0), (0.0, 0.0), &viewport);
@@ -98,10 +98,8 @@ mod tests {
     }
 
     #[test]
-    fn given_zoom_factor_rejects_negative_then_negative_cannot_be_constructed() {
-        // ZoomFactor enforces [0.15, 3.0], so negative values are rejected
-        assert!(ZoomFactor::new(-2.0).is_none());
-        // new_clamped clamps to MIN_ZOOM instead
-        assert_eq!(ZoomFactor::new_clamped(-2.0).value(), 0.15);
+    fn given_clamped_zoom_when_below_min_then_zoom_is_clamped_to_min() {
+        // clamp enforces [0.15, 3.0], so negative values clamp to MIN_ZOOM
+        assert_eq!((-2.0_f32).clamp(0.15, 3.0), 0.15);
     }
 }

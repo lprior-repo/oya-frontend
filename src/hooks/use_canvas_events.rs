@@ -9,7 +9,7 @@ use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::constants::{
-    ARROW_KEY_DELTA, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, ZOOM_CENTER_X,
+    ARROW_KEY_DELTA, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, ZOOM_CENTER_X,
     ZOOM_CENTER_Y, ZOOM_DELTA,
 };
 use dioxus::prelude::*;
@@ -64,7 +64,7 @@ pub fn parse_key_event(key: &str, modifiers: KeyModifiers) -> Option<EditorComma
     }
 }
 
-/// Canvas dimensions for viewport calculations.
+/// Canvas dimensions for viewport calculations. Test-only at present.
 #[derive(Clone, Copy, Debug, Default)]
 #[allow(dead_code)]
 pub struct CanvasDimensions {
@@ -72,7 +72,7 @@ pub struct CanvasDimensions {
     pub height: f32,
 }
 
-/// Zoom delta constants for the dispatcher.
+/// Zoom delta constants for the dispatcher. Test-only at present.
 #[derive(Clone, Copy, Debug, Default)]
 #[allow(dead_code)]
 pub struct ZoomConfig {
@@ -82,7 +82,6 @@ pub struct ZoomConfig {
 }
 
 /// Fit view padding constant (re-exported from ui::constants).
-#[allow(dead_code)]
 pub use crate::ui::constants::FIT_VIEW_PADDING;
 
 /// Handle a canvas keydown event.

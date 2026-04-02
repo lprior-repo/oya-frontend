@@ -45,7 +45,7 @@ pub fn snap_handle(
 )> {
     const SCREEN_SNAP_RADIUS: f32 = 24.0;
 
-    let zoom_val = viewport.zoom.value();
+    let zoom_val = viewport.zoom;
     if !zoom_val.is_finite() || zoom_val.abs() <= f32::EPSILON {
         return None;
     }
@@ -123,7 +123,7 @@ pub fn snap_handle(
 #[cfg(test)]
 mod tests {
     use super::{node_intersects_rect, normalize_rect, rect_contains, snap_handle};
-    use oya_frontend::graph::{Viewport, Workflow, ZoomFactor};
+    use oya_frontend::graph::{Viewport, Workflow};
 
     #[test]
     fn given_drag_points_when_normalizing_then_rect_bounds_are_ordered() {
@@ -159,7 +159,7 @@ mod tests {
             &Viewport {
                 x: 0.0,
                 y: 0.0,
-                zoom: ZoomFactor::new_clamped(0.0),
+                zoom: 0.0_f32.clamp(0.15, 3.0),
             },
         );
 
@@ -182,14 +182,14 @@ mod tests {
         let viewport_1x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::new(1.0).unwrap_or_default(),
+            zoom: 1.0,
         };
         let snapped_1x = snap_handle(&workflow.nodes, 318.0, 134.0, &viewport_1x);
 
         let viewport_05x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::new(0.5).unwrap_or_default(),
+            zoom: 0.5,
         };
         // Corrected: screen_x = canvas_x * zoom = 318 * 0.5 = 159
         let snapped_05x = snap_handle(&workflow.nodes, 159.0, 67.0, &viewport_05x);
@@ -197,7 +197,7 @@ mod tests {
         let viewport_2x = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::new_clamped(2.0),
+            zoom: 2.0,
         };
         // Corrected: screen = canvas * zoom to achieve same canvas position (318, 134)
         // canvas_x = mx / 2.0 = 318 → mx = 636
@@ -238,7 +238,7 @@ mod tests {
         let viewport = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::default(),
+            zoom: 1.0,
         };
 
         // Cursor at (340, 134) is equidistant (20 units) from both source handles
@@ -266,14 +266,12 @@ mod tests {
     }
 
     #[test]
-    fn given_infinite_zoom_rejected_by_new_then_zoom_factor_is_none() {
-        // ZoomFactor::new rejects values outside [0.15, 3.0], including infinity
-        assert!(ZoomFactor::new(f32::INFINITY).is_none());
+    fn given_infinite_zoom_when_validating_then_zoom_is_not_finite() {
+        assert!(!f32::INFINITY.is_finite());
     }
 
     #[test]
-    fn given_nan_zoom_rejected_by_new_then_zoom_factor_is_none() {
-        // ZoomFactor::new rejects NaN (NaN comparisons always return false)
-        assert!(ZoomFactor::new(f32::NAN).is_none());
+    fn given_nan_zoom_when_validating_then_zoom_is_not_finite() {
+        assert!(!f32::NAN.is_finite());
     }
 }

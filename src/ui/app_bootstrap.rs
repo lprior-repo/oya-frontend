@@ -1,4 +1,4 @@
-use oya_frontend::graph::{execution_types::ExecutionConfig, Node, Viewport, Workflow, ZoomFactor};
+use oya_frontend::graph::{execution_types::ExecutionConfig, Node, Viewport, Workflow};
 use oya_frontend::graph::{ConditionConfig, HttpHandlerConfig, RunConfig, WorkflowNode};
 
 pub fn default_workflow() -> Workflow {
@@ -36,7 +36,7 @@ pub fn default_workflow() -> Workflow {
         viewport: Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::new(0.85).unwrap_or_default(),
+            zoom: 0.85,
         },
         execution_queue: vec![],
         current_step: 0,
@@ -71,6 +71,6 @@ mod tests {
 
         assert_eq!(workflow.viewport.x, 0.0);
         assert_eq!(workflow.viewport.y, 0.0);
-        assert_eq!(workflow.viewport.zoom.value(), 0.85);
+        assert_eq!(workflow.viewport.zoom, 0.85);
     }
 }

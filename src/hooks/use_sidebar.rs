@@ -95,7 +95,6 @@ pub struct SidebarState {
     drop_state: Signal<DropState>,
 }
 
-#[allow(dead_code)]
 impl SidebarState {
     pub fn search(&self) -> ReadSignal<SearchQuery> {
         self.search.into()

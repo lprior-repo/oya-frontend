@@ -4,8 +4,11 @@ use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 use std::collections::HashMap;
 
-/// Re-export node dimensions from the canonical source.
-use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
+/// Visual width of a flow node in pixels.
+const NODE_WIDTH: f32 = 220.0;
+
+/// Visual height of a flow node in pixels.
+const NODE_HEIGHT: f32 = 68.0;
 
 pub struct DagLayout {
     pub layer_spacing: f32,

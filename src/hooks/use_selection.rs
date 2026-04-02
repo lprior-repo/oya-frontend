@@ -121,6 +121,7 @@ pub enum PendingDrag {
 }
 
 impl PendingDrag {
+    // Test-only: convenient constructor for PendingDrag::None
     #[allow(dead_code)]
     pub fn none() -> Self {
         Self::None
@@ -130,11 +131,13 @@ impl PendingDrag {
         Self::Ready { node_ids }
     }
 
+    // Test-only: check if drag state is Ready
     #[allow(dead_code)]
     pub fn is_ready(&self) -> bool {
         matches!(self, PendingDrag::Ready { .. })
     }
 
+    // Test-only: access node IDs from drag state
     #[allow(dead_code)]
     pub fn node_ids(&self) -> Option<&[NodeId]> {
         match self {
@@ -152,7 +155,6 @@ pub struct SelectionState {
     all_ids_memo: Memo<Vec<NodeId>>,
 }
 
-#[allow(dead_code)]
 impl SelectionState {
     pub fn selection(&self) -> ReadSignal<Selection> {
         self.selection.into()
@@ -164,14 +166,6 @@ impl SelectionState {
 
     pub fn selected_ids(&self) -> ReadSignal<Vec<NodeId>> {
         self.all_ids_memo.into()
-    }
-
-    pub fn primary_id(&self) -> Option<NodeId> {
-        self.selection.read().primary()
-    }
-
-    pub fn all_selected_ids(&self) -> Vec<NodeId> {
-        self.selection.read().all_ids()
     }
 
     pub fn select_single(mut self, id: NodeId) {

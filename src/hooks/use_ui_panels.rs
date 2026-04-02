@@ -125,7 +125,6 @@ pub struct UiPanelsState {
     pub inline_panel: InlinePanelState,
 }
 
-#[allow(dead_code)]
 impl UiPanelsState {
     pub fn settings_open(&self) -> bool {
         self.settings.is_open()
@@ -248,7 +247,6 @@ pub struct UiPanels {
     palette_query_memo: Memo<String>,
 }
 
-#[allow(dead_code)]
 impl UiPanels {
     #[cfg(test)]
     pub fn new_for_test() -> Self {

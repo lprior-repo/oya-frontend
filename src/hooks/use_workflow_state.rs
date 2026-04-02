@@ -3,13 +3,11 @@
 #![deny(clippy::panic)]
 
 use crate::errors::{WorkflowError, WorkflowResult};
-use crate::ui::constants::{
-    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET,
-};
+use crate::ui::constants::{NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET};
 use dioxus::prelude::*;
 use oya_frontend::graph::{
     Connection, ConnectionResult, ConnectivityConnectionError, Node, NodeId, PortName, Viewport,
-    Workflow, ZoomFactor,
+    Workflow,
 };
 use std::collections::HashMap;
 
@@ -57,7 +55,7 @@ fn viewport_center_node_origin(
     canvas_width: f32,
     canvas_height: f32,
 ) -> Option<(f32, f32)> {
-    let zoom_val = viewport.zoom.value();
+    let zoom_val = viewport.zoom;
     if !viewport.x.is_finite()
         || !viewport.y.is_finite()
         || !zoom_val.is_finite()
@@ -545,7 +543,7 @@ mod tests {
         let viewport = Viewport {
             x: -200.0,
             y: -100.0,
-            zoom: ZoomFactor::new_clamped(2.0),
+            zoom: 2.0_f32.clamp(0.15, 3.0),
         };
 
         let origin = viewport_center_node_origin(&viewport, 1280.0, 760.0);
@@ -558,7 +556,7 @@ mod tests {
         let viewport = Viewport {
             x: 0.0,
             y: 0.0,
-            zoom: ZoomFactor::new_clamped(0.0), // clamps to MIN_ZOOM
+            zoom: 0.0_f32.clamp(0.15, 3.0),
         };
 
         let origin = viewport_center_node_origin(&viewport, 1280.0, 760.0);
