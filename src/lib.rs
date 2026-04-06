@@ -19,7 +19,6 @@ pub mod linter;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod metrics;
 pub mod restate_client;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod restate_sync;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod scenario_runner;
@@ -43,4 +42,6 @@ pub use metrics::{MetricsStore, MetricsSummary};
 #[cfg(not(target_arch = "wasm32"))]
 pub use scenario_runner::{ScenarioRunner, ValidationReport};
 
-pub mod migration;
+pub mod errors;
+pub mod hooks;
+pub mod ui;
