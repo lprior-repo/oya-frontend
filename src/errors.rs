@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use oya_frontend::graph::NodeId;
+use crate::graph::NodeId;
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum WorkflowError {

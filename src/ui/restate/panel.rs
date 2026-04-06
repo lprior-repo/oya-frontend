@@ -12,10 +12,10 @@
 
 use crate::hooks::build_restate_config_from_url;
 use crate::hooks::RestateSyncHandle;
+use crate::restate_client::types::{InvocationStatus, JournalEntry};
+use crate::restate_client::RestateClient;
 use crate::ui::restate::RestateInvocationDetails;
 use dioxus::prelude::*;
-use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
-use oya_frontend::restate_client::RestateClient;
 
 const fn status_dot_class(connected: bool) -> &'static str {
     if connected {
@@ -61,7 +61,7 @@ fn truncate_inv_id(id: &str) -> String {
 #[component]
 pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
     let mut collapsed = use_signal(|| true);
-    let mut selected_inv: Signal<Option<Invocation>> = use_signal(|| None);
+    let mut selected_inv_id: Signal<Option<String>> = use_signal(|| None);
     let mut journal: Signal<Vec<JournalEntry>> = use_signal(Vec::new);
     let mut journal_loading = use_signal(|| false);
 
@@ -71,6 +71,12 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
     let last_error = state.last_error.clone();
     let enabled = *handle.enabled.read();
     let count = invocations.len();
+
+    // Resolve selected invocation from state reactively
+    let selected_inv = selected_inv_id
+        .read()
+        .as_ref()
+        .and_then(|id| invocations.get(id).cloned());
     drop(state);
 
     rsx! {
@@ -171,44 +177,53 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
                                 }
                             }
                             tbody {
-                                for inv in &invocations {
-                                    {
-                                        let inv_clone = inv.clone();
-                                        let inv_id_short = truncate_inv_id(&inv.id);
-                                        let target = inv.target.clone();
-                                        let status = inv.status;
-                                        let badge_class = status_badge_class(status);
-                                        let status_label = invocation_status_label(status);
+                                {
+                                    let mut items: Vec<_> = invocations.values().collect();
+                                    items.sort_by_key(|inv| std::cmp::Reverse(inv.modified_at));
 
-                                        rsx! {
-                                            tr {
-                                                key: "{inv.id}",
-                                                class: "cursor-pointer hover:bg-slate-50 border-b border-slate-100 last:border-b-0 transition-colors",
-                                                onclick: move |_| {
-                                            selected_inv.set(Some(inv_clone.clone()));
-                                            journal.set(vec![]);
-                                            journal_loading.set(true);
-                                            let id = inv_clone.id.clone();
-                                            let admin_url = handle.admin_url.read().clone();
-                                            spawn(async move {
-                                                let config = build_restate_config_from_url(&admin_url);
-                                                let client = RestateClient::new(config);
-                                                match client.get_journal(&id).await {
-                                                    Ok(entries) => journal.set(entries),
-                                                    Err(_) => journal.set(vec![]),
-                                                }
-                                                journal_loading.set(false);
-                                            });
-                                        },
+                                    rsx! {
+                                        for inv in items {
+                                            {
+                                                let inv_id = inv.id.clone();
+                                                let inv_id_short = truncate_inv_id(&inv.id);
+                                                let target = inv.target.clone();
+                                                let status = inv.status;
+                                                let badge_class = status_badge_class(status);
+                                                let status_label = invocation_status_label(status);
+                                                let is_selected = selected_inv_id.read().as_ref() == Some(&inv_id);
 
-                                                td { class: "px-3 py-1.5 font-mono text-[10px] text-slate-600",
-                                                    "{inv_id_short}"
-                                                }
-                                                td { class: "px-3 py-1.5 text-[10px] text-slate-600 max-w-[120px] truncate",
-                                                    "{target}"
-                                                }
-                                                td { class: "px-3 py-1.5",
-                                                    span { class: "{badge_class}", "{status_label}" }
+                                                rsx! {
+                                                    tr {
+                                                        key: "{inv_id}",
+                                                        class: if is_selected { "bg-indigo-50/50" } else { "cursor-pointer hover:bg-slate-50 transition-colors" },
+                                                        class: "border-b border-slate-100 last:border-b-0",
+                                                        onclick: move |_| {
+                                                            selected_inv_id.set(Some(inv_id.clone()));
+                                                            journal.set(vec![]);
+                                                            journal_loading.set(true);
+                                                            let id = inv_id.clone();
+                                                            let admin_url = handle.admin_url.read().clone();
+                                                            spawn(async move {
+                                                                let config = build_restate_config_from_url(&admin_url);
+                                                                let client = RestateClient::new(config);
+                                                                match client.get_journal(&id).await {
+                                                                    Ok(entries) => journal.set(entries),
+                                                                    Err(_) => journal.set(vec![]),
+                                                                }
+                                                                journal_loading.set(false);
+                                                            });
+                                                        },
+
+                                                        td { class: "px-3 py-1.5 font-mono text-[10px] text-slate-600",
+                                                            "{inv_id_short}"
+                                                        }
+                                                        td { class: "px-3 py-1.5 text-[10px] text-slate-600 max-w-[120px] truncate",
+                                                            "{target}"
+                                                        }
+                                                        td { class: "px-3 py-1.5",
+                                                            span { class: "{badge_class}", "{status_label}" }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -222,13 +237,15 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
         }
 
         // Details modal — rendered outside the panel so it floats over everything
-        if let Some(inv) = &*selected_inv.read() {
+        if selected_inv_id.read().is_some() {
             RestateInvocationDetails {
-                invocation: inv.clone(),
-                journal: journal.read().clone(),
+                invocation_id: selected_inv_id,
+                handle: handle,
+                journal: journal,
+                admin_url: handle.admin_url.read().clone(),
                 loading: *journal_loading.read(),
                 on_close: move |()| {
-                    selected_inv.set(None);
+                    selected_inv_id.set(None);
                     journal.set(vec![]);
                 }
             }

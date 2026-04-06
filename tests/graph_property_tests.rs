@@ -7,6 +7,7 @@
 //! 4. Node removal completeness (orphan connection cleanup)
 //! 5. Workflow serde round-trip
 //! 6. Topological sort validity for DAGs
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{
     calc, layout::DagLayout, Connection, NodeId, PortName, Viewport, Workflow,

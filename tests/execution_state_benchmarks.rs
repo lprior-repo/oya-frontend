@@ -1,4 +1,5 @@
 //! Performance benchmarks for ExecutionState machine
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use oya_frontend::graph::{can_transition, try_transition, ExecutionState};
@@ -79,7 +80,6 @@ fn bench_can_transition_invalid(c: &mut Criterion) {
 // Benchmark: Serialization performance
 // ===========================================================================
 
-use serde_json;
 
 fn bench_serialize_state(c: &mut Criterion) {
     c.bench_function("serialize_running_state", |b| {

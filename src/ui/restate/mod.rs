@@ -9,9 +9,13 @@
 //!
 //! Components for displaying Restate invocation details and journal entries
 
+#[cfg(target_arch = "wasm32")]
 pub mod details_panel;
 pub mod journal_viewer;
+#[cfg(target_arch = "wasm32")]
 pub mod panel;
 
+#[cfg(target_arch = "wasm32")]
 pub use details_panel::RestateInvocationDetails;
+#[cfg(target_arch = "wasm32")]
 pub use panel::RestateInvocationsPanel;

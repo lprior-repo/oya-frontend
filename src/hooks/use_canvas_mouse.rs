@@ -18,7 +18,7 @@ use crate::ui::constants::{
 use crate::ui::edges::Position as FlowPosition;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
-use oya_frontend::graph::PortName;
+use crate::graph::PortName;
 
 /// Re-export for backward compatibility.
 pub use crate::ui::constants::DRAG_THRESHOLD_PX;
@@ -377,7 +377,7 @@ pub fn handle_canvas_mouseup_event(
                 if crate::ui::interaction_guards::is_valid_zoom(current_vp.zoom) {
                     let canvas_x = (mx - current_vp.x) / current_vp.zoom - NODE_CENTER_X_OFFSET;
                     let canvas_y = (my - current_vp.y) / current_vp.zoom - NODE_HANDLE_Y_OFFSET;
-                    workflow.add_node(node_type.as_str(), canvas_x, canvas_y);
+                    let _ = workflow.add_node(node_type.as_str(), canvas_x, canvas_y);
                 }
             }
         }
@@ -393,6 +393,7 @@ pub fn handle_canvas_mouseup_event(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     #[test]
     fn given_source_file_when_checking_for_unwrap_then_none_found() {

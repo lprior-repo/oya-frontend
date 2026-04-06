@@ -1,22 +1,24 @@
-use crate::ui::workflow_nodes::schema::{DelayedMessageConfig, TargetType};
+use crate::ui::workflow_nodes::schema::{
+    DelayedSendConfig, HandlerName, ObjectKey, ServiceName, TargetType,
+};
 use crate::ui::workflow_nodes::shared::{
-    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
-    parse_json_draft, CARD_CLASSES, LABEL_CLASSES, PRESET_BTN_CLASSES,
+    input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, FormHint,
+    NodeCard, PRESET_BTN_CLASSES,
 };
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "orange";
 
 #[component]
-pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
+pub fn DelayedSendForm(mut config: Signal<DelayedSendConfig>) -> Element {
     let input_cls = input_classes(FOCUS_RING);
     let textarea_cls = textarea_classes(FOCUS_RING);
 
     let pretty_input = json_to_display(&config.read().input);
-    let json_draft = use_signal(|| pretty_input.clone());
-    let json_error = use_signal(|| Option::<String>::None);
-    let delay_error = use_signal(|| Option::<String>::None);
-    let last_synced_input = use_signal(|| pretty_input.clone());
+    let mut json_draft = use_signal(|| pretty_input.clone());
+    let mut json_error = use_signal(|| Option::<String>::None);
+    let mut delay_error = use_signal(|| Option::<String>::None);
+    let mut last_synced_input = use_signal(|| pretty_input.clone());
 
     use_effect(move || {
         let latest = json_to_display(&config.read().input);
@@ -28,10 +30,12 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
         }
     });
 
-    let key_value = match config.read().key.clone() {
-        Some(value) => value,
-        None => String::new(),
-    };
+    let key_value = config
+        .read()
+        .key
+        .as_ref()
+        .map(|k| k.as_str().to_string())
+        .unwrap_or_default();
 
     rsx! {
         div {
@@ -82,9 +86,9 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     r#type: "text",
                     class: "{input_cls}",
                     placeholder: "e.g., reminder_service",
-                    value: "{config.read().service_name}",
+                    value: "{config.read().service_name.as_str()}",
                     oninput: move |e| {
-                        config.write().service_name = e.value().clone();
+                        config.write().service_name = ServiceName::new(e.value());
                     }
                 }
             }
@@ -99,11 +103,11 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                         placeholder: "e.g., user-456",
                         value: "{key_value}",
                         oninput: move |e| {
-                            let value = e.value().clone();
+                            let value = e.value();
                             config.write().key = if value.trim().is_empty() {
                                 None
                             } else {
-                                Some(value)
+                                Some(ObjectKey::new(value))
                             };
                         }
                     }
@@ -116,9 +120,9 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     r#type: "text",
                     class: "{input_cls}",
                     placeholder: "e.g., send_reminder",
-                    value: "{config.read().handler_name}",
+                    value: "{config.read().handler_name.as_str()}",
                     oninput: move |e| {
-                        config.write().handler_name = e.value().clone();
+                        config.write().handler_name = HandlerName::new(e.value());
                     }
                 }
             }
@@ -140,7 +144,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            config.write().delay_ms = 3600_000;
+                            config.write().delay_ms = 3_600_000;
                             delay_error.set(None);
                         },
                         "1 hour"
@@ -148,7 +152,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            config.write().delay_ms = 86400_000;
+                            config.write().delay_ms = 86_400_000;
                             delay_error.set(None);
                         },
                         "1 day"
@@ -156,7 +160,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            config.write().delay_ms = 604800_000;
+                            config.write().delay_ms = 604_800_000;
                             delay_error.set(None);
                         },
                         "1 week"
@@ -167,7 +171,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     min: "1",
                     class: "{input_cls}",
                     placeholder: "Or enter milliseconds",
-                    value: "{config.delay_ms}",
+                    value: "{config.read().delay_ms}",
                     oninput: move |e| {
                         let value = e.value();
                         if value.trim().is_empty() {
@@ -200,7 +204,7 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
                     rows: 3,
                     value: "{json_draft}",
                     oninput: move |e| {
-                        let draft = e.value().clone();
+                        let draft = e.value();
                         json_draft.set(draft.clone());
 
                         match parse_json_draft(&draft) {
@@ -229,13 +233,16 @@ pub fn DelayedMessageForm(config: Signal<DelayedMessageConfig>) -> Element {
 }
 
 #[component]
-pub fn DelayedMessageNodeCard() -> Element {
+pub fn DelayedSendNodeCard() -> Element {
     rsx! {
         NodeCard {
             icon_bg: "bg-orange-100",
             icon: "⏰",
-            title: "Delayed Message",
+            title: "Delayed Send",
             subtitle: "Send after a delay",
         }
     }
 }
+
+pub use DelayedSendForm as DelayedMessageForm;
+pub use DelayedSendNodeCard as DelayedMessageNodeCard;

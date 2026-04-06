@@ -2,6 +2,7 @@
 //!
 //! These tests verify validation behavior through the public API,
 //! treating the validation module as a black box.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{
     validate_unique_node_ids, validate_workflow, Connection, Node, NodeCategory, NodeId, Workflow,

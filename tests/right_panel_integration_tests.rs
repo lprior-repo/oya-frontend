@@ -13,6 +13,7 @@
 //!
 //! Unit tests inside src/ui/right_panel.rs or src/hooks/ would cover runtime
 //! rendering; these tests guard the structural integrity of the public API.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{
     validate_workflow, Node, NodeCategory, NodeId, RunRecord, ValidationResult,

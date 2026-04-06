@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 #[cfg(not(target_arch = "wasm32"))]
 use oya_frontend::flow_extender::{apply_extension, preview_extension, suggest_extensions};
 #[cfg(not(target_arch = "wasm32"))]
-use oya_frontend::Workflow;
+use oya_frontend::graph::Workflow;
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 

@@ -9,7 +9,7 @@ use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::restate::RestateInvocationsPanel;
 use crate::ui::{ExecutionHistoryPanel, ExecutionPlanPanel, ValidationPanel};
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, ValidationResult};
+use crate::graph::{NodeId, ValidationResult};
 
 #[component]
 pub fn RightPanel(

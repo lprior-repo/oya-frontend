@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, RunRecord};
+use crate::graph::{NodeId, RunRecord};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -22,19 +22,23 @@ pub enum FrozenMode {
 
 impl FrozenMode {
     #[allow(dead_code)]
+    #[must_use]
     pub const fn live() -> Self {
         Self::Live
     }
 
     #[allow(clippy::missing_const_for_fn)]
+    #[must_use]
     pub fn frozen(run_id: Uuid, results: HashMap<NodeId, serde_json::Value>) -> Self {
         Self::Frozen { run_id, results }
     }
 
+    #[must_use]
     pub const fn is_frozen(&self) -> bool {
         matches!(self, Self::Frozen { .. })
     }
 
+    #[must_use]
     pub const fn run_id(&self) -> Option<Uuid> {
         match self {
             Self::Live => None,
@@ -42,6 +46,7 @@ impl FrozenMode {
         }
     }
 
+    #[must_use]
     pub fn result_for_node(&self, node_id: NodeId) -> Option<serde_json::Value> {
         match self {
             Self::Live => None,
@@ -57,6 +62,7 @@ pub struct FrozenModeState {
 
 #[allow(dead_code)]
 impl FrozenModeState {
+    #[must_use]
     pub fn mode(&self) -> ReadSignal<FrozenMode> {
         self.mode.into()
     }
@@ -66,10 +72,12 @@ impl FrozenModeState {
         self.mode.read().is_frozen()
     }
 
+    #[must_use]
     pub fn active_run_id(&self) -> Option<Uuid> {
         self.mode.read().run_id()
     }
 
+    #[must_use]
     pub fn result_for_node(&self, node_id: NodeId) -> Option<serde_json::Value> {
         self.mode.read().result_for_node(node_id)
     }
@@ -98,9 +106,10 @@ pub fn find_run_by_id(history: &[RunRecord], id: Uuid) -> Option<&RunRecord> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{find_run_by_id, FrozenMode};
-    use oya_frontend::graph::RunRecord;
+    use crate::graph::RunRecord;
     use std::collections::HashMap;
     use uuid::Uuid;
 

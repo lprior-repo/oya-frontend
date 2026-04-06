@@ -75,7 +75,7 @@ impl IconId {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_id_str(s: &str) -> Option<Self> {
         match s {
             "server" => Some(Self::Server),
             "zap" => Some(Self::Zap),
@@ -121,7 +121,7 @@ impl std::str::FromStr for IconId {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| format!("Unknown icon: {s}"))
+        Self::from_id_str(s).ok_or_else(|| format!("Unknown icon: {s}"))
     }
 }
 
@@ -172,7 +172,7 @@ pub fn icon(icon_id: IconId, class: String) -> Element {
 }
 
 pub fn icon_by_name(name: &str, class: String) -> Element {
-    match IconId::from_str(name) {
+    match IconId::from_id_str(name) {
         Some(id) => icon(id, class),
         None => rsx! {
             svg {

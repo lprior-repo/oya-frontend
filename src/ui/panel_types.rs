@@ -39,6 +39,7 @@ impl HttpMethod {
         }
     }
 
+    #[must_use]
     pub const fn all() -> &'static [Self] {
         &[Self::Get, Self::Post, Self::Put, Self::Delete, Self::Patch]
     }
@@ -52,6 +53,7 @@ impl fmt::Display for HttpMethod {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InvocationStatus {
+    Pending,
     Queued,
     Running,
     Suspended,
@@ -65,6 +67,7 @@ impl InvocationStatus {
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         match s.trim().to_lowercase().as_str() {
+            "pending" => Some(Self::Pending),
             "queued" => Some(Self::Queued),
             "running" => Some(Self::Running),
             "suspended" => Some(Self::Suspended),
@@ -79,6 +82,7 @@ impl InvocationStatus {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Pending => "pending",
             Self::Queued => "queued",
             Self::Running => "running",
             Self::Suspended => "suspended",
@@ -92,6 +96,7 @@ impl InvocationStatus {
     #[must_use]
     pub const fn display_label(self) -> &'static str {
         match self {
+            Self::Pending => "Pending",
             Self::Queued => "Queued",
             Self::Running => "Running",
             Self::Suspended => "Suspended",
@@ -105,7 +110,7 @@ impl InvocationStatus {
     #[must_use]
     pub const fn icon_name(self) -> &'static str {
         match self {
-            Self::Queued => "clock",
+            Self::Pending | Self::Queued => "clock",
             Self::Running => "loader",
             Self::Suspended => "pause",
             Self::Completed => "check-circle",
@@ -270,7 +275,7 @@ impl StatusBadgeStyle {
 #[must_use]
 pub const fn invocation_badge_style(status: InvocationStatus) -> StatusBadgeStyle {
     match status {
-        InvocationStatus::Queued => {
+        InvocationStatus::Pending | InvocationStatus::Queued => {
             StatusBadgeStyle::new("bg-cyan-500/15", "text-cyan-400", "border-cyan-500/30")
         }
         InvocationStatus::Running => StatusBadgeStyle::new(
@@ -428,6 +433,12 @@ pub const fn chevron_rotation_class(state: CollapseState) -> &'static str {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use serde_json::json;
@@ -448,6 +459,10 @@ mod tests {
 
     #[test]
     fn invocation_status_parse_handles_variants() {
+        assert_eq!(
+            InvocationStatus::parse("pending"),
+            Some(InvocationStatus::Pending)
+        );
         assert_eq!(
             InvocationStatus::parse("queued"),
             Some(InvocationStatus::Queued)

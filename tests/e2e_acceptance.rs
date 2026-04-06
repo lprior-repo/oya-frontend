@@ -2,6 +2,7 @@
 //!
 //! Tests critical user flows using Playwright.
 //! Run with `cargo test --test e2e_acceptance -- --ignored` when the server is running.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use playwright::{api::MouseButton, Playwright};
 use std::path::Path;

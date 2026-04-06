@@ -4,6 +4,7 @@
 //!
 //! RED PHASE: Tests assert CORRECT expected behavior. Tests FAIL because
 //! the implementation is buggy (silently excludes cycles).
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{NodeId, PortName, Workflow};
 

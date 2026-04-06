@@ -1,12 +1,13 @@
-use crate::ui::workflow_nodes::schema::{CronExpression, ScheduleTriggerConfig};
-use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES, PRESET_BTN_CLASSES};
+use crate::ui::workflow_nodes::schema::{CronExpression, CronTriggerConfig};
+use crate::ui::workflow_nodes::shared::{
+    input_classes, FormField, FormHint, NodeCard, PRESET_BTN_CLASSES,
+};
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "blue";
 
 #[component]
-pub fn ScheduleTriggerForm(config: ReadOnlySignal<ScheduleTriggerConfig>) -> Element {
-    let mut write_config = config.writer();
+pub fn CronTriggerForm(mut config: Signal<CronTriggerConfig>) -> Element {
     let input_cls = input_classes(FOCUS_RING);
 
     rsx! {
@@ -32,21 +33,21 @@ pub fn ScheduleTriggerForm(config: ReadOnlySignal<ScheduleTriggerConfig>) -> Ele
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().schedule = CronExpression::new("0 * * * *");
+                            config.write().schedule = CronExpression::new("0 * * * *");
                         },
                         "Every hour"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().schedule = CronExpression::new("0 0 * * *");
+                            config.write().schedule = CronExpression::new("0 0 * * *");
                         },
                         "Daily"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().schedule = CronExpression::new("0 0 * * 0");
+                            config.write().schedule = CronExpression::new("0 0 * * 0");
                         },
                         "Weekly"
                     }
@@ -57,7 +58,7 @@ pub fn ScheduleTriggerForm(config: ReadOnlySignal<ScheduleTriggerConfig>) -> Ele
                     placeholder: "0 * * * *",
                     value: "{config.read().schedule.as_str()}",
                     oninput: move |e| {
-                        write_config.write().schedule = CronExpression::new(e.value());
+                        config.write().schedule = CronExpression::new(e.value());
                     }
                 }
                 FormHint { text: "Cron expression: minute hour day month weekday" }
@@ -67,12 +68,12 @@ pub fn ScheduleTriggerForm(config: ReadOnlySignal<ScheduleTriggerConfig>) -> Ele
 }
 
 #[component]
-pub fn ScheduleTriggerNodeCard() -> Element {
+pub fn CronTriggerNodeCard() -> Element {
     rsx! {
         NodeCard {
             icon_bg: "bg-purple-100",
             icon: "🕐",
-            title: "Schedule",
+            title: "Cron Trigger",
             subtitle: "Runs automatically on a schedule",
         }
     }

@@ -83,7 +83,7 @@ impl PollResult {
 pub enum PollerState {
     #[default]
     Initial,
-    Tracking(HashMap<String, InvocationStatus>),
+    Tracking(HashMap<String, crate::restate_client::types::Invocation>),
 }
 
 impl PollerState {
@@ -93,20 +93,20 @@ impl PollerState {
     }
 
     #[must_use]
-    pub fn get_tracked_status(&self, id: &str) -> Option<InvocationStatus> {
+    pub fn get_tracked_invocation(&self, id: &str) -> Option<crate::restate_client::types::Invocation> {
         match self {
             Self::Initial => None,
-            Self::Tracking(map) => map.get(id).copied(),
+            Self::Tracking(map) => map.get(id).cloned(),
         }
     }
 
-    pub fn update(&mut self, id: String, status: InvocationStatus) {
+    pub fn update(&mut self, inv: crate::restate_client::types::Invocation) {
         match self {
             Self::Initial => {
-                *self = Self::Tracking(HashMap::from([(id, status)]));
+                *self = Self::Tracking(HashMap::from([(inv.id.clone(), inv)]));
             }
             Self::Tracking(map) => {
-                map.insert(id, status);
+                map.insert(inv.id.clone(), inv);
             }
         }
     }
@@ -116,6 +116,14 @@ impl PollerState {
         match self {
             Self::Initial => Vec::new(),
             Self::Tracking(map) => map.keys().cloned().collect(),
+        }
+    }
+
+    #[must_use]
+    pub fn invocations(&self) -> Vec<crate::restate_client::types::Invocation> {
+        match self {
+            Self::Initial => Vec::new(),
+            Self::Tracking(map) => map.values().cloned().collect(),
         }
     }
 }
@@ -194,7 +202,8 @@ impl InvocationPoller {
             let id = inv.id.clone();
             let new_status = InvocationStatus::from(inv.status);
 
-            if let Some(old_status) = self.state.get_tracked_status(&id) {
+            if let Some(old_inv) = self.state.get_tracked_invocation(&id) {
+                let old_status = InvocationStatus::from(old_inv.status);
                 if old_status != new_status {
                     events.push(InvocationEvent::StatusChanged {
                         invocation_id: id.clone(),
@@ -212,6 +221,7 @@ impl InvocationPoller {
                             invocation_id: id.clone(),
                             error: inv
                                 .last_failure
+                                .clone()
                                 .unwrap_or_else(|| "Unknown error".to_string()),
                         });
                     }
@@ -222,7 +232,7 @@ impl InvocationPoller {
                 });
             }
 
-            new_state.insert(id, new_status);
+            new_state.insert(id, inv);
         }
 
         self.state = PollerState::Tracking(new_state);
@@ -245,6 +255,7 @@ pub enum PollerError {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::clone_on_copy)]
 mod tests {
     use super::*;
 
@@ -450,5 +461,54 @@ mod tests {
         assert!(!ids.insert("inv-1".to_string()));
         assert!(ids.contains("inv-1"));
         assert!(!ids.contains("inv-2"));
+    }
+
+    #[test]
+    fn test_poller_transparency_logic() {
+        use crate::restate_client::types::{Invocation, InvocationStatus as RestateStatus, ServiceType, InvokedBy};
+        
+        let mut state;
+        
+        let inv1 = Invocation {
+            id: "inv-1".to_string(),
+            target: "wf".to_string(),
+            target_service_name: "wf".to_string(),
+            target_service_key: None,
+            target_handler_name: "run".to_string(),
+            target_service_ty: ServiceType::Workflow,
+            status: RestateStatus::Pending,
+            created_at: 1000,
+            modified_at: 1000,
+            completed_at: None,
+            journal_size: 0,
+            retry_count: 0,
+            invoked_by: InvokedBy::Ingress,
+            invoked_by_service_name: None,
+            invoked_by_id: None,
+            trace_id: None,
+            last_failure: None,
+            last_failure_error_code: None,
+        };
+
+        // 1. Initial state -> New invocation
+        let mut new_state = HashMap::new();
+        new_state.insert(inv1.id.clone(), inv1.clone());
+        state = PollerState::Tracking(new_state);
+        
+        assert!(state.is_tracking());
+        assert_eq!(state.tracked_ids(), vec!["inv-1".to_string()]);
+        
+        // 2. Status change
+        let mut inv1_updated = inv1.clone();
+        inv1_updated.status = RestateStatus::Running;
+        inv1_updated.modified_at = 2000;
+        
+        if let PollerState::Tracking(ref mut map) = state {
+            map.insert(inv1_updated.id.clone(), inv1_updated.clone());
+        }
+        
+        let tracked = state.get_tracked_invocation("inv-1").expect("should be tracked");
+        assert_eq!(tracked.status, RestateStatus::Running);
+        assert_eq!(tracked.modified_at, 2000);
     }
 }

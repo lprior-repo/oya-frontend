@@ -74,15 +74,6 @@ impl HandleKind {
             Self::Target => "target",
         }
     }
-
-    #[allow(dead_code)]
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "source" => Some(Self::Source),
-            "target" => Some(Self::Target),
-            _ => None,
-        }
-    }
 }
 
 impl fmt::Display for HandleKind {
@@ -95,7 +86,11 @@ impl FromStr for HandleKind {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| format!("Invalid handle kind: {s}"))
+        match s {
+            "source" => Ok(Self::Source),
+            "target" => Ok(Self::Target),
+            _ => Err(format!("Invalid handle kind: {s}")),
+        }
     }
 }
 
@@ -175,7 +170,7 @@ impl NodeTemplateId {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_id_str(s: &str) -> Option<Self> {
         match s {
             "http-handler" => Some(Self::HttpHandler),
             "kafka-handler" => Some(Self::KafkaHandler),
@@ -225,11 +220,12 @@ impl FromStr for NodeTemplateId {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s).ok_or_else(|| format!("Unknown node template: {s}"))
+        Self::from_id_str(s).ok_or_else(|| format!("Unknown node template: {s}"))
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
 

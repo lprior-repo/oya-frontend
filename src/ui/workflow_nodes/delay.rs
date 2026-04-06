@@ -1,13 +1,12 @@
-use crate::ui::workflow_nodes::schema::DelayConfig;
-use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES, PRESET_BTN_CLASSES};
+use crate::ui::workflow_nodes::schema::SleepConfig;
+use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard, PRESET_BTN_CLASSES};
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "gray";
 
 #[component]
-pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
-    let mut write_config = config.writer();
-    let duration_error = use_signal(|| Option::<String>::None);
+pub fn SleepForm(mut config: Signal<SleepConfig>) -> Element {
+    let mut duration_error = use_signal(|| Option::<String>::None);
     let input_cls = input_classes(FOCUS_RING);
 
     rsx! {
@@ -19,13 +18,13 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                 p {
                     class: "text-sm text-gray-700",
                     "⏱️ ",
-                    strong { "Wait" },
+                    strong { "Sleep" },
                     " - Pause the workflow for a while."
                 }
             }
 
             FormField {
-                label: "How long to wait?",
+                label: "How long to sleep?",
                 div {
                     class: "grid grid-cols-3 gap-2 mb-3",
                     role: "group",
@@ -33,21 +32,21 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 1000;
+                            config.write().duration_ms = 1000;
                         },
                         "1 second"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 5000;
+                            config.write().duration_ms = 5000;
                         },
                         "5 seconds"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 30000;
+                            config.write().duration_ms = 30000;
                         },
                         "30 seconds"
                     }
@@ -59,21 +58,21 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 60_000;
+                            config.write().duration_ms = 60_000;
                         },
                         "1 minute"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 300_000;
+                            config.write().duration_ms = 300_000;
                         },
                         "5 minutes"
                     }
                     button {
                         class: "{PRESET_BTN_CLASSES}",
                         onclick: move |_| {
-                            write_config.write().duration_ms = 3600_000;
+                            config.write().duration_ms = 3_600_000;
                         },
                         "1 hour"
                     }
@@ -83,7 +82,7 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                     input {
                         r#type: "number",
                         min: "1",
-                        class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-{FOCUS_RING}-500",
+                        class: "{input_cls}",
                         placeholder: "milliseconds",
                         value: "{config.read().duration_ms}",
                         oninput: move |e| {
@@ -92,7 +91,7 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
                                 duration_error.set(None);
                             } else if let Ok(v) = value.parse::<u64>() {
                                 if v > 0 {
-                                    write_config.write().duration_ms = v;
+                                    config.write().duration_ms = v;
                                     duration_error.set(None);
                                 } else {
                                     duration_error.set(Some("Duration must be greater than 0 ms".to_string()));
@@ -131,13 +130,16 @@ pub fn DelayForm(config: ReadOnlySignal<DelayConfig>) -> Element {
 }
 
 #[component]
-pub fn DelayNodeCard() -> Element {
+pub fn SleepNodeCard() -> Element {
     rsx! {
         NodeCard {
             icon_bg: "bg-gray-200",
             icon: "⏱️",
-            title: "Delay",
+            title: "Sleep",
             subtitle: "Wait for a period of time",
         }
     }
 }
+
+pub use SleepForm as DelayForm;
+pub use SleepNodeCard as DelayNodeCard;

@@ -33,7 +33,7 @@ pub fn textarea_classes(focus_ring_color: &str) -> String {
 /// Pretty-print a `serde_json::Value` for display. Returns an empty string
 /// on serialization failure.
 pub fn json_to_display(value: &serde_json::Value) -> String {
-    serde_json::to_string_pretty(value).map_or_else(|_| String::new(), |v| v)
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| String::new())
 }
 
 /// Pretty-print an optional `serde_json::Value`. Returns an empty string
@@ -155,6 +155,12 @@ pub fn FormHint(props: FormHintProps) -> Element {
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
 

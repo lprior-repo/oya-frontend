@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 use oya_frontend::graph::{Connection, PortName, Workflow};
 use serde_json::json;
 use uuid::Uuid;
@@ -116,9 +117,9 @@ fn given_invalid_or_duplicate_edges_when_adding_connection_then_connection_is_re
     let first = workflow.add_connection(a, b, &main, &main);
     let duplicate = workflow.add_connection(a, b, &main, &main);
 
-    assert!(!self_edge);
-    assert!(first);
-    assert!(!duplicate);
+    assert!(self_edge.is_err());
+    assert!(first.is_ok());
+    assert!(duplicate.is_err());
     assert_eq!(workflow.connections.len(), 1);
 }
 
@@ -130,12 +131,12 @@ fn given_existing_path_when_adding_back_edge_then_cycle_is_rejected() {
     let end = workflow.add_node("end", 0.0, 0.0);
     let main = PortName("main".to_string());
 
-    assert!(workflow.add_connection(start, middle, &main, &main));
-    assert!(workflow.add_connection(middle, end, &main, &main));
+    assert!(workflow.add_connection(start, middle, &main, &main).is_ok());
+    assert!(workflow.add_connection(middle, end, &main, &main).is_ok());
 
     let creates_cycle = workflow.add_connection(end, start, &main, &main);
 
-    assert!(!creates_cycle);
+    assert!(creates_cycle.is_err());
     assert_eq!(workflow.connections.len(), 2);
 }
 

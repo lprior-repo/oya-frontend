@@ -214,6 +214,7 @@ impl DagLayout {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{DagLayout, LEFT_PADDING, NODE_WIDTH, TOP_PADDING};
     use crate::graph::{Connection, NodeId, PortName, Workflow};
@@ -576,7 +577,9 @@ mod tests {
 
     /// Inlined mirror of `editor_interactions::rect_contains`.
     fn rect_contains(rect: (f32, f32, f32, f32), point: (f32, f32)) -> bool {
-        point.0 >= rect.0 && point.0 <= rect.2 && point.1 >= rect.1 && point.1 <= rect.3
+        let (rx1, ry1, rx2, ry2) = rect;
+        let (px, py) = point;
+        px >= rx1 && px <= rx2 && py >= ry1 && py <= ry2
     }
 
     /// Inlined mirror of `editor_interactions::node_intersects_rect`.

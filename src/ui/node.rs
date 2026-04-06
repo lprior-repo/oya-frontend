@@ -8,7 +8,7 @@
 use crate::ui::icons::icon_by_name;
 use crate::ui::InlineConfigPanel;
 use dioxus::prelude::*;
-use oya_frontend::graph::{ExecutionState, Node, NodeCategory};
+use crate::graph::{ExecutionState, Node, NodeCategory};
 use serde_json::Value;
 
 // ---------------------------------------------------------------------------
@@ -338,6 +338,7 @@ pub fn FlowNodeComponent(
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
     use serde_json::json;

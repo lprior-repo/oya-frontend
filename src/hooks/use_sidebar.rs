@@ -12,6 +12,7 @@ impl NodeType {
         Self(name.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -40,18 +41,22 @@ pub enum DropState {
 
 impl DropState {
     #[allow(dead_code)]
+    #[must_use]
     pub fn idle() -> Self {
         Self::Idle
     }
 
+    #[must_use]
     pub fn dragging(node_type: NodeType) -> Self {
         Self::Dragging { node_type }
     }
 
+    #[must_use]
     pub fn is_dragging(&self) -> bool {
         matches!(self, DropState::Dragging { .. })
     }
 
+    #[must_use]
     pub fn node_type(&self) -> Option<&NodeType> {
         match self {
             DropState::Idle => None,
@@ -68,11 +73,13 @@ impl SearchQuery {
         Self(query.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -96,10 +103,12 @@ pub struct SidebarState {
 }
 
 impl SidebarState {
+    #[must_use]
     pub fn search(&self) -> ReadSignal<SearchQuery> {
         self.search.into()
     }
 
+    #[must_use]
     pub fn drop_state(&self) -> ReadSignal<DropState> {
         self.drop_state.into()
     }
@@ -125,18 +134,22 @@ impl SidebarState {
         self.clear_drop();
     }
 
+    #[must_use]
     pub fn is_dragging(&self) -> bool {
         self.drop_state.read().is_dragging()
     }
 
+    #[must_use]
     pub fn has_pending_drop(&self) -> bool {
         self.is_dragging()
     }
 
+    #[must_use]
     pub fn pending_drop(&self) -> Option<NodeType> {
         self.drop_state.read().node_type().cloned()
     }
 
+    #[must_use]
     pub fn dragged_node_type(&self) -> Option<String> {
         self.drop_state
             .read()
@@ -145,14 +158,21 @@ impl SidebarState {
     }
 }
 
-pub fn use_sidebar() -> SidebarState {
+pub fn provide_sidebar_context() -> SidebarState {
     let search = use_signal(SearchQuery::default);
     let drop_state = use_signal(DropState::default);
 
-    SidebarState { search, drop_state }
+    let state = SidebarState { search, drop_state };
+    provide_context(state)
+}
+
+#[must_use]
+pub fn use_sidebar() -> SidebarState {
+    use_context::<SidebarState>()
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{DropState, NodeType, SearchQuery};
 

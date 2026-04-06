@@ -4,12 +4,12 @@
 #![warn(clippy::pedantic)]
 
 use super::get_str_val;
+use crate::graph::ExecutionState;
 use crate::ui::icons::{icon_by_name, CopyIcon};
 use crate::ui::panel_types::{
     invocation_badge_style, ExecutionEventCategory, InvocationStatus, OutputOrigin, PayloadShape,
 };
 use dioxus::prelude::*;
-use oya_frontend::graph::ExecutionState;
 use serde_json::Value;
 use wasm_bindgen::JsCast;
 use web_sys::window;
@@ -397,12 +397,18 @@ fn json_preview(payload: &Value, max_lines: usize) -> String {
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         build_execution_timeline, get_pinned_output, json_preview, resolve_invocation_status,
         ExecutionEventCategory, InvocationStatus,
     };
-    use oya_frontend::graph::ExecutionState;
+    use crate::graph::ExecutionState;
     use serde_json::json;
 
     #[test]

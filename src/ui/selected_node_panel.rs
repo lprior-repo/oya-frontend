@@ -5,11 +5,11 @@
 
 use dioxus::prelude::*;
 use itertools::Itertools;
-use oya_frontend::flow_extender::{
+use crate::flow_extender::{
     apply_extension, extension_presets, preview_extension, resolve_extension_preset,
     suggest_extensions, ExtensionPatchPreview, ExtensionPriority,
 };
-use oya_frontend::graph::{Node, NodeCategory, NodeId, Workflow};
+use crate::graph::{Node, NodeCategory, NodeId, Workflow};
 use std::collections::HashMap;
 
 use crate::ui::NodeConfigEditor;
@@ -814,8 +814,8 @@ fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_jso
 #[cfg(not(target_arch = "wasm32"))]
 fn record_suggestion_decision(key: &str, accepted: bool, source: &str) {
     use chrono::Utc;
-    use oya_frontend::metrics::{SuggestionDecision, SuggestionDecisionMetrics, SuggestionKey};
-    use oya_frontend::MetricsStore;
+    use crate::metrics::{SuggestionDecision, SuggestionDecisionMetrics, SuggestionKey};
+    use crate::MetricsStore;
     use std::path::Path;
 
     let decision = if accepted {
@@ -968,14 +968,15 @@ fn snapshot_by_id(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         collect_previews, event_appearance, mode_label, push_timeline, remember_extension_snapshot,
         snapshot_by_id, ExtensionApplyMode, ExtensionBatchSnapshot, ExtensionTimelineEvent,
         ExtensionTimelineEventKind,
     };
-    use oya_frontend::flow_extender::preview_extension;
-    use oya_frontend::graph::Workflow;
+    use crate::flow_extender::preview_extension;
+    use crate::graph::Workflow;
 
     #[test]
     fn timeline_keeps_latest_items_with_cap() {

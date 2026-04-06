@@ -42,7 +42,7 @@ pub fn CanvasArea(
             .filter(|n| {
                 matches!(
                     n.execution_state,
-                    oya_frontend::graph::ExecutionState::Running
+                    crate::graph::ExecutionState::Running
                 )
             })
             .map(|n| n.id)

@@ -4,6 +4,7 @@
 //! Bug: When clicking and holding on a node, it would disappear.
 //!
 //! Run with `cargo test --test node_drag_regression -- --ignored` when the server is running.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use playwright::Playwright;
 use std::path::Path;

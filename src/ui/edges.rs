@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::workflow_node::WorkflowNode;
-use oya_frontend::graph::{Connection, Node, NodeId};
+use crate::graph::workflow_node::WorkflowNode;
+use crate::graph::{Connection, Node, NodeId};
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -250,12 +250,13 @@ struct Rect {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
         resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup, Rect,
     };
-    use oya_frontend::graph::{Connection, Node, NodeId, PortName, WorkflowNode};
+    use crate::graph::{Connection, Node, NodeId, PortName, WorkflowNode};
     use uuid::Uuid;
 
     // Constants for test data builders
@@ -266,7 +267,7 @@ mod tests {
     fn build_node(id: NodeId, x: f32, y: f32) -> Node {
         let mut node = Node::from_workflow_node(
             format!("Node {}", id),
-            WorkflowNode::Run(oya_frontend::graph::RunConfig::default()),
+            WorkflowNode::Run(crate::graph::RunConfig::default()),
             x,
             y,
         );
@@ -278,7 +279,7 @@ mod tests {
     fn build_parallel_node(id: NodeId, x: f32, y: f32) -> Node {
         let mut node = Node::from_workflow_node(
             format!("Parallel {}", id),
-            WorkflowNode::Parallel(oya_frontend::graph::workflow_node::ParallelConfig::default()),
+            WorkflowNode::Parallel(crate::graph::workflow_node::ParallelConfig::default()),
             x,
             y,
         );
@@ -323,7 +324,7 @@ mod tests {
         assert_eq!(group.branch_node_ids.len(), 2);
         // Target nodes are sorted by ID lexicographically
         let mut sorted_ids = [target_a_id, target_b_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
         assert_eq!(group.branch_node_ids[0], sorted_ids[0]);
         assert_eq!(group.branch_node_ids[1], sorted_ids[1]);
         assert_eq!(group.bounding_box.x, 292.0);
@@ -510,7 +511,7 @@ mod tests {
         let spacing = NODE_HEIGHT / 2.5;
 
         let mut sorted_ids = [target_a_id, target_b_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_a = if target_a_id == sorted_ids[0] {
             -spacing / 2.0
@@ -542,7 +543,7 @@ mod tests {
         let spacing = NODE_HEIGHT / 2.5;
 
         let mut sorted_ids = [target_a_id, target_b_id, target_c_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_for = |id: NodeId| {
             if id == sorted_ids[0] {
@@ -581,7 +582,7 @@ mod tests {
         let spacing = NODE_HEIGHT / 2.5;
 
         let mut sorted_ids = [target_a_id, target_b_id, target_c_id, target_d_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_for = |id: NodeId| {
             if id == sorted_ids[0] {
@@ -646,7 +647,7 @@ mod tests {
         // Offsets are determined by sorted ID order, not y-position
         let spacing = NODE_HEIGHT / 2.5;
         let mut sorted_ids = [target_a_id, target_b_id, target_c_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_for = |id: NodeId| {
             if id == sorted_ids[0] {
@@ -709,7 +710,7 @@ mod tests {
 
         let spacing = NODE_HEIGHT / 2.5;
         let mut sorted_ids = [target_a_id, target_b_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_offset_a = if target_a_id == sorted_ids[0] {
             -spacing / 2.0
@@ -795,7 +796,7 @@ mod tests {
 
         let spacing = NODE_HEIGHT / 2.5;
         let mut sorted_ids = [target_a_id, target_b_id];
-        sorted_ids.sort_by(|left, right| left.0.cmp(&right.0));
+        sorted_ids.sort_by_key(|id| id.0);
 
         let expected_offset_a = if target_a_id == sorted_ids[0] {
             -spacing / 2.0

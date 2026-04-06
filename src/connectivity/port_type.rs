@@ -166,7 +166,7 @@ impl fmt::Display for PortTypeParseError {
 impl std::error::Error for PortTypeParseError {}
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::uninlined_format_args)]
 mod tests {
     use super::*;
 
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn given_port_u16_max_when_parsing_then_invalid_port_number_is_returned() {
         let result = PortType::parse("tcp:65535");
-        assert!(matches!(result, Ok(_)));
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn given_control_chars_when_parsing_then_invalid_format_is_returned() {
         let result = PortType::parse("tcp:\x008080");
-        assert!(matches!(result, Err(_)));
+        assert!(result.is_err());
     }
 
     #[test]
@@ -389,7 +389,7 @@ mod tests {
     #[test]
     fn given_valid_port_when_display_then_it_returns_string() {
         let port = PortType::parse("tcp:8080").expect("tcp:8080 should parse");
-        assert_eq!(format!("{}", port), "tcp:8080");
+        assert_eq!(format!("{port}"), "tcp:8080");
     }
 
     #[test]

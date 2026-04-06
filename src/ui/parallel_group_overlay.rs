@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use oya_frontend::graph::workflow_node::WorkflowNode;
-use oya_frontend::graph::{Connection, ExecutionState, Node, NodeId};
+use crate::graph::workflow_node::WorkflowNode;
+use crate::graph::{Connection, ExecutionState, Node, NodeId};
 use std::collections::HashMap;
 
 use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
@@ -263,15 +263,16 @@ pub fn ParallelGroupOverlay(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
-    use oya_frontend::graph::workflow_node::WorkflowNode;
+    use crate::graph::workflow_node::WorkflowNode;
     use uuid::Uuid;
 
     fn make_node(id: Uuid, node_type: &str, x: f32, y: f32) -> Node {
         let wfn = node_type
             .parse::<WorkflowNode>()
-            .unwrap_or_else(|_| WorkflowNode::Run(oya_frontend::graph::RunConfig::default()));
+            .unwrap_or_else(|_| WorkflowNode::Run(crate::graph::RunConfig::default()));
         let mut node = Node::from_workflow_node(format!("{node_type} node"), wfn, x, y);
         node.id = NodeId(id);
         node
@@ -282,8 +283,8 @@ mod tests {
             id: Uuid::new_v4(),
             source: NodeId(source),
             target: NodeId(target),
-            source_port: oya_frontend::graph::PortName("main".to_string()),
-            target_port: oya_frontend::graph::PortName("main".to_string()),
+            source_port: crate::graph::PortName("main".to_string()),
+            target_port: crate::graph::PortName("main".to_string()),
         }
     }
 

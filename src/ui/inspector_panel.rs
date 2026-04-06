@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::{ExecutionState, Node};
+use crate::graph::{ExecutionState, Node};
 use std::fmt::Write;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -326,12 +326,13 @@ pub fn InspectorPanel(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         execution_state_label, filter_lines, format_duration, should_render_failure,
         status_badge_class,
     };
-    use oya_frontend::graph::ExecutionState;
+    use crate::graph::ExecutionState;
 
     #[test]
     fn given_idle_state_when_getting_badge_class_then_returns_slate() {

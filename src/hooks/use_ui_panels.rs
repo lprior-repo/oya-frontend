@@ -3,7 +3,7 @@
 #![deny(clippy::panic)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::NodeId;
+use crate::graph::NodeId;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum PanelState {
@@ -14,11 +14,13 @@ pub enum PanelState {
 
 impl PanelState {
     #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[must_use]
     pub fn is_open(&self) -> bool {
         matches!(self, PanelState::Open)
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[must_use]
     pub fn toggle(&self) -> Self {
         match self {
             PanelState::Closed => PanelState::Open,
@@ -34,6 +36,7 @@ pub struct MenuPosition {
 }
 
 impl MenuPosition {
+    #[must_use]
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
@@ -49,10 +52,12 @@ pub enum ContextMenuState {
 }
 
 impl ContextMenuState {
+    #[must_use]
     pub fn is_visible(&self) -> bool {
         matches!(self, ContextMenuState::Visible { .. })
     }
 
+    #[must_use]
     pub fn position(&self) -> Option<MenuPosition> {
         match self {
             ContextMenuState::Hidden => None,
@@ -71,14 +76,17 @@ pub enum InlinePanelState {
 }
 
 impl InlinePanelState {
+    #[must_use]
     pub fn is_open(&self) -> bool {
         matches!(self, InlinePanelState::Open { .. })
     }
 
+    #[must_use]
     pub fn is_open_for(&self, node_id: NodeId) -> bool {
         matches!(self, InlinePanelState::Open { node_id: id } if *id == node_id)
     }
 
+    #[must_use]
     pub fn node_id(&self) -> Option<NodeId> {
         match self {
             InlinePanelState::Closed => None,
@@ -86,6 +94,7 @@ impl InlinePanelState {
         }
     }
 
+    #[must_use]
     pub fn toggle_for(&self, node_id: NodeId) -> Self {
         match self {
             InlinePanelState::Open { node_id: current } if *current == node_id => {
@@ -103,6 +112,7 @@ pub struct PaletteState {
 }
 
 impl PaletteState {
+    #[must_use]
     pub fn open() -> Self {
         Self {
             visibility: PanelState::Open,
@@ -110,6 +120,7 @@ impl PaletteState {
         }
     }
 
+    #[must_use]
     pub fn close() -> Self {
         Self::default()
     }
@@ -126,33 +137,40 @@ pub struct UiPanelsState {
 }
 
 impl UiPanelsState {
+    #[must_use]
     pub fn settings_open(&self) -> bool {
         self.settings.is_open()
     }
 
+    #[must_use]
     pub fn palette_open(&self) -> bool {
         self.palette.visibility.is_open()
     }
 
+    #[must_use]
     pub fn palette_query(&self) -> &str {
         &self.palette.query
     }
 
+    #[must_use]
     pub fn toggle_settings(mut self) -> Self {
         self.settings = self.settings.toggle();
         self
     }
 
+    #[must_use]
     pub fn open_settings(mut self) -> Self {
         self.settings = PanelState::Open;
         self
     }
 
+    #[must_use]
     pub fn close_settings(mut self) -> Self {
         self.settings = PanelState::Closed;
         self
     }
 
+    #[must_use]
     pub fn toggle_palette(mut self) -> Self {
         match self.palette.visibility {
             PanelState::Closed => self.palette = PaletteState::open(),
@@ -161,26 +179,31 @@ impl UiPanelsState {
         self
     }
 
+    #[must_use]
     pub fn open_palette(mut self) -> Self {
         self.palette = PaletteState::open();
         self
     }
 
+    #[must_use]
     pub fn close_palette(mut self) -> Self {
         self.palette = PaletteState::close();
         self
     }
 
+    #[must_use]
     pub fn set_palette_query(mut self, query: String) -> Self {
         self.palette.query = query;
         self
     }
 
+    #[must_use]
     pub fn clear_palette_query(mut self) -> Self {
         self.palette.query.clear();
         self
     }
 
+    #[must_use]
     pub fn show_context_menu(mut self, x: f32, y: f32) -> Self {
         self.context_menu = ContextMenuState::Visible {
             position: MenuPosition::new(x, y),
@@ -188,15 +211,18 @@ impl UiPanelsState {
         self
     }
 
+    #[must_use]
     pub fn close_context_menu(mut self) -> Self {
         self.context_menu = ContextMenuState::Hidden;
         self
     }
 
+    #[must_use]
     pub fn is_context_menu_visible(&self) -> bool {
         self.context_menu.is_visible()
     }
 
+    #[must_use]
     pub fn close_all(mut self) -> Self {
         self.settings = PanelState::Closed;
         self.palette = PaletteState::close();
@@ -205,6 +231,7 @@ impl UiPanelsState {
         self
     }
 
+    #[must_use]
     pub fn any_open(&self) -> bool {
         self.settings.is_open()
             || self.palette.visibility.is_open()
@@ -212,25 +239,30 @@ impl UiPanelsState {
             || self.inline_panel.is_open()
     }
 
+    #[must_use]
     pub fn open_inline_panel(mut self, node_id: NodeId) -> Self {
         self.inline_panel = InlinePanelState::Open { node_id };
         self
     }
 
+    #[must_use]
     pub fn close_inline_panel(mut self) -> Self {
         self.inline_panel = InlinePanelState::Closed;
         self
     }
 
+    #[must_use]
     pub fn toggle_inline_panel(mut self, node_id: NodeId) -> Self {
         self.inline_panel = self.inline_panel.toggle_for(node_id);
         self
     }
 
+    #[must_use]
     pub fn is_inline_panel_open(&self, node_id: NodeId) -> bool {
         self.inline_panel.is_open_for(node_id)
     }
 
+    #[must_use]
     pub fn inline_panel_node_id(&self) -> Option<NodeId> {
         self.inline_panel.node_id()
     }
@@ -261,39 +293,37 @@ impl UiPanels {
         }
     }
 
-    fn as_state(&self) -> UiPanelsState {
-        UiPanelsState {
-            settings: *self.settings.read(),
-            palette: self.palette.read().clone(),
-            context_menu: self.context_menu.read().clone(),
-            inline_panel: self.inline_panel.read().clone(),
-        }
-    }
-
+    #[must_use]
     pub fn settings_open(&self) -> ReadSignal<bool> {
         self.settings_open_memo.into()
     }
 
+    #[must_use]
     pub fn palette_open(&self) -> ReadSignal<bool> {
         self.palette_open_memo.into()
     }
 
+    #[must_use]
     pub fn palette_query(&self) -> ReadSignal<String> {
         self.palette_query_memo.into()
     }
 
+    #[must_use]
     pub fn settings(&self) -> ReadSignal<PanelState> {
         self.settings.into()
     }
 
+    #[must_use]
     pub fn palette(&self) -> ReadSignal<PaletteState> {
         self.palette.into()
     }
 
+    #[must_use]
     pub fn context_menu(&self) -> ReadSignal<ContextMenuState> {
         self.context_menu.into()
     }
 
+    #[must_use]
     pub fn inline_panel(&self) -> ReadSignal<InlinePanelState> {
         self.inline_panel.into()
     }
@@ -354,6 +384,7 @@ impl UiPanels {
         self.context_menu.set(ContextMenuState::Hidden);
     }
 
+    #[must_use]
     pub fn is_context_menu_visible(&self) -> bool {
         self.context_menu.read().is_visible()
     }
@@ -365,6 +396,7 @@ impl UiPanels {
         self.inline_panel.set(InlinePanelState::Closed);
     }
 
+    #[must_use]
     pub fn any_open(&self) -> bool {
         self.settings.read().is_open()
             || self.palette.read().visibility.is_open()
@@ -385,16 +417,18 @@ impl UiPanels {
         self.inline_panel.set(current.toggle_for(node_id));
     }
 
+    #[must_use]
     pub fn is_inline_panel_open(&self, node_id: NodeId) -> bool {
         self.inline_panel.read().is_open_for(node_id)
     }
 
+    #[must_use]
     pub fn inline_panel_node_id(&self) -> Option<NodeId> {
         self.inline_panel.read().node_id()
     }
 }
 
-pub fn use_ui_panels() -> UiPanels {
+pub fn provide_ui_panels_context() -> UiPanels {
     let settings = use_signal(PanelState::default);
     let palette = use_signal(PaletteState::default);
     let context_menu = use_signal(ContextMenuState::default);
@@ -403,7 +437,7 @@ pub fn use_ui_panels() -> UiPanels {
     let palette_open_memo = use_memo(move || palette.read().visibility.is_open());
     let palette_query_memo = use_memo(move || palette.read().query.clone());
 
-    UiPanels {
+    let state = UiPanels {
         settings,
         palette,
         context_menu,
@@ -411,13 +445,20 @@ pub fn use_ui_panels() -> UiPanels {
         settings_open_memo,
         palette_open_memo,
         palette_query_memo,
-    }
+    };
+    provide_context(state)
+}
+
+#[must_use]
+pub fn use_ui_panels() -> UiPanels {
+    use_context::<UiPanels>()
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{ContextMenuState, InlinePanelState, MenuPosition, PanelState, UiPanelsState};
-    use oya_frontend::graph::NodeId;
+    use crate::graph::NodeId;
 
     fn create_test_state() -> UiPanelsState {
         UiPanelsState::default()

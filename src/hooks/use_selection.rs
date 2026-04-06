@@ -3,7 +3,7 @@
 #![deny(clippy::panic)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::NodeId;
+use crate::graph::NodeId;
 
 fn toggle_selection_ids(current: &[NodeId], id: NodeId) -> (Vec<NodeId>, Option<NodeId>) {
     let next: Vec<NodeId> = if current.contains(&id) {
@@ -67,10 +67,12 @@ pub enum Selection {
 }
 
 impl Selection {
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         matches!(self, Selection::None)
     }
 
+    #[must_use]
     pub fn primary(&self) -> Option<NodeId> {
         match self {
             Selection::None => None,
@@ -79,6 +81,7 @@ impl Selection {
         }
     }
 
+    #[must_use]
     pub fn all_ids(&self) -> Vec<NodeId> {
         match self {
             Selection::None => Vec::new(),
@@ -91,6 +94,7 @@ impl Selection {
         }
     }
 
+    #[must_use]
     pub fn contains(&self, id: NodeId) -> bool {
         match self {
             Selection::None => false,
@@ -99,6 +103,7 @@ impl Selection {
         }
     }
 
+    #[must_use]
     pub fn count(&self) -> usize {
         match self {
             Selection::None => 0,
@@ -123,22 +128,26 @@ pub enum PendingDrag {
 impl PendingDrag {
     // Test-only: convenient constructor for PendingDrag::None
     #[allow(dead_code)]
+    #[must_use]
     pub fn none() -> Self {
         Self::None
     }
 
+    #[must_use]
     pub fn ready(node_ids: Vec<NodeId>) -> Self {
         Self::Ready { node_ids }
     }
 
     // Test-only: check if drag state is Ready
     #[allow(dead_code)]
+    #[must_use]
     pub fn is_ready(&self) -> bool {
         matches!(self, PendingDrag::Ready { .. })
     }
 
     // Test-only: access node IDs from drag state
     #[allow(dead_code)]
+    #[must_use]
     pub fn node_ids(&self) -> Option<&[NodeId]> {
         match self {
             PendingDrag::None => None,
@@ -156,14 +165,17 @@ pub struct SelectionState {
 }
 
 impl SelectionState {
+    #[must_use]
     pub fn selection(&self) -> ReadSignal<Selection> {
         self.selection.into()
     }
 
+    #[must_use]
     pub fn selected_id(&self) -> ReadSignal<Option<NodeId>> {
         self.primary_memo.into()
     }
 
+    #[must_use]
     pub fn selected_ids(&self) -> ReadSignal<Vec<NodeId>> {
         self.all_ids_memo.into()
     }
@@ -245,6 +257,7 @@ impl SelectionState {
         self.pending_drag.set(PendingDrag::None);
     }
 
+    #[must_use]
     pub fn take_pending_drag(mut self) -> Option<Vec<NodeId>> {
         let result = match self.pending_drag.read().clone() {
             PendingDrag::None => None,
@@ -256,44 +269,55 @@ impl SelectionState {
         result
     }
 
+    #[must_use]
     pub fn pending_drag(&self) -> ReadSignal<PendingDrag> {
         self.pending_drag.into()
     }
 
+    #[must_use]
     pub fn is_selected(&self, id: NodeId) -> bool {
         self.selection.read().contains(id)
     }
 
+    #[must_use]
     pub fn count(&self) -> usize {
         self.selection.read().count()
     }
 
+    #[must_use]
     pub fn has_selection(&self) -> bool {
         !self.selection.read().is_empty()
     }
 }
 
-pub fn use_selection() -> SelectionState {
+pub fn provide_selection_context() -> SelectionState {
     let selection = use_signal(Selection::default);
     let pending_drag = use_signal(PendingDrag::default);
     let primary_memo = use_memo(move || selection.read().primary());
     let all_ids_memo = use_memo(move || selection.read().all_ids());
 
-    SelectionState {
+    let state = SelectionState {
         selection,
         pending_drag,
         primary_memo,
         all_ids_memo,
-    }
+    };
+    provide_context(state)
+}
+
+#[must_use]
+pub fn use_selection() -> SelectionState {
+    use_context::<SelectionState>()
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         add_unique_selection, reconcile_primary_selection, toggle_selection_ids, PendingDrag,
         Selection,
     };
-    use oya_frontend::graph::NodeId;
+    use crate::graph::NodeId;
 
     #[test]
     fn given_selected_node_when_toggling_existing_then_node_is_removed_and_primary_updates() {

@@ -1,5 +1,5 @@
-use oya_frontend::graph::{execution_types::ExecutionConfig, Node, Viewport, Workflow};
-use oya_frontend::graph::{ConditionConfig, HttpHandlerConfig, RunConfig, WorkflowNode};
+use crate::graph::{execution_types::ExecutionConfig, Node, Viewport, Workflow};
+use crate::graph::{ConditionConfig, HttpHandlerConfig, RunConfig, WorkflowNode};
 
 pub fn default_workflow() -> Workflow {
     Workflow {
@@ -50,9 +50,10 @@ pub fn default_workflow() -> Workflow {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::default_workflow;
-    use oya_frontend::graph::NodeCategory;
+    use crate::graph::NodeCategory;
 
     #[test]
     fn given_default_workflow_when_created_then_it_contains_expected_starter_nodes() {

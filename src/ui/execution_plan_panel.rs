@@ -4,12 +4,12 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::graph::{ExecutionState, Node, NodeId, Workflow};
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::{
     chevron_rotation_class, panel_height_class, CollapseState, InvocationStatus,
 };
 use dioxus::prelude::*;
-use oya_frontend::graph::{ExecutionState, Node, NodeId, Workflow};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,17 +24,21 @@ fn node_invocation_status(node: &Node) -> InvocationStatus {
         ExecutionState::Completed => InvocationStatus::Completed,
         ExecutionState::Failed => InvocationStatus::Failed,
         ExecutionState::Skipped => InvocationStatus::Skipped,
-        ExecutionState::Idle | ExecutionState::Queued => InvocationStatus::Queued,
+        ExecutionState::Queued => InvocationStatus::Queued,
+        ExecutionState::Idle => InvocationStatus::Pending,
     }
 }
 
 fn status_badge_classes(status: InvocationStatus) -> &'static str {
     match status {
+        InvocationStatus::Pending => "bg-cyan-50 text-cyan-700 border-cyan-200",
         InvocationStatus::Running => "bg-blue-50 text-blue-700 border-blue-200",
         InvocationStatus::Completed => "bg-emerald-50 text-emerald-700 border-emerald-200",
         InvocationStatus::Failed => "bg-rose-50 text-rose-700 border-rose-200",
         InvocationStatus::Skipped => "bg-amber-50 text-amber-700 border-amber-200",
-        _ => "bg-slate-50 text-slate-600 border-slate-200",
+        InvocationStatus::Queued => "bg-slate-50 text-slate-600 border-slate-200",
+        InvocationStatus::Suspended => "bg-purple-50 text-purple-700 border-purple-200",
+        InvocationStatus::Retrying => "bg-orange-50 text-orange-700 border-orange-200",
     }
 }
 
@@ -183,7 +187,7 @@ pub fn ExecutionPlanPanel(
                                     node_id: *node_id,
                                     index: idx,
                                     is_current: idx == current_step,
-                                    
+
                                     on_select_node
                                 }
                             }
@@ -195,7 +199,7 @@ pub fn ExecutionPlanPanel(
                         LayerSection {
                             layer_idx,
                             layer: layer.clone(),
-                            
+
                             on_select_node
                         }
                     }
@@ -203,7 +207,7 @@ pub fn ExecutionPlanPanel(
                     if !plan.unscheduled.is_empty() {
                         UnscheduledSection {
                             unscheduled: plan.unscheduled.clone(),
-                            
+
                             on_select_node
                         }
                     }
@@ -261,7 +265,7 @@ fn LayerSection(
                 for node_id in &layer {
                     LayerNodeItem {
                         node_id: *node_id,
-                        
+
                         on_select_node
                     }
                 }
@@ -271,10 +275,7 @@ fn LayerSection(
 }
 
 #[component]
-fn LayerNodeItem(
-    node_id: NodeId,
-    on_select_node: EventHandler<NodeId>,
-) -> Element {
+fn LayerNodeItem(node_id: NodeId, on_select_node: EventHandler<NodeId>) -> Element {
     let workflow_state: WorkflowState = use_context();
     let nodes_by_id = workflow_state.nodes_by_id();
     let node = nodes_by_id.read().get(&node_id).cloned();
@@ -298,10 +299,7 @@ fn LayerNodeItem(
 }
 
 #[component]
-fn UnscheduledSection(
-    unscheduled: Vec<NodeId>,
-    on_select_node: EventHandler<NodeId>,
-) -> Element {
+fn UnscheduledSection(unscheduled: Vec<NodeId>, on_select_node: EventHandler<NodeId>) -> Element {
     let workflow_state: WorkflowState = use_context();
     let nodes_by_id = workflow_state.nodes_by_id();
 
@@ -333,9 +331,15 @@ fn UnscheduledSection(
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{build_plan_snapshot, node_invocation_status, InvocationStatus};
-    use oya_frontend::graph::{ExecutionState, Workflow};
+    use crate::graph::{ExecutionState, Workflow};
 
     #[test]
     fn simple_chain_when_building_plan_then_layers_follow_dependency_order() {
@@ -343,7 +347,7 @@ mod tests {
         let a = workflow.add_node("http-handler", 0.0, 0.0);
         let b = workflow.add_node("run", 300.0, 0.0);
         let c = workflow.add_node("run", 600.0, 0.0);
-        let main = oya_frontend::graph::PortName::from("main");
+        let main = crate::graph::PortName::from("main");
         workflow.add_connection(a, b, &main, &main);
         workflow.add_connection(b, c, &main, &main);
 
@@ -375,19 +379,19 @@ mod tests {
         let mut workflow = Workflow::new();
         let a = workflow.add_node("run", 0.0, 0.0);
         let b = workflow.add_node("run", 100.0, 0.0);
-        workflow.connections.push(oya_frontend::graph::Connection {
+        workflow.connections.push(crate::graph::Connection {
             id: uuid::Uuid::new_v4(),
             source: a,
             target: b,
-            source_port: oya_frontend::graph::PortName::from("main"),
-            target_port: oya_frontend::graph::PortName::from("main"),
+            source_port: crate::graph::PortName::from("main"),
+            target_port: crate::graph::PortName::from("main"),
         });
-        workflow.connections.push(oya_frontend::graph::Connection {
+        workflow.connections.push(crate::graph::Connection {
             id: uuid::Uuid::new_v4(),
             source: b,
             target: a,
-            source_port: oya_frontend::graph::PortName::from("main"),
-            target_port: oya_frontend::graph::PortName::from("main"),
+            source_port: crate::graph::PortName::from("main"),
+            target_port: crate::graph::PortName::from("main"),
         });
 
         let snapshot = build_plan_snapshot(&workflow);

@@ -1,4 +1,5 @@
 //! Unit tests for ExecutionState enum operations
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{can_transition, try_transition, ExecutionState, StateTransition};
 

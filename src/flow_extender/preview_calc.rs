@@ -159,6 +159,7 @@ fn resolve_target_position(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
     use crate::flow_extender::{ExtensionPatchPreview, PreviewConnection, PreviewEndpoint, PreviewNode};

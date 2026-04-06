@@ -62,7 +62,7 @@ impl Default for RestateClientConfig {
 pub struct RestateClient {
     http_client: reqwest::Client,
     base_url: String,
-    timeout_secs: u64,
+    config: RestateClientConfig,
 }
 
 impl RestateClient {
@@ -74,14 +74,14 @@ impl RestateClient {
         {
             format!("[{}]", config.host)
         } else {
-            config.host
+            config.host.clone()
         };
         let base_url = format!("http://{host}:{}", config.port);
 
         Self {
             http_client: reqwest::Client::new(),
             base_url,
-            timeout_secs: config.timeout_secs,
+            config,
         }
     }
 
@@ -106,7 +106,7 @@ impl RestateClient {
 
         // Browser fetch API does not support per-request timeouts.
         #[cfg(not(target_arch = "wasm32"))]
-        let req = req.timeout(std::time::Duration::from_secs(self.timeout_secs));
+        let req = req.timeout(std::time::Duration::from_secs(self.config.timeout_secs));
 
         let response: reqwest::Response = req.send().await.map_err(|error| {
             if error.is_timeout() {
@@ -604,6 +604,7 @@ impl RestateClient {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
 
@@ -646,7 +647,7 @@ mod tests {
             timeout_secs: 5,
         });
 
-        assert_eq!(client.timeout_secs, 5);
+        assert_eq!(client.config.timeout_secs, 5);
     }
 
     #[test]
@@ -654,7 +655,7 @@ mod tests {
         let client1 = RestateClient::local();
         let client2 = client1.clone();
         assert_eq!(client1.base_url, client2.base_url);
-        assert_eq!(client1.timeout_secs, client2.timeout_secs);
+        assert_eq!(client1.config.timeout_secs, client2.config.timeout_secs);
     }
 
     #[test]

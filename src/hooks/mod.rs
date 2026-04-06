@@ -13,9 +13,9 @@ pub mod use_sidebar;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-pub use use_canvas_interaction::{use_canvas_interaction, InteractionMode};
-pub use use_restate_sync::{build_restate_config_from_url, use_restate_sync, RestateSyncHandle};
-pub use use_selection::use_selection;
-pub use use_sidebar::use_sidebar;
-pub use use_ui_panels::use_ui_panels;
-pub use use_workflow_state::use_workflow_state;
+pub use use_canvas_interaction::{provide_canvas_interaction_context, use_canvas_interaction, InteractionMode};
+pub use use_restate_sync::{build_restate_config_from_url, provide_restate_sync_context, use_restate_sync, RestateSyncHandle};
+pub use use_selection::{provide_selection_context, use_selection};
+pub use use_sidebar::{provide_sidebar_context, use_sidebar};
+pub use use_ui_panels::{provide_ui_panels_context, use_ui_panels};
+pub use use_workflow_state::{provide_workflow_state_context, use_workflow_state};

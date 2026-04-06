@@ -24,35 +24,41 @@ pub use configs::*;
 // WorkflowNode Enum
 // ============================================================================
 
-/// The 24 workflow node types in the OYA graph.
+/// The workflow node types in the OYA graph.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum WorkflowNode {
-    HttpHandler(HttpHandlerConfig),
-    HttpCall(HttpCallConfig),
-    KafkaHandler(KafkaHandlerConfig),
-    CronTrigger(CronTriggerConfig),
-    WorkflowSubmit(WorkflowSubmitConfig),
-    Run(RunConfig),
-    ServiceCall(ServiceCallConfig),
-    ObjectCall(ObjectCallConfig),
-    WorkflowCall(WorkflowCallConfig),
-    SendMessage(SendMessageConfig),
-    DelayedSend(DelayedSendConfig),
-    GetState(GetStateConfig),
-    SetState(SetStateConfig),
-    ClearState(ClearStateConfig),
-    Condition(ConditionConfig),
-    Switch(SwitchConfig),
-    Loop(LoopConfig),
-    Parallel(ParallelConfig),
-    Compensate(CompensateConfig),
-    Sleep(SleepConfig),
-    Timeout(TimeoutConfig),
-    DurablePromise(DurablePromiseConfig),
     Awakeable(AwakeableConfig),
+    ClearState(ClearStateConfig),
+    Compensate(CompensateConfig),
+    Condition(ConditionConfig),
+    CronTrigger(CronTriggerConfig),
+    DelayedSend(DelayedSendConfig),
+    DurablePromise(DurablePromiseConfig),
+    GetState(GetStateConfig),
+    HttpCall(HttpCallConfig),
+    HttpHandler(HttpHandlerConfig),
+    KafkaConsumer(KafkaHandlerConfig),
+    KafkaHandler(KafkaHandlerConfig),
+    LoadFromMemory(ObjectCallConfig),
+    Loop(LoopConfig),
+    LoopIterate(LoopConfig),
+    ObjectCall(ObjectCallConfig),
+    Parallel(ParallelConfig),
     ResolvePromise(ResolvePromiseConfig),
+    Run(RunConfig),
+    SaveToMemory(SetStateConfig),
+    SendMessage(SendMessageConfig),
+    ServiceCall(ServiceCallConfig),
+    SetState(SetStateConfig),
     SignalHandler(SignalHandlerConfig),
+    Sleep(SleepConfig),
+    Switch(SwitchConfig),
+    Timeout(TimeoutConfig),
+    TimeoutGuard(TimeoutConfig),
+    WaitForWebhook(AwakeableConfig),
+    WorkflowCall(WorkflowCallConfig),
+    WorkflowSubmit(WorkflowSubmitConfig),
 }
 
 impl Default for WorkflowNode {
@@ -70,31 +76,37 @@ impl FromStr for WorkflowNode {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "http-handler" => Ok(Self::HttpHandler(HttpHandlerConfig::default())),
-            "http-call" | "http-request" => Ok(Self::HttpCall(HttpCallConfig::default())),
-            "kafka-handler" => Ok(Self::KafkaHandler(KafkaHandlerConfig::default())),
-            "cron-trigger" => Ok(Self::CronTrigger(CronTriggerConfig::default())),
-            "workflow-submit" => Ok(Self::WorkflowSubmit(WorkflowSubmitConfig::default())),
-            "run" => Ok(Self::Run(RunConfig::default())),
-            "service-call" => Ok(Self::ServiceCall(ServiceCallConfig::default())),
-            "object-call" => Ok(Self::ObjectCall(ObjectCallConfig::default())),
-            "workflow-call" => Ok(Self::WorkflowCall(WorkflowCallConfig::default())),
-            "send-message" => Ok(Self::SendMessage(SendMessageConfig::default())),
-            "delayed-send" => Ok(Self::DelayedSend(DelayedSendConfig::default())),
-            "get-state" => Ok(Self::GetState(GetStateConfig::default())),
-            "set-state" => Ok(Self::SetState(SetStateConfig::default())),
-            "clear-state" => Ok(Self::ClearState(ClearStateConfig::default())),
-            "condition" => Ok(Self::Condition(ConditionConfig::default())),
-            "switch" => Ok(Self::Switch(SwitchConfig::default())),
-            "loop" => Ok(Self::Loop(LoopConfig::default())),
-            "parallel" => Ok(Self::Parallel(ParallelConfig::default())),
-            "compensate" => Ok(Self::Compensate(CompensateConfig::default())),
-            "sleep" => Ok(Self::Sleep(SleepConfig::default())),
-            "timeout" => Ok(Self::Timeout(TimeoutConfig::default())),
-            "durable-promise" => Ok(Self::DurablePromise(DurablePromiseConfig::default())),
             "awakeable" => Ok(Self::Awakeable(AwakeableConfig::default())),
-            "resolve-promise" => Ok(Self::ResolvePromise(ResolvePromiseConfig::default())),
-            "signal-handler" => Ok(Self::SignalHandler(SignalHandlerConfig::default())),
+            "clear-state" => Ok(Self::ClearState(ClearStateConfig::default())),
+            "compensate" => Ok(Self::Compensate(CompensateConfig::default())),
+            "condition" => Ok(Self::Condition(ConditionConfig::default())),
+            "cron-trigger" | "schedule-trigger" => Ok(Self::CronTrigger(CronTriggerConfig::default())),
+            "delayed-send" | "delayed-message" => Ok(Self::DelayedSend(DelayedSendConfig::default())),
+            "durable-promise" | "promise" => Ok(Self::DurablePromise(DurablePromiseConfig::default())),
+            "get-state" => Ok(Self::GetState(GetStateConfig::default())),
+            "http-call" | "http-request" => Ok(Self::HttpCall(HttpCallConfig::default())),
+            "http-handler" | "http-trigger" => Ok(Self::HttpHandler(HttpHandlerConfig::default())),
+            "kafka-consumer" => Ok(Self::KafkaConsumer(KafkaHandlerConfig::default())),
+            "kafka-handler" => Ok(Self::KafkaHandler(KafkaHandlerConfig::default())),
+            "load-from-memory" => Ok(Self::LoadFromMemory(ObjectCallConfig::default())),
+            "loop" => Ok(Self::Loop(LoopConfig::default())),
+            "loop-iterate" => Ok(Self::LoopIterate(LoopConfig::default())),
+            "object-call" => Ok(Self::ObjectCall(ObjectCallConfig::default())),
+            "parallel" => Ok(Self::Parallel(ParallelConfig::default())),
+            "resolve-promise" | "resolve" => Ok(Self::ResolvePromise(ResolvePromiseConfig::default())),
+            "run" | "run-code" => Ok(Self::Run(RunConfig::default())),
+            "save-to-memory" => Ok(Self::SaveToMemory(SetStateConfig::default())),
+            "send-message" => Ok(Self::SendMessage(SendMessageConfig::default())),
+            "service-call" => Ok(Self::ServiceCall(ServiceCallConfig::default())),
+            "set-state" => Ok(Self::SetState(SetStateConfig::default())),
+            "signal-handler" | "wait-for-signal" => Ok(Self::SignalHandler(SignalHandlerConfig::default())),
+            "sleep" | "delay" => Ok(Self::Sleep(SleepConfig::default())),
+            "switch" | "router" => Ok(Self::Switch(SwitchConfig::default())),
+            "timeout" => Ok(Self::Timeout(TimeoutConfig::default())),
+            "timeout-guard" => Ok(Self::TimeoutGuard(TimeoutConfig::default())),
+            "wait-for-webhook" => Ok(Self::WaitForWebhook(AwakeableConfig::default())),
+            "workflow-call" => Ok(Self::WorkflowCall(WorkflowCallConfig::default())),
+            "workflow-submit" => Ok(Self::WorkflowSubmit(WorkflowSubmitConfig::default())),
             _ => Err(UnknownNodeTypeError(s.to_string())),
         }
     }
@@ -107,31 +119,37 @@ impl FromStr for WorkflowNode {
 impl fmt::Display for WorkflowNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::HttpHandler(_) => write!(f, "http-handler"),
-            Self::HttpCall(_) => write!(f, "http-call"),
-            Self::KafkaHandler(_) => write!(f, "kafka-handler"),
-            Self::CronTrigger(_) => write!(f, "cron-trigger"),
-            Self::WorkflowSubmit(_) => write!(f, "workflow-submit"),
-            Self::Run(_) => write!(f, "run"),
-            Self::ServiceCall(_) => write!(f, "service-call"),
-            Self::ObjectCall(_) => write!(f, "object-call"),
-            Self::WorkflowCall(_) => write!(f, "workflow-call"),
-            Self::SendMessage(_) => write!(f, "send-message"),
-            Self::DelayedSend(_) => write!(f, "delayed-send"),
-            Self::GetState(_) => write!(f, "get-state"),
-            Self::SetState(_) => write!(f, "set-state"),
-            Self::ClearState(_) => write!(f, "clear-state"),
-            Self::Condition(_) => write!(f, "condition"),
-            Self::Switch(_) => write!(f, "switch"),
-            Self::Loop(_) => write!(f, "loop"),
-            Self::Parallel(_) => write!(f, "parallel"),
-            Self::Compensate(_) => write!(f, "compensate"),
-            Self::Sleep(_) => write!(f, "sleep"),
-            Self::Timeout(_) => write!(f, "timeout"),
-            Self::DurablePromise(_) => write!(f, "durable-promise"),
             Self::Awakeable(_) => write!(f, "awakeable"),
+            Self::ClearState(_) => write!(f, "clear-state"),
+            Self::Compensate(_) => write!(f, "compensate"),
+            Self::Condition(_) => write!(f, "condition"),
+            Self::CronTrigger(_) => write!(f, "cron-trigger"),
+            Self::DelayedSend(_) => write!(f, "delayed-send"),
+            Self::DurablePromise(_) => write!(f, "durable-promise"),
+            Self::GetState(_) => write!(f, "get-state"),
+            Self::HttpCall(_) => write!(f, "http-call"),
+            Self::HttpHandler(_) => write!(f, "http-handler"),
+            Self::KafkaConsumer(_) => write!(f, "kafka-consumer"),
+            Self::KafkaHandler(_) => write!(f, "kafka-handler"),
+            Self::LoadFromMemory(_) => write!(f, "load-from-memory"),
+            Self::Loop(_) => write!(f, "loop"),
+            Self::LoopIterate(_) => write!(f, "loop-iterate"),
+            Self::ObjectCall(_) => write!(f, "object-call"),
+            Self::Parallel(_) => write!(f, "parallel"),
             Self::ResolvePromise(_) => write!(f, "resolve-promise"),
+            Self::Run(_) => write!(f, "run"),
+            Self::SaveToMemory(_) => write!(f, "save-to-memory"),
+            Self::SendMessage(_) => write!(f, "send-message"),
+            Self::ServiceCall(_) => write!(f, "service-call"),
+            Self::SetState(_) => write!(f, "set-state"),
             Self::SignalHandler(_) => write!(f, "signal-handler"),
+            Self::Sleep(_) => write!(f, "sleep"),
+            Self::Switch(_) => write!(f, "switch"),
+            Self::Timeout(_) => write!(f, "timeout"),
+            Self::TimeoutGuard(_) => write!(f, "timeout-guard"),
+            Self::WaitForWebhook(_) => write!(f, "wait-for-webhook"),
+            Self::WorkflowCall(_) => write!(f, "workflow-call"),
+            Self::WorkflowSubmit(_) => write!(f, "workflow-submit"),
         }
     }
 }
@@ -144,115 +162,132 @@ impl WorkflowNode {
     #[must_use]
     pub const fn category(&self) -> NodeCategory {
         match self {
-            Self::HttpHandler(_) | Self::KafkaHandler(_) | Self::CronTrigger(_) => {
+            Self::CronTrigger(_) | Self::HttpHandler(_) | Self::KafkaConsumer(_) | Self::KafkaHandler(_) => {
                 NodeCategory::Entry
             }
-            Self::HttpCall(_)
-            | Self::ServiceCall(_)
-            | Self::ObjectCall(_)
-            | Self::WorkflowCall(_)
-            | Self::SendMessage(_)
+            Self::Awakeable(_)
             | Self::DelayedSend(_)
-            | Self::Run(_) => NodeCategory::Durable,
-            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) => NodeCategory::State,
-            Self::Condition(_)
-            | Self::Switch(_)
+            | Self::DurablePromise(_)
+            | Self::HttpCall(_)
+            | Self::ObjectCall(_)
+            | Self::ResolvePromise(_)
+            | Self::Run(_)
+            | Self::SendMessage(_)
+            | Self::ServiceCall(_)
+            | Self::WaitForWebhook(_)
+            | Self::WorkflowCall(_) => NodeCategory::Durable,
+            Self::ClearState(_)
+            | Self::GetState(_)
+            | Self::LoadFromMemory(_)
+            | Self::SaveToMemory(_)
+            | Self::SetState(_) => NodeCategory::State,
+            Self::Compensate(_)
+            | Self::Condition(_)
             | Self::Loop(_)
+            | Self::LoopIterate(_)
             | Self::Parallel(_)
-            | Self::Compensate(_)
+            | Self::Switch(_)
             | Self::WorkflowSubmit(_) => NodeCategory::Flow,
-            Self::Sleep(_) | Self::Timeout(_) => NodeCategory::Timing,
+            Self::Sleep(_) | Self::Timeout(_) | Self::TimeoutGuard(_) => NodeCategory::Timing,
             Self::SignalHandler(_) => NodeCategory::Signal,
-            Self::DurablePromise(_) | Self::Awakeable(_) | Self::ResolvePromise(_) => {
-                NodeCategory::Durable
-            }
         }
     }
 
     #[must_use]
     pub const fn icon(&self) -> super::NodeIcon {
         match self {
-            Self::HttpHandler(_) => super::NodeIcon::Globe,
-            Self::HttpCall(_) | Self::ServiceCall(_) => super::NodeIcon::Call,
-            Self::KafkaHandler(_) => super::NodeIcon::Kafka,
-            Self::CronTrigger(_) => super::NodeIcon::Clock,
-            Self::WorkflowSubmit(_) | Self::WorkflowCall(_) => super::NodeIcon::Workflow,
-            Self::Run(_) => super::NodeIcon::Play,
-            Self::ObjectCall(_) => super::NodeIcon::Box,
-            Self::SendMessage(_) => super::NodeIcon::Send,
-            Self::DelayedSend(_) => super::NodeIcon::ClockSend,
-            Self::GetState(_) => super::NodeIcon::Database,
-            Self::SetState(_) => super::NodeIcon::Save,
+            Self::Awakeable(_) | Self::WaitForWebhook(_) => super::NodeIcon::Radio,
             Self::ClearState(_) => super::NodeIcon::Trash,
-            Self::Condition(_) => super::NodeIcon::GitBranch,
-            Self::Switch(_) => super::NodeIcon::GitMerge,
-            Self::Loop(_) => super::NodeIcon::Repeat,
-            Self::Parallel(_) => super::NodeIcon::Layers,
             Self::Compensate(_) => super::NodeIcon::Undo,
-            Self::Sleep(_) | Self::Timeout(_) => super::NodeIcon::Timer,
+            Self::Condition(_) => super::NodeIcon::GitBranch,
+            Self::CronTrigger(_) => super::NodeIcon::Clock,
+            Self::DelayedSend(_) => super::NodeIcon::ClockSend,
             Self::DurablePromise(_) => super::NodeIcon::Shield,
-            Self::Awakeable(_) => super::NodeIcon::Radio,
+            Self::GetState(_) | Self::LoadFromMemory(_) => super::NodeIcon::Database,
+            Self::HttpCall(_) | Self::ServiceCall(_) => super::NodeIcon::Call,
+            Self::HttpHandler(_) => super::NodeIcon::Globe,
+            Self::KafkaConsumer(_) | Self::KafkaHandler(_) => super::NodeIcon::Kafka,
+            Self::Loop(_) | Self::LoopIterate(_) => super::NodeIcon::Repeat,
+            Self::ObjectCall(_) => super::NodeIcon::Box,
+            Self::Parallel(_) => super::NodeIcon::Layers,
             Self::ResolvePromise(_) => super::NodeIcon::CheckCircle,
+            Self::Run(_) => super::NodeIcon::Play,
+            Self::SaveToMemory(_) | Self::SetState(_) => super::NodeIcon::Save,
+            Self::SendMessage(_) => super::NodeIcon::Send,
             Self::SignalHandler(_) => super::NodeIcon::Bell,
+            Self::Sleep(_) | Self::Timeout(_) | Self::TimeoutGuard(_) => super::NodeIcon::Timer,
+            Self::Switch(_) => super::NodeIcon::GitMerge,
+            Self::WorkflowCall(_) | Self::WorkflowSubmit(_) => super::NodeIcon::Workflow,
         }
     }
 
     #[must_use]
     pub const fn description(&self) -> &'static str {
         match self {
-            Self::HttpHandler(_) => "HTTP request handler",
-            Self::HttpCall(_) => "Call external HTTP API",
-            Self::KafkaHandler(_) => "Kafka message handler",
-            Self::CronTrigger(_) => "Scheduled cron trigger",
-            Self::WorkflowSubmit(_) => "Submit nested workflow",
-            Self::Run(_) => "Run arbitrary code",
-            Self::ServiceCall(_) => "Call Restate service",
-            Self::ObjectCall(_) => "Call Restate object",
-            Self::WorkflowCall(_) => "Call Restate workflow",
-            Self::SendMessage(_) => "Send message to queue",
-            Self::DelayedSend(_) => "Send delayed message",
-            Self::GetState(_) => "Get state value",
-            Self::SetState(_) => "Set state value",
-            Self::ClearState(_) => "Clear state value",
-            Self::Condition(_) => "Conditional branch",
-            Self::Switch(_) => "Multi-way branch",
-            Self::Loop(_) => "Iterate over collection",
-            Self::Parallel(_) => "Execute in parallel",
-            Self::Compensate(_) => "Compensating transaction",
-            Self::Sleep(_) => "Wait for duration",
-            Self::Timeout(_) => "Operation timeout",
-            Self::DurablePromise(_) => "Durable promise",
             Self::Awakeable(_) => "Awakeable callback",
+            Self::ClearState(_) => "Clear state value",
+            Self::Compensate(_) => "Compensating transaction",
+            Self::Condition(_) => "Conditional branch",
+            Self::CronTrigger(_) => "Scheduled cron trigger",
+            Self::DelayedSend(_) => "Send delayed message",
+            Self::DurablePromise(_) => "Durable promise",
+            Self::GetState(_) => "Get state value",
+            Self::HttpCall(_) => "Call external HTTP API",
+            Self::HttpHandler(_) => "HTTP request handler",
+            Self::KafkaConsumer(_) => "Kafka message consumer",
+            Self::KafkaHandler(_) => "Kafka message handler",
+            Self::LoadFromMemory(_) => "Load from memory",
+            Self::Loop(_) | Self::LoopIterate(_) => "Iterate over collection",
+            Self::ObjectCall(_) => "Call Restate object",
+            Self::Parallel(_) => "Execute in parallel",
             Self::ResolvePromise(_) => "Resolve promise",
+            Self::Run(_) => "Run arbitrary code",
+            Self::SaveToMemory(_) => "Save to memory",
+            Self::SendMessage(_) => "Send message to queue",
+            Self::ServiceCall(_) => "Call Restate service",
+            Self::SetState(_) => "Set state value",
             Self::SignalHandler(_) => "Signal handler",
+            Self::Sleep(_) => "Wait for duration",
+            Self::Switch(_) => "Multi-way branch",
+            Self::Timeout(_) | Self::TimeoutGuard(_) => "Operation timeout",
+            Self::WaitForWebhook(_) => "Wait for webhook",
+            Self::WorkflowCall(_) => "Call Restate workflow",
+            Self::WorkflowSubmit(_) => "Submit nested workflow",
         }
     }
 
     #[must_use]
     pub const fn output_port_type(&self) -> PortType {
         match self {
-            Self::HttpHandler(_) | Self::HttpCall(_) | Self::KafkaHandler(_) => PortType::Json,
-            Self::CronTrigger(_) => PortType::Event,
-            Self::WorkflowSubmit(_)
-            | Self::Run(_)
-            | Self::ServiceCall(_)
-            | Self::ObjectCall(_)
-            | Self::WorkflowCall(_)
-            | Self::SendMessage(_)
-            | Self::DelayedSend(_)
-            | Self::GetState(_)
-            | Self::SetState(_)
+            Self::Awakeable(_)
             | Self::ClearState(_)
-            | Self::Condition(_)
-            | Self::Switch(_)
-            | Self::Loop(_)
-            | Self::Parallel(_)
             | Self::Compensate(_)
-            | Self::Sleep(_)
-            | Self::Timeout(_)
+            | Self::Condition(_)
+            | Self::DelayedSend(_)
             | Self::DurablePromise(_)
-            | Self::Awakeable(_)
-            | Self::ResolvePromise(_) => PortType::FlowControl,
+            | Self::GetState(_)
+            | Self::LoadFromMemory(_)
+            | Self::Loop(_)
+            | Self::LoopIterate(_)
+            | Self::ObjectCall(_)
+            | Self::Parallel(_)
+            | Self::ResolvePromise(_)
+            | Self::Run(_)
+            | Self::SaveToMemory(_)
+            | Self::SendMessage(_)
+            | Self::ServiceCall(_)
+            | Self::SetState(_)
+            | Self::Sleep(_)
+            | Self::Switch(_)
+            | Self::Timeout(_)
+            | Self::TimeoutGuard(_)
+            | Self::WaitForWebhook(_)
+            | Self::WorkflowCall(_)
+            | Self::WorkflowSubmit(_) => PortType::FlowControl,
+            Self::CronTrigger(_) => PortType::Event,
+            Self::HttpCall(_) | Self::HttpHandler(_) | Self::KafkaConsumer(_) | Self::KafkaHandler(_) => {
+                PortType::Json
+            }
             Self::SignalHandler(_) => PortType::Signal,
         }
     }
@@ -260,30 +295,35 @@ impl WorkflowNode {
     #[must_use]
     pub const fn input_port_type(&self) -> PortType {
         match self {
-            Self::HttpHandler(_) | Self::KafkaHandler(_) => PortType::Json,
-            Self::CronTrigger(_) => PortType::Event,
-            Self::SignalHandler(_) => PortType::Signal,
-            Self::HttpCall(_)
-            | Self::ServiceCall(_)
-            | Self::ObjectCall(_)
-            | Self::WorkflowCall(_)
-            | Self::SendMessage(_)
-            | Self::DelayedSend(_)
-            | Self::GetState(_)
-            | Self::SetState(_)
+            Self::Awakeable(_)
             | Self::ClearState(_)
-            | Self::Run(_)
-            | Self::WorkflowSubmit(_)
-            | Self::Condition(_)
-            | Self::Switch(_)
-            | Self::Loop(_)
-            | Self::Parallel(_)
             | Self::Compensate(_)
-            | Self::Sleep(_)
-            | Self::Timeout(_)
+            | Self::Condition(_)
+            | Self::DelayedSend(_)
             | Self::DurablePromise(_)
-            | Self::Awakeable(_)
-            | Self::ResolvePromise(_) => PortType::FlowControl,
+            | Self::GetState(_)
+            | Self::HttpCall(_)
+            | Self::LoadFromMemory(_)
+            | Self::Loop(_)
+            | Self::LoopIterate(_)
+            | Self::ObjectCall(_)
+            | Self::Parallel(_)
+            | Self::ResolvePromise(_)
+            | Self::Run(_)
+            | Self::SaveToMemory(_)
+            | Self::SendMessage(_)
+            | Self::ServiceCall(_)
+            | Self::SetState(_)
+            | Self::Sleep(_)
+            | Self::Switch(_)
+            | Self::Timeout(_)
+            | Self::TimeoutGuard(_)
+            | Self::WaitForWebhook(_)
+            | Self::WorkflowCall(_)
+            | Self::WorkflowSubmit(_) => PortType::FlowControl,
+            Self::CronTrigger(_) => PortType::Event,
+            Self::HttpHandler(_) | Self::KafkaConsumer(_) | Self::KafkaHandler(_) => PortType::Json,
+            Self::SignalHandler(_) => PortType::Signal,
         }
     }
 
@@ -299,34 +339,41 @@ impl WorkflowNode {
     pub const fn service_kind(&self) -> ServiceKind {
         match self {
             // Stateless services - Handler context
-            Self::HttpHandler(_)
-            | Self::KafkaHandler(_)
+            Self::Compensate(_)
+            | Self::Condition(_)
             | Self::CronTrigger(_)
-            | Self::SignalHandler(_)
+            | Self::DelayedSend(_)
             | Self::HttpCall(_)
-            | Self::ServiceCall(_)
+            | Self::HttpHandler(_)
+            | Self::KafkaConsumer(_)
+            | Self::KafkaHandler(_)
+            | Self::Loop(_)
+            | Self::LoopIterate(_)
+            | Self::Parallel(_)
             | Self::Run(_)
             | Self::SendMessage(_)
-            | Self::DelayedSend(_)
-            | Self::Condition(_)
-            | Self::Switch(_)
-            | Self::Loop(_)
-            | Self::Parallel(_)
-            | Self::Compensate(_)
+            | Self::ServiceCall(_)
+            | Self::SignalHandler(_)
             | Self::Sleep(_)
-            | Self::Timeout(_) => ServiceKind::Handler,
+            | Self::Switch(_)
+            | Self::Timeout(_)
+            | Self::TimeoutGuard(_) => ServiceKind::Handler,
 
             // Stateful operations - Actor context
-            Self::GetState(_) | Self::SetState(_) | Self::ClearState(_) | Self::ObjectCall(_) => {
-                ServiceKind::Actor
-            }
+            Self::ClearState(_)
+            | Self::GetState(_)
+            | Self::LoadFromMemory(_)
+            | Self::ObjectCall(_)
+            | Self::SaveToMemory(_)
+            | Self::SetState(_) => ServiceKind::Actor,
 
             // Workflow operations - Workflow context
-            Self::WorkflowCall(_)
-            | Self::WorkflowSubmit(_)
+            Self::Awakeable(_)
             | Self::DurablePromise(_)
-            | Self::Awakeable(_)
-            | Self::ResolvePromise(_) => ServiceKind::Workflow,
+            | Self::ResolvePromise(_)
+            | Self::WaitForWebhook(_)
+            | Self::WorkflowCall(_)
+            | Self::WorkflowSubmit(_) => ServiceKind::Workflow,
         }
     }
 
@@ -496,6 +543,7 @@ impl std::error::Error for UnknownNodeTypeError {}
 // ============================================================================
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
 

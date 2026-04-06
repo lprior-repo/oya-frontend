@@ -9,6 +9,7 @@
 //! These snapshots serve as regression guards: any change to serde derives,
 //! rename attributes, skip directives, or field names will cause a snapshot
 //! diff that must be reviewed before acceptance.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::{
     Connection, ExecutionState, Node, NodeId, PortName, Viewport, Workflow,

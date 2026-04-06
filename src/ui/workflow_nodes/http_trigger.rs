@@ -1,12 +1,11 @@
-use crate::ui::workflow_nodes::schema::{HttpMethod, HttpPath, HttpTriggerConfig};
-use crate::ui::workflow_nodes::shared::{FormField, FormHint, NodeCard, input_classes, CARD_CLASSES, LABEL_CLASSES};
+use crate::ui::workflow_nodes::schema::{HttpHandlerConfig, HttpMethod, HttpPath};
+use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "blue";
 
 #[component]
-pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
-    let mut write_config = config.writer();
+pub fn HttpHandlerForm(mut config: Signal<HttpHandlerConfig>) -> Element {
     let input_cls = input_classes(FOCUS_RING);
 
     rsx! {
@@ -28,10 +27,10 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
                 input {
                     r#type: "text",
                     class: "{input_cls}",
-                    placeholder: "/orders/{order_id}",
+                    placeholder: "/orders/{{order_id}}",
                     value: "{config.read().path.as_str()}",
                     oninput: move |e| {
-                        write_config.write().path = HttpPath::new(e.value());
+                        config.write().path = HttpPath::new(e.value());
                     }
                 }
                 FormHint { text: "The HTTP route that starts this workflow" }
@@ -49,7 +48,7 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
                         HttpMethod::PATCH => "PATCH",
                     },
                     onchange: move |e| {
-                        write_config.write().method = match e.value().as_str() {
+                        config.write().method = match e.value().as_str() {
                             "GET" => HttpMethod::GET,
                             "POST" => HttpMethod::POST,
                             "PUT" => HttpMethod::PUT,
@@ -71,12 +70,12 @@ pub fn HttpTriggerForm(config: ReadOnlySignal<HttpTriggerConfig>) -> Element {
 }
 
 #[component]
-pub fn HttpTriggerNodeCard() -> Element {
+pub fn HttpHandlerNodeCard() -> Element {
     rsx! {
         NodeCard {
             icon_bg: "bg-blue-100",
             icon: "🌐",
-            title: "HTTP Trigger",
+            title: "HTTP Handler",
             subtitle: "Starts when someone calls this URL",
         }
     }

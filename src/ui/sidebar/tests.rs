@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 use super::model::{no_results, visible_indices, Category, NODE_TEMPLATES};
 
 // ── Category metadata ─────────────────────────────────────────────────────────

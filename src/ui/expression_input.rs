@@ -306,6 +306,7 @@ fn collect_paths(value: &Value, current_path: &str, prefix: &str, paths: &mut Ve
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{apply_suggestion, extract_paths, parse_trigger, Suggestion, Trigger};
     use serde_json::json;

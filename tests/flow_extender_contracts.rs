@@ -1,8 +1,15 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 use anyhow::{anyhow, Result};
 use oya_frontend::flow_extender::{
     apply_extension, preview_extension, suggest_extensions, suggest_extensions_with_analysis,
     RestateCapability, RestateServiceKind,
 };
+use oya_frontend::graph::Workflow;
 use oya_frontend::graph::{
     connection_errors::{check_connection, get_node_by_id, ConnectionError},
     port_types::{types_compatible, PortType},
@@ -10,7 +17,6 @@ use oya_frontend::graph::{
     workflow_node::WorkflowNode,
     NodeId, PortName,
 };
-use oya_frontend::Workflow;
 
 // ===========================================================================
 // ServiceKind Tests

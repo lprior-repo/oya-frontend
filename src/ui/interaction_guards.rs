@@ -1,4 +1,4 @@
-use oya_frontend::graph::Viewport;
+use crate::graph::Viewport;
 
 #[must_use]
 pub fn is_valid_zoom(zoom: f32) -> bool {
@@ -33,9 +33,10 @@ pub fn safe_canvas_from_viewport(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{is_valid_zoom, safe_canvas_from_viewport, safe_canvas_point};
-    use oya_frontend::graph::Viewport;
+    use crate::graph::Viewport;
 
     #[test]
     fn given_zero_zoom_when_validating_then_zoom_is_invalid() {

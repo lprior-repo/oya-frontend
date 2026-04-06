@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 #![allow(clippy::write_literal)]
 use super::*;
 use std::io::Write;

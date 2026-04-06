@@ -1,74 +1,28 @@
-use crate::ui::workflow_nodes::schema::{SendMessageConfig, TargetType};
+use crate::ui::workflow_nodes::schema::{
+    HandlerName, ObjectKey, SendMessageConfig, ServiceName, TargetType,
+};
 use crate::ui::workflow_nodes::shared::{
-    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
-    parse_json_draft, CARD_CLASSES, LABEL_CLASSES,
+    input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, NodeCard,
 };
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "yellow";
 
-fn normalize_optional_key(input: &str) -> Option<String> {
-    let trimmed = input.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
-fn target_type_from_input(input: &str) -> TargetType {
-    match input {
-        "Service" => TargetType::Service,
-        "Virtual Object" => TargetType::VirtualObject,
-        "Workflow" => TargetType::Workflow,
-        _ => TargetType::Service,
-    }
-}
-
-#[derive(Clone)]
-pub struct SendMessageNode {
-    pub config: Signal<SendMessageConfig>,
-}
-
-impl SendMessageNode {
-    pub fn new() -> Self {
-        Self {
-            config: use_signal(|| SendMessageConfig {
-                target_type: TargetType::Service,
-                service_name: String::new(),
-                key: None,
-                handler_name: String::new(),
-                input: serde_json::Value::Null,
-            }),
-        }
-    }
-
-    pub fn from_config(config: SendMessageConfig) -> Self {
-        Self {
-            config: use_signal(|| config),
-        }
-    }
-}
-
-impl Default for SendMessageNode {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[component]
-pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
+pub fn SendMessageForm(mut config: Signal<SendMessageConfig>) -> Element {
     let input_cls = input_classes(FOCUS_RING);
     let textarea_cls = textarea_classes(FOCUS_RING);
 
-    let initial_draft = json_to_display(&config.read().input);
-    let draft = use_signal(move || initial_draft);
-    let parse_error = use_signal(|| None::<String>);
+    let pretty_input = json_to_display(&config.read().input);
+    let mut draft = use_signal(move || pretty_input.clone());
+    let mut parse_error = use_signal(|| None::<String>);
 
-    let key_value = match config.read().key.clone() {
-        Some(value) => value,
-        None => String::new(),
-    };
+    let key_value = config
+        .read()
+        .key
+        .as_ref()
+        .map(|k| k.as_str().to_string())
+        .unwrap_or_default();
 
     rsx! {
         div {
@@ -86,17 +40,22 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                 label: "Send to",
                 select {
                     class: "{input_cls}",
-                    value: match &*config.read() {
-                        SendMessageConfig { target_type: TargetType::Service, .. } => "Service",
-                        SendMessageConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
-                        SendMessageConfig { target_type: TargetType::Workflow, .. } => "Workflow",
+                    value: match config.read().target_type {
+                        TargetType::Service => "Service",
+                        TargetType::VirtualObject => "Virtual Object",
+                        TargetType::Workflow => "Workflow",
                     },
                     onchange: move |e| {
-                        let next_target_type = target_type_from_input(e.value().as_str());
-                        let should_clear_key = matches!(next_target_type, TargetType::Service);
-                        config.write().target_type = next_target_type;
-                        if should_clear_key {
-                            config.write().key = None;
+                        let next_target_type = match e.value().as_str() {
+                            "Service" => TargetType::Service,
+                            "Virtual Object" => TargetType::VirtualObject,
+                            "Workflow" => TargetType::Workflow,
+                            _ => TargetType::Service,
+                        };
+                        let mut cfg = config.write();
+                        cfg.target_type = next_target_type;
+                        if matches!(next_target_type, TargetType::Service) {
+                            cfg.key = None;
                         }
                     },
                     option { value: "Service", "Service" }
@@ -110,8 +69,8 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     r#type: "text",
                     class: "{input_cls}",
                     placeholder: "e.g., notification_service",
-                    value: "{config.service_name}",
-                    oninput: move |e| config.write().service_name = e.value().clone(),
+                    value: "{config.read().service_name.as_str()}",
+                    oninput: move |e| config.write().service_name = ServiceName::new(e.value()),
                 }
             }
             FormField {
@@ -123,7 +82,14 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                         class: "{input_cls}",
                         placeholder: "e.g., user-456",
                         value: "{key_value}",
-                        oninput: move |e| config.write().key = normalize_optional_key(e.value().as_str()),
+                        oninput: move |e| {
+                            let value = e.value();
+                            config.write().key = if value.trim().is_empty() {
+                                None
+                            } else {
+                                Some(ObjectKey::new(value))
+                            };
+                        }
                     }
                 }
             }
@@ -133,8 +99,8 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     r#type: "text",
                     class: "{input_cls}",
                     placeholder: "e.g., send_email",
-                    value: "{config.handler_name}",
-                    oninput: move |e| config.write().handler_name = e.value().clone(),
+                    value: "{config.read().handler_name.as_str()}",
+                    oninput: move |e| config.write().handler_name = HandlerName::new(e.value()),
                 }
             }
             FormField {
@@ -144,7 +110,7 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     rows: 3,
                     value: "{draft}",
                     oninput: move |e| {
-                        let next_value = e.value().clone();
+                        let next_value = e.value();
                         draft.set(next_value.clone());
                         match parse_json_draft(next_value.as_str()) {
                             Ok(value) => {
@@ -159,32 +125,7 @@ pub fn SendMessageForm(config: Signal<SendMessageConfig>) -> Element {
                     p { class: "text-xs text-red-600 mt-1", "{error_text}" }
                 }
             }
-            div {
-                class: "bg-gray-50 p-3 rounded-lg",
-                p { class: "text-sm text-gray-600", "💡 Use this when you don't need to wait for a response, like sending notifications." }
-            }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::normalize_optional_key;
-    use crate::ui::workflow_nodes::shared::parse_json_draft;
-
-    #[test]
-    fn normalize_optional_key_none_for_blank() {
-        assert_eq!(normalize_optional_key("   "), None);
-    }
-
-    #[test]
-    fn normalize_optional_key_trims_whitespace() {
-        assert_eq!(normalize_optional_key("  order-1  "), Some("order-1".to_string()));
-    }
-
-    #[test]
-    fn parse_json_draft_rejects_invalid_json() {
-        assert!(parse_json_draft("{not-json}").is_err());
     }
 }
 

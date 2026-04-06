@@ -9,7 +9,7 @@ use crate::ui::panel_types::{
     chevron_rotation_class, panel_height_class, CollapseState, RunOutcome,
 };
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, RunRecord};
+use crate::graph::{NodeId, RunRecord};
 use std::collections::HashSet;
 use std::fmt::Write;
 
@@ -124,12 +124,13 @@ fn derive_step_counts(run: &RunRecord) -> (usize, usize) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         derive_step_counts, format_elapsed, format_run_duration, format_run_status,
         run_status_badge_class, status_badge_classes, truncate_id, truncate_preview, RunOutcome,
     };
-    use oya_frontend::graph::{NodeId, RunRecord};
+    use crate::graph::{NodeId, RunRecord};
     use std::collections::HashMap;
     use uuid::Uuid;
 

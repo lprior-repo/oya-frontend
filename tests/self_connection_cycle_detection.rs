@@ -7,8 +7,16 @@
 //! - check_port_type_compatibility helper function tests
 //! - add_connection wrapper tests
 //! - Integration tests for workflow lifecycle
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
-use oya_frontend::graph::connectivity::{path_exists_internal, ConnectionError, ConnectionResult};
+use oya_frontend::graph::connectivity::{
+    path_exists_internal, ConnectionError, ConnectionResult, SourcePortType, TargetPortType,
+};
 use oya_frontend::graph::restate_types::PortType;
 use oya_frontend::graph::{
     connectivity::check_port_type_compatibility_internal, Connection, NodeId, PortName, Workflow,
@@ -107,8 +115,8 @@ fn add_connection_checked_returns_type_mismatch_error_when_port_types_incompatib
     assert_eq!(
         result,
         Err(ConnectionError::TypeMismatch {
-            source_type: PortType::FlowControl,
-            target_type: PortType::Signal,
+            source_type: SourcePortType(PortType::FlowControl),
+            target_type: TargetPortType(PortType::Signal),
         })
     );
     assert_eq!(workflow.connections.len(), 0);
@@ -340,8 +348,8 @@ fn check_port_type_compatibility_returns_type_mismatch_when_ports_incompatible()
     assert_eq!(
         result,
         Err(ConnectionError::TypeMismatch {
-            source_type: PortType::FlowControl,
-            target_type: PortType::Signal,
+            source_type: SourcePortType(PortType::FlowControl),
+            target_type: TargetPortType(PortType::Signal),
         })
     );
 }
@@ -385,7 +393,7 @@ fn check_port_type_compatibility_returns_ok_for_json_compatibility() {
 // ============================================================================
 
 #[test]
-fn add_connection_returns_true_when_connection_valid() {
+fn add_connection_returns_ok_when_connection_valid() {
     let mut workflow = Workflow::new();
     let a = workflow.add_node("http-handler", 0.0, 0.0);
     let b = workflow.add_node("run", 100.0, 0.0);
@@ -397,12 +405,13 @@ fn add_connection_returns_true_when_connection_valid() {
         &PortName("main".to_string()),
     );
 
-    assert_eq!(result, true);
+    assert!(result.is_ok());
+    assert!(matches!(result, Ok(ConnectionResult::Created)));
     assert_eq!(workflow.connections.len(), 1);
 }
 
 #[test]
-fn add_connection_returns_false_when_connection_invalid() {
+fn add_connection_returns_err_when_connection_invalid() {
     let mut workflow = Workflow::new();
     let a = workflow.add_node("http-handler", 0.0, 0.0);
 
@@ -413,12 +422,12 @@ fn add_connection_returns_false_when_connection_invalid() {
         &PortName("main".to_string()),
     );
 
-    assert_eq!(result, false);
+    assert!(result.is_err());
     assert_eq!(workflow.connections.len(), 0);
 }
 
 #[test]
-fn add_connection_returns_false_when_types_incompatible() {
+fn add_connection_returns_err_when_types_incompatible() {
     let mut workflow = Workflow::new();
     let source = workflow.add_node("condition", 0.0, 0.0);
     let target = workflow.add_node("signal-handler", 100.0, 0.0);
@@ -430,7 +439,7 @@ fn add_connection_returns_false_when_types_incompatible() {
         &PortName("main".to_string()),
     );
 
-    assert_eq!(result, false);
+    assert!(result.is_err());
     assert_eq!(workflow.connections.len(), 0);
 }
 

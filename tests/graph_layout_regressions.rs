@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 use oya_frontend::graph::{PortName, Workflow};
 use std::collections::HashMap;
 

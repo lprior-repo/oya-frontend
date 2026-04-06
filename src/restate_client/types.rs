@@ -300,6 +300,7 @@ pub struct InvocationDetail {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::no_effect_underscore_binding)]
 mod tests {
     use super::*;
     use chrono::TimeZone;
@@ -894,8 +895,8 @@ mod tests {
             target_handler_name: "handler".to_string(),
             target_service_ty: ServiceType::Service,
             status: InvocationStatus::Pending,
-            created_at: 1700000000000,
-            modified_at: 1700000000000,
+            created_at: 1_700_000_000_000,
+            modified_at: 1_700_000_000_000,
             completed_at: None,
             journal_size: 0,
             retry_count: 0,
@@ -908,7 +909,7 @@ mod tests {
         };
 
         let started_at = inv.started_at();
-        let expected = Utc.timestamp_millis_opt(1700000000000).unwrap();
+        let expected = Utc.timestamp_millis_opt(1_700_000_000_000).unwrap();
         assert_eq!(started_at, expected);
     }
 

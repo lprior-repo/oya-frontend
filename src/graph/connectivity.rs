@@ -6,6 +6,24 @@ use crate::graph::restate_types::PortType;
 use crate::graph::restate_types::{types_compatible, ParsePortTypeError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourcePortType(pub PortType);
+
+impl std::fmt::Display for SourcePortType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TargetPortType(pub PortType);
+
+impl std::fmt::Display for TargetPortType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionError {
     SelfConnection,
     MissingSourceNode(NodeId),
@@ -13,8 +31,8 @@ pub enum ConnectionError {
     WouldCreateCycle,
     Duplicate,
     TypeMismatch {
-        source_type: PortType,
-        target_type: PortType,
+        source_type: SourcePortType,
+        target_type: TargetPortType,
     },
     ParseError(ParsePortTypeError),
 }
@@ -60,34 +78,61 @@ struct ValidationState {
 }
 
 impl Workflow {
-    /// Adds a connection with full type checking.
+    /// Adds a connection between two nodes.
     ///
-    /// Returns `true` if the connection was successfully added, `false` otherwise.
+    /// # Errors
     ///
-    /// # See Also
+    /// Returns [`ConnectionError`] if the connection would be invalid:
+    /// - Same source and target node ([`ConnectionError::SelfConnection`])
+    /// - Source or target node does not exist
+    /// - Connection would create a cycle
+    /// - An identical connection already exists
+    /// - Source and target port types are incompatible
     ///
-    /// Use `add_connection_checked` for detailed error information.
+    /// # Examples
+    ///
+    /// ```
+    /// use oya_frontend::graph::{Workflow, NodeId, PortName};
+    /// let mut workflow = Workflow::new();
+    /// let source = workflow.add_node("http-handler", 0.0, 0.0);
+    /// let target = workflow.add_node("run", 100.0, 0.0);
+    /// let main = PortName("main".to_string());
+    /// assert!(workflow.add_connection(source, target, &main, &main).is_ok());
+    /// ```
     pub fn add_connection(
         &mut self,
         source: NodeId,
         target: NodeId,
         source_port: &PortName,
         target_port: &PortName,
-    ) -> bool {
+    ) -> Result<ConnectionResult, ConnectionError> {
         self.add_connection_checked(source, target, source_port, target_port)
-            .is_ok()
     }
 
-    /// Adds a connection with full type checking.
+    /// Adds a connection with full validation and type checking.
     ///
     /// # Errors
     ///
-    /// Returns `ConnectionError` if:
+    /// Returns [`ConnectionError`] if:
     /// - `source` and `target` are the same node
     /// - Either endpoint does not exist in the workflow
     /// - The connection would create a cycle
     /// - An identical connection already exists
     /// - Source and target port types are incompatible
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use oya_frontend::graph::{Workflow, NodeId, PortName, ConnectionResult};
+    /// let mut workflow = Workflow::new();
+    /// let source = workflow.add_node("http-handler", 0.0, 0.0);
+    /// let target = workflow.add_node("run", 100.0, 0.0);
+    /// let main = PortName("main".to_string());
+    /// assert_eq!(
+    ///     workflow.add_connection_checked(source, target, &main, &main),
+    ///     Ok(ConnectionResult::Created)
+    /// );
+    /// ```
     pub fn add_connection_checked(
         &mut self,
         source: NodeId,
@@ -125,11 +170,33 @@ impl Workflow {
         source_port: &PortName,
         target_port: &PortName,
     ) -> Result<ValidationState, ConnectionError> {
-        if source == target {
-            return Err(ConnectionError::SelfConnection);
-        }
+        Self::validate_not_self_connection(source, target)?;
+        let (source, target) = Self::validate_nodes_exist(nodes, source, target)?;
+        Self::validate_no_cycle(connections, target, source)?;
+        Self::validate_no_duplicate(connections, source, target, source_port, target_port)?;
+        Self::check_port_type_compatibility(nodes, source, target)?;
 
-        // Single-pass O(n) lookup instead of two separate .iter().any() scans
+        Ok(ValidationState {
+            source,
+            target,
+            source_port: source_port.clone(),
+            target_port: target_port.clone(),
+        })
+    }
+
+    fn validate_not_self_connection(source: NodeId, target: NodeId) -> Result<(), ConnectionError> {
+        if source == target {
+            Err(ConnectionError::SelfConnection)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn validate_nodes_exist(
+        nodes: &[super::Node],
+        source: NodeId,
+        target: NodeId,
+    ) -> Result<(NodeId, NodeId), ConnectionError> {
         let source_found = nodes.iter().any(|node| node.id == source);
         let target_found = nodes.iter().any(|node| node.id == target);
 
@@ -139,28 +206,38 @@ impl Workflow {
         if !target_found {
             return Err(ConnectionError::MissingTargetNode(target));
         }
+        Ok((source, target))
+    }
 
+    fn validate_no_cycle(
+        connections: &[Connection],
+        target: NodeId,
+        source: NodeId,
+    ) -> Result<(), ConnectionError> {
         if graph_ops::path_exists(connections, target, source) {
-            return Err(ConnectionError::WouldCreateCycle);
+            Err(ConnectionError::WouldCreateCycle)
+        } else {
+            Ok(())
         }
+    }
 
+    fn validate_no_duplicate(
+        connections: &[Connection],
+        source: NodeId,
+        target: NodeId,
+        source_port: &PortName,
+        target_port: &PortName,
+    ) -> Result<(), ConnectionError> {
         if connections.iter().any(|c| {
             c.source == source
                 && c.target == target
                 && c.source_port == *source_port
                 && c.target_port == *target_port
         }) {
-            return Err(ConnectionError::Duplicate);
+            Err(ConnectionError::Duplicate)
+        } else {
+            Ok(())
         }
-
-        Self::check_port_type_compatibility(nodes, source, target)?;
-
-        Ok(ValidationState {
-            source,
-            target,
-            source_port: source_port.clone(),
-            target_port: target_port.clone(),
-        })
     }
 
     /// Commits a validated connection to the graph.
@@ -211,16 +288,15 @@ impl Workflow {
         source: NodeId,
         target: NodeId,
     ) -> Result<(), ConnectionError> {
-        let (source_node, target_node) =
-            Self::find_source_and_target_nodes(nodes, source, target)?;
+        let (source_node, target_node) = Self::find_source_and_target_nodes(nodes, source, target)?;
 
         let source_type = Self::get_node_output_port_type(source_node)?;
         let target_type = Self::get_node_input_port_type(target_node)?;
 
         if !types_compatible(source_type, target_type) {
             return Err(ConnectionError::TypeMismatch {
-                source_type,
-                target_type,
+                source_type: SourcePortType(source_type),
+                target_type: TargetPortType(target_type),
             });
         }
 
@@ -241,19 +317,42 @@ impl Workflow {
             .map(|workflow_node| workflow_node.input_port_type())
     }
 
+    /// Checks whether a directed path exists from `from` to `to` through the connection graph.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use oya_frontend::graph::{Workflow, NodeId, PortName};
+    /// let mut workflow = Workflow::new();
+    /// let a = workflow.add_node("http-handler", 0.0, 0.0);
+    /// let b = workflow.add_node("run", 100.0, 0.0);
+    /// let c = workflow.add_node("run", 200.0, 0.0);
+    /// let main = PortName("main".to_string());
+    ///
+    /// assert!(!Workflow::path_exists(&workflow.connections, a, c));
+    ///
+    /// let _ = workflow.add_connection_checked(a, b, &main, &main);
+    /// let _ = workflow.add_connection_checked(b, c, &main, &main);
+    ///
+    /// assert!(Workflow::path_exists(&workflow.connections, a, c));
+    /// ```
     #[must_use]
     pub fn path_exists(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
         graph_ops::path_exists(connections, from, to)
     }
 }
 
-/// Helper function for tests to access `path_exists` directly
+/// Helper function for tests to access `path_exists` directly.
+///
+/// This is a testing API - not part of the public interface.
 #[must_use]
 pub fn path_exists_internal(connections: &[Connection], from: NodeId, to: NodeId) -> bool {
     graph_ops::path_exists(connections, from, to)
 }
 
-/// Helper function for tests to access `check_port_type_compatibility` directly
+/// Helper function for tests to access `check_port_type_compatibility` directly.
+///
+/// This is a testing API - not part of the public interface.
 ///
 /// # Errors
 ///
@@ -269,6 +368,12 @@ pub fn check_port_type_compatibility_internal(
 }
 
 #[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use uuid::Uuid;
@@ -329,8 +434,8 @@ mod tests {
         assert_eq!(
             result,
             Err(ConnectionError::TypeMismatch {
-                source_type: PortType::FlowControl,
-                target_type: PortType::Signal,
+                source_type: SourcePortType(PortType::FlowControl),
+                target_type: TargetPortType(PortType::Signal),
             })
         );
     }
@@ -385,16 +490,15 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    fn given_both_nodes_missing_when_adding_checked_connection_then_source_not_found_error_is_returned()
-    {
+    fn given_both_nodes_missing_when_adding_checked_connection_then_source_not_found_error_is_returned(
+    ) {
         let mut workflow = Workflow::new();
         let ghost_source = NodeId(Uuid::new_v4());
         let ghost_target = NodeId(Uuid::new_v4());
         let main = PortName("main".to_string());
 
         // Source is checked first, so MissingSourceNode should be returned
-        let result =
-            workflow.add_connection_checked(ghost_source, ghost_target, &main, &main);
+        let result = workflow.add_connection_checked(ghost_source, ghost_target, &main, &main);
 
         assert_eq!(
             result,
@@ -410,8 +514,7 @@ mod tests {
         let ghost_source = NodeId(Uuid::new_v4());
         let main = PortName("main".to_string());
 
-        let result =
-            workflow.add_connection_checked(ghost_source, existing_target, &main, &main);
+        let result = workflow.add_connection_checked(ghost_source, existing_target, &main, &main);
 
         assert_eq!(
             result,
@@ -427,8 +530,7 @@ mod tests {
         let ghost_target = NodeId(Uuid::new_v4());
         let main = PortName("main".to_string());
 
-        let result =
-            workflow.add_connection_checked(existing_source, ghost_target, &main, &main);
+        let result = workflow.add_connection_checked(existing_source, ghost_target, &main, &main);
 
         assert_eq!(
             result,
@@ -543,8 +645,8 @@ mod tests {
     }
 
     #[test]
-    fn given_self_loop_connection_when_checking_path_exists_from_node_to_itself_then_true_is_returned()
-    {
+    fn given_self_loop_connection_when_checking_path_exists_from_node_to_itself_then_true_is_returned(
+    ) {
         let node = NodeId(Uuid::new_v4());
         let connections = vec![Connection {
             id: Uuid::new_v4(),
@@ -571,7 +673,7 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    fn given_valid_connection_when_adding_unchecked_then_true_is_returned() {
+    fn given_valid_connection_when_adding_unchecked_then_ok_is_returned() {
         let mut workflow = Workflow::new();
         let source = workflow.add_node("http-handler", 0.0, 0.0);
         let target = workflow.add_node("run", 100.0, 0.0);
@@ -579,17 +681,20 @@ mod tests {
 
         let added = workflow.add_connection(source, target, &main, &main);
 
-        assert!(added);
+        assert_eq!(added, Ok(ConnectionResult::Created));
         assert_eq!(workflow.connections.len(), 1);
     }
 
     #[test]
-    fn given_self_connection_when_adding_unchecked_then_false_is_returned() {
+    fn given_self_connection_when_adding_unchecked_then_error_is_returned() {
         let mut workflow = Workflow::new();
         let node = workflow.add_node("run", 0.0, 0.0);
         let main = PortName("main".to_string());
 
-        assert!(!workflow.add_connection(node, node, &main, &main));
+        assert_eq!(
+            workflow.add_connection(node, node, &main, &main),
+            Err(ConnectionError::SelfConnection)
+        );
         assert!(workflow.connections.is_empty());
     }
 
@@ -602,11 +707,7 @@ mod tests {
         let mut workflow = Workflow::new();
         let node_id = workflow.add_node("run", 0.0, 0.0);
 
-        let result = Workflow::find_source_and_target_nodes(
-            &workflow.nodes,
-            node_id,
-            node_id,
-        );
+        let result = Workflow::find_source_and_target_nodes(&workflow.nodes, node_id, node_id);
 
         assert!(result.is_ok());
         let (src, tgt) = result.expect("both refer to same node");
@@ -615,7 +716,8 @@ mod tests {
     }
 
     #[test]
-    fn given_empty_node_list_when_finding_source_and_target_then_missing_source_error_is_returned() {
+    fn given_empty_node_list_when_finding_source_and_target_then_missing_source_error_is_returned()
+    {
         let nodes: Vec<super::super::Node> = Vec::new();
         let source = NodeId(Uuid::new_v4());
         let target = NodeId(Uuid::new_v4());
@@ -630,7 +732,7 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    fn given_missing_source_when_adding_unchecked_then_false_is_returned_and_no_connection_added() {
+    fn given_missing_source_when_adding_unchecked_then_error_is_returned_and_no_connection_added() {
         let mut workflow = Workflow::new();
         let target = workflow.add_node("run", 0.0, 0.0);
         let ghost_source = NodeId(Uuid::new_v4());
@@ -638,12 +740,12 @@ mod tests {
 
         let added = workflow.add_connection(ghost_source, target, &main, &main);
 
-        assert!(!added);
+        assert!(added.is_err());
         assert!(workflow.connections.is_empty());
     }
 
     #[test]
-    fn given_missing_target_when_adding_unchecked_then_false_is_returned_and_no_connection_added() {
+    fn given_missing_target_when_adding_unchecked_then_error_is_returned_and_no_connection_added() {
         let mut workflow = Workflow::new();
         let source = workflow.add_node("http-handler", 0.0, 0.0);
         let ghost_target = NodeId(Uuid::new_v4());
@@ -651,23 +753,27 @@ mod tests {
 
         let added = workflow.add_connection(source, ghost_target, &main, &main);
 
-        assert!(!added);
+        assert!(added.is_err());
         assert!(workflow.connections.is_empty());
     }
 
     #[test]
-    fn given_duplicate_connection_when_adding_unchecked_then_false_is_returned() {
+    fn given_duplicate_connection_when_adding_unchecked_then_error_is_returned() {
         let mut workflow = Workflow::new();
         let source = workflow.add_node("http-handler", 0.0, 0.0);
         let target = workflow.add_node("run", 100.0, 0.0);
         let main = PortName("main".to_string());
 
         let first = workflow.add_connection(source, target, &main, &main);
-        assert!(first);
+        assert_eq!(first, Ok(ConnectionResult::Created));
 
         let duplicate = workflow.add_connection(source, target, &main, &main);
-        assert!(!duplicate);
-        assert_eq!(workflow.connections.len(), 1, "only the first connection should exist");
+        assert_eq!(duplicate, Err(ConnectionError::Duplicate));
+        assert_eq!(
+            workflow.connections.len(),
+            1,
+            "only the first connection should exist"
+        );
     }
 
     // ---------------------------------------------------------------------------
@@ -678,7 +784,10 @@ mod tests {
     fn given_self_connection_error_when_displaying_then_message_contains_self_connection_text() {
         let err = ConnectionError::SelfConnection;
         let msg = format!("{err}");
-        assert!(msg.contains("itself"), "expected self-reference in message, got: {msg}");
+        assert!(
+            msg.contains("itself"),
+            "expected self-reference in message, got: {msg}"
+        );
     }
 
     #[test]
@@ -686,7 +795,10 @@ mod tests {
         let id = NodeId(Uuid::new_v4());
         let err = ConnectionError::MissingSourceNode(id);
         let msg = format!("{err}");
-        assert!(msg.contains(&id.to_string()), "expected node id in message, got: {msg}");
+        assert!(
+            msg.contains(&id.to_string()),
+            "expected node id in message, got: {msg}"
+        );
     }
 
     #[test]
@@ -694,21 +806,30 @@ mod tests {
         let id = NodeId(Uuid::new_v4());
         let err = ConnectionError::MissingTargetNode(id);
         let msg = format!("{err}");
-        assert!(msg.contains(&id.to_string()), "expected node id in message, got: {msg}");
+        assert!(
+            msg.contains(&id.to_string()),
+            "expected node id in message, got: {msg}"
+        );
     }
 
     #[test]
     fn given_would_create_cycle_error_when_displaying_then_message_contains_cycle_text() {
         let err = ConnectionError::WouldCreateCycle;
         let msg = format!("{err}");
-        assert!(msg.contains("cycle"), "expected 'cycle' in message, got: {msg}");
+        assert!(
+            msg.contains("cycle"),
+            "expected 'cycle' in message, got: {msg}"
+        );
     }
 
     #[test]
     fn given_duplicate_error_when_displaying_then_message_contains_duplicate_text() {
         let err = ConnectionError::Duplicate;
         let msg = format!("{err}");
-        assert!(msg.contains("already exists"), "expected 'already exists' in message, got: {msg}");
+        assert!(
+            msg.contains("already exists"),
+            "expected 'already exists' in message, got: {msg}"
+        );
     }
 
     // ---------------------------------------------------------------------------
@@ -723,7 +844,10 @@ mod tests {
 
         let result = check_port_type_compatibility_internal(&workflow.nodes, ghost_source, target);
 
-        assert_eq!(result, Err(ConnectionError::MissingSourceNode(ghost_source)));
+        assert_eq!(
+            result,
+            Err(ConnectionError::MissingSourceNode(ghost_source))
+        );
     }
 
     #[test]
@@ -734,6 +858,45 @@ mod tests {
 
         let result = check_port_type_compatibility_internal(&workflow.nodes, source, ghost_target);
 
-        assert_eq!(result, Err(ConnectionError::MissingTargetNode(ghost_target)));
+        assert_eq!(
+            result,
+            Err(ConnectionError::MissingTargetNode(ghost_target))
+        );
+    }
+
+    #[test]
+    fn given_invalid_node_type_when_checking_port_compatibility_then_parse_error_is_returned() {
+        use super::super::{NodeCategory, RunConfig, WorkflowNode};
+
+        let mut workflow = Workflow::new();
+        let source = workflow.add_node("run", 0.0, 0.0);
+
+        let invalid_node = super::super::Node {
+            id: NodeId(Uuid::new_v4()),
+            name: "invalid".to_string(),
+            node: WorkflowNode::Run(RunConfig::default()),
+            category: NodeCategory::Flow,
+            icon: "?".to_string(),
+            x: 100.0,
+            y: 0.0,
+            last_output: None,
+            selected: false,
+            executing: false,
+            skipped: false,
+            error: None,
+            execution_state: super::super::ExecutionState::default(),
+            metadata: serde_json::Value::default(),
+            execution_data: serde_json::Value::default(),
+            node_type: "not-a-valid-node-type".to_string(),
+            description: String::new(),
+            config: serde_json::Value::default(),
+        };
+        workflow.nodes.push(invalid_node);
+        let invalid_target = workflow.nodes.last().unwrap().id;
+
+        let result =
+            check_port_type_compatibility_internal(&workflow.nodes, source, invalid_target);
+
+        assert!(matches!(result, Err(ConnectionError::ParseError(_))));
     }
 }

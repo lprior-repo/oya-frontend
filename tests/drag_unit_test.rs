@@ -2,6 +2,7 @@
 //!
 //! These tests verify the logic of node dragging without requiring a browser.
 //! The formula is: new_pos = ((current + delta) / 10).round() * 10
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,7 @@
 use super::{get_str_val, get_u64_val};
+use crate::graph::WorkflowNode;
 use crate::ui::panel_types::HttpMethod;
 use dioxus::prelude::*;
-use oya_frontend::graph::WorkflowNode;
 use serde_json::Value;
 
 #[component]

@@ -13,7 +13,7 @@ use crate::ui::constants::{
     ZOOM_CENTER_Y, ZOOM_DELTA,
 };
 use dioxus::prelude::*;
-use oya_frontend::flow_extender::ExtensionPatchPreview;
+use crate::flow_extender::ExtensionPatchPreview;
 
 // ============================================================================
 // Editor Command Dispatcher
@@ -81,7 +81,7 @@ pub struct ZoomConfig {
     pub center_y: f32,
 }
 
-/// Fit view padding constant (re-exported from ui::constants).
+/// Fit view padding constant (re-exported from `ui::constants`).
 pub use crate::ui::constants::FIT_VIEW_PADDING;
 
 /// Handle a canvas keydown event.
@@ -146,12 +146,12 @@ pub fn handle_canvas_keydown(
                 (*workflow).apply_layout();
             }
             EditorCommand::Undo => {
-                (*workflow).undo();
+                let _ = (*workflow).undo();
                 extension_previews.set(Vec::new());
                 selection.clear();
             }
             EditorCommand::Redo => {
-                (*workflow).redo();
+                let _ = (*workflow).redo();
                 extension_previews.set(Vec::new());
                 selection.clear();
             }

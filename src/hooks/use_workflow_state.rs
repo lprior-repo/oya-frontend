@@ -5,7 +5,7 @@
 use crate::errors::{WorkflowError, WorkflowResult};
 use crate::ui::constants::{NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET};
 use dioxus::prelude::*;
-use oya_frontend::graph::{
+use crate::graph::{
     Connection, ConnectionResult, ConnectivityConnectionError, Node, NodeId, PortName, Viewport,
     Workflow,
 };
@@ -184,31 +184,37 @@ async fn run_workflow_detached(mut workflow: Workflow, ingress_url: String) -> W
 
 impl WorkflowState {
     /// Access to workflow data signal
+    #[must_use]
     pub fn workflow(&self) -> Signal<Workflow> {
         self.workflow
     }
 
     /// Access to workflow name signal
+    #[must_use]
     pub fn workflow_name(&self) -> Signal<String> {
         self.workflow_name
     }
 
     /// Read-only access to nodes list (memoized)
+    #[must_use]
     pub fn nodes(&self) -> ReadSignal<Vec<Node>> {
         self.nodes.into()
     }
 
     /// Read-only access to nodes by ID map (memoized)
+    #[must_use]
     pub fn nodes_by_id(&self) -> ReadSignal<HashMap<NodeId, Node>> {
         self.nodes_by_id.into()
     }
 
     /// Read-only access to connections (memoized)
+    #[must_use]
     pub fn connections(&self) -> ReadSignal<Vec<Connection>> {
         self.connections.into()
     }
 
     /// Read-only access to viewport (memoized)
+    #[must_use]
     pub fn viewport(&self) -> ReadSignal<Viewport> {
         self.viewport.into()
     }
@@ -221,12 +227,14 @@ impl WorkflowState {
     }
 
     /// Add a new node at the specified position
+    #[must_use]
     pub fn add_node(mut self, node_type: &str, x: f32, y: f32) -> NodeId {
         self.save_undo_point();
         self.workflow.write().add_node(node_type, x, y)
     }
 
     /// Add a node at the viewport center using explicit canvas dimensions
+    #[must_use]
     pub fn add_node_at_viewport_center_with_canvas(
         mut self,
         node_type: &str,
@@ -243,6 +251,9 @@ impl WorkflowState {
     }
 
     /// Remove multiple nodes as a single undo transaction
+    ///
+    /// # Errors
+    /// Returns `WorkflowError::NodeNotFound` if any of the provided node IDs do not exist in the workflow.
     pub fn remove_nodes(mut self, node_ids: &[NodeId]) -> WorkflowResult<()> {
         let mut workflow = self.workflow.write();
         let mut undo_stack = self.undo_stack.write();
@@ -251,6 +262,9 @@ impl WorkflowState {
     }
 
     /// Add a connection between two nodes
+    ///
+    /// # Errors
+    /// Returns `WorkflowError` if the connection is invalid (e.g. self-connection, cycle detected, type mismatch).
     pub fn add_connection(
         mut self,
         source: NodeId,
@@ -295,6 +309,7 @@ impl WorkflowState {
     }
 
     /// Undo last action - returns true if undo was performed
+    #[must_use]
     pub fn undo(mut self) -> bool {
         let mut workflow = self.workflow.read().clone();
         let did_undo = apply_undo(
@@ -309,6 +324,7 @@ impl WorkflowState {
     }
 
     /// Redo last undone action - returns true if redo was performed
+    #[must_use]
     pub fn redo(mut self) -> bool {
         let mut workflow = self.workflow.read().clone();
         let did_redo = apply_redo(
@@ -323,11 +339,13 @@ impl WorkflowState {
     }
 
     /// Check if undo is available
+    #[must_use]
     pub fn can_undo(&self) -> bool {
         !self.undo_stack.read().is_empty()
     }
 
     /// Check if redo is available
+    #[must_use]
     pub fn can_redo(&self) -> bool {
         !self.redo_stack.read().is_empty()
     }
@@ -353,6 +371,7 @@ impl WorkflowState {
     }
 
     /// Find downstream nodes (nodes connected FROM the given node)
+    #[must_use]
     pub fn downstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
         self.connections
             .read()
@@ -363,6 +382,7 @@ impl WorkflowState {
     }
 
     /// Find upstream nodes (nodes connected TO the given node)
+    #[must_use]
     pub fn upstream_nodes(&self, node_id: NodeId) -> Vec<NodeId> {
         self.connections
             .read()
@@ -378,6 +398,7 @@ impl WorkflowState {
     }
 
     /// Get the first node in the workflow (for initial selection)
+    #[must_use]
     pub fn first_node_id(&self) -> Option<NodeId> {
         self.nodes.read().first().map(|n| n.id)
     }
@@ -404,7 +425,7 @@ fn map_connection_error(error: &ConnectivityConnectionError) -> WorkflowError {
     }
 }
 
-pub fn use_workflow_state() -> WorkflowState {
+pub fn provide_workflow_state_context() -> WorkflowState {
     let workflow = use_signal(|| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -445,7 +466,7 @@ pub fn use_workflow_state() -> WorkflowState {
     let connections = use_memo(move || workflow.read().connections.clone());
     let viewport = use_memo(move || workflow.read().viewport.clone());
 
-    WorkflowState {
+    let state = WorkflowState {
         workflow,
         workflow_name,
         undo_stack,
@@ -454,10 +475,17 @@ pub fn use_workflow_state() -> WorkflowState {
         nodes_by_id,
         connections,
         viewport,
-    }
+    };
+    provide_context(state)
+}
+
+#[must_use]
+pub fn use_workflow_state() -> WorkflowState {
+    use_context::<WorkflowState>()
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         add_connection_transaction, apply_redo, apply_undo, map_connection_error, merge_run_result,
@@ -465,8 +493,8 @@ mod tests {
         viewport_center_node_origin,
     };
     use crate::errors::WorkflowError;
-    use oya_frontend::graph::restate_types::PortType;
-    use oya_frontend::graph::{NodeId, PortName, Viewport, Workflow};
+    use crate::graph::restate_types::PortType;
+    use crate::graph::{NodeId, PortName, Viewport, Workflow};
     use serde_json::json;
 
     #[tokio::test]
@@ -491,7 +519,7 @@ mod tests {
     #[test]
     fn given_connection_error_when_mapping_to_workflow_error_then_taxonomy_is_preserved() {
         use crate::errors::WorkflowError;
-        use oya_frontend::graph::ConnectivityConnectionError;
+        use crate::graph::ConnectivityConnectionError;
 
         let mismatch = map_connection_error(&ConnectivityConnectionError::TypeMismatch {
             source_type: PortType::Event,
@@ -640,8 +668,8 @@ mod tests {
 
         assert!(merged_node.is_some());
         let merged_node = merged_node.unwrap_or_default();
-        assert_eq!(merged_node.x, 500.0);
-        assert_eq!(merged_node.y, 260.0);
+        assert!((merged_node.x - 500.0).abs() < f32::EPSILON);
+        assert!((merged_node.y - 260.0).abs() < f32::EPSILON);
         assert_eq!(merged_node.description, "local-edit");
         assert_eq!(merged_node.last_output, Some(json!({"ok": true})));
         assert!(merged_node.skipped);

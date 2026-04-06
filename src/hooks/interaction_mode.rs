@@ -2,7 +2,7 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use oya_frontend::graph::NodeId;
+use crate::graph::NodeId;
 
 // ---------------------------------------------------------------------------
 // InteractionMode — the core state-machine variant for canvas interaction
@@ -28,26 +28,31 @@ pub enum InteractionMode {
 
 impl InteractionMode {
     /// Returns `true` when the mode is `Dragging`.
+    #[must_use]
     pub fn is_dragging(&self) -> bool {
         matches!(self, Self::Dragging { .. })
     }
 
     /// Returns `true` when the mode is `Connecting`.
+    #[must_use]
     pub fn is_connecting(&self) -> bool {
         matches!(self, Self::Connecting { .. })
     }
 
     /// Returns `true` when the mode is `Marquee`.
+    #[must_use]
     pub fn is_marquee(&self) -> bool {
         matches!(self, Self::Marquee { .. })
     }
 
     /// Returns `true` when the mode is `Panning`.
+    #[must_use]
     pub fn is_panning(&self) -> bool {
         matches!(self, Self::Panning)
     }
 
     /// Returns `true` when the mode is `Idle`.
+    #[must_use]
     pub fn is_idle(&self) -> bool {
         matches!(self, Self::Idle)
     }
@@ -87,6 +92,7 @@ impl HandleName {
         Self(name.into())
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -130,16 +136,19 @@ pub enum DragAnchor {
 }
 
 impl DragAnchor {
+    #[must_use]
     pub fn active(x: f32, y: f32) -> Self {
         Self::Active { x, y }
     }
 
     // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
+    #[must_use]
     pub fn none() -> Self {
         Self::None
     }
 
+    #[must_use]
     pub fn as_point(&self) -> Option<(f32, f32)> {
         match self {
             DragAnchor::None => None,
@@ -163,16 +172,19 @@ pub enum HoveredHandle {
 }
 
 impl HoveredHandle {
+    #[must_use]
     pub fn active(node_id: NodeId, handle: HandleName) -> Self {
         Self::Active { node_id, handle }
     }
 
     // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
+    #[must_use]
     pub fn none() -> Self {
         Self::None
     }
 
+    #[must_use]
     pub fn as_tuple(&self) -> Option<(NodeId, String)> {
         match self {
             HoveredHandle::None => None,
@@ -198,16 +210,19 @@ pub enum TempEdge {
 }
 
 impl TempEdge {
+    #[must_use]
     pub fn active(source: FlowPosition, target: FlowPosition) -> Self {
         Self::Active { source, target }
     }
 
     // Test-only: explicit constructor for None variant
     #[allow(dead_code)]
+    #[must_use]
     pub fn none() -> Self {
         Self::None
     }
 
+    #[must_use]
     pub fn as_positions(&self) -> Option<(FlowPosition, FlowPosition)> {
         match self {
             TempEdge::None => None,
@@ -222,6 +237,7 @@ impl TempEdge {
 
 /// Determines the correct [`InteractionMode::Dragging`] variant based on the
 /// clicked node and any already-selected nodes.
+#[must_use]
 pub fn drag_mode_from_selection(node_id: NodeId, selected_ids: Vec<NodeId>) -> InteractionMode {
     if selected_ids.is_empty() {
         InteractionMode::Dragging {
@@ -242,6 +258,7 @@ pub fn drag_mode_from_selection(node_id: NodeId, selected_ids: Vec<NodeId>) -> I
 
 /// Updates `current` position in a [`InteractionMode::Marquee`] while keeping
 /// `start` unchanged. Returns a clone of `mode` unchanged for other variants.
+#[must_use]
 pub fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> InteractionMode {
     match mode {
         InteractionMode::Marquee { start, .. } => InteractionMode::Marquee {
@@ -253,6 +270,7 @@ pub fn update_marquee_mode(mode: &InteractionMode, pos: (f32, f32)) -> Interacti
 }
 
 /// Returns the CSS cursor class string for the current mode + tool combo.
+#[must_use]
 pub fn cursor_class_for(mode: &InteractionMode, cursor_tool: CursorTool) -> &'static str {
     match mode {
         InteractionMode::Panning => "cursor-grabbing",
@@ -266,6 +284,7 @@ pub fn cursor_class_for(mode: &InteractionMode, cursor_tool: CursorTool) -> &'st
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
 

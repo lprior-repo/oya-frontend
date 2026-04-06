@@ -5,8 +5,14 @@ use crate::graph::calc;
 const MIN_ZOOM: f32 = 0.15;
 const MAX_ZOOM: f32 = 3.0;
 
-fn clamp_zoom(value: f32) -> f32 {
-    value.clamp(MIN_ZOOM, MAX_ZOOM)
+const fn clamp_zoom(value: f32) -> f32 {
+    if value < MIN_ZOOM {
+        MIN_ZOOM
+    } else if value > MAX_ZOOM {
+        MAX_ZOOM
+    } else {
+        value
+    }
 }
 
 impl Workflow {
@@ -45,6 +51,7 @@ impl Workflow {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use crate::graph::Workflow;
 

@@ -14,18 +14,23 @@
 //! ```
 
 use dioxus::prelude::*;
-use oya_frontend::restate_client::types::{Invocation, InvocationFilter};
-use oya_frontend::restate_client::{RestateClient, RestateClientConfig};
+use im::HashMap;
+use crate::restate_client::types::Invocation;
+use crate::restate_client::{RestateClient, RestateClientConfig};
+use crate::restate_sync::poller::InvocationPoller;
+use std::sync::Arc;
 
 /// Live state surfaced from the Restate introspection poll.
 #[derive(Clone, Debug, Default)]
 pub struct RestateState {
-    /// Latest snapshot of all invocations.
-    pub invocations: Vec<Invocation>,
+    /// Latest snapshot of all invocations, indexed by ID.
+    pub invocations: HashMap<String, Invocation>,
     /// Whether the last poll succeeded.
     pub connected: bool,
     /// Last error message if the connection failed.
     pub last_error: Option<String>,
+    /// Last time the state was updated (timestamp).
+    pub last_updated: i64,
 }
 
 /// Handle returned by `use_restate_sync`.
@@ -39,57 +44,112 @@ pub struct RestateSyncHandle {
     pub admin_url: Signal<String>,
     /// Ingress base URL (default: <http://localhost:8080>). Used when running workflows.
     pub ingress_url: Signal<String>,
+    /// Polling interval in milliseconds (default: 2000ms).
+    pub poll_interval_ms: Signal<u32>,
 }
 
-/// Dioxus hook that polls Restate every 5 seconds while `enabled`.
-///
-/// Polling uses `gloo-timers` in WASM and `tokio::time::sleep` on native so
-/// the future never spin-loops on either target.
-pub fn use_restate_sync() -> RestateSyncHandle {
+pub fn provide_restate_sync_context() -> RestateSyncHandle {
     let mut state = use_signal(RestateState::default);
     let enabled = use_signal(|| false);
     let admin_url = use_signal(|| "http://localhost:9070".to_string());
     let ingress_url = use_signal(|| "http://localhost:8080".to_string());
+    let poll_interval_ms = use_signal(|| 2000u32);
 
-    // Bounded polling loop: each iteration awaits poll_sleep_ms (5s timeout),
-    // preventing spin-loops. Dioxus use_future cancels the future on unmount.
+    // Main polling future.
     use_future(move || async move {
+        let mut last_admin_url = String::new();
+        let mut poller: Option<InvocationPoller> = None;
+
         loop {
             if *enabled.read() {
-                let url = admin_url.read().clone();
-                let config = build_restate_config_from_url(&url);
-                let client = RestateClient::new(config);
+                let current_admin_url = admin_url.read().clone();
+                
+                // If the URL changed, reset the poller.
+                if current_admin_url != last_admin_url {
+                    let config = build_restate_config_from_url(&current_admin_url);
+                    let client = Arc::new(RestateClient::new(config));
+                    poller = Some(InvocationPoller::new(client));
+                    last_admin_url = current_admin_url;
+                }
 
-                match client.list_invocations(InvocationFilter::All).await {
-                    Ok(invocations) => {
-                        state.set(RestateState {
-                            invocations,
-                            connected: true,
-                            last_error: None,
-                        });
-                    }
-                    Err(err) => {
-                        let mut s = state.write();
-                        s.connected = false;
-                        s.last_error = Some(err.to_string());
+                if let Some(ref mut p) = poller {
+                    match p.poll().await {
+                        Ok(result) => {
+                            let mut s = state.write();
+                            s.connected = true;
+                            s.last_error = None;
+                            s.last_updated = result.timestamp;
+                            
+                            // Process delta events for status changes.
+                            // This provides immediate UI feedback for state transitions
+                            // while the full refresh ensures consistency for other changes.
+                            let mut has_complete_data = false;
+                            
+                            for event in &result.events {
+                                match event {
+                                    crate::restate_sync::InvocationEvent::StatusChanged { 
+                                        invocation_id, 
+                                        new_status 
+                                    } => {
+                                        if let Some(inv) = s.invocations.get_mut(invocation_id) {
+                                            inv.status = (*new_status).into();
+                                        }
+                                    }
+                                    crate::restate_sync::InvocationEvent::Completed { .. }
+                                    | crate::restate_sync::InvocationEvent::Failed { .. }
+                                    | crate::restate_sync::InvocationEvent::New { .. } => {
+                                        // Cannot apply these deltas without complete invocation data.
+                                        // Fall back to full refresh below.
+                                        has_complete_data = true;
+                                    }
+                                }
+                            }
+                            
+                            // Full refresh when we lack complete delta data,
+                            // or periodically to catch removed invocations.
+                            if has_complete_data || result.events.is_empty() {
+                                let mut new_map = HashMap::new();
+                                for inv in p.state().invocations() {
+                                    new_map.insert(inv.id.clone(), inv);
+                                }
+                                s.invocations = new_map;
+                            }
+                        }
+                        Err(err) => {
+                            let mut s = state.write();
+                            s.connected = false;
+                            s.last_error = Some(err.to_string());
+                        }
                     }
                 }
+            } else {
+                // If disabled, reset the poller so it starts fresh next time.
+                poller = None;
+                last_admin_url = String::new();
             }
 
-            poll_sleep_ms(5000).await;
+            poll_sleep_ms(*poll_interval_ms.read()).await;
         }
     });
 
-    RestateSyncHandle {
+    let handle = RestateSyncHandle {
         state: state.into(),
         enabled,
         admin_url,
         ingress_url,
-    }
+        poll_interval_ms,
+    };
+    provide_context(handle)
+}
+
+#[must_use]
+pub fn use_restate_sync() -> RestateSyncHandle {
+    use_context::<RestateSyncHandle>()
 }
 
 /// Parse a URL like "http://host:port" into a `RestateClientConfig`.
 /// Falls back to defaults if parsing fails.
+#[must_use]
 pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
     let url = url.trim_end_matches('/');
     // Strip scheme.
@@ -121,7 +181,7 @@ pub fn build_restate_config_from_url(url: &str) -> RestateClientConfig {
 }
 
 /// Target-specific sleep: real timer in WASM, tokio on native.
-async fn poll_sleep_ms(ms: u32) {
+pub async fn poll_sleep_ms(ms: u32) {
     #[cfg(target_arch = "wasm32")]
     {
         gloo_timers::future::TimeoutFuture::new(ms).await;
@@ -133,6 +193,7 @@ async fn poll_sleep_ms(ms: u32) {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::build_restate_config_from_url;
 

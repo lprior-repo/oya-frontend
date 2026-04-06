@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 use super::model::{SpecId, SpecVersion, SuggestionKey};
 use super::{MetricsStore, SpecValidationMetrics, SuggestionDecision, SuggestionDecisionMetrics};
 use chrono::Utc;

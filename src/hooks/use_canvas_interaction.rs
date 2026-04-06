@@ -7,7 +7,7 @@ use crate::hooks::interaction_mode::{
 };
 use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
-use oya_frontend::graph::NodeId;
+use crate::graph::NodeId;
 
 // Re-export all interaction-mode types so the public API is unchanged.
 pub use crate::hooks::interaction_mode::{
@@ -27,26 +27,32 @@ pub struct CanvasInteraction {
 
 #[allow(dead_code)]
 impl CanvasInteraction {
+    #[must_use]
     pub fn mode(&self) -> ReadSignal<InteractionMode> {
         self.mode.into()
     }
 
+    #[must_use]
     pub fn cursor_tool(&self) -> ReadSignal<CursorTool> {
         self.cursor_tool.into()
     }
 
+    #[must_use]
     pub fn mouse_pos(&self) -> ReadSignal<CanvasPoint> {
         self.mouse_pos.into()
     }
 
+    #[must_use]
     pub fn canvas_origin(&self) -> ReadSignal<CanvasPoint> {
         self.canvas_origin.into()
     }
 
+    #[must_use]
     pub fn temp_edge(&self) -> ReadSignal<TempEdge> {
         self.temp_edge.into()
     }
 
+    #[must_use]
     pub fn hovered_handle(&self) -> ReadSignal<HoveredHandle> {
         self.hovered_handle.into()
     }
@@ -138,36 +144,44 @@ impl CanvasInteraction {
         self.drag_anchor.set(DragAnchor::None);
     }
 
+    #[must_use]
     pub fn is_dragging(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Dragging { .. })
     }
 
+    #[must_use]
     pub fn is_connecting(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Connecting { .. })
     }
 
+    #[must_use]
     pub fn is_marquee(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Marquee { .. })
     }
 
+    #[must_use]
     pub fn is_panning(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Panning)
     }
 
+    #[must_use]
     pub fn is_idle(&self) -> bool {
         matches!(*self.mode.read(), InteractionMode::Idle)
     }
 
+    #[must_use]
     pub fn is_space_hand_active(&self) -> bool {
         *self.cursor_tool.read() == CursorTool::SpaceHand
     }
 
+    #[must_use]
     pub fn cursor_class(&self) -> &'static str {
         let mode = self.mode.read().clone();
         let cursor_tool = *self.cursor_tool.read();
         cursor_class_for(&mode, cursor_tool)
     }
 
+    #[must_use]
     pub fn dragging_node_ids(&self) -> Option<Vec<NodeId>> {
         match &*self.mode.read() {
             InteractionMode::Dragging { node_ids } => Some(node_ids.clone()),
@@ -175,10 +189,12 @@ impl CanvasInteraction {
         }
     }
 
+    #[must_use]
     pub fn drag_anchor(&self) -> Option<(f32, f32)> {
         self.drag_anchor.read().as_point()
     }
 
+    #[must_use]
     pub fn connecting_from(&self) -> Option<(NodeId, String)> {
         match &*self.mode.read() {
             InteractionMode::Connecting { from, handle } => {
@@ -188,6 +204,7 @@ impl CanvasInteraction {
         }
     }
 
+    #[must_use]
     pub fn marquee_rect(&self) -> Option<((f32, f32), (f32, f32))> {
         match &*self.mode.read() {
             InteractionMode::Marquee { start, current } => {
@@ -198,7 +215,7 @@ impl CanvasInteraction {
     }
 }
 
-pub fn use_canvas_interaction() -> CanvasInteraction {
+pub fn provide_canvas_interaction_context() -> CanvasInteraction {
     let mode = use_signal(InteractionMode::default);
     let cursor_tool = use_signal(CursorTool::default);
     let mouse_pos = use_signal(CanvasPoint::default);
@@ -207,7 +224,7 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
     let hovered_handle = use_signal(HoveredHandle::default);
     let drag_anchor = use_signal(DragAnchor::default);
 
-    CanvasInteraction {
+    let state = CanvasInteraction {
         mode,
         cursor_tool,
         mouse_pos,
@@ -215,5 +232,11 @@ pub fn use_canvas_interaction() -> CanvasInteraction {
         temp_edge,
         hovered_handle,
         drag_anchor,
-    }
+    };
+    provide_context(state)
+}
+
+#[must_use]
+pub fn use_canvas_interaction() -> CanvasInteraction {
+    use_context::<CanvasInteraction>()
 }

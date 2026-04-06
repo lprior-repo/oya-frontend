@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 
 use dioxus::prelude::*;
-use oya_frontend::graph::{Connection, Node, NodeId, Viewport};
+use crate::graph::{Connection, Node, NodeId, Viewport};
 use std::fmt::Write;
 
 use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
@@ -269,14 +269,15 @@ pub fn FlowMinimap(
 
 // ── Unit tests ────────────────────────────────────────────────────────────────
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::*;
-    use oya_frontend::graph::workflow_node::WorkflowNode;
+    use crate::graph::workflow_node::WorkflowNode;
 
     fn make_node(x: f32, y: f32) -> Node {
         Node::from_workflow_node(
             String::new(),
-            WorkflowNode::Run(oya_frontend::graph::RunConfig::default()),
+            WorkflowNode::Run(crate::graph::RunConfig::default()),
             x,
             y,
         )

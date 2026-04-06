@@ -1,5 +1,9 @@
 pub mod app_bootstrap;
+#[cfg(target_arch = "wasm32")]
 pub mod app_io;
+#[cfg(target_arch = "wasm32")]
+pub mod app_shell;
+#[cfg(target_arch = "wasm32")]
 pub mod canvas_area;
 pub mod canvas_context_menu;
 pub mod command_palette;
@@ -8,7 +12,9 @@ pub mod constants;
 pub mod domain_types;
 pub mod edges;
 pub mod editor_interactions;
+#[cfg(target_arch = "wasm32")]
 pub mod execution_history_panel;
+#[cfg(target_arch = "wasm32")]
 pub mod execution_plan_panel;
 pub mod expression_input;
 pub mod icons;
@@ -19,23 +25,37 @@ pub mod minimap;
 pub mod node;
 pub mod panel_types;
 pub mod parallel_group_overlay;
+#[cfg(target_arch = "wasm32")]
 pub mod payload_preview_panel;
 pub mod prototype_palette;
+#[cfg(target_arch = "wasm32")]
 pub mod restate;
+#[cfg(target_arch = "wasm32")]
 pub mod right_panel;
 pub mod run_status_bar;
+#[cfg(target_arch = "wasm32")]
 pub mod selected_node_panel;
+#[cfg(target_arch = "wasm32")]
+pub mod settings_overlay;
 pub mod sidebar;
 pub mod toolbar;
 pub mod validation_panel;
+pub mod workflow_nodes;
 
+#[cfg(target_arch = "wasm32")]
+pub use app_io::download_workflow_json;
+#[cfg(target_arch = "wasm32")]
+pub use app_shell::AppShell;
+#[cfg(target_arch = "wasm32")]
 pub use canvas_area::CanvasArea;
 pub use canvas_context_menu::CanvasContextMenu;
 pub use command_palette::NodeCommandPalette;
 pub use config_panel::NodeConfigEditor;
 pub use domain_types::NodeTemplateId;
 pub use edges::{FlowEdges, Position as FlowPosition};
+#[cfg(target_arch = "wasm32")]
 pub use execution_history_panel::ExecutionHistoryPanel;
+#[cfg(target_arch = "wasm32")]
 pub use execution_plan_panel::ExecutionPlanPanel;
 #[allow(unused_imports)]
 pub use expression_input::{ExpressionInput, NodeInfo};
@@ -44,12 +64,17 @@ pub use inspector_panel::InspectorPanel;
 pub use minimap::FlowMinimap;
 pub use node::FlowNodeComponent;
 pub use parallel_group_overlay::ParallelGroupOverlay;
+#[cfg(target_arch = "wasm32")]
 pub use payload_preview_panel::PayloadPreviewPanel;
 pub use prototype_palette::PrototypePalette;
+#[cfg(target_arch = "wasm32")]
 #[allow(unused_imports)]
 pub use right_panel::RightPanel;
 pub use run_status_bar::RunStatusBar;
+#[cfg(target_arch = "wasm32")]
 pub use selected_node_panel::SelectedNodePanel;
+#[cfg(target_arch = "wasm32")]
+pub use settings_overlay::SettingsOverlay;
 pub use sidebar::NodeSidebar;
 pub use toolbar::FlowToolbar;
 pub use validation_panel::ValidationPanel;

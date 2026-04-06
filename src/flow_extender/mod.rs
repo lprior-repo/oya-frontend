@@ -1533,6 +1533,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{
         apply_extension, detect_extension_conflicts, extension_dependency_graph, extension_presets,

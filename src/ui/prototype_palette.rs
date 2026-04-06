@@ -60,6 +60,7 @@ const PALETTE_ENTRIES: [PaletteEntry; 9] = [
     },
 ];
 
+#[must_use]
 pub fn generate_skeleton(nodes: &[SketchNode]) -> String {
     let mut out = String::from("name: \"prototype-workflow\"\nsteps:\n");
 
@@ -214,6 +215,7 @@ pub fn PrototypePalette(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{generate_skeleton, NodeTemplateId, SketchNode};
 

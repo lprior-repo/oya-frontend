@@ -7,7 +7,7 @@
 
 use crate::ui::panel_types::ValidationResultCategory;
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, ValidationResult, ValidationSeverity};
+use crate::graph::{NodeId, ValidationResult, ValidationSeverity};
 
 use crate::ui::icons::{AlertCircleIcon, AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon};
 
@@ -86,7 +86,7 @@ pub fn ValidationPanel(
 
 #[component]
 fn IssueRow(
-    issue: oya_frontend::graph::ValidationIssue,
+    issue: crate::graph::ValidationIssue,
     on_select_node: EventHandler<NodeId>,
 ) -> Element {
     let node_id = issue.node_id;

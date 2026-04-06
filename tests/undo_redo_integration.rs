@@ -10,6 +10,12 @@
 //!
 //! All tests operate directly on `Workflow` and the stack functions,
 //! without requiring a Dioxus runtime.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use oya_frontend::graph::{NodeId, PortName, Workflow};
 
@@ -101,11 +107,11 @@ fn add_connection_with_undo(
 ) -> bool {
     let snapshot = workflow.clone();
     let ok = workflow.add_connection(source, target, source_port, target_port);
-    if ok {
+    if ok.is_ok() {
         push_undo_snapshot(undo_stack, snapshot, STACK_CAP);
         redo_stack.clear();
     }
-    ok
+    ok.is_ok()
 }
 
 fn node_position(workflow: &Workflow, id: NodeId) -> Option<(f32, f32)> {
@@ -127,9 +133,20 @@ fn given_node_added_when_undo_then_node_is_removed_and_redo_restores_it() {
     let mut redo_stack: Vec<Workflow> = Vec::new();
 
     // Add a node with undo tracking
-    let node_id = add_node_with_undo(&mut workflow, &mut undo_stack, &mut redo_stack, "run", 10.0, 20.0);
+    let node_id = add_node_with_undo(
+        &mut workflow,
+        &mut undo_stack,
+        &mut redo_stack,
+        "run",
+        10.0,
+        20.0,
+    );
 
-    assert_eq!(workflow.nodes.len(), 1, "workflow should have 1 node after add");
+    assert_eq!(
+        workflow.nodes.len(),
+        1,
+        "workflow should have 1 node after add"
+    );
     assert!(undo_stack.len() == 1, "undo stack should have 1 snapshot");
 
     // Undo: node should be gone
@@ -139,13 +156,20 @@ fn given_node_added_when_undo_then_node_is_removed_and_redo_restores_it() {
         workflow.nodes.is_empty(),
         "workflow should have 0 nodes after undo"
     );
-    assert!(undo_stack.is_empty(), "undo stack should be empty after undo");
+    assert!(
+        undo_stack.is_empty(),
+        "undo stack should be empty after undo"
+    );
     assert!(redo_stack.len() == 1, "redo stack should have 1 snapshot");
 
     // Redo: node should be back
     let did_redo = apply_redo(&mut workflow, &mut undo_stack, &mut redo_stack);
     assert!(did_redo, "redo should succeed");
-    assert_eq!(workflow.nodes.len(), 1, "workflow should have 1 node after redo");
+    assert_eq!(
+        workflow.nodes.len(),
+        1,
+        "workflow should have 1 node after redo"
+    );
     assert!(
         workflow.nodes.iter().any(|n| n.id == node_id),
         "restored node should match original id"
@@ -164,7 +188,14 @@ fn given_node_moved_when_undo_then_position_is_restored() {
     assert_eq!(original_pos, Some((50.0, 60.0)));
 
     // Move with undo tracking
-    move_node_with_undo(&mut workflow, &mut undo_stack, &mut redo_stack, node_id, 100.0, 200.0);
+    move_node_with_undo(
+        &mut workflow,
+        &mut undo_stack,
+        &mut redo_stack,
+        node_id,
+        100.0,
+        200.0,
+    );
     let moved_pos = node_position(&workflow, node_id);
     assert_eq!(
         moved_pos,
@@ -177,8 +208,7 @@ fn given_node_moved_when_undo_then_position_is_restored() {
     assert!(did_undo, "undo should succeed");
     let restored_pos = node_position(&workflow, node_id);
     assert_eq!(
-        restored_pos,
-        original_pos,
+        restored_pos, original_pos,
         "node position should be restored to original after undo"
     );
 }
@@ -204,7 +234,11 @@ fn given_two_nodes_connected_when_undo_then_connection_is_gone_and_redo_restores
         &main,
     );
     assert!(ok, "connection should be created");
-    assert_eq!(workflow.connections.len(), 1, "workflow should have 1 connection");
+    assert_eq!(
+        workflow.connections.len(),
+        1,
+        "workflow should have 1 connection"
+    );
 
     // Undo: connection should be gone
     let did_undo = apply_undo(&mut workflow, &mut undo_stack, &mut redo_stack);
@@ -213,12 +247,20 @@ fn given_two_nodes_connected_when_undo_then_connection_is_gone_and_redo_restores
         workflow.connections.is_empty(),
         "connection should be gone after undo"
     );
-    assert_eq!(workflow.nodes.len(), 2, "nodes should still be present after undo");
+    assert_eq!(
+        workflow.nodes.len(),
+        2,
+        "nodes should still be present after undo"
+    );
 
     // Redo: connection should be back
     let did_redo = apply_redo(&mut workflow, &mut undo_stack, &mut redo_stack);
     assert!(did_redo, "redo should succeed");
-    assert_eq!(workflow.connections.len(), 1, "connection should be restored after redo");
+    assert_eq!(
+        workflow.connections.len(),
+        1,
+        "connection should be restored after redo"
+    );
 }
 
 // ===========================================================================
@@ -250,7 +292,11 @@ fn given_35_snapshots_when_cap_is_30_then_oldest_5_are_evicted() {
         .first()
         .and_then(|wf| wf.nodes.first())
         .map(|n| n.x);
-    assert_eq!(first_x, Some(5.0), "oldest surviving snapshot should have x=5.0");
+    assert_eq!(
+        first_x,
+        Some(5.0),
+        "oldest surviving snapshot should have x=5.0"
+    );
 
     let last_x = undo_stack
         .last()
@@ -437,7 +483,10 @@ fn given_undo_performed_when_new_operation_then_redo_stack_is_cleared() {
 
     // Redo should now be a no-op since the redo stack was cleared
     let did_redo = apply_redo(&mut workflow, &mut undo_stack, &mut redo_stack);
-    assert!(!did_redo, "redo should be no-op after redo stack is cleared");
+    assert!(
+        !did_redo,
+        "redo should be no-op after redo stack is cleared"
+    );
 }
 
 // ===========================================================================
@@ -450,7 +499,14 @@ fn given_three_operations_when_undo_twice_then_workflow_is_at_first_state() {
     let mut undo_stack: Vec<Workflow> = Vec::new();
     let mut redo_stack: Vec<Workflow> = Vec::new();
 
-    let _ = add_node_with_undo(&mut workflow, &mut undo_stack, &mut redo_stack, "run", 0.0, 0.0);
+    let _ = add_node_with_undo(
+        &mut workflow,
+        &mut undo_stack,
+        &mut redo_stack,
+        "run",
+        0.0,
+        0.0,
+    );
     assert_eq!(workflow.nodes.len(), 1);
 
     let _ = add_node_with_undo(
@@ -463,7 +519,14 @@ fn given_three_operations_when_undo_twice_then_workflow_is_at_first_state() {
     );
     assert_eq!(workflow.nodes.len(), 2);
 
-    let _ = add_node_with_undo(&mut workflow, &mut undo_stack, &mut redo_stack, "run", 200.0, 0.0);
+    let _ = add_node_with_undo(
+        &mut workflow,
+        &mut undo_stack,
+        &mut redo_stack,
+        "run",
+        200.0,
+        0.0,
+    );
     assert_eq!(workflow.nodes.len(), 3);
 
     // Undo twice: should be back to 1 node
@@ -471,14 +534,22 @@ fn given_three_operations_when_undo_twice_then_workflow_is_at_first_state() {
     assert_eq!(workflow.nodes.len(), 2);
 
     let _ = apply_undo(&mut workflow, &mut undo_stack, &mut redo_stack);
-    assert_eq!(workflow.nodes.len(), 1, "should be back to 1 node after 2 undos");
+    assert_eq!(
+        workflow.nodes.len(),
+        1,
+        "should be back to 1 node after 2 undos"
+    );
 
     // Redo twice: should be back to 3 nodes
     let _ = apply_redo(&mut workflow, &mut undo_stack, &mut redo_stack);
     assert_eq!(workflow.nodes.len(), 2);
 
     let _ = apply_redo(&mut workflow, &mut undo_stack, &mut redo_stack);
-    assert_eq!(workflow.nodes.len(), 3, "should be back to 3 nodes after 2 redos");
+    assert_eq!(
+        workflow.nodes.len(),
+        3,
+        "should be back to 3 nodes after 2 redos"
+    );
 }
 
 #[test]
@@ -518,7 +589,11 @@ fn given_node_removed_with_undo_when_undo_then_node_is_restored() {
     // Undo the removal
     let did_undo = apply_undo(&mut workflow, &mut undo_stack, &mut redo_stack);
     assert!(did_undo, "undo should succeed");
-    assert_eq!(workflow.nodes.len(), 2, "both nodes should be back after undo");
+    assert_eq!(
+        workflow.nodes.len(),
+        2,
+        "both nodes should be back after undo"
+    );
     assert!(
         workflow.nodes.iter().any(|n| n.id == node_a),
         "node_a should be present"

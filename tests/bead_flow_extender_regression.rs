@@ -1,7 +1,13 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 use oya_frontend::flow_extender::{
     apply_extension, detect_extension_conflicts, preview_extension, ConflictKind,
 };
-use oya_frontend::Workflow;
+use oya_frontend::graph::Workflow;
 
 #[test]
 fn bead_required_unknown_extension_returns_structured_error() {

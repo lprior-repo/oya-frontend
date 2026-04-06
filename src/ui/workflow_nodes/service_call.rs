@@ -1,21 +1,23 @@
-use crate::ui::workflow_nodes::schema::{ServiceCallConfig, TargetType};
+use crate::ui::workflow_nodes::schema::{
+    Condition, HandlerName, ObjectKey, ServiceCallConfig, ServiceName, TargetType,
+};
 use crate::ui::workflow_nodes::shared::{
-    FormField, FormHint, NodeCard, input_classes, textarea_classes, json_to_display,
-    parse_json_draft, CARD_CLASSES, LABEL_CLASSES,
+    input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, FormHint,
+    NodeCard,
 };
 use dioxus::prelude::*;
 
 const FOCUS_RING: &str = "green";
 
 #[component]
-pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
+pub fn ServiceCallForm(mut config: Signal<ServiceCallConfig>) -> Element {
     let input_cls = input_classes(FOCUS_RING);
     let textarea_cls = textarea_classes(FOCUS_RING);
 
     let pretty_input = json_to_display(&config.read().input);
-    let json_draft = use_signal(|| pretty_input.clone());
-    let json_error = use_signal(|| Option::<String>::None);
-    let last_synced_input = use_signal(|| pretty_input.clone());
+    let mut json_draft = use_signal(|| pretty_input.clone());
+    let mut json_error = use_signal(|| Option::<String>::None);
+    let mut last_synced_input = use_signal(|| pretty_input.clone());
 
     use_effect(move || {
         let latest = json_to_display(&config.read().input);
@@ -27,15 +29,18 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
         }
     });
 
-    let key_value = match config.read().key.clone() {
-        Some(value) => value,
-        None => String::new(),
-    };
-
-    let condition_value = match config.read().condition.clone() {
-        Some(value) => value,
-        None => String::new(),
-    };
+    let key_value = config
+        .read()
+        .key
+        .as_ref()
+        .map(|k| k.as_str().to_string())
+        .unwrap_or_default();
+    let condition_value = config
+        .read()
+        .condition
+        .as_ref()
+        .map(|c| c.as_str().to_string())
+        .unwrap_or_default();
 
     rsx! {
         div {
@@ -55,10 +60,10 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 label: "What type of thing are you calling?",
                 select {
                     class: "{input_cls}",
-                    value: match &*config.read() {
-                        ServiceCallConfig { target_type: TargetType::Service, .. } => "Service",
-                        ServiceCallConfig { target_type: TargetType::VirtualObject, .. } => "Virtual Object",
-                        ServiceCallConfig { target_type: TargetType::Workflow, .. } => "Workflow",
+                    value: match config.read().target_type {
+                        TargetType::Service => "Service",
+                        TargetType::VirtualObject => "Virtual Object",
+                        TargetType::Workflow => "Workflow",
                     },
                     onchange: move |e| {
                         let next_target_type = match e.value().as_str() {
@@ -85,10 +90,10 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 input {
                     r#type: "text",
                     class: "{input_cls}",
-                    placeholder: "e.g., payment_service",
-                    value: "{config.service_name}",
+                    placeholder: "/orders/{{order_id}}",
+                    value: "{config.read().service_name.as_str()}",
                     oninput: move |e| {
-                        config.write().service_name = e.value().clone();
+                        config.write().service_name = ServiceName::new(e.value());
                     }
                 }
             }
@@ -103,11 +108,11 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                         placeholder: "e.g., order-123",
                         value: "{key_value}",
                         oninput: move |e| {
-                            let value = e.value().clone();
+                            let value = e.value();
                             config.write().key = if value.trim().is_empty() {
                                 None
                             } else {
-                                Some(value)
+                                Some(ObjectKey::new(value))
                             };
                         }
                     }
@@ -121,9 +126,9 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                     r#type: "text",
                     class: "{input_cls}",
                     placeholder: "e.g., charge_card",
-                    value: "{config.handler_name}",
+                    value: "{config.read().handler_name.as_str()}",
                     oninput: move |e| {
-                        config.write().handler_name = e.value().clone();
+                        config.write().handler_name = HandlerName::new(e.value());
                     }
                 }
             }
@@ -133,10 +138,10 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 textarea {
                     class: "{textarea_cls}",
                     rows: 4,
-                    placeholder: r#"{"amount": 100, "currency": "USD"}"#,
+                    placeholder: r#"{{"amount": 100, "currency": "USD"}}"#,
                     value: "{json_draft}",
                     oninput: move |e| {
-                        let draft = e.value().clone();
+                        let draft = e.value();
                         json_draft.set(draft.clone());
 
                         match parse_json_draft(&draft) {
@@ -166,14 +171,14 @@ pub fn ServiceCallForm(config: Signal<ServiceCallConfig>) -> Element {
                 input {
                     r#type: "text",
                     class: "{input_cls}",
-                    placeholder: "e.g., {{ steps.validate.valid }} == true",
+                    placeholder: "e.g., {{{{ steps.validate.valid }}}} == true",
                     value: "{condition_value}",
                     oninput: move |e| {
-                        let value = e.value().clone();
+                        let value = e.value();
                         config.write().condition = if value.trim().is_empty() {
                             None
                         } else {
-                            Some(value)
+                            Some(Condition::new(value))
                         };
                     }
                 }

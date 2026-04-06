@@ -8,7 +8,7 @@ use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::PayloadShape;
 use dioxus::prelude::*;
-use oya_frontend::graph::{NodeId, Workflow};
+use crate::graph::{NodeId, Workflow};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum PayloadTab {

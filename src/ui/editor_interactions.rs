@@ -34,12 +34,12 @@ pub fn node_intersects_rect(node_x: f32, node_y: f32, rect: SelectionRect) -> bo
 
 #[must_use]
 pub fn snap_handle(
-    nodes: &[oya_frontend::graph::Node],
+    nodes: &[crate::graph::Node],
     mx: f32,
     my: f32,
-    viewport: &oya_frontend::graph::Viewport,
+    viewport: &crate::graph::Viewport,
 ) -> Option<(
-    oya_frontend::graph::NodeId,
+    crate::graph::NodeId,
     String,
     crate::ui::edges::Position,
 )> {
@@ -58,7 +58,7 @@ pub fn snap_handle(
     let canvas_y = (my - viewport.y) / zoom_val;
 
     let mut best: Option<(
-        oya_frontend::graph::NodeId,
+        crate::graph::NodeId,
         String,
         crate::ui::edges::Position,
         f32,
@@ -121,9 +121,10 @@ pub fn snap_handle(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::{node_intersects_rect, normalize_rect, rect_contains, snap_handle};
-    use oya_frontend::graph::{Viewport, Workflow};
+    use crate::graph::{Viewport, Workflow};
 
     #[test]
     fn given_drag_points_when_normalizing_then_rect_bounds_are_ordered() {
@@ -222,7 +223,7 @@ mod tests {
                 "zoom 2.0 should select same handle kind as zoom 0.5"
             );
         } else {
-            assert!(false, "all zoom levels should find a snap handle");
+            panic!("all zoom levels should find a snap handle");
         }
     }
 

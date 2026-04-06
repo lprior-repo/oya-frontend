@@ -3,13 +3,13 @@
 //! Each test serializes a value to JSON, deserializes it back, and compares
 //! field-by-field to verify that serde `Serialize` + `Deserialize` impls are
 //! consistent and lossless for the serialized fields.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 
 use oya_frontend::graph::execution_state::ExecutionState;
 use oya_frontend::graph::workflow_node::configs::*;
 use oya_frontend::graph::{
     Connection, Node, NodeId, PortName, Viewport, Workflow, WorkflowNode,
 };
-use serde_json;
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------

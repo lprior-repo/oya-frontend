@@ -72,6 +72,7 @@ pub use workflow_node::configs::{
 pub use workflow_node::{ConditionResult, HttpMethod, UnknownHttpMethodError, WorkflowNode};
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
 mod tests {
     use super::workflow_node::{SendMessageConfig, SetStateConfig};
     use super::{Node, NodeCategory, NodeId, PortName, WorkflowNode};

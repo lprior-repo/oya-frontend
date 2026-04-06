@@ -12,8 +12,9 @@
 //! - Journal entries list
 //! - State changes
 
+use crate::hooks::use_restate_sync::poll_sleep_ms;
 use dioxus::prelude::*;
-use oya_frontend::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
+use crate::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
 
 const fn status_to_ui_string(status: InvocationStatus) -> &'static str {
     match status {
@@ -30,8 +31,10 @@ const fn status_to_ui_string(status: InvocationStatus) -> &'static str {
 
 #[derive(Props, Clone, PartialEq)]
 pub struct RestateInvocationDetailsProps {
-    pub invocation: Invocation,
-    pub journal: Vec<JournalEntry>,
+    pub invocation_id: Signal<Option<String>>,
+    pub handle: crate::hooks::RestateSyncHandle,
+    pub journal: Signal<Vec<JournalEntry>>,
+    pub admin_url: String,
     #[props(default)]
     pub loading: bool,
     pub on_close: EventHandler<()>,
@@ -39,9 +42,49 @@ pub struct RestateInvocationDetailsProps {
 
 #[component]
 pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element {
-    let inv = &props.invocation;
-    let journal = &props.journal;
-    let status_str = status_to_ui_string(inv.status);
+    let restate = use_restate_sync();
+    let invocations = restate.state.read().invocations;
+    let inv = props.invocation_id.read().as_ref().and_then(|id| invocations.get(id));
+    let is_active = inv.map_or(false, |i| i.status.is_active());
+    
+    let mut journal = props.journal;
+    let status_str = inv.map_or("unknown", |i| status_to_ui_string(i.status));
+    
+    // Poll for journal updates if active
+    let inv_id = props.invocation_id.read().clone();
+    let admin_url = props.admin_url.clone();
+    
+    use_future(move || {
+        let id = inv_id.clone();
+        let url = admin_url.clone();
+        async move {
+            if id.is_some() {
+                loop {
+                    poll_sleep_ms(2000).await;
+
+                    let restate = crate::hooks::use_restate_sync();
+                    let invocations = restate.state.read().invocations;
+                    if let Some(inv) = id.as_ref().and_then(|id| invocations.get(id)) {
+                        if !inv.status.is_active() {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+
+                    let config = crate::hooks::build_restate_config_from_url(&url);
+                    let client = crate::restate_client::RestateClient::new(config);
+                    if let Some(ref inv_id) = id {
+                        if let Ok(entries) = client.get_journal(inv_id).await {
+                            if entries.len() != journal.read().len() {
+                                journal.set(entries);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     rsx! {
         div {
@@ -72,59 +115,66 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                 div {
                     class: "p-4 overflow-y-auto max-h-[calc(80vh-80px)]",
 
-                    // Invocation Info
-                    div {
-                        class: "grid grid-cols-2 gap-4 mb-6",
-
+                    if let Some(inv) = inv {
+                        // Invocation Info
                         div {
-                            class: "space-y-2",
-                            div { class: "text-sm text-gray-500", "Invocation ID" }
-                            div { class: "font-mono text-sm break-all", {inv.id.clone()} }
-                        }
+                            class: "grid grid-cols-2 gap-4 mb-6",
 
-                        div {
-                            class: "space-y-2",
-                            div { class: "text-sm text-gray-500", "Workflow" }
-                            div { class: "font-medium", {inv.target.clone()} }
-                        }
-
-                        div {
-                            class: "space-y-2",
-                            div { class: "text-sm text-gray-500", "Status" }
-                            div {
-                                class: {
-                                    let mut class = String::with_capacity(64);
-                                    class.push_str("px-2 py-1 rounded text-sm ");
-                                    match inv.status {
-                                        InvocationStatus::Completed => class.push_str("bg-green-100 text-green-800"),
-                                        InvocationStatus::Running => class.push_str("bg-blue-100 text-blue-800"),
-                                        InvocationStatus::Paused | InvocationStatus::BackingOff => class.push_str("bg-red-100 text-red-800"),
-                                        _ => class.push_str("bg-gray-100 text-gray-800"),
-                                    }
-                                    class
-                                },
-                                {status_str}
-                            }
-                        }
-
-                        div {
-                            class: "space-y-2",
-                            div { class: "text-sm text-gray-500", "Started" }
-                            div { class: "text-sm", {format_time(inv.created_at)} }
-                        }
-
-                        if let Some(finished) = inv.completed_at {
                             div {
                                 class: "space-y-2",
-                                div { class: "text-sm text-gray-500", "Finished" }
-                                div { class: "text-sm", {format_time(finished)} }
+                                div { class: "text-sm text-gray-500", "Invocation ID" }
+                                div { class: "font-mono text-sm break-all", {inv.id.clone()} }
+                            }
+
+                            div {
+                                class: "space-y-2",
+                                div { class: "text-sm text-gray-500", "Workflow" }
+                                div { class: "font-medium", {inv.target.clone()} }
+                            }
+
+                            div {
+                                class: "space-y-2",
+                                div { class: "text-sm text-gray-500", "Status" }
+                                div {
+                                    class: {
+                                        let mut class = String::with_capacity(64);
+                                        class.push_str("px-2 py-1 rounded text-sm ");
+                                        match inv.status {
+                                            InvocationStatus::Completed => class.push_str("bg-green-100 text-green-800"),
+                                            InvocationStatus::Running => class.push_str("bg-blue-100 text-blue-800"),
+                                            InvocationStatus::Paused | InvocationStatus::BackingOff => class.push_str("bg-red-100 text-red-800"),
+                                            _ => class.push_str("bg-gray-100 text-gray-800"),
+                                        }
+                                        class
+                                    },
+                                    {status_str}
+                                }
+                            }
+
+                            div {
+                                class: "space-y-2",
+                                div { class: "text-sm text-gray-500", "Started" }
+                                div { class: "text-sm", {format_time(inv.created_at)} }
+                            }
+
+                            if let Some(finished) = inv.completed_at {
+                                div {
+                                    class: "space-y-2",
+                                    div { class: "text-sm text-gray-500", "Finished" }
+                                    div { class: "text-sm", {format_time(finished)} }
+                                }
+                            }
+
+                            div {
+                                class: "space-y-2",
+                                div { class: "text-sm text-gray-500", "Journal Size" }
+                                div { class: "text-sm", {inv.journal_size.to_string()} }
                             }
                         }
-
+                    } else {
                         div {
-                            class: "space-y-2",
-                            div { class: "text-sm text-gray-500", "Journal Size" }
-                            div { class: "text-sm", {inv.journal_size.to_string()} }
+                            class: "p-4 text-center text-gray-500",
+                            "Loading invocation..."
                         }
                     }
 
@@ -141,7 +191,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                                 class: "text-gray-500 text-sm",
                                 "Loading journal\u{2026}"
                             }
-                        } else if journal.is_empty() {
+                        } else if journal.read().is_empty() {
                             div {
                                 class: "text-gray-500 text-sm",
                                 "No journal entries"
@@ -149,7 +199,7 @@ pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element
                         } else {
                             div {
                                 class: "space-y-2",
-                                for entry in journal {
+                                for entry in journal.read().iter() {
                                     div {
                                         class: "flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded",
 
