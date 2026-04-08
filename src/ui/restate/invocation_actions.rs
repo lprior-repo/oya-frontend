@@ -17,9 +17,9 @@ use crate::restate_client::types::{InvocationAction, InvocationStatus};
 /// Rules:
 /// - Cancel: All active statuses except Paused.
 /// - Kill: All statuses except Completed.
-/// - Pause: Only Running and BackingOff.
-/// - Resume: Only Paused.
-/// - Purge: Only Completed.
+/// - Pause: Only `Running` and `BackingOff`.
+/// - Resume: Only `Paused`.
+/// - Purge: Only `Completed`.
 #[must_use]
 pub const fn is_action_available(action: InvocationAction, status: InvocationStatus) -> bool {
     match action {
@@ -43,7 +43,7 @@ pub const fn is_action_available(action: InvocationAction, status: InvocationSta
 }
 
 /// Feedback state for an invocation action displayed in the UI.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum ActionFeedback {
     /// No action in progress.
     #[default]

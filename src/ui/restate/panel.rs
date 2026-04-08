@@ -14,7 +14,7 @@ use crate::hooks::build_restate_config_from_url;
 use crate::hooks::RestateSyncHandle;
 use crate::restate_client::types::{InvocationStatus, JournalEntry};
 use crate::restate_client::RestateClient;
-use crate::ui::restate::RestateInvocationDetails;
+use crate::ui::restate::{RestateInvocationDetails, StateBrowserPanel};
 use dioxus::prelude::*;
 
 const fn status_dot_class(connected: bool) -> &'static str {
@@ -234,6 +234,11 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
                     }
                 }
             }
+        }
+
+        // State Browser — rendered as separate collapsible section
+        StateBrowserPanel {
+            admin_url: handle.admin_url.read().clone(),
         }
 
         // Details modal — rendered outside the panel so it floats over everything

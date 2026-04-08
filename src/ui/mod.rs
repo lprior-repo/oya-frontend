@@ -28,7 +28,6 @@ pub mod parallel_group_overlay;
 #[cfg(target_arch = "wasm32")]
 pub mod payload_preview_panel;
 pub mod prototype_palette;
-#[cfg(target_arch = "wasm32")]
 pub mod restate;
 #[cfg(target_arch = "wasm32")]
 pub mod right_panel;

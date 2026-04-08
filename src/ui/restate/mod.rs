@@ -17,6 +17,7 @@ pub mod journal_viewer;
 pub mod panel;
 #[cfg(target_arch = "wasm32")]
 pub mod promise_browser;
+pub mod state_browser;
 
 #[cfg(target_arch = "wasm32")]
 pub use details_panel::RestateInvocationDetails;
@@ -24,3 +25,5 @@ pub use details_panel::RestateInvocationDetails;
 pub use panel::RestateInvocationsPanel;
 #[cfg(target_arch = "wasm32")]
 pub use promise_browser::PromiseBrowserPanel;
+#[cfg(target_arch = "wasm32")]
+pub use state_browser::StateBrowserPanel;

@@ -179,7 +179,7 @@ impl From<&str> for JournalEntryType {
 }
 
 /// State entry from state table
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateEntry {
     pub service_name: String,
     pub service_key: Option<String>,
