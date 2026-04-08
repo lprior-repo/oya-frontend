@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::ParallelConfig;
 use crate::ui::workflow_nodes::shared::NodeCard;
 use dioxus::prelude::*;
@@ -14,6 +15,6 @@ pub fn ParallelForm(config: Signal<ParallelConfig>) -> Element {
 #[component]
 pub fn ParallelNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-indigo-100", icon: "🔀", title: "Parallel", subtitle: "Execute branches in parallel" }
+        NodeCard { icon_bg: "bg-indigo-100", icon: "🔀", title: "Parallel", subtitle: "Execute branches in parallel", service_kind: Some(ServiceKind::Handler) }
     }
 }

@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::WorkflowCallConfig;
 use crate::ui::workflow_nodes::shared::{
     input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, FormHint,
@@ -108,6 +109,7 @@ pub fn WorkflowCallNodeCard() -> Element {
             icon: "🔄",
             title: "Workflow Call",
             subtitle: "Call another workflow",
+            service_kind: Some(ServiceKind::Workflow),
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{HttpHandlerConfig, HttpMethod, HttpPath};
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -77,6 +78,7 @@ pub fn HttpHandlerNodeCard() -> Element {
             icon: "🌐",
             title: "HTTP Handler",
             subtitle: "Starts when someone calls this URL",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

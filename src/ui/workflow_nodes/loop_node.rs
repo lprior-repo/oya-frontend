@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::LoopConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -61,6 +62,7 @@ pub fn LoopNodeCard() -> Element {
             icon: "🔁",
             title: "Loop",
             subtitle: "Iterate over collection",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

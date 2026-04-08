@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::ResolvePromiseConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard};
 use dioxus::prelude::*;
@@ -20,6 +21,6 @@ pub fn ResolvePromiseForm(config: Signal<ResolvePromiseConfig>) -> Element {
 #[component]
 pub fn ResolvePromiseNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-cyan-200", icon: "✅", title: "Resolve", subtitle: "Resolve a promise" }
+        NodeCard { icon_bg: "bg-cyan-200", icon: "✅", title: "Resolve", subtitle: "Resolve a promise", service_kind: Some(ServiceKind::Workflow) }
     }
 }

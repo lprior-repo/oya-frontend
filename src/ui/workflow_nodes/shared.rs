@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use dioxus::prelude::*;
 
 /// Shared CSS class constants used across all workflow node forms and cards.
@@ -60,20 +61,55 @@ pub fn parse_optional_json_draft(input: &str) -> Result<Option<serde_json::Value
 }
 
 // ---------------------------------------------------------------------------
+// ServiceKind badge helpers
+// ---------------------------------------------------------------------------
+
+/// Returns the Tailwind CSS classes for a ServiceKind badge.
+///
+/// - Handler: gray tones ("Stateless")
+/// - Actor: blue tones ("Stateful")
+/// - Workflow: purple tones ("Durable")
+#[must_use]
+pub const fn service_kind_badge_classes(kind: ServiceKind) -> &'static str {
+    match kind {
+        ServiceKind::Handler => "bg-gray-100 text-gray-600",
+        ServiceKind::Actor => "bg-blue-100 text-blue-700",
+        ServiceKind::Workflow => "bg-purple-100 text-purple-700",
+    }
+}
+
+/// Returns the human-readable label for a ServiceKind badge.
+///
+/// - Handler → "Stateless"
+/// - Actor → "Stateful"
+/// - Workflow → "Durable"
+#[must_use]
+pub const fn service_kind_label(kind: ServiceKind) -> &'static str {
+    match kind {
+        ServiceKind::Handler => "Stateless",
+        ServiceKind::Actor => "Stateful",
+        ServiceKind::Workflow => "Durable",
+    }
+}
+
+// ---------------------------------------------------------------------------
 // NodeCard component
 // ---------------------------------------------------------------------------
 
 /// Props for the shared `NodeCard` component.
 ///
 /// Each workflow node type renders the same card layout: a colored circle
-/// containing an emoji icon, a bold title, and a muted subtitle. The only
-/// variation is the color, icon, title, and subtitle text.
+/// containing an emoji icon, a bold title, a muted subtitle, and optionally
+/// a ServiceKind badge with capability indicator dots. The only variation is
+/// the color, icon, title, subtitle text, and optional service kind.
 #[derive(Props, Clone, PartialEq)]
 pub struct NodeCardProps {
     pub icon_bg: &'static str,
     pub icon: &'static str,
     pub title: &'static str,
     pub subtitle: &'static str,
+    #[props(default)]
+    pub service_kind: Option<ServiceKind>,
 }
 
 /// A reusable card component for workflow node type selectors.
@@ -81,8 +117,57 @@ pub struct NodeCardProps {
 /// All 11 node card components (`HttpTriggerNodeCard`, `ServiceCallNodeCard`,
 /// etc.) previously duplicated the same `rsx!` structure with only four
 /// varying fields. This component consolidates that pattern.
+///
+/// When `service_kind` is provided, a small badge and capability dots are
+/// rendered alongside the subtitle.
 #[component]
 pub fn NodeCard(props: NodeCardProps) -> Element {
+    let badge_markup = props.service_kind.map(move |kind| {
+        let badge_cls = service_kind_badge_classes(kind);
+        let label = service_kind_label(kind);
+        let has_state = kind.supports_state();
+        let has_promises = kind.supports_promises();
+        rsx! {
+            div {
+                class: "flex items-center gap-1.5 mt-0.5",
+
+                span {
+                    class: "text-[10px] font-medium px-1.5 py-0.5 rounded {badge_cls}",
+                    "{label}"
+                }
+
+                // Capability indicator dots
+                span {
+                    class: "flex items-center gap-1",
+
+                    if has_state {
+                        span {
+                            class: "inline-block w-1.5 h-1.5 rounded-full bg-amber-400",
+                            title: "State access",
+                        }
+                    } else {
+                        span {
+                            class: "inline-block w-1.5 h-1.5 rounded-full border border-gray-300",
+                            title: "No state",
+                        }
+                    }
+
+                    if has_promises {
+                        span {
+                            class: "inline-block w-1.5 h-1.5 rounded-full bg-purple-400",
+                            title: "Promises",
+                        }
+                    } else {
+                        span {
+                            class: "inline-block w-1.5 h-1.5 rounded-full border border-gray-300",
+                            title: "No promises",
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     rsx! {
         div {
             class: "{CARD_CLASSES}",
@@ -97,14 +182,18 @@ pub fn NodeCard(props: NodeCardProps) -> Element {
 
             div {
                 class: "flex-1",
-                h3 {
-                    class: "font-medium text-gray-900",
-                    "{props.title}"
+                div {
+                    class: "flex items-center gap-2",
+                    h3 {
+                        class: "font-medium text-gray-900",
+                        "{props.title}"
+                    }
                 }
                 p {
                     class: "text-sm text-gray-500",
                     "{props.subtitle}"
                 }
+                {badge_markup}
             }
         }
     }
@@ -225,5 +314,67 @@ mod tests {
     #[test]
     fn parse_optional_json_draft_invalid_is_err() {
         assert!(parse_optional_json_draft("{not-json}").is_err());
+    }
+
+    // ========================================================================
+    // ServiceKind badge tests (RED PHASE — functions do not exist yet)
+    // ========================================================================
+
+    #[test]
+    fn badge_classes_returns_gray_classes_when_handler() {
+        let classes = service_kind_badge_classes(crate::graph::service_kinds::ServiceKind::Handler);
+        assert!(
+            classes.contains("bg-gray"),
+            "expected gray background for Handler, got: {classes}"
+        );
+        assert!(
+            classes.contains("text-gray"),
+            "expected gray text for Handler, got: {classes}"
+        );
+    }
+
+    #[test]
+    fn badge_classes_returns_blue_classes_when_actor() {
+        let classes = service_kind_badge_classes(crate::graph::service_kinds::ServiceKind::Actor);
+        assert!(
+            classes.contains("bg-blue"),
+            "expected blue background for Actor, got: {classes}"
+        );
+        assert!(
+            classes.contains("text-blue"),
+            "expected blue text for Actor, got: {classes}"
+        );
+    }
+
+    #[test]
+    fn badge_classes_returns_purple_classes_when_workflow() {
+        let classes =
+            service_kind_badge_classes(crate::graph::service_kinds::ServiceKind::Workflow);
+        assert!(
+            classes.contains("bg-purple"),
+            "expected purple background for Workflow, got: {classes}"
+        );
+        assert!(
+            classes.contains("text-purple"),
+            "expected purple text for Workflow, got: {classes}"
+        );
+    }
+
+    #[test]
+    fn label_returns_stateless_when_handler() {
+        let label = service_kind_label(crate::graph::service_kinds::ServiceKind::Handler);
+        assert_eq!(label, "Stateless");
+    }
+
+    #[test]
+    fn label_returns_stateful_when_actor() {
+        let label = service_kind_label(crate::graph::service_kinds::ServiceKind::Actor);
+        assert_eq!(label, "Stateful");
+    }
+
+    #[test]
+    fn label_returns_durable_when_workflow() {
+        let label = service_kind_label(crate::graph::service_kinds::ServiceKind::Workflow);
+        assert_eq!(label, "Durable");
     }
 }

@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{
     DelayedSendConfig, HandlerName, ObjectKey, ServiceName, TargetType,
 };
@@ -240,6 +241,7 @@ pub fn DelayedSendNodeCard() -> Element {
             icon: "⏰",
             title: "Delayed Send",
             subtitle: "Send after a delay",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

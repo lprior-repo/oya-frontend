@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::ObjectCallConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -68,6 +69,7 @@ pub fn ObjectCallNodeCard() -> Element {
             icon: "📦",
             title: "Object Call",
             subtitle: "Call Virtual Object method",
+            service_kind: Some(ServiceKind::Actor),
         }
     }
 }

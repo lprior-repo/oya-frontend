@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::WorkflowSubmitConfig;
 use crate::ui::workflow_nodes::shared::{
     input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, FormHint,
@@ -123,6 +124,7 @@ pub fn WorkflowSubmitNodeCard() -> Element {
             icon: "📤",
             title: "Workflow Submit",
             subtitle: "Starts when submitted",
+            service_kind: Some(ServiceKind::Workflow),
         }
     }
 }

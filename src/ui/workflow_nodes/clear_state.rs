@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::ClearStateConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard};
 use dioxus::prelude::*;
@@ -26,6 +27,6 @@ pub fn ClearStateForm(config: Signal<ClearStateConfig>) -> Element {
 #[component]
 pub fn ClearStateNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-amber-100", icon: "🗑", title: "Clear State", subtitle: "Remove a stored state value" }
+        NodeCard { icon_bg: "bg-amber-100", icon: "🗑", title: "Clear State", subtitle: "Remove a stored state value", service_kind: Some(ServiceKind::Actor) }
     }
 }

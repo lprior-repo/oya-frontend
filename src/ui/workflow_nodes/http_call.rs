@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::HttpCallConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -55,6 +56,7 @@ pub fn HttpCallNodeCard() -> Element {
             icon: "🌐",
             title: "HTTP Call",
             subtitle: "Call external HTTP API",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

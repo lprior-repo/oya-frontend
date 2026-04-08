@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::CompensateConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard};
 use dioxus::prelude::*;
@@ -20,6 +21,6 @@ pub fn CompensateForm(config: Signal<CompensateConfig>) -> Element {
 #[component]
 pub fn CompensateNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-rose-100", icon: "↩️", title: "Compensate", subtitle: "Saga compensation path" }
+        NodeCard { icon_bg: "bg-rose-100", icon: "↩️", title: "Compensate", subtitle: "Saga compensation path", service_kind: Some(ServiceKind::Handler) }
     }
 }

@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{
     HandlerName, ObjectKey, SendMessageConfig, ServiceName, TargetType,
 };
@@ -137,6 +138,7 @@ pub fn SendMessageNodeCard() -> Element {
             icon: "📤",
             title: "Send Message",
             subtitle: "Send without waiting for response",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

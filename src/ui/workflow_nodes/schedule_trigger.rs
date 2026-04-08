@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{CronExpression, CronTriggerConfig};
 use crate::ui::workflow_nodes::shared::{
     input_classes, FormField, FormHint, NodeCard, PRESET_BTN_CLASSES,
@@ -75,6 +76,7 @@ pub fn CronTriggerNodeCard() -> Element {
             icon: "🕐",
             title: "Cron Trigger",
             subtitle: "Runs automatically on a schedule",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

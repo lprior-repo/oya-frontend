@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::SwitchConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -51,6 +52,7 @@ pub fn SwitchNodeCard() -> Element {
             icon: "🔀",
             title: "Switch",
             subtitle: "Go different ways based on conditions",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

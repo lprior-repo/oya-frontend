@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::SleepConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard, PRESET_BTN_CLASSES};
 use dioxus::prelude::*;
@@ -137,6 +138,7 @@ pub fn SleepNodeCard() -> Element {
             icon: "⏱️",
             title: "Sleep",
             subtitle: "Wait for a period of time",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

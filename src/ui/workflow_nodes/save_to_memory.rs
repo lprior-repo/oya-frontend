@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{ObjectKey, SetStateConfig};
 use crate::ui::workflow_nodes::shared::{
     input_classes, json_to_display, parse_json_draft, textarea_classes, FormField, FormHint,
@@ -74,6 +75,7 @@ pub fn SetStateNodeCard() -> Element {
             icon: "💾",
             title: "Set State",
             subtitle: "Store a value in state",
+            service_kind: Some(ServiceKind::Actor),
         }
     }
 }

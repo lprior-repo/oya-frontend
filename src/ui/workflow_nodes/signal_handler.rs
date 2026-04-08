@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::SignalHandlerConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -47,6 +48,7 @@ pub fn SignalHandlerNodeCard() -> Element {
             icon: "📡",
             title: "Signal Handler",
             subtitle: "Wait for another workflow",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

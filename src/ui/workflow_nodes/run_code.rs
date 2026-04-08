@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::RunConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -55,6 +56,7 @@ pub fn RunNodeCard() -> Element {
             icon: "⚡",
             title: "Run",
             subtitle: "Execute custom logic",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

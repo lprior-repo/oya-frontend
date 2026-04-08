@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::DurablePromiseConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard};
 use dioxus::prelude::*;
@@ -20,6 +21,6 @@ pub fn DurablePromiseForm(config: Signal<DurablePromiseConfig>) -> Element {
 #[component]
 pub fn DurablePromiseNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-cyan-100", icon: "🤝", title: "Promise", subtitle: "Durable awaitable promise" }
+        NodeCard { icon_bg: "bg-cyan-100", icon: "🤝", title: "Promise", subtitle: "Durable awaitable promise", service_kind: Some(ServiceKind::Workflow) }
     }
 }

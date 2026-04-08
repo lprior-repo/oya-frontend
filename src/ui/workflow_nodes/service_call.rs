@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{
     Condition, HandlerName, ObjectKey, ServiceCallConfig, ServiceName, TargetType,
 };
@@ -196,6 +197,7 @@ pub fn ServiceCallNodeCard() -> Element {
             icon: "🔗",
             title: "Call Service",
             subtitle: "Call another service and wait for result",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }

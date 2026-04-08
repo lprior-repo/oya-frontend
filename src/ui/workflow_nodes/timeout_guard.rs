@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::TimeoutConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, NodeCard};
 use dioxus::prelude::*;
@@ -29,7 +30,7 @@ pub fn TimeoutGuardForm(mut config: Signal<TimeoutConfig>) -> Element {
 #[component]
 pub fn TimeoutGuardNodeCard() -> Element {
     rsx! {
-        NodeCard { icon_bg: "bg-red-100", icon: "⏱️", title: "Timeout", subtitle: "Add execution timeout" }
+        NodeCard { icon_bg: "bg-red-100", icon: "⏱️", title: "Timeout", subtitle: "Add execution timeout", service_kind: Some(ServiceKind::Handler) }
     }
 }
 

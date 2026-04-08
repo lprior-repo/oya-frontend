@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::{GetStateConfig, ObjectKey};
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -43,6 +44,7 @@ pub fn GetStateNodeCard() -> Element {
             icon: "📂",
             title: "Get State",
             subtitle: "Get a saved value",
+            service_kind: Some(ServiceKind::Actor),
         }
     }
 }

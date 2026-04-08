@@ -1,3 +1,4 @@
+use crate::graph::service_kinds::ServiceKind;
 use crate::ui::workflow_nodes::schema::ConditionConfig;
 use crate::ui::workflow_nodes::shared::{input_classes, FormField, FormHint, NodeCard};
 use dioxus::prelude::*;
@@ -68,6 +69,7 @@ pub fn ConditionNodeCard() -> Element {
             icon: "🌳",
             title: "Condition",
             subtitle: "Branch on a condition",
+            service_kind: Some(ServiceKind::Handler),
         }
     }
 }
