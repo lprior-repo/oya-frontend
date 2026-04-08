@@ -284,6 +284,25 @@ impl From<InvocationStatus> for crate::graph::ExecutionState {
     }
 }
 
+/// Admin API action on an invocation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InvocationAction {
+    Cancel,
+    Kill,
+    Pause,
+    Resume,
+    Purge,
+}
+
+/// Response from an invocation mutation action via the Admin API.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvocationActionResponse {
+    pub action: InvocationAction,
+    pub invocation_id: String,
+    pub success: bool,
+}
+
 /// SQL query response wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SqlQueryResponse {
@@ -300,7 +319,13 @@ pub struct InvocationDetail {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::no_effect_underscore_binding)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp,
+    clippy::no_effect_underscore_binding
+)]
 mod tests {
     use super::*;
     use chrono::TimeZone;
@@ -989,5 +1014,104 @@ mod tests {
         };
 
         assert_eq!(status.invocation_id, "");
+    }
+
+    // --- InvocationAction tests (U-001..U-003) ---
+
+    #[test]
+    fn invocation_action_all_variants_serialized() {
+        let cases = [
+            (InvocationAction::Cancel, "\"cancel\""),
+            (InvocationAction::Kill, "\"kill\""),
+            (InvocationAction::Pause, "\"pause\""),
+            (InvocationAction::Resume, "\"resume\""),
+            (InvocationAction::Purge, "\"purge\""),
+        ];
+        for (variant, expected) in cases {
+            let json = serde_json::to_string(&variant).unwrap();
+            assert_eq!(
+                json, expected,
+                "InvocationAction::{variant:?} serialization mismatch"
+            );
+        }
+    }
+
+    #[test]
+    fn invocation_action_all_variants_deserialized() {
+        let cases = [
+            ("\"cancel\"", InvocationAction::Cancel),
+            ("\"kill\"", InvocationAction::Kill),
+            ("\"pause\"", InvocationAction::Pause),
+            ("\"resume\"", InvocationAction::Resume),
+            ("\"purge\"", InvocationAction::Purge),
+        ];
+        for (json, expected) in cases {
+            let parsed: InvocationAction = serde_json::from_str(json).unwrap();
+            assert_eq!(parsed, expected, "Deserialization mismatch for {json}");
+        }
+    }
+
+    #[test]
+    fn invocation_action_copy_semantics() {
+        let a = InvocationAction::Cancel;
+        let b = a;
+        assert_eq!(a, b);
+    }
+
+    // --- InvocationActionResponse tests (U-004..U-007) ---
+
+    #[test]
+    fn invocation_action_response_success_construction() {
+        let resp = InvocationActionResponse {
+            action: InvocationAction::Cancel,
+            invocation_id: "inv_123".to_string(),
+            success: true,
+        };
+        assert_eq!(resp.action, InvocationAction::Cancel);
+        assert_eq!(resp.invocation_id, "inv_123");
+        assert!(resp.success);
+    }
+
+    #[test]
+    fn invocation_action_response_roundtrip() {
+        let original = InvocationActionResponse {
+            action: InvocationAction::Kill,
+            invocation_id: "inv_abc".to_string(),
+            success: true,
+        };
+        let json = serde_json::to_string(&original).unwrap();
+        let restored: InvocationActionResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(original, restored);
+    }
+
+    #[test]
+    fn invocation_action_response_debug_format() {
+        let resp = InvocationActionResponse {
+            action: InvocationAction::Pause,
+            invocation_id: "inv_xyz".to_string(),
+            success: false,
+        };
+        let debug = format!("{resp:?}");
+        assert!(debug.contains("action"), "Debug missing 'action'");
+        assert!(
+            debug.contains("invocation_id"),
+            "Debug missing 'invocation_id'"
+        );
+        assert!(debug.contains("success"), "Debug missing 'success'");
+    }
+
+    #[test]
+    fn invocation_action_response_equality() {
+        let a = InvocationActionResponse {
+            action: InvocationAction::Resume,
+            invocation_id: "inv_1".to_string(),
+            success: true,
+        };
+        let b = InvocationActionResponse {
+            action: InvocationAction::Resume,
+            invocation_id: "inv_1".to_string(),
+            success: true,
+        };
+        assert_eq!(a, b);
     }
 }

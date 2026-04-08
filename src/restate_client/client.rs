@@ -9,11 +9,18 @@
 
 use crate::restate_client::queries::SqlQueries;
 use crate::restate_client::types::{
-    DeploymentInfo, DeploymentType, Invocation, InvocationDetail, InvocationFilter, JournalEntry,
-    JournalEntryType, JournalEvent, KeyedServiceStatus, ServiceInfo, SqlQueryResponse, StateEntry,
+    DeploymentInfo, DeploymentType, Invocation, InvocationAction, InvocationActionResponse,
+    InvocationDetail, InvocationFilter, JournalEntry, JournalEntryType, JournalEvent,
+    KeyedServiceStatus, ServiceInfo, SqlQueryResponse, StateEntry,
 };
 use serde_json::Value;
 use thiserror::Error;
+
+/// HTTP method for admin API calls.
+enum HttpMethod {
+    Patch,
+    Delete,
+}
 
 #[derive(Error, Debug)]
 pub enum ClientError {
@@ -297,6 +304,112 @@ impl RestateClient {
             Err(ClientError::ConnectionFailed(_) | ClientError::Timeout) => Ok(false),
             Err(error) => Err(error),
         }
+    }
+
+    /// Cancel an invocation via the Admin API.
+    ///
+    /// Sends `PATCH /invocations/{id}/cancel`.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    pub async fn cancel_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+        self.invocation_action(id, InvocationAction::Cancel, HttpMethod::Patch, "cancel")
+            .await
+    }
+
+    /// Kill an invocation via the Admin API.
+    ///
+    /// Sends `PATCH /invocations/{id}/kill`.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    pub async fn kill_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+        self.invocation_action(id, InvocationAction::Kill, HttpMethod::Patch, "kill")
+            .await
+    }
+
+    /// Pause an invocation via the Admin API.
+    ///
+    /// Sends `PATCH /invocations/{id}/pause`.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    pub async fn pause_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+        self.invocation_action(id, InvocationAction::Pause, HttpMethod::Patch, "pause")
+            .await
+    }
+
+    /// Resume a paused invocation via the Admin API.
+    ///
+    /// Sends `PATCH /invocations/{id}/resume`.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    pub async fn resume_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+        self.invocation_action(id, InvocationAction::Resume, HttpMethod::Patch, "resume")
+            .await
+    }
+
+    /// Purge an invocation via the Admin API.
+    ///
+    /// Sends `DELETE /invocations/{id}`.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    pub async fn purge_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+        self.invocation_action(id, InvocationAction::Purge, HttpMethod::Delete, "")
+            .await
+    }
+
+    /// Send an invocation mutation request to the Restate Admin API.
+    ///
+    /// # Errors
+    /// Returns an error if the HTTP request fails or the server returns non-2xx.
+    async fn invocation_action(
+        &self,
+        id: &str,
+        action: InvocationAction,
+        method: HttpMethod,
+        path_suffix: &str,
+    ) -> Result<InvocationActionResponse, ClientError> {
+        let url = if path_suffix.is_empty() {
+            format!("{}/invocations/{id}", self.base_url)
+        } else {
+            format!("{}/invocations/{id}/{path_suffix}", self.base_url)
+        };
+
+        let req = match method {
+            HttpMethod::Patch => self.http_client.patch(&url),
+            HttpMethod::Delete => self.http_client.delete(&url),
+        };
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let req = req.timeout(std::time::Duration::from_secs(self.config.timeout_secs));
+
+        let response: reqwest::Response = req.send().await.map_err(|error| {
+            if error.is_timeout() {
+                ClientError::Timeout
+            } else {
+                ClientError::ConnectionFailed(error.to_string())
+            }
+        })?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let message: String = response.text().await.unwrap_or_else(|_| {
+                format!("<failed to read response body, HTTP {}>", status.as_u16())
+            });
+            return Err(ClientError::HttpError {
+                status: status.as_u16(),
+                message,
+            });
+        }
+
+        Ok(InvocationActionResponse {
+            action,
+            invocation_id: id.to_string(),
+            success: true,
+        })
     }
 
     fn map_rows<T, F>(
@@ -794,5 +907,94 @@ mod tests {
             parsed,
             Err(ClientError::InvalidResponse(message)) if message.contains("invocation row 1")
         ));
+    }
+
+    // --- Invocation mutation method tests ---
+
+    #[tokio::test]
+    async fn cancel_invocation_connection_failed_without_server() {
+        let client = RestateClient::local();
+        let result = client.cancel_invocation("inv_123").await;
+        assert!(
+            matches!(result, Err(ClientError::ConnectionFailed(_))),
+            "Expected ConnectionFailed without a running server, got {result:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn kill_invocation_connection_failed_without_server() {
+        let client = RestateClient::local();
+        let result = client.kill_invocation("inv_123").await;
+        assert!(
+            matches!(result, Err(ClientError::ConnectionFailed(_))),
+            "Expected ConnectionFailed without a running server, got {result:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn pause_invocation_connection_failed_without_server() {
+        let client = RestateClient::local();
+        let result = client.pause_invocation("inv_123").await;
+        assert!(
+            matches!(result, Err(ClientError::ConnectionFailed(_))),
+            "Expected ConnectionFailed without a running server, got {result:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn resume_invocation_connection_failed_without_server() {
+        let client = RestateClient::local();
+        let result = client.resume_invocation("inv_123").await;
+        assert!(
+            matches!(result, Err(ClientError::ConnectionFailed(_))),
+            "Expected ConnectionFailed without a running server, got {result:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn purge_invocation_connection_failed_without_server() {
+        let client = RestateClient::local();
+        let result = client.purge_invocation("inv_123").await;
+        assert!(
+            matches!(result, Err(ClientError::ConnectionFailed(_))),
+            "Expected ConnectionFailed without a running server, got {result:?}"
+        );
+    }
+
+    #[test]
+    fn cancel_invocation_builds_correct_url() {
+        let client = RestateClient::local();
+        let expected = format!("{}/invocations/inv_123/cancel", client.base_url);
+        assert!(expected.contains("/invocations/inv_123/cancel"));
+    }
+
+    #[test]
+    fn kill_invocation_builds_correct_url() {
+        let client = RestateClient::local();
+        let expected = format!("{}/invocations/inv_456/kill", client.base_url);
+        assert!(expected.contains("/invocations/inv_456/kill"));
+    }
+
+    #[test]
+    fn pause_invocation_builds_correct_url() {
+        let client = RestateClient::local();
+        let expected = format!("{}/invocations/inv_789/pause", client.base_url);
+        assert!(expected.contains("/invocations/inv_789/pause"));
+    }
+
+    #[test]
+    fn resume_invocation_builds_correct_url() {
+        let client = RestateClient::local();
+        let expected = format!("{}/invocations/inv_abc/resume", client.base_url);
+        assert!(expected.contains("/invocations/inv_abc/resume"));
+    }
+
+    #[test]
+    fn purge_invocation_builds_correct_url() {
+        let client = RestateClient::local();
+        let expected = format!("{}/invocations/inv_xyz", client.base_url);
+        assert!(expected.contains("/invocations/inv_xyz"));
+        assert!(!expected.contains("/cancel"));
+        assert!(!expected.contains("/kill"));
     }
 }

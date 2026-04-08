@@ -13,3 +13,4 @@ pub mod types;
 pub use client::{ClientError, RestateClient, RestateClientConfig};
 pub use queries::SqlQueries;
 pub use types::*;
+pub use types::{InvocationAction, InvocationActionResponse};
