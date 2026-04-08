@@ -96,7 +96,7 @@ impl NodeTemplate {
 
 // ── Static catalogue ─────────────────────────────────────────────────────────
 
-pub(super) const NODE_TEMPLATES: [NodeTemplate; 24] = [
+pub(super) const NODE_TEMPLATES: [NodeTemplate; 25] = [
     NodeTemplate {
         node_type: "http-handler",
         label: "HTTP Trigger",
@@ -224,6 +224,16 @@ pub(super) const NODE_TEMPLATES: [NodeTemplate; 24] = [
         friendly: "Delete saved data",
         tooltip: "Remove saved data. Use 'Clear' to delete one item or 'Clear All' to wipe everything.",
         icon: "eraser",
+        category: Category::State,
+        doc_link: Some("#contextwritestate-writing-state"),
+    },
+    NodeTemplate {
+        node_type: "clear-all",
+        label: "Clear All",
+        description: "ctx.clearAll() - clear all state keys",
+        friendly: "Wipe all saved data",
+        tooltip: "Remove ALL saved data from this Virtual Object or Workflow in a single operation. This cannot be undone.",
+        icon: "trash",
         category: Category::State,
         doc_link: Some("#contextwritestate-writing-state"),
     },

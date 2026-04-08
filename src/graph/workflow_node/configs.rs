@@ -82,6 +82,9 @@ pub struct ClearStateConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ClearAllConfig {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ConditionConfig {
     pub expression: Option<String>,
 }

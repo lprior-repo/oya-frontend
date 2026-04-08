@@ -124,8 +124,8 @@ fn given_empty_query_when_checking_no_results_then_returns_false() {
 // ── Catalogue completeness ────────────────────────────────────────────────────
 
 #[test]
-fn given_node_templates_when_counting_then_exactly_24_exist() {
-    assert_eq!(NODE_TEMPLATES.len(), 24);
+fn given_node_templates_when_counting_then_exactly_25_exist() {
+    assert_eq!(NODE_TEMPLATES.len(), 25);
 }
 
 #[test]

@@ -5,6 +5,7 @@ pub use schema::*;
 pub use shared::*;
 
 pub mod awakeable;
+pub mod clear_all;
 pub mod clear_state;
 pub mod compensate;
 pub mod condition;
@@ -34,6 +35,7 @@ pub mod workflow_call;
 pub mod workflow_submit;
 
 pub use awakeable::AwakeableNodeCard;
+pub use clear_all::ClearAllNodeCard;
 pub use clear_state::ClearStateNodeCard;
 pub use compensate::CompensateNodeCard;
 pub use condition::ConditionNodeCard;

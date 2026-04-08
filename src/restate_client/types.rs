@@ -153,6 +153,7 @@ pub enum JournalEntryType {
     GetState,
     SetState,
     ClearState,
+    ClearAll,
     Custom,
     Unknown(String),
 }
@@ -170,6 +171,7 @@ impl From<&str> for JournalEntryType {
             "getstate" | "get-state" => Self::GetState,
             "setstate" | "set-state" => Self::SetState,
             "clearstate" | "clear-state" => Self::ClearState,
+            "clearall" | "clear-all" => Self::ClearAll,
             "custom" => Self::Custom,
             other => Self::Unknown(other.to_string()),
         }

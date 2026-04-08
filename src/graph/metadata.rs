@@ -70,6 +70,11 @@ pub(super) fn node_metadata(node_type: &str) -> (NodeCategory, String, String) {
             "Clear State".to_owned(),
             "eraser".to_owned(),
         ),
+        "clear-all" => (
+            NodeCategory::State,
+            "Clear All".to_owned(),
+            "trash".to_owned(),
+        ),
         "condition" => (
             NodeCategory::Flow,
             "If / Else".to_owned(),

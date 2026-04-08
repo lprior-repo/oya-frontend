@@ -29,6 +29,7 @@ pub use configs::*;
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum WorkflowNode {
     Awakeable(AwakeableConfig),
+    ClearAll(ClearAllConfig),
     ClearState(ClearStateConfig),
     Compensate(CompensateConfig),
     Condition(ConditionConfig),
@@ -78,6 +79,7 @@ impl FromStr for WorkflowNode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "awakeable" => Ok(Self::Awakeable(AwakeableConfig::default())),
+            "clear-all" => Ok(Self::ClearAll(ClearAllConfig::default())),
             "clear-state" => Ok(Self::ClearState(ClearStateConfig::default())),
             "compensate" => Ok(Self::Compensate(CompensateConfig::default())),
             "condition" => Ok(Self::Condition(ConditionConfig::default())),
@@ -132,6 +134,7 @@ impl fmt::Display for WorkflowNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Awakeable(_) => write!(f, "awakeable"),
+            Self::ClearAll(_) => write!(f, "clear-all"),
             Self::ClearState(_) => write!(f, "clear-state"),
             Self::Compensate(_) => write!(f, "compensate"),
             Self::Condition(_) => write!(f, "condition"),
@@ -191,7 +194,8 @@ impl WorkflowNode {
             | Self::ServiceCall(_)
             | Self::WaitForWebhook(_)
             | Self::WorkflowCall(_) => NodeCategory::Durable,
-            Self::ClearState(_)
+            Self::ClearAll(_)
+            | Self::ClearState(_)
             | Self::GetState(_)
             | Self::LoadFromMemory(_)
             | Self::SaveToMemory(_)
@@ -212,7 +216,7 @@ impl WorkflowNode {
     pub const fn icon(&self) -> super::NodeIcon {
         match self {
             Self::Awakeable(_) | Self::WaitForWebhook(_) => super::NodeIcon::Radio,
-            Self::ClearState(_) => super::NodeIcon::Trash,
+            Self::ClearAll(_) | Self::ClearState(_) => super::NodeIcon::Trash,
             Self::Compensate(_) => super::NodeIcon::Undo,
             Self::Condition(_) => super::NodeIcon::GitBranch,
             Self::CronTrigger(_) => super::NodeIcon::Clock,
@@ -241,6 +245,7 @@ impl WorkflowNode {
     pub const fn description(&self) -> &'static str {
         match self {
             Self::Awakeable(_) => "Awakeable callback",
+            Self::ClearAll(_) => "Clear all state values",
             Self::ClearState(_) => "Clear state value",
             Self::Compensate(_) => "Compensating transaction",
             Self::Condition(_) => "Conditional branch",
@@ -277,6 +282,7 @@ impl WorkflowNode {
     pub const fn output_port_type(&self) -> PortType {
         match self {
             Self::Awakeable(_)
+            | Self::ClearAll(_)
             | Self::ClearState(_)
             | Self::Compensate(_)
             | Self::Condition(_)
@@ -315,6 +321,7 @@ impl WorkflowNode {
     pub const fn input_port_type(&self) -> PortType {
         match self {
             Self::Awakeable(_)
+            | Self::ClearAll(_)
             | Self::ClearState(_)
             | Self::Compensate(_)
             | Self::Condition(_)
@@ -380,7 +387,8 @@ impl WorkflowNode {
             | Self::TimeoutGuard(_) => ServiceKind::Handler,
 
             // Stateful operations - Actor context
-            Self::ClearState(_)
+            Self::ClearAll(_)
+            | Self::ClearState(_)
             | Self::GetState(_)
             | Self::LoadFromMemory(_)
             | Self::ObjectCall(_)

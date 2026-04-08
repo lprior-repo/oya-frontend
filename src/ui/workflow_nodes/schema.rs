@@ -271,6 +271,7 @@ impl RouterBranchId {
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum WorkflowNode {
     Awakeable(AwakeableConfig),
+    ClearAll(ClearAllConfig),
     ClearState(ClearStateConfig),
     Compensate(CompensateConfig),
     Condition(ConditionConfig),
@@ -324,6 +325,9 @@ pub struct AwakeableConfig {
 pub struct ClearStateConfig {
     pub key: ObjectKey,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ClearAllConfig {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompensateConfig {

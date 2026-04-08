@@ -103,10 +103,10 @@ pub fn NodeConfigEditor(
 
 use crate::ui::workflow_nodes::schema::WorkflowNode as RichNode;
 use crate::ui::workflow_nodes::{
-    clear_state, compensate, delay, delayed_message, durable_promise, http_trigger, kafka_consumer,
-    load_from_memory, loop_iterate, parallel, peek_promise, resolve_promise, router, run_code,
-    save_to_memory, schedule_trigger, send_message, service_call, timeout_guard, wait_for_signal,
-    wait_for_webhook, workflow_submit,
+    clear_all, clear_state, compensate, delay, delayed_message, durable_promise, http_trigger,
+    kafka_consumer, load_from_memory, loop_iterate, parallel, peek_promise, resolve_promise,
+    router, run_code, save_to_memory, schedule_trigger, send_message, service_call, timeout_guard,
+    wait_for_signal, wait_for_webhook, workflow_submit,
 };
 
 #[component]
@@ -172,6 +172,7 @@ fn ConfigTab(node: Node, on_change: EventHandler<Value>) -> Element {
                         RichNode::Awakeable(cfg) => rsx! { wait_for_webhook::AwakeableForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::SignalHandler(cfg) => rsx! { wait_for_signal { config: use_signal(|| cfg.clone()) } },
                         RichNode::ClearState(cfg) => rsx! { clear_state::ClearStateForm { config: use_signal(|| cfg.clone()) } },
+                        RichNode::ClearAll(cfg) => rsx! { clear_all::ClearAllForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::Loop(cfg) | RichNode::LoopIterate(cfg) => rsx! { loop_iterate::LoopIterateForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::Parallel(cfg) => rsx! { parallel::ParallelForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::Compensate(cfg) => rsx! { compensate::CompensateForm { config: use_signal(|| cfg.clone()) } },
