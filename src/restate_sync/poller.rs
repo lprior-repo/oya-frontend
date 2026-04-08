@@ -58,6 +58,18 @@ impl From<RestateInvocationStatus> for InvocationStatus {
     }
 }
 
+impl From<InvocationStatus> for RestateInvocationStatus {
+    fn from(status: InvocationStatus) -> Self {
+        match status {
+            InvocationStatus::Pending => Self::Pending,
+            InvocationStatus::Running => Self::Running,
+            InvocationStatus::Completed => Self::Completed,
+            InvocationStatus::Failed => Self::Paused,
+            InvocationStatus::Suspended => Self::Suspended,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PollResult {

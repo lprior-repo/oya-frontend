@@ -312,7 +312,10 @@ impl RestateClient {
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or the server returns non-2xx.
-    pub async fn cancel_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+    pub async fn cancel_invocation(
+        &self,
+        id: &str,
+    ) -> Result<InvocationActionResponse, ClientError> {
         self.invocation_action(id, InvocationAction::Cancel, HttpMethod::Patch, "cancel")
             .await
     }
@@ -334,7 +337,10 @@ impl RestateClient {
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or the server returns non-2xx.
-    pub async fn pause_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+    pub async fn pause_invocation(
+        &self,
+        id: &str,
+    ) -> Result<InvocationActionResponse, ClientError> {
         self.invocation_action(id, InvocationAction::Pause, HttpMethod::Patch, "pause")
             .await
     }
@@ -345,7 +351,10 @@ impl RestateClient {
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or the server returns non-2xx.
-    pub async fn resume_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+    pub async fn resume_invocation(
+        &self,
+        id: &str,
+    ) -> Result<InvocationActionResponse, ClientError> {
         self.invocation_action(id, InvocationAction::Resume, HttpMethod::Patch, "resume")
             .await
     }
@@ -356,7 +365,10 @@ impl RestateClient {
     ///
     /// # Errors
     /// Returns an error if the HTTP request fails or the server returns non-2xx.
-    pub async fn purge_invocation(&self, id: &str) -> Result<InvocationActionResponse, ClientError> {
+    pub async fn purge_invocation(
+        &self,
+        id: &str,
+    ) -> Result<InvocationActionResponse, ClientError> {
         self.invocation_action(id, InvocationAction::Purge, HttpMethod::Delete, "")
             .await
     }

@@ -11,6 +11,7 @@
 
 #[cfg(target_arch = "wasm32")]
 pub mod details_panel;
+pub mod invocation_actions;
 pub mod journal_viewer;
 #[cfg(target_arch = "wasm32")]
 pub mod panel;

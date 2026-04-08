@@ -89,6 +89,7 @@ pub fn provide_restate_sync_context() -> RestateSyncHandle {
                                 match event {
                                     crate::restate_sync::InvocationEvent::StatusChanged {
                                         invocation_id,
+                                        old_status: _,
                                         new_status,
                                     } => {
                                         if let Some(inv) = s.invocations.get_mut(invocation_id) {
