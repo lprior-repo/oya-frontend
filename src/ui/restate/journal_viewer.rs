@@ -18,10 +18,9 @@ const fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
         JournalEntryType::Call | JournalEntryType::OneWayCall => " bg-blue-100 text-blue-800",
         JournalEntryType::Sleep => " bg-purple-100 text-purple-800",
         JournalEntryType::Awakeable => " bg-orange-100 text-orange-800",
-        JournalEntryType::GetState
-        | JournalEntryType::SetState
-        | JournalEntryType::ClearState
-        | JournalEntryType::ClearAll => " bg-yellow-100 text-yellow-800",
+        JournalEntryType::GetState | JournalEntryType::SetState | JournalEntryType::ClearState => {
+            " bg-yellow-100 text-yellow-800"
+        }
         JournalEntryType::GetPromise
         | JournalEntryType::PeekPromise
         | JournalEntryType::CompletePromise => " bg-pink-100 text-pink-800",

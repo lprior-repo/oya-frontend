@@ -262,8 +262,8 @@ fn workflow_round_trip() {
     let n3 = original.add_node("get-state", 200.0, 100.0);
 
     let port = PortName("main".to_string());
-    original.add_connection(n1, n2, &port, &port);
-    original.add_connection(n2, n3, &port, &port);
+    let _ = original.add_connection(n1, n2, &port, &port);
+    let _ = original.add_connection(n2, n3, &port, &port);
 
     original.viewport = Viewport {
         x: -50.0,

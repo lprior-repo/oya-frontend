@@ -23,7 +23,7 @@ fn given_dirty_runtime_state_when_preparing_run_then_nodes_reset_to_pending() {
     }
 
     let main = PortName("main".to_string());
-    workflow.add_connection(n1, n2, &main, &main);
+    let _ = workflow.add_connection(n1, n2, &main, &main);
 
     // prepare_run() rejects dirty state - this is the expected behavior
     // The test verifies that dirty state is properly rejected
@@ -43,7 +43,7 @@ async fn given_simple_chain_when_running_then_nodes_complete_and_history_is_reco
     let start = workflow.add_node("http-handler", 20.0, 20.0);
     let next = workflow.add_node("next-custom", 50.0, 110.0);
     let main = PortName("main".to_string());
-    workflow.add_connection(start, next, &main, &main);
+    let _ = workflow.add_connection(start, next, &main, &main);
 
     workflow.run().await;
 
@@ -72,7 +72,7 @@ async fn given_true_condition_when_running_then_false_branch_is_marked_skipped()
     }
 
     let main = PortName("main".to_string());
-    workflow.add_connection(trigger, condition, &main, &main);
+    let _ = workflow.add_connection(trigger, condition, &main, &main);
     workflow.connections.push(Connection {
         id: Uuid::new_v4(),
         source: condition,
@@ -153,9 +153,9 @@ fn given_removed_node_when_pruning_graph_then_incident_connections_are_removed()
     let c = workflow.add_node("c", 0.0, 0.0);
     let main = PortName("main".to_string());
 
-    workflow.add_connection(a, b, &main, &main);
-    workflow.add_connection(b, c, &main, &main);
-    workflow.add_connection(a, c, &main, &main);
+    let _ = workflow.add_connection(a, b, &main, &main);
+    let _ = workflow.add_connection(b, c, &main, &main);
+    let _ = workflow.add_connection(a, c, &main, &main);
 
     workflow.remove_node(b);
 
@@ -204,7 +204,7 @@ async fn given_failed_http_request_when_running_then_history_marks_run_unsuccess
     let trigger_id = workflow.add_node("http-handler", 0.0, 0.0);
     let node_id = workflow.add_node("http-request", 0.0, 0.0);
     let main = PortName("main".to_string());
-    workflow.add_connection(trigger_id, node_id, &main, &main);
+    let _ = workflow.add_connection(trigger_id, node_id, &main, &main);
 
     if let Some(node) = workflow.nodes.iter_mut().find(|node| node.id == node_id) {
         node.config = json!({"url": "http://127.0.0.1:0", "method": "GET"});
@@ -253,7 +253,7 @@ async fn given_false_branch_with_descendants_when_condition_skips_then_descendan
     }
 
     let main = PortName("main".to_string());
-    workflow.add_connection(trigger, condition, &main, &main);
+    let _ = workflow.add_connection(trigger, condition, &main, &main);
     workflow.connections.push(Connection {
         id: Uuid::new_v4(),
         source: condition,
@@ -268,7 +268,7 @@ async fn given_false_branch_with_descendants_when_condition_skips_then_descendan
         source_port: PortName("false".to_string()),
         target_port: PortName("main".to_string()),
     });
-    workflow.add_connection(false_branch, false_grandchild, &main, &main);
+    let _ = workflow.add_connection(false_branch, false_grandchild, &main, &main);
 
     workflow.run().await;
 

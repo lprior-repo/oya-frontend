@@ -11,7 +11,7 @@ use oya_frontend::hooks;
 #[cfg(target_arch = "wasm32")]
 use oya_frontend::ui;
 
-#[cfg(any(test, target_arch = "wasm32"))]
+#[cfg(target_arch = "wasm32")]
 const fn should_end_canvas_interaction(
     is_dragging: bool,
     is_panning: bool,

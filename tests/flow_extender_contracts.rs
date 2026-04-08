@@ -1414,7 +1414,7 @@ fn compensation_branch_creates_connection_with_exact_source_port_false() {
     let mut workflow = Workflow::new();
     workflow.add_node("durable-promise", 40.0, 90.0);
     let condition_id = workflow.add_node("condition", 100.0, 100.0);
-    workflow.add_connection(
+    let _ = workflow.add_connection(
         condition_id,
         NodeId::new(),
         &PortName::from("true"),
@@ -1569,7 +1569,7 @@ fn compensation_branch_contract() -> Result<()> {
     workflow.add_node("durable-promise", 40.0, 90.0);
     let condition_id = workflow.add_node("condition", 100.0, 100.0);
     let true_branch = workflow.add_node("run", 240.0, 60.0);
-    workflow.add_connection(
+    let _ = workflow.add_connection(
         condition_id,
         true_branch,
         &PortName::from("true"),
@@ -1687,7 +1687,7 @@ fn awakeable_signal_resolution_contract() -> Result<()> {
     let mut workflow = Workflow::new();
     let awakeable_id = workflow.add_node("awakeable", 120.0, 64.0);
     let run_id = workflow.add_node("run", 360.0, 64.0);
-    workflow.add_connection(
+    let _ = workflow.add_connection(
         awakeable_id,
         run_id,
         &PortName::from("out"),
