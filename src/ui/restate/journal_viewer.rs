@@ -25,7 +25,7 @@ const fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {
         JournalEntryType::GetPromise
         | JournalEntryType::PeekPromise
         | JournalEntryType::CompletePromise => " bg-pink-100 text-pink-800",
-        JournalEntryType::ClearAll | JournalEntryType::Custom => " bg-teal-100 text-teal-800",
+        JournalEntryType::Custom => " bg-teal-100 text-teal-800",
         JournalEntryType::Unknown(_) => " bg-gray-100 text-gray-800",
     }
 }
