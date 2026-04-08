@@ -15,8 +15,12 @@ pub mod invocation_actions;
 pub mod journal_viewer;
 #[cfg(target_arch = "wasm32")]
 pub mod panel;
+#[cfg(target_arch = "wasm32")]
+pub mod promise_browser;
 
 #[cfg(target_arch = "wasm32")]
 pub use details_panel::RestateInvocationDetails;
 #[cfg(target_arch = "wasm32")]
 pub use panel::RestateInvocationsPanel;
+#[cfg(target_arch = "wasm32")]
+pub use promise_browser::PromiseBrowserPanel;

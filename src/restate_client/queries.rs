@@ -244,4 +244,36 @@ mod tests {
         let query = SqlQueries::journal_events_since("inv_123", u32::MAX);
         assert!(query.contains(&format!("after_journal_entry_index > {}", u32::MAX)));
     }
+
+    // --- Promise query tests (oya-frontend-8t3) ---
+
+    #[test]
+    fn promises_query_contains_all_columns() {
+        let query = SqlQueries::promises("MySvc", "key1");
+        assert!(query.contains("service_name"), "missing service_name");
+        assert!(query.contains("service_key"), "missing service_key");
+        assert!(query.contains("completed"), "missing completed");
+        assert!(
+            query.contains("completion_success_value"),
+            "missing completion_success_value"
+        );
+        assert!(
+            query.contains("completion_failure"),
+            "missing completion_failure"
+        );
+        assert!(query.contains("sys_promise"), "missing sys_promise table");
+    }
+
+    #[test]
+    fn promises_query_escapes_service_name() {
+        let query = SqlQueries::promises("Svc'Name", "key");
+        assert!(query.contains("Svc''Name"), "service_name not escaped");
+        assert!(!query.contains("Svc'Name"), "raw quote found in query");
+    }
+
+    #[test]
+    fn promises_query_escapes_service_key() {
+        let query = SqlQueries::promises("Svc", "key'value");
+        assert!(query.contains("key''value"), "service_key not escaped");
+    }
 }

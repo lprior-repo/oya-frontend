@@ -11,7 +11,7 @@ use crate::restate_client::queries::SqlQueries;
 use crate::restate_client::types::{
     DeploymentInfo, DeploymentType, Invocation, InvocationAction, InvocationActionResponse,
     InvocationDetail, InvocationFilter, JournalEntry, JournalEntryType, JournalEvent,
-    KeyedServiceStatus, ServiceInfo, SqlQueryResponse, StateEntry,
+    KeyedServiceStatus, PromiseInfo, ServiceInfo, SqlQueryResponse, StateEntry,
 };
 use serde_json::Value;
 use thiserror::Error;
@@ -293,6 +293,26 @@ impl RestateClient {
         )
     }
 
+    /// Get promises for a workflow service.
+    ///
+    /// # Errors
+    /// Returns an error if the query fails or a row cannot be parsed.
+    pub async fn get_promises(
+        &self,
+        service_name: &str,
+        service_key: &str,
+    ) -> Result<Vec<PromiseInfo>, ClientError> {
+        let sql = SqlQueries::promises(service_name, service_key);
+        let response = self.query(&sql).await?;
+
+        Self::map_rows(
+            "promise",
+            &response.columns,
+            &response.rows,
+            Self::row_to_promise_info,
+        )
+    }
+
     /// Health check - try to query the API.
     ///
     /// # Errors
@@ -564,6 +584,22 @@ impl RestateClient {
             service_name: Self::required_string(columns, row, "service_name")?,
             service_key: Self::required_string(columns, row, "service_key")?,
             invocation_id: Self::required_string(columns, row, "invocation_id")?,
+        })
+    }
+
+    // Helper: Convert row to PromiseInfo.
+    fn row_to_promise_info(columns: &[String], row: &[Value]) -> Result<PromiseInfo, String> {
+        Ok(PromiseInfo {
+            service_name: Self::required_string(columns, row, "service_name")?,
+            service_key: Self::required_string(columns, row, "service_key")?,
+            key: Self::required_string(columns, row, "key")?,
+            completed: Self::required_bool(columns, row, "completed")?,
+            completion_success_value: Self::optional_bytes(
+                columns,
+                row,
+                "completion_success_value",
+            )?,
+            completion_failure: Self::optional_string(columns, row, "completion_failure")?,
         })
     }
 
@@ -1013,5 +1049,212 @@ mod tests {
         assert!(expected.contains("/invocations/inv_xyz"));
         assert!(!expected.contains("/cancel"));
         assert!(!expected.contains("/kill"));
+    }
+
+    // --- Promise row mapper tests (oya-frontend-8t3) ---
+
+    fn promise_columns() -> Vec<String> {
+        [
+            "service_name",
+            "service_key",
+            "key",
+            "completed",
+            "completion_success_value",
+            "completion_failure",
+        ]
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect()
+    }
+
+    fn promise_row_completed_with_success() -> Vec<Value> {
+        vec![
+            Value::String("MyWorkflow".to_string()),
+            Value::String("order-123".to_string()),
+            Value::String("user-promise".to_string()),
+            Value::Bool(true),
+            Value::Array(vec![
+                Value::Number(serde_json::Number::from(1_u64)),
+                Value::Number(serde_json::Number::from(2_u64)),
+                Value::Number(serde_json::Number::from(3_u64)),
+            ]),
+            Value::Null,
+        ]
+    }
+
+    fn promise_row_completed_with_failure() -> Vec<Value> {
+        vec![
+            Value::String("MyWorkflow".to_string()),
+            Value::String("order-456".to_string()),
+            Value::String("timeout-promise".to_string()),
+            Value::Bool(true),
+            Value::Null,
+            Value::String("timeout exceeded".to_string()),
+        ]
+    }
+
+    fn promise_row_uncompleted() -> Vec<Value> {
+        vec![
+            Value::String("MyWorkflow".to_string()),
+            Value::String("order-789".to_string()),
+            Value::String("pending-promise".to_string()),
+            Value::Bool(false),
+            Value::Null,
+            Value::Null,
+        ]
+    }
+
+    #[test]
+    fn row_to_promise_info_parses_completed_with_success() {
+        let columns = promise_columns();
+        let row = promise_row_completed_with_success();
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_ok(), "Expected Ok, got Err: {result:?}");
+        let info = result.unwrap();
+        assert_eq!(info.service_name, "MyWorkflow");
+        assert_eq!(info.service_key, "order-123");
+        assert_eq!(info.key, "user-promise");
+        assert!(info.completed);
+        assert_eq!(info.completion_success_value, Some(vec![1, 2, 3]));
+        assert!(info.completion_failure.is_none());
+    }
+
+    #[test]
+    fn row_to_promise_info_parses_completed_with_failure() {
+        let columns = promise_columns();
+        let row = promise_row_completed_with_failure();
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_ok(), "Expected Ok, got Err: {result:?}");
+        let info = result.unwrap();
+        assert!(info.completed);
+        assert!(info.completion_success_value.is_none());
+        assert_eq!(
+            info.completion_failure,
+            Some("timeout exceeded".to_string())
+        );
+    }
+
+    #[test]
+    fn row_to_promise_info_parses_uncompleted() {
+        let columns = promise_columns();
+        let row = promise_row_uncompleted();
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_ok(), "Expected Ok, got Err: {result:?}");
+        let info = result.unwrap();
+        assert!(!info.completed);
+        assert!(info.completion_success_value.is_none());
+        assert!(info.completion_failure.is_none());
+    }
+
+    #[test]
+    fn row_to_promise_info_rejects_missing_key_column() {
+        let columns: Vec<String> = [
+            "service_name",
+            "service_key",
+            "completed",
+            "completion_success_value",
+            "completion_failure",
+        ]
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
+        let row = promise_row_uncompleted();
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("missing column 'key'"),
+            "Expected missing column error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn row_to_promise_info_rejects_missing_completed_column() {
+        let columns: Vec<String> = [
+            "service_name",
+            "service_key",
+            "key",
+            "completion_success_value",
+            "completion_failure",
+        ]
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
+        let row = promise_row_uncompleted();
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("missing column 'completed'"),
+            "Expected missing column error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn row_to_promise_info_rejects_null_completed() {
+        let columns = promise_columns();
+        let row = vec![
+            Value::String("MyWorkflow".to_string()),
+            Value::String("order-1".to_string()),
+            Value::String("promise-1".to_string()),
+            Value::Null, // completed is NULL
+            Value::Null,
+            Value::Null,
+        ];
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("completed") && err.contains("NULL"),
+            "Expected NULL error for completed, got: {err}"
+        );
+    }
+
+    #[test]
+    fn row_to_promise_info_parses_string_success_value() {
+        let columns = promise_columns();
+        let row = vec![
+            Value::String("Svc".to_string()),
+            Value::String("key".to_string()),
+            Value::String("p1".to_string()),
+            Value::Bool(true),
+            Value::String("hello".to_string()), // string instead of byte array
+            Value::Null,
+        ];
+        let result = RestateClient::row_to_promise_info(&columns, &row);
+        assert!(result.is_ok(), "Expected Ok, got Err: {result:?}");
+        let info = result.unwrap();
+        assert_eq!(
+            info.completion_success_value,
+            Some(vec![104, 101, 108, 108, 111]) // "hello" as bytes
+        );
+    }
+
+    #[test]
+    fn map_rows_reports_invalid_promise_row_index() {
+        let columns = promise_columns();
+        let rows = vec![
+            promise_row_completed_with_success(),
+            vec![
+                Value::String("Svc".to_string()),
+                Value::String("key".to_string()),
+                Value::Null, // key is required but NULL → error
+                Value::Bool(false),
+                Value::Null,
+                Value::Null,
+            ],
+        ];
+
+        let parsed: Result<Vec<PromiseInfo>, ClientError> = RestateClient::map_rows(
+            "promise",
+            &columns,
+            &rows,
+            RestateClient::row_to_promise_info,
+        );
+
+        assert!(matches!(
+            parsed,
+            Err(ClientError::InvalidResponse(message)) if message.contains("promise row 1")
+        ));
     }
 }
