@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace <impl From<CompletedState> for ExecutionState>::from -> Self with Default::default()
+@@ -238,17 +238,17 @@
+ impl From<RunningState> for ExecutionState {
+     fn from(_: RunningState) -> Self {
+         Self::Running
+     }
+ }
+ 
+ impl From<CompletedState> for ExecutionState {
+     fn from(_: CompletedState) -> Self {
+-        Self::Completed
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl From<FailedState> for ExecutionState {
+     fn from(_: FailedState) -> Self {
+         Self::Failed
+     }
+ }

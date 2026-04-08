@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace IdleState::queue -> QueuedState with Default::default()
+@@ -109,17 +109,17 @@
+ pub struct FailedState;
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ pub struct SkippedState;
+ 
+ impl IdleState {
+     #[must_use]
+     pub const fn queue(self) -> QueuedState {
+-        QueuedState
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn skip(self) -> SkippedState {
+         SkippedState
+     }
+ }
+ 

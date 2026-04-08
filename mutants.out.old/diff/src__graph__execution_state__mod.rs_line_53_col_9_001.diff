@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace ExecutionState::is_idle -> bool with false
+@@ -45,17 +45,17 @@
+ 
+     #[must_use]
+     pub const fn is_active(self) -> bool {
+         matches!(self, Self::Running | Self::Queued)
+     }
+ 
+     #[must_use]
+     pub const fn is_idle(self) -> bool {
+-        matches!(self, Self::Idle)
++        false /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ // ===========================================================================
+ // Invalid Transition Error
+ // ===========================================================================
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]

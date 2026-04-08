@@ -1,0 +1,2023 @@
+{
+  "outcomes": [
+    {
+      "scenario": "Baseline",
+      "summary": "Success",
+      "log_path": "log/baseline.log",
+      "diff_path": null,
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 21.141740463,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 3.482583978,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:29:9: replace <impl fmt::Display for ExecutionState>::fmt -> fmt::Result with Ok(Default::default())",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl fmt::Display for ExecutionState>::fmt",
+            "return_type": "-> fmt::Result",
+            "span": {
+              "start": {
+                "line": 28,
+                "column": 5
+              },
+              "end": {
+                "line": 37,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 29,
+              "column": 9
+            },
+            "end": {
+              "line": 36,
+              "column": 10
+            }
+          },
+          "replacement": "Ok(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_29_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_29_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 15.919927713,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.251191732,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:48:9: replace ExecutionState::is_active -> bool with false",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_active",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 46,
+                "column": 5
+              },
+              "end": {
+                "line": 49,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 48,
+              "column": 9
+            },
+            "end": {
+              "line": 48,
+              "column": 53
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_48_col_9_001.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_48_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.34027877,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.200926373,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:53:9: replace ExecutionState::is_idle -> bool with true",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_idle",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 51,
+                "column": 5
+              },
+              "end": {
+                "line": 54,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 53,
+              "column": 9
+            },
+            "end": {
+              "line": 53,
+              "column": 35
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_53_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_53_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 6.951701341,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.301724429,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:43:9: replace ExecutionState::is_terminal -> bool with false",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_terminal",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 41,
+                "column": 5
+              },
+              "end": {
+                "line": 44,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 43,
+              "column": 9
+            },
+            "end": {
+              "line": 43,
+              "column": 71
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_43_col_9_001.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_43_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 42.979832137,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.421190698,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:43:9: replace ExecutionState::is_terminal -> bool with true",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_terminal",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 41,
+                "column": 5
+              },
+              "end": {
+                "line": 44,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 43,
+              "column": 9
+            },
+            "end": {
+              "line": 43,
+              "column": 71
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_43_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_43_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 46.414466777,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.867512026,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:53:9: replace ExecutionState::is_idle -> bool with false",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_idle",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 51,
+                "column": 5
+              },
+              "end": {
+                "line": 54,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 53,
+              "column": 9
+            },
+            "end": {
+              "line": 53,
+              "column": 35
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_53_col_9_001.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_53_col_9_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 17.217534111,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.301690211,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:48:9: replace ExecutionState::is_active -> bool with true",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "ExecutionState::is_active",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 46,
+                "column": 5
+              },
+              "end": {
+                "line": 49,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 48,
+              "column": 9
+            },
+            "end": {
+              "line": 48,
+              "column": 53
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_48_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_48_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 47.65117595,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.353389445,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:75:9: replace InvalidTransition::from_state -> ExecutionState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "InvalidTransition::from_state",
+            "return_type": "-> ExecutionState",
+            "span": {
+              "start": {
+                "line": 73,
+                "column": 5
+              },
+              "end": {
+                "line": 76,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 75,
+              "column": 9
+            },
+            "end": {
+              "line": 75,
+              "column": 18
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_75_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_75_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.354170699,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:80:9: replace InvalidTransition::to_state -> ExecutionState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "InvalidTransition::to_state",
+            "return_type": "-> ExecutionState",
+            "span": {
+              "start": {
+                "line": 78,
+                "column": 5
+              },
+              "end": {
+                "line": 81,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 80,
+              "column": 9
+            },
+            "end": {
+              "line": 80,
+              "column": 16
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_80_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_80_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.956340039,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:117:9: replace IdleState::queue -> QueuedState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "IdleState::queue",
+            "return_type": "-> QueuedState",
+            "span": {
+              "start": {
+                "line": 115,
+                "column": 5
+              },
+              "end": {
+                "line": 118,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 117,
+              "column": 9
+            },
+            "end": {
+              "line": 117,
+              "column": 20
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_117_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_117_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 2.453483691,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:122:9: replace IdleState::skip -> SkippedState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "IdleState::skip",
+            "return_type": "-> SkippedState",
+            "span": {
+              "start": {
+                "line": 120,
+                "column": 5
+              },
+              "end": {
+                "line": 123,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 122,
+              "column": 9
+            },
+            "end": {
+              "line": 122,
+              "column": 21
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_122_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_122_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.555341896,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:129:9: replace QueuedState::start -> RunningState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "QueuedState::start",
+            "return_type": "-> RunningState",
+            "span": {
+              "start": {
+                "line": 127,
+                "column": 5
+              },
+              "end": {
+                "line": 130,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 129,
+              "column": 9
+            },
+            "end": {
+              "line": 129,
+              "column": 21
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_129_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_129_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 7.604267341,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:134:9: replace QueuedState::skip -> SkippedState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "QueuedState::skip",
+            "return_type": "-> SkippedState",
+            "span": {
+              "start": {
+                "line": 132,
+                "column": 5
+              },
+              "end": {
+                "line": 135,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 134,
+              "column": 9
+            },
+            "end": {
+              "line": 134,
+              "column": 21
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_134_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_134_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 8.381588654,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:141:9: replace RunningState::complete -> CompletedState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "RunningState::complete",
+            "return_type": "-> CompletedState",
+            "span": {
+              "start": {
+                "line": 139,
+                "column": 5
+              },
+              "end": {
+                "line": 142,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 141,
+              "column": 9
+            },
+            "end": {
+              "line": 141,
+              "column": 23
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_141_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_141_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.324856218,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:146:9: replace RunningState::fail -> FailedState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "RunningState::fail",
+            "return_type": "-> FailedState",
+            "span": {
+              "start": {
+                "line": 144,
+                "column": 5
+              },
+              "end": {
+                "line": 147,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 146,
+              "column": 9
+            },
+            "end": {
+              "line": 146,
+              "column": 20
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_146_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_146_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 3.967001888,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:180:9: replace StateTransition::apply -> ExecutionState with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "StateTransition::apply",
+            "return_type": "-> ExecutionState",
+            "span": {
+              "start": {
+                "line": 178,
+                "column": 5
+              },
+              "end": {
+                "line": 187,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 180,
+              "column": 9
+            },
+            "end": {
+              "line": 186,
+              "column": 10
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_180_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_180_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.68763512,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:86:9: replace <impl fmt::Display for InvalidTransition>::fmt -> fmt::Result with Ok(Default::default())",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl fmt::Display for InvalidTransition>::fmt",
+            "return_type": "-> fmt::Result",
+            "span": {
+              "start": {
+                "line": 85,
+                "column": 5
+              },
+              "end": {
+                "line": 87,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 86,
+              "column": 9
+            },
+            "end": {
+              "line": 86,
+              "column": 76
+            }
+          },
+          "replacement": "Ok(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_86_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_86_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 17.478722948,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:191:9: replace StateTransition::from_states -> (ExecutionState, ExecutionState) with (Default::default(), Default::default())",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "StateTransition::from_states",
+            "return_type": "-> (ExecutionState, ExecutionState)",
+            "span": {
+              "start": {
+                "line": 189,
+                "column": 5
+              },
+              "end": {
+                "line": 199,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 191,
+              "column": 9
+            },
+            "end": {
+              "line": 198,
+              "column": 10
+            }
+          },
+          "replacement": "(Default::default(), Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_191_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_191_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 4.584747003,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:204:5: replace try_transition -> Option<StateTransition> with Some(Default::default())",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 204,
+              "column": 5
+            },
+            "end": {
+              "line": 214,
+              "column": 6
+            }
+          },
+          "replacement": "Some(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_204_col_5_001.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_204_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 5.558342606,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:204:5: replace try_transition -> Option<StateTransition> with None",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 204,
+              "column": 5
+            },
+            "end": {
+              "line": 214,
+              "column": 6
+            }
+          },
+          "replacement": "None",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_204_col_5.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_204_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 13.918014876,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:207:9: delete match arm (ExecutionState::Queued, ExecutionState::Running) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 207,
+              "column": 9
+            },
+            "end": {
+              "line": 207,
+              "column": 101
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_207_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_207_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.51215641,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:206:9: delete match arm (ExecutionState::Idle, ExecutionState::Skipped) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 206,
+              "column": 9
+            },
+            "end": {
+              "line": 206,
+              "column": 97
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_206_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_206_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 14.557261957,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:205:9: delete match arm (ExecutionState::Idle, ExecutionState::Queued) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 205,
+              "column": 9
+            },
+            "end": {
+              "line": 205,
+              "column": 95
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_205_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_205_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 15.489917048,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:208:9: delete match arm (ExecutionState::Queued, ExecutionState::Skipped) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 208,
+              "column": 9
+            },
+            "end": {
+              "line": 208,
+              "column": 101
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_208_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_208_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 8.698711324,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.250920547,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:209:9: delete match arm (ExecutionState::Running, ExecutionState::Completed) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 209,
+              "column": 9
+            },
+            "end": {
+              "line": 211,
+              "column": 10
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_209_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_209_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 10.292988533,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 2.483080799,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:219:5: replace can_transition -> bool with true",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "can_transition",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 217,
+                "column": 1
+              },
+              "end": {
+                "line": 220,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 219,
+              "column": 5
+            },
+            "end": {
+              "line": 219,
+              "column": 39
+            }
+          },
+          "replacement": "true",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_219_col_5.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_219_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 17.001527562,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:212:9: delete match arm (ExecutionState::Running, ExecutionState::Failed) in try_transition",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "try_transition",
+            "return_type": "-> Option<StateTransition>",
+            "span": {
+              "start": {
+                "line": 202,
+                "column": 1
+              },
+              "end": {
+                "line": 215,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 212,
+              "column": 9
+            },
+            "end": {
+              "line": 212,
+              "column": 101
+            }
+          },
+          "replacement": "",
+          "genre": "MatchArm"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_212_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_212_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 18.293035576,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:219:5: replace can_transition -> bool with false",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "can_transition",
+            "return_type": "-> bool",
+            "span": {
+              "start": {
+                "line": 217,
+                "column": 1
+              },
+              "end": {
+                "line": 220,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 219,
+              "column": 5
+            },
+            "end": {
+              "line": 219,
+              "column": 39
+            }
+          },
+          "replacement": "false",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_219_col_5_001.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_219_col_5_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 21.198370056999998,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.958890047,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:240:9: replace <impl From<RunningState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<RunningState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 239,
+                "column": 5
+              },
+              "end": {
+                "line": 241,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 240,
+              "column": 9
+            },
+            "end": {
+              "line": 240,
+              "column": 22
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_240_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_240_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 14.091575063,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:234:9: replace <impl From<QueuedState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<QueuedState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 233,
+                "column": 5
+              },
+              "end": {
+                "line": 235,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 234,
+              "column": 9
+            },
+            "end": {
+              "line": 234,
+              "column": 21
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_234_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_234_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 19.042546132,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:246:9: replace <impl From<CompletedState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<CompletedState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 245,
+                "column": 5
+              },
+              "end": {
+                "line": 247,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 246,
+              "column": 9
+            },
+            "end": {
+              "line": 246,
+              "column": 24
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_246_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_246_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 9.763979729,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:228:9: replace <impl From<IdleState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<IdleState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 227,
+                "column": 5
+              },
+              "end": {
+                "line": 229,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 228,
+              "column": 9
+            },
+            "end": {
+              "line": 228,
+              "column": 19
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_228_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_228_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 15.87470767,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 11.453091003,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:252:9: replace <impl From<FailedState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<FailedState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 251,
+                "column": 5
+              },
+              "end": {
+                "line": 253,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 252,
+              "column": 9
+            },
+            "end": {
+              "line": 252,
+              "column": 21
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_252_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_252_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 15.257623749,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 1.763049304,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "src/graph/execution_state/mod.rs:258:9: replace <impl From<SkippedState> for ExecutionState>::from -> Self with Default::default()",
+          "package": "oya-frontend",
+          "file": "src/graph/execution_state/mod.rs",
+          "function": {
+            "function_name": "<impl From<SkippedState> for ExecutionState>::from",
+            "return_type": "-> Self",
+            "span": {
+              "start": {
+                "line": 257,
+                "column": 5
+              },
+              "end": {
+                "line": 259,
+                "column": 6
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 258,
+              "column": 9
+            },
+            "end": {
+              "line": 258,
+              "column": 22
+            }
+          },
+          "replacement": "Default::default()",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/src__graph__execution_state__mod.rs_line_258_col_9.log",
+      "diff_path": "diff/src__graph__execution_state__mod.rs_line_258_col_9.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 12.900551352,
+          "process_status": "Success",
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.759284255,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=oya-frontend@0.1.0"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_mutants": 34,
+  "missed": 0,
+  "caught": 13,
+  "timeout": 0,
+  "unviable": 21,
+  "success": 0,
+  "start_time": "2026-04-08T15:09:04.509752814Z",
+  "end_time": "2026-04-08T15:11:40.690217254Z",
+  "cargo_mutants_version": "27.0.0"
+}

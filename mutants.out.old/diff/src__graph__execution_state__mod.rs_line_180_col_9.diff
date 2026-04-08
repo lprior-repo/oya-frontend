@@ -1,0 +1,27 @@
+--- src/graph/execution_state/mod.rs
++++ replace StateTransition::apply -> ExecutionState with Default::default()
+@@ -172,23 +172,17 @@
+     QueuedToSkipped,
+     RunningToCompleted,
+     RunningToFailed,
+ }
+ 
+ impl StateTransition {
+     #[must_use]
+     pub const fn apply(self) -> ExecutionState {
+-        match self {
+-            Self::IdleToQueued => ExecutionState::Queued,
+-            Self::IdleToSkipped | Self::QueuedToSkipped => ExecutionState::Skipped,
+-            Self::QueuedToRunning => ExecutionState::Running,
+-            Self::RunningToCompleted => ExecutionState::Completed,
+-            Self::RunningToFailed => ExecutionState::Failed,
+-        }
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn from_states(self) -> (ExecutionState, ExecutionState) {
+         match self {
+             Self::IdleToQueued => (ExecutionState::Idle, ExecutionState::Queued),
+             Self::IdleToSkipped => (ExecutionState::Idle, ExecutionState::Skipped),
+             Self::QueuedToRunning => (ExecutionState::Queued, ExecutionState::Running),

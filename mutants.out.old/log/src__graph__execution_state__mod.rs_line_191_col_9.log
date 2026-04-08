@@ -1,0 +1,401 @@
+
+*** src/graph/execution_state/mod.rs:191:9: replace StateTransition::from_states -> (ExecutionState, ExecutionState) with (Default::default(), Default::default())
+
+*** mutation diff:
+--- src/graph/execution_state/mod.rs
++++ replace StateTransition::from_states -> (ExecutionState, ExecutionState) with (Default::default(), Default::default())
+@@ -183,24 +183,17 @@
+             Self::QueuedToRunning => ExecutionState::Running,
+             Self::RunningToCompleted => ExecutionState::Completed,
+             Self::RunningToFailed => ExecutionState::Failed,
+         }
+     }
+ 
+     #[must_use]
+     pub const fn from_states(self) -> (ExecutionState, ExecutionState) {
+-        match self {
+-            Self::IdleToQueued => (ExecutionState::Idle, ExecutionState::Queued),
+-            Self::IdleToSkipped => (ExecutionState::Idle, ExecutionState::Skipped),
+-            Self::QueuedToRunning => (ExecutionState::Queued, ExecutionState::Running),
+-            Self::QueuedToSkipped => (ExecutionState::Queued, ExecutionState::Skipped),
+-            Self::RunningToCompleted => (ExecutionState::Running, ExecutionState::Completed),
+-            Self::RunningToFailed => (ExecutionState::Running, ExecutionState::Failed),
+-        }
++        (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[must_use]
+ pub const fn try_transition(from: ExecutionState, to: ExecutionState) -> Option<StateTransition> {
+     match (from, to) {
+         (ExecutionState::Idle, ExecutionState::Queued) => Some(StateTransition::IdleToQueued),
+         (ExecutionState::Idle, ExecutionState::Skipped) => Some(StateTransition::IdleToSkipped),
+
+
+*** /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo test --no-run --verbose --package=oya-frontend@0.1.0
+       Fresh unicode-ident v1.0.24
+       Fresh cfg-if v1.0.4
+       Fresh once_cell v1.21.3
+       Fresh pin-project-lite v0.2.16
+       Fresh futures-core v0.3.32
+       Fresh futures-sink v0.3.32
+       Fresh memchr v2.8.0
+       Fresh smallvec v1.15.1
+       Fresh futures-task v0.3.32
+       Fresh futures-io v0.3.32
+       Fresh slab v0.4.12
+       Fresh version_check v0.9.5
+       Fresh fnv v1.0.7
+       Fresh bytes v1.11.1
+       Fresh itoa v1.0.17
+       Fresh find-msvc-tools v0.1.9
+       Fresh shlex v1.3.0
+       Fresh pkg-config v0.3.32
+       Fresh tracing-core v0.1.36
+       Fresh cc v1.2.56
+       Fresh scopeguard v1.2.0
+       Fresh bumpalo v3.20.1
+       Fresh stable_deref_trait v1.2.1
+       Fresh vcpkg v0.2.15
+       Fresh log v0.4.29
+       Fresh ident_case v1.0.1
+       Fresh hashbrown v0.16.1
+       Fresh equivalent v1.0.2
+       Fresh proc-macro2 v1.0.106
+       Fresh libc v0.2.182
+       Fresh rustversion v1.0.22
+       Fresh lock_api v0.4.14
+       Fresh foreign-types-shared v0.1.1
+       Fresh indexmap v2.13.0
+       Fresh unicode-xid v0.2.6
+       Fresh autocfg v1.5.0
+       Fresh dioxus-core-types v0.7.3
+       Fresh http v0.2.12
+       Fresh libloading v0.8.9
+       Fresh rustc-hash v2.1.1
+       Fresh litemap v0.8.1
+       Fresh quote v1.0.44
+       Fresh parking_lot_core v0.9.12
+       Fresh wasm-bindgen-shared v0.2.108
+       Fresh mio v1.1.1
+       Fresh socket2 v0.6.2
+       Fresh httparse v1.10.1
+       Fresh foreign-types v0.3.2
+       Fresh memmap2 v0.9.10
+       Fresh typenum v1.19.0
+       Fresh writeable v0.6.2
+       Fresh openssl-probe v0.2.1
+       Fresh longest-increasing-subsequence v0.1.0
+       Fresh syn v2.0.116
+       Fresh parking_lot v0.12.5
+       Fresh openssl-sys v0.9.111
+       Fresh const_format_proc_macros v0.2.34
+       Fresh anyhow v1.0.101
+       Fresh serde_core v1.0.228
+       Fresh errno v0.3.14
+       Fresh try-lock v0.2.5
+       Fresh lazy-js-bundle v0.7.3
+       Fresh http-body v0.4.6
+       Fresh socket2 v0.5.10
+       Fresh percent-encoding v2.3.2
+       Fresh tower-service v0.3.3
+       Fresh serde_derive v1.0.228
+       Fresh futures-macro v0.3.32
+       Fresh synstructure v0.13.2
+       Fresh tracing-attributes v0.1.31
+       Fresh wasm-bindgen-macro-support v0.2.108
+       Fresh zerovec-derive v0.11.2
+       Fresh displaydoc v0.2.5
+       Fresh thiserror-impl v2.0.18
+       Fresh openssl-macros v0.1.1
+       Fresh zerocopy-derive v0.8.39
+       Fresh const_format v0.2.35
+       Fresh pin-project-internal v1.1.10
+       Fresh num-traits v0.2.19
+       Fresh tokio-macros v2.6.0
+       Fresh icu_properties_data v2.1.2
+       Fresh warnings-macro v0.2.0
+       Fresh zmij v1.0.21
+       Fresh want v0.3.1
+       Fresh icu_normalizer_data v2.1.1
+       Fresh getrandom v0.3.4
+       Fresh signal-hook-registry v1.4.8
+       Fresh httpdate v1.0.3
+       Fresh zerofrom-derive v0.1.6
+       Fresh yoke-derive v0.8.1
+       Fresh wasm-bindgen-macro v0.2.108
+       Fresh thiserror v2.0.18
+       Fresh zerocopy v0.8.39
+       Fresh serde v1.0.228
+       Fresh pin-project v1.1.10
+       Fresh unicode-segmentation v1.12.0
+       Fresh serde_json v1.0.149
+       Fresh rand_core v0.9.5
+       Fresh generic-array v0.14.7
+       Fresh darling_core v0.21.3
+       Fresh const-serialize-macro v0.7.2
+       Fresh form_urlencoded v1.2.2
+       Fresh ryu v1.0.23
+       Fresh regex-syntax v0.8.9
+       Fresh const-serialize-macro v0.8.0-alpha.0
+       Fresh utf8_iter v1.0.4
+       Fresh zerofrom v0.1.6
+       Fresh wasm-bindgen v0.2.108
+       Fresh subsecond-types v0.7.3
+       Fresh generational-box v0.7.3
+       Fresh slotmap v1.1.1
+       Fresh warnings v0.2.1
+       Fresh convert_case v0.8.0
+       Fresh darling_macro v0.21.3
+       Fresh ppv-lite86 v0.2.21
+       Fresh const-serialize v0.7.2
+       Fresh crypto-common v0.1.7
+       Fresh block-buffer v0.10.4
+       Fresh regex-automata v0.4.14
+       Fresh either v1.15.0
+       Fresh base64 v0.21.7
+       Fresh encoding_rs v0.8.35
+       Fresh sync_wrapper v0.1.2
+       Fresh ipnet v2.11.0
+       Fresh utf8parse v0.2.2
+       Fresh mime v0.3.17
+       Fresh yoke v0.8.1
+       Fresh subsecond v0.7.3
+       Fresh js-sys v0.3.85
+       Fresh dioxus-cli-config v0.7.3
+       Fresh rand_chacha v0.9.0
+       Fresh darling v0.21.3
+       Fresh proc-macro2-diagnostics v0.10.1
+       Fresh getrandom v0.4.1
+       Fresh digest v0.10.7
+       Fresh rustls-pemfile v1.0.4
+       Fresh winnow v0.7.14
+       Fresh cpufeatures v0.2.17
+       Fresh linux-raw-sys v0.11.0
+       Fresh anstyle-parse v0.2.7
+       Fresh dioxus-html-internal-macro v0.7.3
+       Fresh euclid v0.22.13
+       Fresh async-trait v0.1.89
+       Fresh sledgehammer_bindgen_macro v0.6.5
+       Fresh keyboard-types v0.7.0
+       Fresh zerovec v0.11.5
+       Fresh zerotrie v0.2.3
+       Fresh dioxus-core v0.7.3
+       Fresh wasm-bindgen-futures v0.4.58
+       Fresh rand v0.9.2
+       Fresh web-sys v0.3.85
+       Fresh enumset_derive v0.14.0
+       Fresh dioxus-rsx v0.7.3
+       Fresh sha1 v0.10.6
+       Fresh rustix v1.1.3
+       Fresh http v1.4.0
+       Fresh colorchoice v1.0.4
+       Fresh anstyle-query v1.1.5
+       Fresh data-encoding v2.10.0
+       Fresh is_terminal_polyfill v1.70.2
+       Fresh anstyle v1.0.13
+       Fresh lazy_static v1.5.0
+       Fresh rustc-hash v1.1.0
+       Fresh utf-8 v0.7.6
+       Fresh fastrand v2.3.0
+       Fresh sledgehammer_bindgen v0.6.0
+       Fresh tinystr v0.8.2
+       Fresh potential_utf v0.1.4
+       Fresh dioxus-signals v0.7.3
+       Fresh dioxus-core-macro v0.7.3
+       Fresh enumset v1.1.10
+       Fresh tungstenite v0.27.0
+       Fresh anstream v0.6.21
+       Fresh tempfile v3.25.0
+       Fresh sledgehammer_utils v0.3.1
+       Fresh sharded-slab v0.1.7
+       Fresh dioxus-devtools-types v0.7.3
+       Fresh const-serialize v0.8.0-alpha.0
+       Fresh matchers v0.2.0
+       Fresh macro-string v0.1.4
+       Fresh tokio v1.49.0
+       Fresh thread_local v1.1.9
+       Fresh dunce v1.0.5
+       Fresh strsim v0.11.1
+       Fresh clap_lex v1.0.0
+       Fresh heck v0.5.0
+       Fresh dioxus-history v0.7.3
+       Fresh icu_locale_core v2.1.1
+       Fresh icu_collections v2.1.1
+       Fresh dioxus-hooks v0.7.3
+       Fresh dioxus-devtools v0.7.3
+       Fresh manganis-macro v0.7.3
+       Fresh dioxus-interpreter-js v0.7.3
+       Fresh manganis-core v0.7.3
+       Fresh tracing-subscriber v0.3.22
+       Fresh clap_derive v4.5.55
+       Fresh clap_builder v4.5.59
+       Fresh wasm-streams v0.4.2
+       Fresh serde-wasm-bindgen v0.6.5
+       Fresh gloo-timers v0.3.0
+       Fresh dioxus-stores-macro v0.7.3
+       Fresh bitmaps v2.1.0
+       Fresh send_wrapper v0.6.0
+       Fresh iana-time-zone v0.1.65
+       Fresh triomphe v0.1.15
+       Fresh bitflags v2.11.0
+       Fresh rand_core v0.6.4
+       Fresh icu_provider v2.1.1
+       Fresh dioxus-html v0.7.3
+       Fresh foldhash v0.1.5
+       Fresh sized-chunks v0.6.5
+       Fresh chrono v0.4.43
+       Fresh rand_xoshiro v0.6.0
+       Fresh dioxus-stores v0.7.3
+       Fresh clap v4.5.59
+       Fresh archery v1.2.2
+       Fresh openssl v0.10.75
+       Fresh dioxus-logger v0.7.3
+       Fresh manganis v0.7.3
+       Fresh tokio-util v0.7.18
+       Fresh dioxus-asset-resolver v0.7.3
+       Fresh dioxus-config-macro v0.7.3
+       Fresh tracing v0.1.44
+       Fresh futures-util v0.3.32
+       Fresh unsafe-libyaml v0.2.11
+       Fresh fixedbitset v0.5.7
+       Fresh icu_normalizer v2.1.1
+       Fresh icu_properties v2.1.2
+       Fresh dioxus-document v0.7.3
+       Fresh hashbrown v0.15.5
+       Fresh dioxus-config-macros v0.7.3
+       Fresh native-tls v0.2.18
+       Fresh im v15.1.0
+       Fresh serde_yaml v0.9.34+deprecated
+       Fresh h2 v0.3.27
+       Fresh rpds v1.2.0
+       Fresh uuid v1.21.0
+       Fresh itertools v0.14.0
+       Fresh futures-channel v0.3.32
+       Fresh strsim v0.10.0
+       Fresh tap v1.0.1
+       Fresh serde_urlencoded v0.7.1
+       Fresh simd-adler32 v0.3.8
+       Fresh adler2 v2.0.1
+       Fresh idna_adapter v1.2.1
+       Fresh dioxus-web v0.7.3
+       Fresh syn v1.0.109
+       Fresh petgraph v0.8.3
+       Fresh hyper v0.14.32
+       Fresh crossbeam-utils v0.8.21
+       Fresh tokio-native-tls v0.3.1
+       Fresh miniz_oxide v0.8.9
+       Fresh itertools v0.10.5
+       Fresh half v2.7.1
+       Fresh thiserror-impl v1.0.69
+       Fresh plotters-backend v0.3.7
+       Fresh ciborium-io v0.2.2
+       Fresh futures-executor v0.3.32
+       Fresh time v0.1.45
+       Fresh dirs-sys v0.3.7
+       Fresh wait-timeout v0.2.1
+       Fresh byteorder v1.5.0
+       Fresh cast v0.3.0
+       Fresh idna v1.1.0
+       Fresh dioxus v0.7.3
+       Fresh darling_core v0.13.4
+       Fresh crossbeam-epoch v0.9.18
+       Fresh hyper-tls v0.5.0
+       Fresh crc32fast v1.5.0
+       Fresh bzip2-sys v0.1.13+1.0.8
+       Fresh plotters-svg v0.3.7
+       Fresh thiserror v1.0.69
+       Fresh ciborium-ll v0.2.2
+       Fresh same-file v1.0.6
+       Fresh quick-error v1.2.3
+       Fresh bit-vec v0.8.0
+       Fresh futures v0.3.32
+       Fresh criterion-plot v0.5.0
+       Fresh dirs v3.0.2
+       Fresh tokio-stream v0.1.18
+       Fresh regex v1.12.3
+       Fresh rand_xorshift v0.4.0
+       Fresh tinytemplate v1.2.1
+       Fresh strong v0.3.4
+       Fresh is-terminal v0.4.17
+       Fresh console v0.16.3
+       Fresh url v2.5.8
+       Fresh darling_macro v0.13.4
+       Fresh crossbeam-deque v0.8.6
+       Fresh bzip2 v0.4.4
+       Fresh flate2 v1.1.9
+       Fresh paste v1.0.15
+       Fresh rusty-fork v0.3.1
+       Fresh plotters v0.3.7
+       Fresh ciborium v0.2.2
+       Fresh walkdir v2.5.0
+       Fresh bit-set v0.8.0
+       Fresh base64 v0.13.1
+       Fresh anes v0.1.6
+       Fresh oorandom v11.1.5
+       Fresh unarray v0.1.4
+       Fresh similar v2.7.0
+       Fresh reqwest v0.11.27
+       Fresh darling v0.13.4
+       Fresh rayon-core v1.13.0
+       Fresh zip v0.5.13
+       Fresh proptest v1.11.0
+       Fresh insta v1.47.1
+       Dirty oya-frontend v0.1.0 (/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp): couldn't read metadata for file `target/debug/deps/liboya_frontend-4398ef03c931646f.rlib`
+   Compiling oya-frontend v0.1.0 (/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp)
+       Fresh serde_with_macros v1.5.2
+       Fresh rayon v1.11.0
+       Fresh serde_with v1.14.0
+       Fresh criterion v0.5.1
+     Running `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=c33c32f4211d8e74 -C extra-filename=-4398ef03c931646f --out-dir /tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rmeta --extern chrono=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libchrono-c4e121930bdbf08b.rmeta --extern clap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rmeta --extern dioxus=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libdioxus-1b62a292160fff2e.rmeta --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rmeta --extern im=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libim-5712ea53a942ec90.rmeta --extern itertools=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rmeta --extern js_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rmeta --extern petgraph=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rmeta --extern reqwest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rmeta --extern rpds=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/librpds-d97c182bf42cd548.rmeta --extern serde=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde-aba271893af5d4c6.rmeta --extern serde_json=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rmeta --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rmeta --extern tap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtap-db64676956143bc2.rmeta --extern tempfile=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rmeta --extern thiserror=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rmeta --extern tokio=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rmeta --extern uuid=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rmeta --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rmeta --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rmeta --extern web_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rmeta`
+       Fresh playwright v0.0.20
+     Running `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=e6baaef9146a3061 -C extra-filename=-51d3e2a29e807f54 --out-dir /tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rlib --extern chrono=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libchrono-c4e121930bdbf08b.rlib --extern clap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rlib --extern criterion=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libcriterion-b6819abc2db6e402.rlib --extern dioxus=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libdioxus-1b62a292160fff2e.rlib --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rlib --extern im=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libim-5712ea53a942ec90.rlib --extern insta=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libinsta-8734cf751b546223.rlib --extern itertools=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rlib --extern js_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rlib --extern petgraph=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rlib --extern playwright=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libplaywright-beae785156a2b3f3.rlib --extern proptest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libproptest-2bba8e4af6cfef70.rlib --extern reqwest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rlib --extern rpds=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/librpds-d97c182bf42cd548.rlib --extern serde=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde-aba271893af5d4c6.rlib --extern serde_json=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rlib --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rlib --extern tap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtap-db64676956143bc2.rlib --extern tempfile=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rlib --extern thiserror=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rlib --extern tokio=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rlib --extern uuid=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rlib --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rlib --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rlib --extern web_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rlib -L native=/usr/lib`
+error[E0277]: the trait bound `ExecutionState: [const] Default` is not satisfied
+   --> src/graph/execution_state/mod.rs:191:10
+    |
+191 |         (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+    |          ^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the trait bound `ExecutionState: [const] Default` is not satisfied
+   --> src/graph/execution_state/mod.rs:191:30
+    |
+191 |         (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+    |                              ^^^^^^^^^^^^^^^^^^
+
+warning: unreachable pattern
+  --> src/ui/restate/journal_viewer.rs:28:9
+   |
+24 |         | JournalEntryType::ClearAll => " bg-yellow-100 text-yellow-800",
+   |           -------------------------- matches all the relevant values
+...
+28 |         JournalEntryType::ClearAll | JournalEntryType::Custom => " bg-teal-100 text-teal-800",
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ no value can reach this
+   |
+   = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0277`.
+warning: `oya-frontend` (lib) generated 1 warning
+error: could not compile `oya-frontend` (lib) due to 2 previous errors; 1 warning emitted
+
+Caused by:
+  process didn't exit successfully: `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=c33c32f4211d8e74 -C extra-filename=-4398ef03c931646f --out-dir /tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rmeta --extern chrono=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libchrono-c4e121930bdbf08b.rmeta --extern clap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rmeta --extern dioxus=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libdioxus-1b62a292160fff2e.rmeta --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rmeta --extern im=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libim-5712ea53a942ec90.rmeta --extern itertools=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rmeta --extern js_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rmeta --extern petgraph=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rmeta --extern reqwest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rmeta --extern rpds=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/librpds-d97c182bf42cd548.rmeta --extern serde=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde-aba271893af5d4c6.rmeta --extern serde_json=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rmeta --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rmeta --extern tap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtap-db64676956143bc2.rmeta --extern tempfile=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rmeta --extern thiserror=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rmeta --extern tokio=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rmeta --extern uuid=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rmeta --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rmeta --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rmeta --extern web_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rmeta` (exit status: 1)
+warning: build failed, waiting for other jobs to finish...
+error[E0277]: the trait bound `execution_state::ExecutionState: [const] Default` is not satisfied
+   --> src/graph/execution_state/mod.rs:191:10
+    |
+191 |         (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+    |          ^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the trait bound `execution_state::ExecutionState: [const] Default` is not satisfied
+   --> src/graph/execution_state/mod.rs:191:30
+    |
+191 |         (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+    |                              ^^^^^^^^^^^^^^^^^^
+
+warning: `oya-frontend` (lib test) generated 1 warning (1 duplicate)
+error: could not compile `oya-frontend` (lib test) due to 2 previous errors; 1 warning emitted
+
+Caused by:
+  process didn't exit successfully: `sccache /home/lewis/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/rustc --crate-name oya_frontend --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=e6baaef9146a3061 -C extra-filename=-51d3e2a29e807f54 --out-dir /tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps -C incremental=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/incremental -L dependency=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps --extern anyhow=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libanyhow-89c68c87316a1fcc.rlib --extern chrono=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libchrono-c4e121930bdbf08b.rlib --extern clap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libclap-04ff6ed672fe59d9.rlib --extern criterion=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libcriterion-b6819abc2db6e402.rlib --extern dioxus=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libdioxus-1b62a292160fff2e.rlib --extern gloo_timers=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libgloo_timers-49f2c003045660ea.rlib --extern im=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libim-5712ea53a942ec90.rlib --extern insta=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libinsta-8734cf751b546223.rlib --extern itertools=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libitertools-adc8d51b81a3a05d.rlib --extern js_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libjs_sys-394e6d0ee6d0d119.rlib --extern petgraph=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libpetgraph-f38bc5b81e7b0565.rlib --extern playwright=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libplaywright-beae785156a2b3f3.rlib --extern proptest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libproptest-2bba8e4af6cfef70.rlib --extern reqwest=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libreqwest-49624b10ccdf417d.rlib --extern rpds=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/librpds-d97c182bf42cd548.rlib --extern serde=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde-aba271893af5d4c6.rlib --extern serde_json=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_json-c65d82cb40677242.rlib --extern serde_yaml=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libserde_yaml-a6556709e934be13.rlib --extern tap=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtap-db64676956143bc2.rlib --extern tempfile=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtempfile-2d5e3097fa8a586f.rlib --extern thiserror=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libthiserror-4df7e4caad752385.rlib --extern tokio=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libtokio-04ca00fd1018f050.rlib --extern uuid=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libuuid-3d8b588277129a1e.rlib --extern wasm_bindgen=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen-414c559983701d8e.rlib --extern wasm_bindgen_futures=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libwasm_bindgen_futures-ab33f0a9905a41c6.rlib --extern web_sys=/tmp/cargo-mutants-oya-frontend-2e4-d89lUy.tmp/target/debug/deps/libweb_sys-1aeb45818d6ae057.rlib -L native=/usr/lib` (exit status: 1)
+
+*** result: Failure(101)

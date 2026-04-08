@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace RunningState::fail -> FailedState with Default::default()
+@@ -138,17 +138,17 @@
+ impl RunningState {
+     #[must_use]
+     pub const fn complete(self) -> CompletedState {
+         CompletedState
+     }
+ 
+     #[must_use]
+     pub const fn fail(self) -> FailedState {
+-        FailedState
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ pub trait TerminalState: sealed::TerminalSealed {}
+ 
+ impl TerminalState for CompletedState {}
+ impl TerminalState for FailedState {}
+ impl TerminalState for SkippedState {}

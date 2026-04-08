@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace ExecutionState::is_active -> bool with true
+@@ -40,17 +40,17 @@
+ impl ExecutionState {
+     #[must_use]
+     pub const fn is_terminal(self) -> bool {
+         matches!(self, Self::Completed | Self::Failed | Self::Skipped)
+     }
+ 
+     #[must_use]
+     pub const fn is_active(self) -> bool {
+-        matches!(self, Self::Running | Self::Queued)
++        true /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn is_idle(self) -> bool {
+         matches!(self, Self::Idle)
+     }
+ }
+ 

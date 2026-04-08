@@ -1,0 +1,28 @@
+--- src/graph/execution_state/mod.rs
++++ replace StateTransition::from_states -> (ExecutionState, ExecutionState) with (Default::default(), Default::default())
+@@ -183,24 +183,17 @@
+             Self::QueuedToRunning => ExecutionState::Running,
+             Self::RunningToCompleted => ExecutionState::Completed,
+             Self::RunningToFailed => ExecutionState::Failed,
+         }
+     }
+ 
+     #[must_use]
+     pub const fn from_states(self) -> (ExecutionState, ExecutionState) {
+-        match self {
+-            Self::IdleToQueued => (ExecutionState::Idle, ExecutionState::Queued),
+-            Self::IdleToSkipped => (ExecutionState::Idle, ExecutionState::Skipped),
+-            Self::QueuedToRunning => (ExecutionState::Queued, ExecutionState::Running),
+-            Self::QueuedToSkipped => (ExecutionState::Queued, ExecutionState::Skipped),
+-            Self::RunningToCompleted => (ExecutionState::Running, ExecutionState::Completed),
+-            Self::RunningToFailed => (ExecutionState::Running, ExecutionState::Failed),
+-        }
++        (Default::default(), Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ #[must_use]
+ pub const fn try_transition(from: ExecutionState, to: ExecutionState) -> Option<StateTransition> {
+     match (from, to) {
+         (ExecutionState::Idle, ExecutionState::Queued) => Some(StateTransition::IdleToQueued),
+         (ExecutionState::Idle, ExecutionState::Skipped) => Some(StateTransition::IdleToSkipped),

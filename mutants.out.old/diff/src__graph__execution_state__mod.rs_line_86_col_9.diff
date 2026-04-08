@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace <impl fmt::Display for InvalidTransition>::fmt -> fmt::Result with Ok(Default::default())
+@@ -78,17 +78,17 @@
+     #[must_use]
+     pub const fn to_state(self) -> ExecutionState {
+         self.to
+     }
+ }
+ 
+ impl fmt::Display for InvalidTransition {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+-        write!(f, "Invalid state transition: {} -> {}", self.from, self.to)
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl std::error::Error for InvalidTransition {}
+ 
+ // ===========================================================================
+ // Type-State Pattern (Makes illegal states unrepresentable)
+ // ===========================================================================

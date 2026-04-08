@@ -1,0 +1,13 @@
+src/graph/execution_state/mod.rs:29:9: replace <impl fmt::Display for ExecutionState>::fmt -> fmt::Result with Ok(Default::default())
+src/graph/execution_state/mod.rs:48:9: replace ExecutionState::is_active -> bool with false
+src/graph/execution_state/mod.rs:53:9: replace ExecutionState::is_idle -> bool with true
+src/graph/execution_state/mod.rs:43:9: replace ExecutionState::is_terminal -> bool with false
+src/graph/execution_state/mod.rs:43:9: replace ExecutionState::is_terminal -> bool with true
+src/graph/execution_state/mod.rs:53:9: replace ExecutionState::is_idle -> bool with false
+src/graph/execution_state/mod.rs:48:9: replace ExecutionState::is_active -> bool with true
+src/graph/execution_state/mod.rs:208:9: delete match arm (ExecutionState::Queued, ExecutionState::Skipped) in try_transition
+src/graph/execution_state/mod.rs:209:9: delete match arm (ExecutionState::Running, ExecutionState::Completed) in try_transition
+src/graph/execution_state/mod.rs:219:5: replace can_transition -> bool with false
+src/graph/execution_state/mod.rs:228:9: replace <impl From<IdleState> for ExecutionState>::from -> Self with Default::default()
+src/graph/execution_state/mod.rs:252:9: replace <impl From<FailedState> for ExecutionState>::from -> Self with Default::default()
+src/graph/execution_state/mod.rs:258:9: replace <impl From<SkippedState> for ExecutionState>::from -> Self with Default::default()

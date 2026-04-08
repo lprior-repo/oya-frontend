@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace ExecutionState::is_terminal -> bool with true
+@@ -35,17 +35,17 @@
+             Self::Skipped => write!(f, "skipped"),
+         }
+     }
+ }
+ 
+ impl ExecutionState {
+     #[must_use]
+     pub const fn is_terminal(self) -> bool {
+-        matches!(self, Self::Completed | Self::Failed | Self::Skipped)
++        true /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn is_active(self) -> bool {
+         matches!(self, Self::Running | Self::Queued)
+     }
+ 
+     #[must_use]

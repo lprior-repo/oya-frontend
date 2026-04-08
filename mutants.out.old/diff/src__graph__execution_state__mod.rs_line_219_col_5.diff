@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace can_transition -> bool with true
+@@ -211,17 +211,17 @@
+         }
+         (ExecutionState::Running, ExecutionState::Failed) => Some(StateTransition::RunningToFailed),
+         _ => None,
+     }
+ }
+ 
+ #[must_use]
+ pub const fn can_transition(from: ExecutionState, to: ExecutionState) -> bool {
+-    try_transition(from, to).is_some()
++    true /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ // ===========================================================================
+ // State Machine Conversions
+ // ===========================================================================
+ 
+ impl From<IdleState> for ExecutionState {
+     fn from(_: IdleState) -> Self {

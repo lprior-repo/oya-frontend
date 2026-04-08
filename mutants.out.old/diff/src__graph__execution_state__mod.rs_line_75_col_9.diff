@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace InvalidTransition::from_state -> ExecutionState with Default::default()
+@@ -67,17 +67,17 @@
+ impl InvalidTransition {
+     #[must_use]
+     pub const fn new(from: ExecutionState, to: ExecutionState) -> Self {
+         Self { from, to }
+     }
+ 
+     #[must_use]
+     pub const fn from_state(self) -> ExecutionState {
+-        self.from
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     #[must_use]
+     pub const fn to_state(self) -> ExecutionState {
+         self.to
+     }
+ }
+ 

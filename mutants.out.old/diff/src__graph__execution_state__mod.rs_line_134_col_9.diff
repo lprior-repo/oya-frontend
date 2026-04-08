@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ replace QueuedState::skip -> SkippedState with Default::default()
+@@ -126,17 +126,17 @@
+ impl QueuedState {
+     #[must_use]
+     pub const fn start(self) -> RunningState {
+         RunningState
+     }
+ 
+     #[must_use]
+     pub const fn skip(self) -> SkippedState {
+-        SkippedState
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl RunningState {
+     #[must_use]
+     pub const fn complete(self) -> CompletedState {
+         CompletedState
+     }

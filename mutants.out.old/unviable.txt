@@ -1,0 +1,21 @@
+src/graph/execution_state/mod.rs:75:9: replace InvalidTransition::from_state -> ExecutionState with Default::default()
+src/graph/execution_state/mod.rs:80:9: replace InvalidTransition::to_state -> ExecutionState with Default::default()
+src/graph/execution_state/mod.rs:117:9: replace IdleState::queue -> QueuedState with Default::default()
+src/graph/execution_state/mod.rs:122:9: replace IdleState::skip -> SkippedState with Default::default()
+src/graph/execution_state/mod.rs:129:9: replace QueuedState::start -> RunningState with Default::default()
+src/graph/execution_state/mod.rs:134:9: replace QueuedState::skip -> SkippedState with Default::default()
+src/graph/execution_state/mod.rs:141:9: replace RunningState::complete -> CompletedState with Default::default()
+src/graph/execution_state/mod.rs:146:9: replace RunningState::fail -> FailedState with Default::default()
+src/graph/execution_state/mod.rs:180:9: replace StateTransition::apply -> ExecutionState with Default::default()
+src/graph/execution_state/mod.rs:86:9: replace <impl fmt::Display for InvalidTransition>::fmt -> fmt::Result with Ok(Default::default())
+src/graph/execution_state/mod.rs:191:9: replace StateTransition::from_states -> (ExecutionState, ExecutionState) with (Default::default(), Default::default())
+src/graph/execution_state/mod.rs:204:5: replace try_transition -> Option<StateTransition> with Some(Default::default())
+src/graph/execution_state/mod.rs:204:5: replace try_transition -> Option<StateTransition> with None
+src/graph/execution_state/mod.rs:207:9: delete match arm (ExecutionState::Queued, ExecutionState::Running) in try_transition
+src/graph/execution_state/mod.rs:206:9: delete match arm (ExecutionState::Idle, ExecutionState::Skipped) in try_transition
+src/graph/execution_state/mod.rs:205:9: delete match arm (ExecutionState::Idle, ExecutionState::Queued) in try_transition
+src/graph/execution_state/mod.rs:219:5: replace can_transition -> bool with true
+src/graph/execution_state/mod.rs:212:9: delete match arm (ExecutionState::Running, ExecutionState::Failed) in try_transition
+src/graph/execution_state/mod.rs:240:9: replace <impl From<RunningState> for ExecutionState>::from -> Self with Default::default()
+src/graph/execution_state/mod.rs:234:9: replace <impl From<QueuedState> for ExecutionState>::from -> Self with Default::default()
+src/graph/execution_state/mod.rs:246:9: replace <impl From<CompletedState> for ExecutionState>::from -> Self with Default::default()

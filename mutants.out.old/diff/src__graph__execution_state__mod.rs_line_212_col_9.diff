@@ -1,0 +1,21 @@
+--- src/graph/execution_state/mod.rs
++++ delete match arm (ExecutionState::Running, ExecutionState::Failed) in try_transition
+@@ -204,17 +204,17 @@
+     match (from, to) {
+         (ExecutionState::Idle, ExecutionState::Queued) => Some(StateTransition::IdleToQueued),
+         (ExecutionState::Idle, ExecutionState::Skipped) => Some(StateTransition::IdleToSkipped),
+         (ExecutionState::Queued, ExecutionState::Running) => Some(StateTransition::QueuedToRunning),
+         (ExecutionState::Queued, ExecutionState::Skipped) => Some(StateTransition::QueuedToSkipped),
+         (ExecutionState::Running, ExecutionState::Completed) => {
+             Some(StateTransition::RunningToCompleted)
+         }
+-        (ExecutionState::Running, ExecutionState::Failed) => Some(StateTransition::RunningToFailed),
++         /* ~ changed by cargo-mutants ~ */
+         _ => None,
+     }
+ }
+ 
+ #[must_use]
+ pub const fn can_transition(from: ExecutionState, to: ExecutionState) -> bool {
+     try_transition(from, to).is_some()
+ }

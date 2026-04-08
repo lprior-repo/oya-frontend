@@ -1,0 +1,28 @@
+--- src/graph/execution_state/mod.rs
++++ replace <impl fmt::Display for ExecutionState>::fmt -> fmt::Result with Ok(Default::default())
+@@ -21,24 +21,17 @@
+     Running,
+     Completed,
+     Failed,
+     Skipped,
+ }
+ 
+ impl fmt::Display for ExecutionState {
+     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+-        match self {
+-            Self::Idle => write!(f, "idle"),
+-            Self::Queued => write!(f, "queued"),
+-            Self::Running => write!(f, "running"),
+-            Self::Completed => write!(f, "completed"),
+-            Self::Failed => write!(f, "failed"),
+-            Self::Skipped => write!(f, "skipped"),
+-        }
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl ExecutionState {
+     #[must_use]
+     pub const fn is_terminal(self) -> bool {
+         matches!(self, Self::Completed | Self::Failed | Self::Skipped)
+     }
