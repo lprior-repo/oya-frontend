@@ -162,7 +162,12 @@ pub fn export_restate_history<T: serde::Serialize>(invocations: &[T]) {
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{canvas_origin, canvas_rect_size};
 
@@ -186,7 +191,8 @@ mod tests {
         }
 
         #[test]
-        fn given_empty_invocations_when_serializing_then_valid_json_array_is_produced() -> anyhow::Result<()> {
+        fn given_empty_invocations_when_serializing_then_valid_json_array_is_produced(
+        ) -> anyhow::Result<()> {
             let invocations: Vec<MockInvocation> = vec![];
             let json = serde_json::to_string_pretty(&invocations)?;
             assert_eq!(json, "[]");
@@ -194,7 +200,8 @@ mod tests {
         }
 
         #[test]
-        fn given_single_invocation_when_serializing_then_valid_json_is_produced() -> anyhow::Result<()> {
+        fn given_single_invocation_when_serializing_then_valid_json_is_produced(
+        ) -> anyhow::Result<()> {
             let invocations = vec![MockInvocation {
                 id: "inv-123".to_string(),
                 service: "UserService".to_string(),
@@ -208,7 +215,8 @@ mod tests {
         }
 
         #[test]
-        fn given_multiple_invocations_when_serializing_then_all_are_preserved() -> anyhow::Result<()> {
+        fn given_multiple_invocations_when_serializing_then_all_are_preserved() -> anyhow::Result<()>
+        {
             let invocations = vec![
                 MockInvocation {
                     id: "inv-1".to_string(),
@@ -234,7 +242,8 @@ mod tests {
         }
 
         #[test]
-        fn given_invocation_with_nested_fields_when_serializing_then_nested_is_preserved() -> anyhow::Result<()> {
+        fn given_invocation_with_nested_fields_when_serializing_then_nested_is_preserved(
+        ) -> anyhow::Result<()> {
             #[derive(serde::Serialize, serde::Deserialize, Debug)]
             struct NestedInput {
                 name: String,
@@ -262,7 +271,8 @@ mod tests {
         }
 
         #[test]
-        fn given_invocation_with_special_characters_when_serializing_then_escaped_properly() -> anyhow::Result<()> {
+        fn given_invocation_with_special_characters_when_serializing_then_escaped_properly(
+        ) -> anyhow::Result<()> {
             let invocations = vec![MockInvocation {
                 id: "inv-with-\"quotes\"".to_string(),
                 service: "service/with/slashes".to_string(),
@@ -275,7 +285,8 @@ mod tests {
         }
 
         #[test]
-        fn given_invocation_with_unicode_when_serializing_then_unicode_preserved() -> anyhow::Result<()> {
+        fn given_invocation_with_unicode_when_serializing_then_unicode_preserved(
+        ) -> anyhow::Result<()> {
             let invocations = vec![MockInvocation {
                 id: "inv-日本語".to_string(),
                 service: "服务".to_string(),
@@ -289,7 +300,8 @@ mod tests {
         }
 
         #[test]
-        fn given_large_invocation_count_when_serializing_then_performance_is_acceptable() -> anyhow::Result<()> {
+        fn given_large_invocation_count_when_serializing_then_performance_is_acceptable(
+        ) -> anyhow::Result<()> {
             let invocations: Vec<MockInvocation> = (0..1000)
                 .map(|i| MockInvocation {
                     id: format!("inv-{}", i),

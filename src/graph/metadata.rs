@@ -134,7 +134,12 @@ pub(super) fn node_metadata(node_type: &str) -> (NodeCategory, String, String) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::node_metadata;
     use crate::graph::NodeCategory;

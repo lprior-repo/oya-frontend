@@ -5,8 +5,8 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
 use crate::graph::{ExecutionState, Node};
+use dioxus::prelude::*;
 use std::fmt::Write;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -326,7 +326,12 @@ pub fn InspectorPanel(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         execution_state_label, filter_lines, format_duration, should_render_failure,

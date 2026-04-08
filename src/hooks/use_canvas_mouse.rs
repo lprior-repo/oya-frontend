@@ -6,19 +6,19 @@
 #![allow(clippy::cognitive_complexity)]
 #![forbid(unsafe_code)]
 
+use crate::graph::PortName;
 use crate::hooks::use_canvas_interaction::CanvasInteraction;
 use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_sidebar::SidebarState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::constants::{
-    EDGE_AUTO_PAN_MAX, EDGE_AUTO_PAN_ZONE, FALLBACK_CANVAS_HEIGHT,
-    FALLBACK_CANVAS_WIDTH, NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET,
+    EDGE_AUTO_PAN_MAX, EDGE_AUTO_PAN_ZONE, FALLBACK_CANVAS_HEIGHT, FALLBACK_CANVAS_WIDTH,
+    NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET,
 };
 use crate::ui::edges::Position as FlowPosition;
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
-use crate::graph::PortName;
 
 /// Re-export for backward compatibility.
 pub use crate::ui::constants::DRAG_THRESHOLD_PX;
@@ -86,10 +86,7 @@ pub fn handle_canvas_mouseleave_event(
     sidebar: SidebarState,
     selection: SelectionState,
 ) {
-    if canvas.is_dragging()
-        || canvas.is_panning()
-        || canvas.is_marquee()
-        || canvas.is_connecting()
+    if canvas.is_dragging() || canvas.is_panning() || canvas.is_marquee() || canvas.is_connecting()
     {
         return;
     }
@@ -138,8 +135,7 @@ pub fn handle_canvas_mousedown_event(
         };
         canvas.set_origin(origin);
         let page_point = (page.x as f32, page.y as f32);
-        let Some(mouse_pos) =
-            crate::ui::interaction_guards::safe_canvas_point(page_point, origin)
+        let Some(mouse_pos) = crate::ui::interaction_guards::safe_canvas_point(page_point, origin)
         else {
             return;
         };
@@ -222,8 +218,10 @@ pub fn handle_canvas_mousemove_event(
     }
 
     if canvas.is_dragging() {
-        let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size()
-            .map_or((FALLBACK_CANVAS_WIDTH, FALLBACK_CANVAS_HEIGHT), std::convert::identity);
+        let (canvas_w, canvas_h) = crate::ui::app_io::canvas_rect_size().map_or(
+            (FALLBACK_CANVAS_WIDTH, FALLBACK_CANVAS_HEIGHT),
+            std::convert::identity,
+        );
         let edge = EDGE_AUTO_PAN_ZONE;
         let max_pan = EDGE_AUTO_PAN_MAX;
 
@@ -260,15 +258,11 @@ pub fn handle_canvas_mousemove_event(
 
         if let Some((source_id, source_kind)) = canvas.connecting_from() {
             let node_list = workflow.nodes().read().clone();
-            let snapped = crate::ui::editor_interactions::snap_handle(
-                &node_list,
-                mx,
-                my,
-                &current_vp,
-            )
-            .filter(|(node_id, handle_kind, _)| {
-                *node_id != source_id && *handle_kind != source_kind
-            });
+            let snapped =
+                crate::ui::editor_interactions::snap_handle(&node_list, mx, my, &current_vp)
+                    .filter(|(node_id, handle_kind, _)| {
+                        *node_id != source_id && *handle_kind != source_kind
+                    });
 
             if let Some((node_id, handle_kind, snapped_pos)) = snapped {
                 canvas.set_hovered_handle(Some((node_id, handle_kind)));
@@ -276,8 +270,14 @@ pub fn handle_canvas_mousemove_event(
             } else {
                 canvas.set_hovered_handle(None);
                 canvas.set_temp_edge(Some((
-                    FlowPosition { x: canvas_x, y: canvas_y },
-                    FlowPosition { x: canvas_x, y: canvas_y },
+                    FlowPosition {
+                        x: canvas_x,
+                        y: canvas_y,
+                    },
+                    FlowPosition {
+                        x: canvas_x,
+                        y: canvas_y,
+                    },
                 )));
             }
         }
@@ -288,22 +288,14 @@ pub fn handle_canvas_mousemove_event(
                 (start.0 - current_vp.x) / zoom,
                 (start.1 - current_vp.y) / zoom,
             );
-            let end_canvas = (
-                (mx - current_vp.x) / zoom,
-                (my - current_vp.y) / zoom,
-            );
-            let rect = crate::ui::editor_interactions::normalize_rect(
-                start_canvas,
-                end_canvas,
-            );
+            let end_canvas = ((mx - current_vp.x) / zoom, (my - current_vp.y) / zoom);
+            let rect = crate::ui::editor_interactions::normalize_rect(start_canvas, end_canvas);
             let selected = workflow
                 .nodes()
                 .read()
                 .iter()
                 .filter(|node| {
-                    crate::ui::editor_interactions::node_intersects_rect(
-                        node.x, node.y, rect,
-                    )
+                    crate::ui::editor_interactions::node_intersects_rect(node.x, node.y, rect)
                 })
                 .map(|node| node.id)
                 .collect::<Vec<_>>();
@@ -341,9 +333,7 @@ pub fn handle_canvas_mouseup_event(
     if let Some((start, end)) = canvas.marquee_rect() {
         let rect = crate::ui::editor_interactions::normalize_rect(start, end);
         let tiny_click = (rect.2 - rect.0).abs() < 2.0 && (rect.3 - rect.1).abs() < 2.0;
-        if tiny_click
-            && crate::ui::editor_interactions::rect_contains(rect, start)
-            && !is_dragging
+        if tiny_click && crate::ui::editor_interactions::rect_contains(rect, start) && !is_dragging
         {
             should_clear_selection = true;
         }
@@ -393,7 +383,12 @@ pub fn handle_canvas_mouseup_event(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     #[test]
     fn given_source_file_when_checking_for_unwrap_then_none_found() {

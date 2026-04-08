@@ -13,11 +13,11 @@
 //! // restate.ingress_url → configurable ingress URL (default: http://localhost:8080)
 //! ```
 
-use dioxus::prelude::*;
-use im::HashMap;
 use crate::restate_client::types::Invocation;
 use crate::restate_client::{RestateClient, RestateClientConfig};
 use crate::restate_sync::poller::InvocationPoller;
+use dioxus::prelude::*;
+use im::HashMap;
 use std::sync::Arc;
 
 /// Live state surfaced from the Restate introspection poll.
@@ -63,7 +63,7 @@ pub fn provide_restate_sync_context() -> RestateSyncHandle {
         loop {
             if *enabled.read() {
                 let current_admin_url = admin_url.read().clone();
-                
+
                 // If the URL changed, reset the poller.
                 if current_admin_url != last_admin_url {
                     let config = build_restate_config_from_url(&current_admin_url);
@@ -79,17 +79,17 @@ pub fn provide_restate_sync_context() -> RestateSyncHandle {
                             s.connected = true;
                             s.last_error = None;
                             s.last_updated = result.timestamp;
-                            
+
                             // Process delta events for status changes.
                             // This provides immediate UI feedback for state transitions
                             // while the full refresh ensures consistency for other changes.
                             let mut has_complete_data = false;
-                            
+
                             for event in &result.events {
                                 match event {
-                                    crate::restate_sync::InvocationEvent::StatusChanged { 
-                                        invocation_id, 
-                                        new_status 
+                                    crate::restate_sync::InvocationEvent::StatusChanged {
+                                        invocation_id,
+                                        new_status,
                                     } => {
                                         if let Some(inv) = s.invocations.get_mut(invocation_id) {
                                             inv.status = (*new_status).into();
@@ -104,7 +104,7 @@ pub fn provide_restate_sync_context() -> RestateSyncHandle {
                                     }
                                 }
                             }
-                            
+
                             // Full refresh when we lack complete delta data,
                             // or periodically to catch removed invocations.
                             if has_complete_data || result.events.is_empty() {
@@ -193,7 +193,12 @@ pub async fn poll_sleep_ms(ms: u32) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::build_restate_config_from_url;
 

@@ -5,8 +5,8 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
 use crate::graph::ExecutionState;
+use dioxus::prelude::*;
 use std::fmt::Write;
 
 /// Returns the Tailwind background + border classes for the bar.
@@ -130,7 +130,12 @@ pub fn RunStatusBar(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
 

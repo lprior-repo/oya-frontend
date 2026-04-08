@@ -1,6 +1,6 @@
-use dioxus::prelude::*;
 use crate::graph::workflow_node::WorkflowNode;
 use crate::graph::{Connection, ExecutionState, Node, NodeId};
+use dioxus::prelude::*;
 use std::collections::HashMap;
 
 use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
@@ -263,7 +263,12 @@ pub fn ParallelGroupOverlay(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use crate::graph::workflow_node::WorkflowNode;

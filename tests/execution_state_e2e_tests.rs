@@ -1,5 +1,10 @@
 //! E2E tests for ExecutionState machine enforcement
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use oya_frontend::graph::RunConfig;
 use oya_frontend::graph::{ExecutionState, Node, Workflow, WorkflowNode};
@@ -169,7 +174,14 @@ fn e2e_config_sync_across_all_transitions() {
 
     // Initial state: Idle, no config status
     assert_eq!(node.execution_state, ExecutionState::Idle);
-    assert!(!node.config.is_object() || !node.config.as_object().expect("is_object checked above").contains_key("status"));
+    assert!(
+        !node.config.is_object()
+            || !node
+                .config
+                .as_object()
+                .expect("is_object checked above")
+                .contains_key("status")
+    );
 
     // Idle -> Queued
     let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);

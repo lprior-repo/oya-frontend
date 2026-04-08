@@ -1,5 +1,10 @@
 //! Performance benchmarks for ExecutionState machine
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use oya_frontend::graph::{can_transition, try_transition, ExecutionState};
@@ -80,7 +85,6 @@ fn bench_can_transition_invalid(c: &mut Criterion) {
 // Benchmark: Serialization performance
 // ===========================================================================
 
-
 fn bench_serialize_state(c: &mut Criterion) {
     c.bench_function("serialize_running_state", |b| {
         let state = ExecutionState::Running;
@@ -102,7 +106,8 @@ fn bench_deserialize_state(c: &mut Criterion) {
 fn bench_serialize_roundtrip(c: &mut Criterion) {
     c.bench_function("serialize_deserialize_roundtrip", |b| {
         let state = ExecutionState::Running;
-        let json = serde_json::to_string(&state).expect("ExecutionState serialization must succeed for benchmark setup");
+        let json = serde_json::to_string(&state)
+            .expect("ExecutionState serialization must succeed for benchmark setup");
         b.iter(|| {
             let _ = serde_json::from_str::<ExecutionState>(&json);
         })

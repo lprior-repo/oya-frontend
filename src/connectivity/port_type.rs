@@ -166,7 +166,13 @@ impl fmt::Display for PortTypeParseError {
 impl std::error::Error for PortTypeParseError {}
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::uninlined_format_args)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp,
+    clippy::uninlined_format_args
+)]
 mod tests {
     use super::*;
 

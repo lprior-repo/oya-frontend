@@ -3,7 +3,9 @@
 //! These are extracted from memo computations in main.rs to enable unit testing
 //! and reuse without Dioxus signal dependencies.
 
-use crate::flow_extender::{ExtensionPatchPreview, PreviewConnection, PreviewEndpoint, PreviewNode};
+use crate::flow_extender::{
+    ExtensionPatchPreview, PreviewConnection, PreviewEndpoint, PreviewNode,
+};
 use crate::graph::{Node, NodeId};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -66,10 +68,7 @@ pub fn compute_preview_edges(
 }
 
 /// Build the proposed node position lookup for a given patch index.
-fn build_proposed_lookup(
-    patch_idx: usize,
-    nodes: &[PreviewNode],
-) -> HashMap<String, (f32, f32)> {
+fn build_proposed_lookup(patch_idx: usize, nodes: &[PreviewNode]) -> HashMap<String, (f32, f32)> {
     nodes
         .iter()
         .map(|node| {
@@ -159,10 +158,17 @@ fn resolve_target_position(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
-    use crate::flow_extender::{ExtensionPatchPreview, PreviewConnection, PreviewEndpoint, PreviewNode};
+    use crate::flow_extender::{
+        ExtensionPatchPreview, PreviewConnection, PreviewEndpoint, PreviewNode,
+    };
     use crate::graph::Node;
     use std::collections::HashMap;
 
@@ -278,7 +284,10 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].0, "p0-e0");
         // Verify the SVG path starts with "M" (it's a valid path)
-        assert!(result[0].1.starts_with('M'), "SVG path should start with 'M'");
+        assert!(
+            result[0].1.starts_with('M'),
+            "SVG path should start with 'M'"
+        );
     }
 
     #[test]
@@ -303,7 +312,10 @@ mod tests {
         }];
 
         let result = compute_preview_edges(&patches, &existing);
-        assert!(result.is_empty(), "Edge with missing node should be skipped");
+        assert!(
+            result.is_empty(),
+            "Edge with missing node should be skipped"
+        );
     }
 
     #[test]
@@ -340,7 +352,10 @@ mod tests {
         // Source position: (0 + 220, 0 + 34) = (220, 34)
         // Target position: (200, 100 + 34) = (200, 134)
         // mid_x = midpoint(220, 200) = 210
-        assert!(result[0].1.contains("M 220 34"), "Source should be at (220, 34)");
+        assert!(
+            result[0].1.contains("M 220 34"),
+            "Source should be at (220, 34)"
+        );
     }
 
     #[test]

@@ -112,10 +112,7 @@ impl std::fmt::Display for WorkflowExecutionError {
                 let second = cycle_nodes
                     .get(1)
                     .map_or_else(|| "...".to_string(), std::string::ToString::to_string);
-                write!(
-                    f,
-                    "Cycle detected in workflow: {first} -> {second} -> ..."
-                )
+                write!(f, "Cycle detected in workflow: {first} -> {second} -> ...")
             }
             Self::UnresolvedDependencies {
                 nodes,

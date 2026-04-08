@@ -5,8 +5,8 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
 use crate::graph::{Connection, Node, NodeId, Viewport};
+use dioxus::prelude::*;
 use std::fmt::Write;
 
 use crate::ui::constants::{NODE_HEIGHT, NODE_WIDTH};
@@ -84,7 +84,11 @@ fn scene_bounds(nodes: &[Node]) -> SceneBounds {
 fn viewport_rect(vp: &Viewport, canvas_w: f32, canvas_h: f32) -> ViewportRect {
     let zoom = {
         let z = vp.zoom;
-        if z.is_finite() && z > 0.0 { z } else { 1.0 }
+        if z.is_finite() && z > 0.0 {
+            z
+        } else {
+            1.0
+        }
     };
     ViewportRect {
         x: -vp.x / zoom,
@@ -163,7 +167,11 @@ pub fn FlowMinimap(
         node_list.iter().map(|n| (n.id, n)).collect();
 
     let mut viewbox = String::with_capacity(64);
-    let _ = write!(viewbox, "{} {} {} {}", bounds.min_x, bounds.min_y, bounds.width, bounds.height);
+    let _ = write!(
+        viewbox,
+        "{} {} {} {}",
+        bounds.min_x, bounds.min_y, bounds.width, bounds.height
+    );
     let node_total = node_list.len();
     let edge_total = edge_list.len();
 
@@ -269,7 +277,12 @@ pub fn FlowMinimap(
 
 // ── Unit tests ────────────────────────────────────────────────────────────────
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use crate::graph::workflow_node::WorkflowNode;

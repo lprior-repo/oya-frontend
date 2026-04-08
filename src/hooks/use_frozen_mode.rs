@@ -5,8 +5,8 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
 use crate::graph::{NodeId, RunRecord};
+use dioxus::prelude::*;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -106,7 +106,12 @@ pub fn find_run_by_id(history: &[RunRecord], id: Uuid) -> Option<&RunRecord> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{find_run_by_id, FrozenMode};
     use crate::graph::RunRecord;

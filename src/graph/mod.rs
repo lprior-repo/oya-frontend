@@ -9,7 +9,6 @@ pub mod calc;
 pub mod connectivity;
 pub mod core;
 mod core_types;
-pub mod graph_ops;
 #[cfg(test)]
 mod cycle_detection_tests;
 mod domain_types;
@@ -20,6 +19,7 @@ pub mod execution_record_types;
 pub mod execution_runtime;
 pub mod execution_state;
 pub mod execution_types;
+pub mod graph_ops;
 mod metadata;
 mod primitives;
 mod view;
@@ -72,7 +72,12 @@ pub use workflow_node::configs::{
 pub use workflow_node::{ConditionResult, HttpMethod, UnknownHttpMethodError, WorkflowNode};
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::workflow_node::{SendMessageConfig, SetStateConfig};
     use super::{Node, NodeCategory, NodeId, PortName, WorkflowNode};

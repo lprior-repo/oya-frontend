@@ -3,13 +3,13 @@
 #![deny(clippy::panic)]
 #![warn(clippy::pedantic)]
 
-use dioxus::prelude::*;
-use itertools::Itertools;
 use crate::flow_extender::{
     apply_extension, extension_presets, preview_extension, resolve_extension_preset,
     suggest_extensions, ExtensionPatchPreview, ExtensionPriority,
 };
 use crate::graph::{Node, NodeCategory, NodeId, Workflow};
+use dioxus::prelude::*;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 use crate::ui::NodeConfigEditor;
@@ -813,9 +813,9 @@ fn collect_input_payloads(workflow: &Workflow, node_id: NodeId) -> Vec<serde_jso
 
 #[cfg(not(target_arch = "wasm32"))]
 fn record_suggestion_decision(key: &str, accepted: bool, source: &str) {
-    use chrono::Utc;
     use crate::metrics::{SuggestionDecision, SuggestionDecisionMetrics, SuggestionKey};
     use crate::MetricsStore;
+    use chrono::Utc;
     use std::path::Path;
 
     let decision = if accepted {
@@ -968,7 +968,12 @@ fn snapshot_by_id(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         collect_previews, event_appearance, mode_label, push_timeline, remember_extension_snapshot,

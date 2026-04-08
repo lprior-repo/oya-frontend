@@ -4,11 +4,11 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::graph::{NodeId, Workflow};
 use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::PayloadShape;
 use dioxus::prelude::*;
-use crate::graph::{NodeId, Workflow};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum PayloadTab {
@@ -69,9 +69,7 @@ fn PayloadItem(payload: serde_json::Value, index: usize, label: String) -> Eleme
 }
 
 #[component]
-pub fn PayloadPreviewPanel(
-    on_close: EventHandler<MouseEvent>,
-) -> Element {
+pub fn PayloadPreviewPanel(on_close: EventHandler<MouseEvent>) -> Element {
     let selection: SelectionState = use_context();
     let selected_node_id = selection.selected_id();
     let workflow_state: WorkflowState = use_context();

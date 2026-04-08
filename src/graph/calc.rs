@@ -157,7 +157,12 @@ pub fn calculate_rect_size(rect: (f32, f32, f32, f32)) -> (f32, f32) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         calculate_fit_view, calculate_pan_offset, calculate_zoom_delta, update_node_position,

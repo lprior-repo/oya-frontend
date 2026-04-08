@@ -2,8 +2,8 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use dioxus::prelude::*;
 use crate::graph::NodeId;
+use dioxus::prelude::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum PanelState {
@@ -455,7 +455,12 @@ pub fn use_ui_panels() -> UiPanels {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{ContextMenuState, InlinePanelState, MenuPosition, PanelState, UiPanelsState};
     use crate::graph::NodeId;

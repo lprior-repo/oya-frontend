@@ -26,5 +26,5 @@ pub mod scenario_runner;
 #[cfg(target_arch = "wasm32")]
 pub mod hooks;
 
-pub mod ui;
 pub mod errors;
+pub mod ui;

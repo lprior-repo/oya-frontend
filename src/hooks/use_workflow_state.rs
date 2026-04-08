@@ -3,12 +3,12 @@
 #![deny(clippy::panic)]
 
 use crate::errors::{WorkflowError, WorkflowResult};
-use crate::ui::constants::{NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET};
-use dioxus::prelude::*;
 use crate::graph::{
     Connection, ConnectionResult, ConnectivityConnectionError, Node, NodeId, PortName, Viewport,
     Workflow,
 };
+use crate::ui::constants::{NODE_CENTER_X_OFFSET, NODE_HANDLE_Y_OFFSET};
+use dioxus::prelude::*;
 use std::collections::HashMap;
 
 fn push_undo_snapshot(undo_stack: &mut Vec<Workflow>, snapshot: Workflow, cap: usize) {
@@ -74,7 +74,10 @@ fn viewport_center_node_origin(
         return None;
     }
 
-    Some((center_x - NODE_CENTER_X_OFFSET, center_y - NODE_HANDLE_Y_OFFSET))
+    Some((
+        center_x - NODE_CENTER_X_OFFSET,
+        center_y - NODE_HANDLE_Y_OFFSET,
+    ))
 }
 
 fn merge_run_result(mut current: Workflow, completed: Workflow) -> Workflow {
@@ -485,7 +488,12 @@ pub fn use_workflow_state() -> WorkflowState {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         add_connection_transaction, apply_redo, apply_undo, map_connection_error, merge_run_result,

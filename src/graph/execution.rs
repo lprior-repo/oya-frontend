@@ -462,7 +462,12 @@ impl Workflow {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use crate::graph::{Connection, PortName};
@@ -490,7 +495,9 @@ mod tests {
     /// Calls `build_execution_queue` through `prepare_run`, which resets
     /// dirty state so it can be called repeatedly. Returns the queue or
     /// the first error encountered.
-    fn prepare_and_get_queue(workflow: &mut Workflow) -> Result<Vec<NodeId>, WorkflowExecutionError> {
+    fn prepare_and_get_queue(
+        workflow: &mut Workflow,
+    ) -> Result<Vec<NodeId>, WorkflowExecutionError> {
         workflow.prepare_run()?;
         Ok(workflow.execution_queue.clone())
     }
@@ -673,7 +680,10 @@ mod tests {
 
         let result = workflow.prepare_run();
         assert!(
-            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            matches!(
+                result,
+                Err(WorkflowExecutionError::InvalidWorkflowState { .. })
+            ),
             "isolated node should cause connectivity violation, got {result:?}"
         );
     }
@@ -724,7 +734,10 @@ mod tests {
 
         let result = workflow.prepare_run();
         assert!(
-            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            matches!(
+                result,
+                Err(WorkflowExecutionError::InvalidWorkflowState { .. })
+            ),
             "duplicate connections should be rejected, got {result:?}"
         );
     }
@@ -741,7 +754,10 @@ mod tests {
 
         let result = workflow.prepare_run();
         assert!(
-            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            matches!(
+                result,
+                Err(WorkflowExecutionError::InvalidWorkflowState { .. })
+            ),
             "dirty execution_queue should be rejected, got {result:?}"
         );
     }
@@ -896,14 +912,8 @@ mod tests {
             order.iter().enumerate().map(|(i, &id)| (id, i)).collect();
 
         for conn in &workflow.connections {
-            let src_pos = positions
-                .get(&conn.source)
-                .copied()
-                .unwrap_or(usize::MAX);
-            let tgt_pos = positions
-                .get(&conn.target)
-                .copied()
-                .unwrap_or(usize::MAX);
+            let src_pos = positions.get(&conn.source).copied().unwrap_or(usize::MAX);
+            let tgt_pos = positions.get(&conn.target).copied().unwrap_or(usize::MAX);
             assert!(
                 src_pos < tgt_pos,
                 "edge {:?} -> {:?}: source pos {} must be < target pos {}",
@@ -931,7 +941,10 @@ mod tests {
 
         let result = workflow.prepare_run();
         assert!(
-            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            matches!(
+                result,
+                Err(WorkflowExecutionError::InvalidWorkflowState { .. })
+            ),
             "executing node should cause dirty state error, got {result:?}"
         );
     }
@@ -955,7 +968,10 @@ mod tests {
 
         let result = workflow.prepare_run();
         assert!(
-            matches!(result, Err(WorkflowExecutionError::InvalidWorkflowState { .. })),
+            matches!(
+                result,
+                Err(WorkflowExecutionError::InvalidWorkflowState { .. })
+            ),
             "two disconnected components should cause connectivity error, got {result:?}"
         );
     }
@@ -987,7 +1003,10 @@ mod tests {
         let result = workflow.prepare_run();
         // It should NOT return UnresolvedDependencies since the source is skipped
         assert!(
-            !matches!(result, Err(WorkflowExecutionError::UnresolvedDependencies { .. })),
+            !matches!(
+                result,
+                Err(WorkflowExecutionError::UnresolvedDependencies { .. })
+            ),
             "missing source should not trigger unresolved deps error, got {result:?}"
         );
     }
@@ -1010,7 +1029,10 @@ mod tests {
 
         // Should not panic or stack overflow; depth limit returns config unchanged
         let result = workflow.resolve_expressions(&config);
-        assert!(result.is_object(), "deeply nested config should still resolve to an object");
+        assert!(
+            result.is_object(),
+            "deeply nested config should still resolve to an object"
+        );
     }
 
     // ---------------------------------------------------------------------------

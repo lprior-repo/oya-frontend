@@ -93,7 +93,10 @@ impl PollerState {
     }
 
     #[must_use]
-    pub fn get_tracked_invocation(&self, id: &str) -> Option<crate::restate_client::types::Invocation> {
+    pub fn get_tracked_invocation(
+        &self,
+        id: &str,
+    ) -> Option<crate::restate_client::types::Invocation> {
         match self {
             Self::Initial => None,
             Self::Tracking(map) => map.get(id).cloned(),
@@ -255,7 +258,13 @@ pub enum PollerError {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp, clippy::clone_on_copy)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp,
+    clippy::clone_on_copy
+)]
 mod tests {
     use super::*;
 
@@ -465,10 +474,12 @@ mod tests {
 
     #[test]
     fn test_poller_transparency_logic() {
-        use crate::restate_client::types::{Invocation, InvocationStatus as RestateStatus, ServiceType, InvokedBy};
-        
+        use crate::restate_client::types::{
+            Invocation, InvocationStatus as RestateStatus, InvokedBy, ServiceType,
+        };
+
         let mut state;
-        
+
         let inv1 = Invocation {
             id: "inv-1".to_string(),
             target: "wf".to_string(),
@@ -494,20 +505,22 @@ mod tests {
         let mut new_state = HashMap::new();
         new_state.insert(inv1.id.clone(), inv1.clone());
         state = PollerState::Tracking(new_state);
-        
+
         assert!(state.is_tracking());
         assert_eq!(state.tracked_ids(), vec!["inv-1".to_string()]);
-        
+
         // 2. Status change
         let mut inv1_updated = inv1.clone();
         inv1_updated.status = RestateStatus::Running;
         inv1_updated.modified_at = 2000;
-        
+
         if let PollerState::Tracking(ref mut map) = state {
             map.insert(inv1_updated.id.clone(), inv1_updated.clone());
         }
-        
-        let tracked = state.get_tracked_invocation("inv-1").expect("should be tracked");
+
+        let tracked = state
+            .get_tracked_invocation("inv-1")
+            .expect("should be tracked");
         assert_eq!(tracked.status, RestateStatus::Running);
         assert_eq!(tracked.modified_at, 2000);
     }

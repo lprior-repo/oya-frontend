@@ -152,7 +152,12 @@ impl Workflow {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use crate::graph::{PortName, RunConfig, WorkflowNode};
@@ -260,12 +265,16 @@ mod tests {
         let err = result.err().expect("should have error");
         assert_eq!(err.from_state(), ExecutionState::Completed);
         assert_eq!(err.to_state(), ExecutionState::Idle);
-        assert_eq!(node.execution_state, ExecutionState::Completed,
-            "node state should remain unchanged after failed transition");
+        assert_eq!(
+            node.execution_state,
+            ExecutionState::Completed,
+            "node state should remain unchanged after failed transition"
+        );
     }
 
     #[test]
-    fn given_completed_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned() {
+    fn given_completed_node_when_transitioning_to_queued_then_invalid_transition_error_is_returned()
+    {
         let mut node = node_in_state(ExecutionState::Completed);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Queued);
 
@@ -276,7 +285,8 @@ mod tests {
     }
 
     #[test]
-    fn given_completed_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+    fn given_completed_node_when_transitioning_to_running_then_invalid_transition_error_is_returned(
+    ) {
         let mut node = node_in_state(ExecutionState::Completed);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
 
@@ -287,7 +297,8 @@ mod tests {
     }
 
     #[test]
-    fn given_completed_node_when_transitioning_to_failed_then_invalid_transition_error_is_returned() {
+    fn given_completed_node_when_transitioning_to_failed_then_invalid_transition_error_is_returned()
+    {
         let mut node = node_in_state(ExecutionState::Completed);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Failed);
 
@@ -298,7 +309,8 @@ mod tests {
     }
 
     #[test]
-    fn given_completed_node_when_transitioning_to_skipped_then_invalid_transition_error_is_returned() {
+    fn given_completed_node_when_transitioning_to_skipped_then_invalid_transition_error_is_returned(
+    ) {
         let mut node = node_in_state(ExecutionState::Completed);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Skipped);
 
@@ -317,8 +329,11 @@ mod tests {
         let err = result.err().expect("should have error");
         assert_eq!(err.from_state(), ExecutionState::Failed);
         assert_eq!(err.to_state(), ExecutionState::Idle);
-        assert_eq!(node.execution_state, ExecutionState::Failed,
-            "node state should remain unchanged after failed transition");
+        assert_eq!(
+            node.execution_state,
+            ExecutionState::Failed,
+            "node state should remain unchanged after failed transition"
+        );
     }
 
     #[test]
@@ -352,8 +367,11 @@ mod tests {
         let err = result.err().expect("should have error");
         assert_eq!(err.from_state(), ExecutionState::Skipped);
         assert_eq!(err.to_state(), ExecutionState::Idle);
-        assert_eq!(node.execution_state, ExecutionState::Skipped,
-            "node state should remain unchanged after failed transition");
+        assert_eq!(
+            node.execution_state,
+            ExecutionState::Skipped,
+            "node state should remain unchanged after failed transition"
+        );
     }
 
     #[test]
@@ -368,7 +386,8 @@ mod tests {
     }
 
     #[test]
-    fn given_skipped_node_when_transitioning_to_running_then_invalid_transition_error_is_returned() {
+    fn given_skipped_node_when_transitioning_to_running_then_invalid_transition_error_is_returned()
+    {
         let mut node = node_in_state(ExecutionState::Skipped);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Running);
 
@@ -412,7 +431,8 @@ mod tests {
     }
 
     #[test]
-    fn given_queued_node_when_transitioning_to_completed_then_invalid_transition_error_is_returned() {
+    fn given_queued_node_when_transitioning_to_completed_then_invalid_transition_error_is_returned()
+    {
         let mut node = node_in_state(ExecutionState::Queued);
         let result = Workflow::set_node_status(&mut node, ExecutionState::Completed);
 
@@ -443,7 +463,8 @@ mod tests {
     // ---------------------------------------------------------------------------
 
     #[test]
-    fn given_completed_node_when_setting_pending_status_then_invalid_transition_error_is_returned() {
+    fn given_completed_node_when_setting_pending_status_then_invalid_transition_error_is_returned()
+    {
         let mut node = node_in_state(ExecutionState::Completed);
         let result = Workflow::set_node_pending_status(&mut node);
 

@@ -45,6 +45,7 @@ pub enum WorkflowNode {
     LoopIterate(LoopConfig),
     ObjectCall(ObjectCallConfig),
     Parallel(ParallelConfig),
+    PeekPromise(PeekPromiseConfig),
     ResolvePromise(ResolvePromiseConfig),
     Run(RunConfig),
     SaveToMemory(SetStateConfig),
@@ -80,9 +81,15 @@ impl FromStr for WorkflowNode {
             "clear-state" => Ok(Self::ClearState(ClearStateConfig::default())),
             "compensate" => Ok(Self::Compensate(CompensateConfig::default())),
             "condition" => Ok(Self::Condition(ConditionConfig::default())),
-            "cron-trigger" | "schedule-trigger" => Ok(Self::CronTrigger(CronTriggerConfig::default())),
-            "delayed-send" | "delayed-message" => Ok(Self::DelayedSend(DelayedSendConfig::default())),
-            "durable-promise" | "promise" => Ok(Self::DurablePromise(DurablePromiseConfig::default())),
+            "cron-trigger" | "schedule-trigger" => {
+                Ok(Self::CronTrigger(CronTriggerConfig::default()))
+            }
+            "delayed-send" | "delayed-message" => {
+                Ok(Self::DelayedSend(DelayedSendConfig::default()))
+            }
+            "durable-promise" | "promise" => {
+                Ok(Self::DurablePromise(DurablePromiseConfig::default()))
+            }
             "get-state" => Ok(Self::GetState(GetStateConfig::default())),
             "http-call" | "http-request" => Ok(Self::HttpCall(HttpCallConfig::default())),
             "http-handler" | "http-trigger" => Ok(Self::HttpHandler(HttpHandlerConfig::default())),
@@ -93,13 +100,18 @@ impl FromStr for WorkflowNode {
             "loop-iterate" => Ok(Self::LoopIterate(LoopConfig::default())),
             "object-call" => Ok(Self::ObjectCall(ObjectCallConfig::default())),
             "parallel" => Ok(Self::Parallel(ParallelConfig::default())),
-            "resolve-promise" | "resolve" => Ok(Self::ResolvePromise(ResolvePromiseConfig::default())),
+            "peek-promise" | "peek" => Ok(Self::PeekPromise(PeekPromiseConfig::default())),
+            "resolve-promise" | "resolve" => {
+                Ok(Self::ResolvePromise(ResolvePromiseConfig::default()))
+            }
             "run" | "run-code" => Ok(Self::Run(RunConfig::default())),
             "save-to-memory" => Ok(Self::SaveToMemory(SetStateConfig::default())),
             "send-message" => Ok(Self::SendMessage(SendMessageConfig::default())),
             "service-call" => Ok(Self::ServiceCall(ServiceCallConfig::default())),
             "set-state" => Ok(Self::SetState(SetStateConfig::default())),
-            "signal-handler" | "wait-for-signal" => Ok(Self::SignalHandler(SignalHandlerConfig::default())),
+            "signal-handler" | "wait-for-signal" => {
+                Ok(Self::SignalHandler(SignalHandlerConfig::default()))
+            }
             "sleep" | "delay" => Ok(Self::Sleep(SleepConfig::default())),
             "switch" | "router" => Ok(Self::Switch(SwitchConfig::default())),
             "timeout" => Ok(Self::Timeout(TimeoutConfig::default())),
@@ -136,6 +148,7 @@ impl fmt::Display for WorkflowNode {
             Self::LoopIterate(_) => write!(f, "loop-iterate"),
             Self::ObjectCall(_) => write!(f, "object-call"),
             Self::Parallel(_) => write!(f, "parallel"),
+            Self::PeekPromise(_) => write!(f, "peek-promise"),
             Self::ResolvePromise(_) => write!(f, "resolve-promise"),
             Self::Run(_) => write!(f, "run"),
             Self::SaveToMemory(_) => write!(f, "save-to-memory"),
@@ -162,14 +175,16 @@ impl WorkflowNode {
     #[must_use]
     pub const fn category(&self) -> NodeCategory {
         match self {
-            Self::CronTrigger(_) | Self::HttpHandler(_) | Self::KafkaConsumer(_) | Self::KafkaHandler(_) => {
-                NodeCategory::Entry
-            }
+            Self::CronTrigger(_)
+            | Self::HttpHandler(_)
+            | Self::KafkaConsumer(_)
+            | Self::KafkaHandler(_) => NodeCategory::Entry,
             Self::Awakeable(_)
             | Self::DelayedSend(_)
             | Self::DurablePromise(_)
             | Self::HttpCall(_)
             | Self::ObjectCall(_)
+            | Self::PeekPromise(_)
             | Self::ResolvePromise(_)
             | Self::Run(_)
             | Self::SendMessage(_)
@@ -210,6 +225,7 @@ impl WorkflowNode {
             Self::Loop(_) | Self::LoopIterate(_) => super::NodeIcon::Repeat,
             Self::ObjectCall(_) => super::NodeIcon::Box,
             Self::Parallel(_) => super::NodeIcon::Layers,
+            Self::PeekPromise(_) => super::NodeIcon::Eye,
             Self::ResolvePromise(_) => super::NodeIcon::CheckCircle,
             Self::Run(_) => super::NodeIcon::Play,
             Self::SaveToMemory(_) | Self::SetState(_) => super::NodeIcon::Save,
@@ -240,6 +256,7 @@ impl WorkflowNode {
             Self::Loop(_) | Self::LoopIterate(_) => "Iterate over collection",
             Self::ObjectCall(_) => "Call Restate object",
             Self::Parallel(_) => "Execute in parallel",
+            Self::PeekPromise(_) => "Non-blocking promise inspection",
             Self::ResolvePromise(_) => "Resolve promise",
             Self::Run(_) => "Run arbitrary code",
             Self::SaveToMemory(_) => "Save to memory",
@@ -271,6 +288,7 @@ impl WorkflowNode {
             | Self::LoopIterate(_)
             | Self::ObjectCall(_)
             | Self::Parallel(_)
+            | Self::PeekPromise(_)
             | Self::ResolvePromise(_)
             | Self::Run(_)
             | Self::SaveToMemory(_)
@@ -285,9 +303,10 @@ impl WorkflowNode {
             | Self::WorkflowCall(_)
             | Self::WorkflowSubmit(_) => PortType::FlowControl,
             Self::CronTrigger(_) => PortType::Event,
-            Self::HttpCall(_) | Self::HttpHandler(_) | Self::KafkaConsumer(_) | Self::KafkaHandler(_) => {
-                PortType::Json
-            }
+            Self::HttpCall(_)
+            | Self::HttpHandler(_)
+            | Self::KafkaConsumer(_)
+            | Self::KafkaHandler(_) => PortType::Json,
             Self::SignalHandler(_) => PortType::Signal,
         }
     }
@@ -308,6 +327,7 @@ impl WorkflowNode {
             | Self::LoopIterate(_)
             | Self::ObjectCall(_)
             | Self::Parallel(_)
+            | Self::PeekPromise(_)
             | Self::ResolvePromise(_)
             | Self::Run(_)
             | Self::SaveToMemory(_)
@@ -370,6 +390,7 @@ impl WorkflowNode {
             // Workflow operations - Workflow context
             Self::Awakeable(_)
             | Self::DurablePromise(_)
+            | Self::PeekPromise(_)
             | Self::ResolvePromise(_)
             | Self::WaitForWebhook(_)
             | Self::WorkflowCall(_)
@@ -543,7 +564,12 @@ impl std::error::Error for UnknownNodeTypeError {}
 // ============================================================================
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
 

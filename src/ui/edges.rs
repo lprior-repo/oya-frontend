@@ -1,6 +1,6 @@
-use dioxus::prelude::*;
 use crate::graph::workflow_node::WorkflowNode;
 use crate::graph::{Connection, Node, NodeId};
+use dioxus::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -250,7 +250,12 @@ struct Rect {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,

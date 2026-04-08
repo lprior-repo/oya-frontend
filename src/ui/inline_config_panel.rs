@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::graph::{Node, NodeCategory};
+use dioxus::prelude::*;
 use serde_json::Value;
 
 use super::config_panel::{get_str_val, get_u64_val};

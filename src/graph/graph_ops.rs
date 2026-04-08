@@ -84,8 +84,7 @@ pub fn build_adjacency_with_in_degree(
     valid_node_ids: &HashSet<NodeId>,
 ) -> (HashMap<NodeId, Vec<NodeId>>, HashMap<NodeId, usize>) {
     let mut adjacency: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
-    let mut in_degree: HashMap<NodeId, usize> =
-        valid_node_ids.iter().map(|&id| (id, 0)).collect();
+    let mut in_degree: HashMap<NodeId, usize> = valid_node_ids.iter().map(|&id| (id, 0)).collect();
 
     for conn in connections {
         if valid_node_ids.contains(&conn.source) && valid_node_ids.contains(&conn.target) {
@@ -250,7 +249,12 @@ where
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::*;
     use crate::graph::PortName;
@@ -293,9 +297,12 @@ mod tests {
     fn given_nodes_when_collecting_ids_then_all_ids_are_present() {
         let a = NodeId::new();
         let b = NodeId::new();
-        let mut nodes = vec![
-            Node::from_workflow_node("a".into(), crate::graph::WorkflowNode::default(), 0.0, 0.0),
-        ];
+        let mut nodes = vec![Node::from_workflow_node(
+            "a".into(),
+            crate::graph::WorkflowNode::default(),
+            0.0,
+            0.0,
+        )];
         nodes[0].id = a;
 
         let ids = collect_node_ids(&nodes);
@@ -456,8 +463,7 @@ mod tests {
         in_deg.insert(b, 1);
         in_deg.insert(c, 1);
 
-        let result =
-            topological_sort(&node_ids, &adj, &in_deg, |_, _| std::cmp::Ordering::Equal);
+        let result = topological_sort(&node_ids, &adj, &in_deg, |_, _| std::cmp::Ordering::Equal);
 
         let order = result.expect("linear chain should produce valid order");
         let pos_a = order.iter().position(|&id| id == a).expect("a");
@@ -481,8 +487,7 @@ mod tests {
         in_deg.insert(a, 1);
         in_deg.insert(b, 1);
 
-        let result =
-            topological_sort(&node_ids, &adj, &in_deg, |_, _| std::cmp::Ordering::Equal);
+        let result = topological_sort(&node_ids, &adj, &in_deg, |_, _| std::cmp::Ordering::Equal);
 
         assert!(result.is_err());
         let remaining = result.err().expect("cycle should remain");

@@ -26,14 +26,16 @@ pub fn safe_canvas_from_viewport(
     }
 
     let (mx, my) = safe_canvas_point(page, origin)?;
-    Some((
-        (mx - viewport.x) / zoom_val,
-        (my - viewport.y) / zoom_val,
-    ))
+    Some(((mx - viewport.x) / zoom_val, (my - viewport.y) / zoom_val))
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{is_valid_zoom, safe_canvas_from_viewport, safe_canvas_point};
     use crate::graph::Viewport;

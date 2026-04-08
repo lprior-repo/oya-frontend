@@ -5,9 +5,9 @@
 #![warn(clippy::nursery)]
 #![forbid(unsafe_code)]
 
+use crate::graph::{NodeId, ValidationResult, ValidationSeverity};
 use crate::ui::panel_types::ValidationResultCategory;
 use dioxus::prelude::*;
-use crate::graph::{NodeId, ValidationResult, ValidationSeverity};
 
 use crate::ui::icons::{AlertCircleIcon, AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon};
 
@@ -85,10 +85,7 @@ pub fn ValidationPanel(
 }
 
 #[component]
-fn IssueRow(
-    issue: crate::graph::ValidationIssue,
-    on_select_node: EventHandler<NodeId>,
-) -> Element {
+fn IssueRow(issue: crate::graph::ValidationIssue, on_select_node: EventHandler<NodeId>) -> Element {
     let node_id = issue.node_id;
     let (border_class, bg_class) = match issue.severity {
         ValidationSeverity::Error => ("border-l-red-400", "bg-red-50/50"),

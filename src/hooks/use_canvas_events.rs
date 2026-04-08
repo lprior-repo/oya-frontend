@@ -4,16 +4,16 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::flow_extender::ExtensionPatchPreview;
 use crate::hooks::use_canvas_interaction::CanvasInteraction;
 use crate::hooks::use_selection::SelectionState;
 use crate::hooks::use_ui_panels::UiPanels;
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::constants::{
-    ARROW_KEY_DELTA, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, ZOOM_CENTER_X,
-    ZOOM_CENTER_Y, ZOOM_DELTA,
+    ARROW_KEY_DELTA, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, ZOOM_CENTER_X, ZOOM_CENTER_Y,
+    ZOOM_DELTA,
 };
 use dioxus::prelude::*;
-use crate::flow_extender::ExtensionPatchPreview;
 
 // ============================================================================
 // Editor Command Dispatcher
@@ -140,7 +140,11 @@ pub fn handle_canvas_keydown(
                 (*workflow).zoom(-ZOOM_DELTA, ZOOM_CENTER_X, ZOOM_CENTER_Y);
             }
             EditorCommand::FitView => {
-                (*workflow).fit_view(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, FIT_VIEW_PADDING);
+                (*workflow).fit_view(
+                    DEFAULT_CANVAS_WIDTH,
+                    DEFAULT_CANVAS_HEIGHT,
+                    FIT_VIEW_PADDING,
+                );
             }
             EditorCommand::AutoLayout => {
                 (*workflow).apply_layout();
@@ -370,10 +374,7 @@ mod command_tests {
     fn given_plain_l_key_when_parsing_then_returns_none() {
         let mods = KeyModifiers::default();
         let result = parse_key_event("l", mods);
-        assert!(
-            result.is_none(),
-            "Plain 'l' should not trigger auto-layout"
-        );
+        assert!(result.is_none(), "Plain 'l' should not trigger auto-layout");
     }
 
     #[test]

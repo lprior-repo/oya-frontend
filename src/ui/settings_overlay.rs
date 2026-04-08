@@ -4,13 +4,11 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
 use crate::hooks::use_ui_panels::UiPanels;
+use dioxus::prelude::*;
 
 #[component]
-pub fn SettingsOverlay(
-    panels: UiPanels,
-) -> Element {
+pub fn SettingsOverlay(panels: UiPanels) -> Element {
     if !*panels.settings_open().read() {
         return rsx! {};
     }

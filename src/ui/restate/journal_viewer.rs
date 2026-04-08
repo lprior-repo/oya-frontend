@@ -9,8 +9,8 @@
 //!
 //! Displays journal entries with expandable input/output details
 
-use dioxus::prelude::*;
 use crate::restate_client::types::{JournalEntry, JournalEntryType};
+use dioxus::prelude::*;
 
 #[allow(dead_code)]
 const fn entry_type_color(entry_type: &JournalEntryType) -> &'static str {

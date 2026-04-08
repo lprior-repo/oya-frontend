@@ -132,6 +132,11 @@ pub struct ResolvePromiseConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct PeekPromiseConfig {
+    pub promise_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct SignalHandlerConfig {
     pub signal_name: Option<String>,
 }

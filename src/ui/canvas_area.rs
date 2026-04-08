@@ -12,9 +12,7 @@ use crate::ui::constants::{
     DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, ZOOM_CENTER_X, ZOOM_CENTER_Y,
     ZOOM_DELTA,
 };
-use crate::ui::{
-    FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition, ParallelGroupOverlay,
-};
+use crate::ui::{FlowEdges, FlowMinimap, FlowNodeComponent, FlowPosition, ParallelGroupOverlay};
 use dioxus::html::input_data::MouseButton;
 use dioxus::prelude::*;
 #[component]
@@ -39,12 +37,7 @@ pub fn CanvasArea(
         nodes
             .read()
             .iter()
-            .filter(|n| {
-                matches!(
-                    n.execution_state,
-                    crate::graph::ExecutionState::Running
-                )
-            })
+            .filter(|n| matches!(n.execution_state, crate::graph::ExecutionState::Running))
             .map(|n| n.id)
             .collect::<Vec<_>>()
     });

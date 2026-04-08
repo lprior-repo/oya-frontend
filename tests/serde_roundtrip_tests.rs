@@ -3,13 +3,16 @@
 //! Each test serializes a value to JSON, deserializes it back, and compares
 //! field-by-field to verify that serde `Serialize` + `Deserialize` impls are
 //! consistent and lossless for the serialized fields.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use oya_frontend::graph::execution_state::ExecutionState;
 use oya_frontend::graph::workflow_node::configs::*;
-use oya_frontend::graph::{
-    Connection, Node, NodeId, PortName, Viewport, Workflow, WorkflowNode,
-};
+use oya_frontend::graph::{Connection, Node, NodeId, PortName, Viewport, Workflow, WorkflowNode};
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -154,12 +157,7 @@ fn node_round_trip_with_each_category() {
     ];
 
     for variant in node_variants {
-        let original = Node::from_workflow_node(
-            format!("test-{}", variant),
-            variant,
-            42.0,
-            99.0,
-        );
+        let original = Node::from_workflow_node(format!("test-{}", variant), variant, 42.0, 99.0);
 
         let json_str = serde_json::to_string(&original).expect("Node serialization failed");
         let deserialized: Node =
@@ -200,10 +198,7 @@ fn node_round_trip_with_each_category() {
             original.description, deserialized.description,
             "Node description mismatch"
         );
-        assert_eq!(
-            original.config, deserialized.config,
-            "Node config mismatch"
-        );
+        assert_eq!(original.config, deserialized.config, "Node config mismatch");
 
         // Fields with #[serde(skip)] get default values on deserialization
         assert_eq!(
@@ -318,15 +313,17 @@ fn workflow_round_trip() {
     for (orig, deser) in original.nodes.iter().zip(deserialized.nodes.iter()) {
         assert_eq!(orig.id, deser.id, "Workflow node id mismatch");
         assert_eq!(orig.name, deser.name, "Workflow node name mismatch");
-        assert_eq!(orig.category, deser.category, "Workflow node category mismatch");
+        assert_eq!(
+            orig.category, deser.category,
+            "Workflow node category mismatch"
+        );
         assert_eq!(orig.x, deser.x, "Workflow node x mismatch");
         assert_eq!(orig.y, deser.y, "Workflow node y mismatch");
     }
 
     // Skipped fields revert to defaults
     assert_eq!(
-        deserialized.restate_ingress_url,
-        "http://localhost:8080",
+        deserialized.restate_ingress_url, "http://localhost:8080",
         "restate_ingress_url should revert to default (skip_serializing + default)"
     );
     assert_eq!(

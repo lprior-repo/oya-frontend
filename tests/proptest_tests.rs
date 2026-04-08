@@ -11,7 +11,12 @@
 //! 8. RunOutcome exhaustiveness: every variant has a deterministic is_success value.
 //! 9. find_safe_position progress: every call advances past existing positions.
 //! 10. calculate_pan_offset identity: zoom=1.0 with finite inputs returns original viewport.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use oya_frontend::graph::{
     calc, validate_workflow, NodeCategory, NodeId, PortName, RunOutcome, Viewport, Workflow,
@@ -35,12 +40,11 @@ fn category_strategy() -> impl Strategy<Value = NodeCategory> {
 }
 
 fn viewport_strategy() -> impl Strategy<Value = Viewport> {
-    (
-        -1000.0f32..1000.0,
-        -1000.0f32..1000.0,
-        0.1f32..5.0,
-    )
-        .prop_map(|(x, y, zoom)| Viewport { x, y, zoom })
+    (-1000.0f32..1000.0, -1000.0f32..1000.0, 0.1f32..5.0).prop_map(|(x, y, zoom)| Viewport {
+        x,
+        y,
+        zoom,
+    })
 }
 
 // ===========================================================================
@@ -236,10 +240,7 @@ fn prop_all_categories_have_unique_display_names() {
         NodeCategory::Signal,
     ];
 
-    let display_strings: Vec<String> = all_categories
-        .iter()
-        .map(|c| c.to_string())
-        .collect();
+    let display_strings: Vec<String> = all_categories.iter().map(|c| c.to_string()).collect();
 
     let unique_set: HashSet<String> = display_strings.iter().cloned().collect();
     assert_eq!(
@@ -331,7 +332,10 @@ fn prop_same_endpoints_produce_unique_connection_ids() {
     // Second identical connection must be rejected as duplicate
     let second = wf.add_connection_checked(src, tgt, &port, &port);
     assert!(
-        matches!(second, Err(oya_frontend::graph::ConnectivityConnectionError::Duplicate)),
+        matches!(
+            second,
+            Err(oya_frontend::graph::ConnectivityConnectionError::Duplicate)
+        ),
         "Duplicate connection must be rejected"
     );
 

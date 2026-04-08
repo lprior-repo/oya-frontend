@@ -38,11 +38,7 @@ pub fn snap_handle(
     mx: f32,
     my: f32,
     viewport: &crate::graph::Viewport,
-) -> Option<(
-    crate::graph::NodeId,
-    String,
-    crate::ui::edges::Position,
-)> {
+) -> Option<(crate::graph::NodeId, String, crate::ui::edges::Position)> {
     const SCREEN_SNAP_RADIUS: f32 = 24.0;
 
     let zoom_val = viewport.zoom;
@@ -121,7 +117,12 @@ pub fn snap_handle(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{node_intersects_rect, normalize_rect, rect_contains, snap_handle};
     use crate::graph::{Viewport, Workflow};

@@ -287,6 +287,7 @@ pub enum WorkflowNode {
     LoopIterate(LoopConfig),
     ObjectCall(ObjectCallConfig),
     Parallel(ParallelConfig),
+    PeekPromise(PeekPromiseConfig),
     ResolvePromise(ResolvePromiseConfig),
     Run(RunConfig),
     SaveToMemory(SetStateConfig),
@@ -416,6 +417,11 @@ impl ParallelBranch {
 pub struct ResolvePromiseConfig {
     pub promise_name: PromiseName,
     pub value: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PeekPromiseConfig {
+    pub promise_name: PromiseName,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

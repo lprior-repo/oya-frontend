@@ -4,19 +4,18 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
-use dioxus::prelude::*;
-use crate::ui::{
-    CanvasArea, CanvasContextMenu, FlowPosition,
-    FlowToolbar, InspectorPanel, NodeCommandPalette, NodeSidebar, NodeTemplateId,
-    PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar, SelectedNodePanel,
-    SettingsOverlay,
-};
-use crate::ui::constants::{
-    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, NODE_WIDTH, NODE_HANDLE_Y_OFFSET,
-    ZOOM_CENTER_X, ZOOM_CENTER_Y, ZOOM_DELTA,
-};
 use crate::flow_extender::ExtensionPatchPreview;
 use crate::graph::{validate_workflow, ValidationResult};
+use crate::ui::constants::{
+    DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH, FIT_VIEW_PADDING, NODE_HANDLE_Y_OFFSET,
+    NODE_WIDTH, ZOOM_CENTER_X, ZOOM_CENTER_Y, ZOOM_DELTA,
+};
+use crate::ui::{
+    CanvasArea, CanvasContextMenu, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette,
+    NodeSidebar, NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar,
+    SelectedNodePanel, SettingsOverlay,
+};
+use dioxus::prelude::*;
 use std::fmt::Write;
 
 #[component]
@@ -37,11 +36,9 @@ pub fn AppShell() -> Element {
             #[cfg(target_arch = "wasm32")]
             {
                 use web_sys::window;
-                let storage = window().and_then(|w| {
-                    match w.local_storage() {
-                        Ok(s) => s,
-                        Err(_) => None,
-                    }
+                let storage = window().and_then(|w| match w.local_storage() {
+                    Ok(s) => s,
+                    Err(_) => None,
                 });
                 if let Some(s) = storage {
                     let _ = s.set_item("flow-wasm-v1-workflow", &_json);

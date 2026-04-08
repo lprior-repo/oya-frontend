@@ -13,8 +13,8 @@
 //! - State changes
 
 use crate::hooks::use_restate_sync::poll_sleep_ms;
-use dioxus::prelude::*;
 use crate::restate_client::types::{Invocation, InvocationStatus, JournalEntry};
+use dioxus::prelude::*;
 
 const fn status_to_ui_string(status: InvocationStatus) -> &'static str {
     match status {
@@ -44,16 +44,20 @@ pub struct RestateInvocationDetailsProps {
 pub fn RestateInvocationDetails(props: RestateInvocationDetailsProps) -> Element {
     let restate = use_restate_sync();
     let invocations = restate.state.read().invocations;
-    let inv = props.invocation_id.read().as_ref().and_then(|id| invocations.get(id));
+    let inv = props
+        .invocation_id
+        .read()
+        .as_ref()
+        .and_then(|id| invocations.get(id));
     let is_active = inv.map_or(false, |i| i.status.is_active());
-    
+
     let mut journal = props.journal;
     let status_str = inv.map_or("unknown", |i| status_to_ui_string(i.status));
-    
+
     // Poll for journal updates if active
     let inv_id = props.invocation_id.read().clone();
     let admin_url = props.admin_url.clone();
-    
+
     use_future(move || {
         let id = inv_id.clone();
         let url = admin_url.clone();

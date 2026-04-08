@@ -104,9 +104,9 @@ pub fn NodeConfigEditor(
 use crate::ui::workflow_nodes::schema::WorkflowNode as RichNode;
 use crate::ui::workflow_nodes::{
     clear_state, compensate, delay, delayed_message, durable_promise, http_trigger, kafka_consumer,
-    load_from_memory, loop_iterate, parallel, resolve_promise, router, run_code, save_to_memory,
-    schedule_trigger, send_message, service_call, timeout_guard, wait_for_signal, wait_for_webhook,
-    workflow_submit,
+    load_from_memory, loop_iterate, parallel, peek_promise, resolve_promise, router, run_code,
+    save_to_memory, schedule_trigger, send_message, service_call, timeout_guard, wait_for_signal,
+    wait_for_webhook, workflow_submit,
 };
 
 #[component]
@@ -177,6 +177,7 @@ fn ConfigTab(node: Node, on_change: EventHandler<Value>) -> Element {
                         RichNode::Compensate(cfg) => rsx! { compensate::CompensateForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::Timeout(cfg) | RichNode::TimeoutGuard(cfg) => rsx! { timeout_guard::TimeoutGuardForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::DurablePromise(cfg) => rsx! { durable_promise::DurablePromiseForm { config: use_signal(|| cfg.clone()) } },
+                        RichNode::PeekPromise(cfg) => rsx! { peek_promise::PeekPromiseForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::ResolvePromise(cfg) => rsx! { resolve_promise::ResolvePromiseForm { config: use_signal(|| cfg.clone()) } },
                         RichNode::WorkflowSubmit(cfg) => rsx! { workflow_submit::WorkflowSubmitForm { config: use_signal(|| cfg.clone()) } },
                         _ => rsx! {

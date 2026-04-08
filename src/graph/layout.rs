@@ -104,9 +104,7 @@ impl DagLayout {
                     .map(|&node| {
                         let (sum, count) = graph
                             .neighbors_directed(node, petgraph::Direction::Incoming)
-                            .filter_map(|parent| {
-                                prev_positions.get(&parent).map(|&pos| pos as f32)
-                            })
+                            .filter_map(|parent| prev_positions.get(&parent).map(|&pos| pos as f32))
                             .fold((0.0, 0.0), |(s, c), pos| (s + pos, c + 1.0));
 
                         let barycenter = if count > 0.0 { sum / count } else { 0.0 };
@@ -199,10 +197,12 @@ impl DagLayout {
         }
 
         // Single pass to find both min_x and min_y instead of two separate iterations
-        let (min_x, min_y) = workflow.nodes.iter().fold(
-            (f32::INFINITY, f32::INFINITY),
-            |(mx, my), node| (mx.min(node.x), my.min(node.y)),
-        );
+        let (min_x, min_y) = workflow
+            .nodes
+            .iter()
+            .fold((f32::INFINITY, f32::INFINITY), |(mx, my), node| {
+                (mx.min(node.x), my.min(node.y))
+            });
         let min_x = if min_x.is_finite() { min_x } else { 0.0 };
         let min_y = if min_y.is_finite() { min_y } else { 0.0 };
 
@@ -214,7 +214,12 @@ impl DagLayout {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{DagLayout, LEFT_PADDING, NODE_WIDTH, TOP_PADDING};
     use crate::graph::{Connection, NodeId, PortName, Workflow};
@@ -410,18 +415,13 @@ mod tests {
 
         DagLayout::default().apply(&mut workflow);
 
-        let positions: Vec<(NodeId, f32)> =
-            workflow.nodes.iter().map(|n| (n.id, n.x)).collect();
+        let positions: Vec<(NodeId, f32)> = workflow.nodes.iter().map(|n| (n.id, n.x)).collect();
 
         let x_a = positions.iter().find(|(id, _)| *id == a).map(|(_, x)| *x);
         let x_b = positions.iter().find(|(id, _)| *id == b).map(|(_, x)| *x);
         let x_c = positions.iter().find(|(id, _)| *id == c).map(|(_, x)| *x);
 
-        let (x_a, x_b, x_c) = (
-            x_a.expect("a"),
-            x_b.expect("b"),
-            x_c.expect("c"),
-        );
+        let (x_a, x_b, x_c) = (x_a.expect("a"), x_b.expect("b"), x_c.expect("c"));
 
         assert!(
             x_a < x_b,
@@ -510,7 +510,11 @@ mod tests {
 
         let positions: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
         let mut unique = positions.clone();
-        unique.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)));
+        unique.sort_by(|a, b| {
+            a.0.partial_cmp(&b.0)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        });
         unique.dedup_by(|a, b| (a.0 - b.0).abs() < 0.001 && (a.1 - b.1).abs() < 0.001);
 
         assert_eq!(

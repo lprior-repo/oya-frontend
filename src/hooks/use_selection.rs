@@ -2,22 +2,14 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::panic)]
 
-use dioxus::prelude::*;
 use crate::graph::NodeId;
+use dioxus::prelude::*;
 
 fn toggle_selection_ids(current: &[NodeId], id: NodeId) -> (Vec<NodeId>, Option<NodeId>) {
     let next: Vec<NodeId> = if current.contains(&id) {
-        current
-            .iter()
-            .copied()
-            .filter(|&item| item != id)
-            .collect()
+        current.iter().copied().filter(|&item| item != id).collect()
     } else {
-        current
-            .iter()
-            .copied()
-            .chain(std::iter::once(id))
-            .collect()
+        current.iter().copied().chain(std::iter::once(id)).collect()
     };
 
     let selected_id = if next.contains(&id) {
@@ -33,11 +25,7 @@ fn add_unique_selection(current: &[NodeId], id: NodeId) -> Vec<NodeId> {
     if current.contains(&id) {
         return current.to_vec();
     }
-    current
-        .iter()
-        .copied()
-        .chain(std::iter::once(id))
-        .collect()
+    current.iter().copied().chain(std::iter::once(id)).collect()
 }
 
 fn reconcile_primary_selection(
@@ -86,11 +74,9 @@ impl Selection {
         match self {
             Selection::None => Vec::new(),
             Selection::Single { node_id } => vec![*node_id],
-            Selection::Multiple { primary, secondary } => {
-                std::iter::once(*primary)
-                    .chain(secondary.iter().copied())
-                    .collect()
-            }
+            Selection::Multiple { primary, secondary } => std::iter::once(*primary)
+                .chain(secondary.iter().copied())
+                .collect(),
         }
     }
 
@@ -311,7 +297,12 @@ pub fn use_selection() -> SelectionState {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         add_unique_selection, reconcile_primary_selection, toggle_selection_ids, PendingDrag,

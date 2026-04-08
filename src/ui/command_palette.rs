@@ -35,7 +35,12 @@ pub fn filtered_templates(query: &str) -> Vec<CommandTemplate> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{filtered_templates, is_escape_key};
     use crate::ui::domain_types::NodeTemplateId;

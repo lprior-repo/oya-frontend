@@ -2,7 +2,12 @@
 //!
 //! This module contains comprehensive tests for the expression depth limiting feature.
 //! Tests are organized by layer: unit, integration, e2e, proptest, fuzz, and Kani.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 #[cfg(test)]
 mod proptest_invariants {

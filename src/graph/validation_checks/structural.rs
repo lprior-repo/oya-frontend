@@ -55,7 +55,8 @@ pub fn validate_reachability(workflow: &Workflow, issues: &mut Vec<ValidationIss
 /// Single-pass connection scan: build incoming/outgoing sets once (O(n+m))
 /// instead of scanning all connections per node (O(n*m)).
 pub fn validate_orphan_nodes(workflow: &Workflow, issues: &mut Vec<ValidationIssue>) {
-    let (has_incoming, has_outgoing) = graph_ops::build_connection_membership(&workflow.connections);
+    let (has_incoming, has_outgoing) =
+        graph_ops::build_connection_membership(&workflow.connections);
 
     for node in &workflow.nodes {
         if node.category == NodeCategory::Entry {

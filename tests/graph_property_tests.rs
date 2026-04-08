@@ -7,7 +7,12 @@
 //! 4. Node removal completeness (orphan connection cleanup)
 //! 5. Workflow serde round-trip
 //! 6. Topological sort validity for DAGs
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 
 use oya_frontend::graph::{
     calc, layout::DagLayout, Connection, NodeId, PortName, Viewport, Workflow,
@@ -440,8 +445,7 @@ fn toposort_from_workflow(workflow: &Workflow) -> Option<Vec<NodeId>> {
     }
 
     for conn in &workflow.connections {
-        if let (Some(&src), Some(&tgt)) =
-            (index_map.get(&conn.source), index_map.get(&conn.target))
+        if let (Some(&src), Some(&tgt)) = (index_map.get(&conn.source), index_map.get(&conn.target))
         {
             graph.add_edge(src, tgt, ());
         }

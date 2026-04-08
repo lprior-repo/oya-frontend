@@ -4,12 +4,12 @@
 #![warn(clippy::pedantic)]
 #![forbid(unsafe_code)]
 
+use crate::graph::{NodeId, RunRecord};
 use crate::hooks::use_workflow_state::WorkflowState;
 use crate::ui::panel_types::{
     chevron_rotation_class, panel_height_class, CollapseState, RunOutcome,
 };
 use dioxus::prelude::*;
-use crate::graph::{NodeId, RunRecord};
 use std::collections::HashSet;
 use std::fmt::Write;
 
@@ -124,7 +124,12 @@ fn derive_step_counts(run: &RunRecord) -> (usize, usize) {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::float_cmp)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::float_cmp
+)]
 mod tests {
     use super::{
         derive_step_counts, format_elapsed, format_run_duration, format_run_status,
