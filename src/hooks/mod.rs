@@ -17,7 +17,7 @@ pub use use_canvas_interaction::{
     provide_canvas_interaction_context, use_canvas_interaction, InteractionMode,
 };
 pub use use_restate_sync::{
-    build_restate_config_from_url, provide_restate_sync_context, use_restate_sync,
+    build_restate_config_from_url, poll_sleep_ms, provide_restate_sync_context, use_restate_sync,
     RestateSyncHandle,
 };
 pub use use_selection::{provide_selection_context, use_selection};

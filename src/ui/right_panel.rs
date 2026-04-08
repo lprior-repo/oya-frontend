@@ -7,7 +7,7 @@
 use crate::graph::{NodeId, ValidationResult};
 use crate::hooks::use_restate_sync::RestateSyncHandle;
 use crate::hooks::use_workflow_state::WorkflowState;
-use crate::ui::restate::{PromiseBrowserPanel, RestateInvocationsPanel};
+use crate::ui::restate::{DeploymentBrowserPanel, PromiseBrowserPanel, RestateInvocationsPanel};
 use crate::ui::{ExecutionHistoryPanel, ExecutionPlanPanel, ValidationPanel};
 use dioxus::prelude::*;
 
@@ -59,6 +59,7 @@ pub fn RightPanel(
             }
             RestateInvocationsPanel { handle: restate }
             PromiseBrowserPanel { handle: restate }
+            DeploymentBrowserPanel { handle: restate }
         }
     }
 }

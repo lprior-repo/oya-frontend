@@ -10,6 +10,8 @@
 //! Components for displaying Restate invocation details and journal entries
 
 #[cfg(target_arch = "wasm32")]
+pub mod deployment_browser;
+#[cfg(target_arch = "wasm32")]
 pub mod details_panel;
 pub mod invocation_actions;
 pub mod journal_viewer;
@@ -19,6 +21,8 @@ pub mod panel;
 pub mod promise_browser;
 pub mod state_browser;
 
+#[cfg(target_arch = "wasm32")]
+pub use deployment_browser::DeploymentBrowserPanel;
 #[cfg(target_arch = "wasm32")]
 pub use details_panel::RestateInvocationDetails;
 #[cfg(target_arch = "wasm32")]
