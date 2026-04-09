@@ -28,3 +28,71 @@
 | **State** | `use_signal` / `use_store`, NEVER `use_state` |
 | **Code Search** | Codanna MCP tools ONLY, no grep/rg/find |
 | **Errors** | `Result<T, Error>` with combinators, no unwrap |
+
+---
+
+## Restate Integration
+
+The frontend connects to Restate via two HTTP layers:
+
+| Port | Purpose | Key Files |
+|------|---------|-----------|
+| **9070** | Admin API (SQL queries, invocation control) | `src/restate_client/client.rs`, `src/restate_sync/poller.rs` |
+| **8080** | Ingress API (service invocation) | `src/graph/execution_runtime/service_calls.rs` |
+
+### Starting Restate
+
+```bash
+# Install Restate v1.6.2 (if not present)
+curl -L "https://restate.gateway.scarf.sh/v1.6.2/restate-server-x86_64-unknown-linux-musl.tar.xz" -o /tmp/restate.tar.xz
+tar -xJf /tmp/restate.tar.xz -C /tmp
+cp /tmp/restate-server-x86_64-unknown-linux-musl/restate-server ~/bin/
+
+# Start in dev mode
+rm -rf /tmp/restate-data && mkdir -p /tmp/restate-data
+restate-server --base-dir /tmp/restate-data --no-logo --auto-provision=true &
+sleep 5
+
+# Verify it's running
+curl -s http://localhost:9070/deployments  # {"deployments":[]}
+curl -s http://localhost:8080/            # service '' not found (expected)
+```
+
+### Admin API (Port 9070)
+
+All admin API calls need `Accept: application/json` and `Content-Type: application/json` headers.
+
+```bash
+# SQL query against sys tables
+curl -s -X POST http://localhost:9070/query \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"query": "SELECT * FROM sys_invocation LIMIT 5"}'
+
+# List services/deployments
+curl -s http://localhost:9070/services -H "Accept: application/json"
+curl -s http://localhost:9070/deployments -H "Accept: application/json"
+```
+
+### Frontend Sync Architecture
+
+```
+Restate (:9070) → POST /query → InvocationPoller → use_restate_sync() → UI Panels
+```
+
+### Key Implementation Files
+
+| File | Role |
+|------|------|
+| `src/restate_client/client.rs` | HTTP client for Admin API |
+| `src/restate_client/queries.rs` | Pre-built SQL queries |
+| `src/restate_sync/poller.rs` | Poll-based state machine |
+| `src/hooks/use_restate_sync.rs` | Dioxus signal bridge |
+| `src/graph/execution_runtime/service_calls.rs` | Ingress service calls |
+
+### Test Status
+
+- **Unit/Integration Tests**: ✅ 901 tests pass (Restate client works correctly)
+- **E2E Browser Tests**: ⚠️ Partial failure - WASM app loads ("Hello from Oya!" visible) but full React-like app doesn't initialize
+- **Clippy**: ✅ Passes
+- **Dioxus Version**: ✅ 0.7.5 (aligned with dx CLI)
