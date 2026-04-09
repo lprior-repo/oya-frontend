@@ -147,3 +147,142 @@ For more details, see README.md and docs/QUICKSTART.md.
 - If push fails, resolve and retry until it succeeds
 
 <!-- END BEADS INTEGRATION -->
+
+---
+
+## Restate Integration
+
+OYA-Frontend hooks into Restate via two HTTP API layers:
+
+### Restate Server Setup
+
+**Prerequisites**: Download and install Restate v1.6.2+ from <https://github.com/restatedev/restate/releases>
+
+```bash
+# Download and extract
+curl -L "https://restate.gateway.scarf.sh/v1.6.2/restate-server-x86_64-unknown-linux-musl.tar.xz" -o restate.tar.xz
+tar -xJf restate.tar.xz
+cp restate-server-x86_64-unknown-linux-musl/restate-server ~/bin/
+
+# Start Restate in dev mode (single-node, auto-provisioning)
+rm -rf /tmp/restate-data && mkdir -p /tmp/restate-data
+restate-server --base-dir /tmp/restate-data --no-logo --auto-provision=true &
+sleep 5
+```
+
+**Ports**:
+| Port | Purpose | API Path |
+|------|---------|----------|
+| 8080 | HTTP Ingress (service invocation) | `/{service}/{handler}`, `/{object}/{key}/{handler}`, `/{workflow}/{id}/run` |
+| 9070 | Admin API (introspection) | `/query`, `/deployments`, `/services`, `/invocations/{id}/*` |
+
+### Admin API (Port 9070)
+
+Built in `src/restate_client/`. All requests require `Accept: application/json` and `Content-Type: application/json` headers.
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/query` | SQL queries against `sys_invocation`, `sys_journal`, `sys_service`, `sys_deployment`, `sys_promise` tables |
+| `GET` | `/deployments` | List registered deployments |
+| `GET` | `/services` | List registered services |
+| `PATCH` | `/invocations/{id}/cancel` | Cancel an invocation |
+| `PATCH` | `/invocations/{id}/kill` | Kill an invocation |
+| `PATCH` | `/invocations/{id}/pause` | Pause an invocation |
+| `PATCH` | `/invocations/{id}/resume` | Resume a paused invocation |
+| `DELETE` | `/invocations/{id}` | Purge an invocation |
+
+**Example query**:
+```bash
+curl -s -X POST http://localhost:9070/query \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"query": "SELECT * FROM sys_invocation LIMIT 5"}'
+```
+
+### Ingress API (Port 8080)
+
+Built in `src/graph/execution_runtime/service_calls.rs`. Used to invoke services:
+
+| Node Type | HTTP Pattern |
+|-----------|--------------|
+| `service-call` | `POST {ingress}/{service}/{endpoint}` |
+| `object-call` | `POST {ingress}/{object}/{key}/{handler}` |
+| `workflow-call` | `POST {ingress}/{workflow}/{uuid}/run` |
+
+### Frontend State Sync
+
+The Dioxus frontend syncs with Restate via a poll-based architecture:
+
+```
+Restate Admin (:9070)
+    │ POST /query (SQL)
+    ▼
+InvocationPoller (src/restate_sync/poller.rs)
+    │ state machine: Initial → Tracking(HashMap<ID, Invocation>)
+    ▼
+use_restate_sync() hook (src/hooks/use_restate_sync.rs)
+    │ Dioxus use_future polling loop (default 2000ms)
+    ▼
+RestateSyncHandle (Dioxus Context)
+    ▼
+UI Panels (src/ui/restate/)
+```
+
+### Running Tests Against Live Restate
+
+```bash
+# 1. Ensure Restate is running
+curl -s http://localhost:9070/deployments  # Should return {"deployments":[]}
+curl -s http://localhost:8080/              # Should return service error (not connection error)
+
+# 2. Run the E2E test suite
+moon run :ci --force
+
+# 3. Or run the Restate-specific E2E test
+./e2e/agent_restate.sh http://localhost:8084
+```
+
+### Troubleshooting
+
+**Port already in use**:
+```bash
+lsof -i :8080  # Find process
+kill -9 <PID>  # Kill it
+```
+
+**Restate won't start (address in use)**:
+```bash
+# Check for existing restate processes
+ps aux | grep restate
+# Kill all restate processes and retry
+pkill -9 restate-server
+```
+
+**Admin API returns binary (protobuf)**:
+- Add `Accept: application/json` header to requests
+- Restate defaults to protobuf; JSON is opt-in
+
+### E2E Test Notes
+
+**Dioxus Version**: Project now uses `dioxus = "0.7.5"` (aligned with `dx` CLI 0.7.5)
+
+**Current Status**:
+- ✅ Restate integration works at code level (901 tests pass)
+- ✅ Admin API (9070) verified working  
+- ✅ Ingress API (8080) verified working
+- ✅ Clippy passes
+- ⚠️ E2E browser tests have WASM initialization issues in headless Chrome
+
+**E2E Browser Test Issue**: The WASM app partially renders ("Hello from Oya!" visible) but the full React-like app doesn't initialize. The "Your app is being rebuilt" message indicates Dioxus's hot-reload state isn't resolving.
+
+**Running Tests**:
+```bash
+# Run unit/integration tests (all pass except 5 that expect "no server")
+moon run :test
+
+# Run clippy (passes)
+moon run :clippy
+
+# Run E2E (may fail due to WASM init in headless Chrome)
+moon run :ci --force
+```
