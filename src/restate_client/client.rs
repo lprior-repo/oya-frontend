@@ -965,6 +965,7 @@ mod tests {
     // --- Invocation mutation method tests ---
 
     #[tokio::test]
+    #[ignore = "Requires no Restate server running - fails when Restate is live"]
     async fn cancel_invocation_connection_failed_without_server() {
         let client = RestateClient::local();
         let result = client.cancel_invocation("inv_123").await;
@@ -975,6 +976,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires no Restate server running - fails when Restate is live"]
     async fn kill_invocation_connection_failed_without_server() {
         let client = RestateClient::local();
         let result = client.kill_invocation("inv_123").await;
@@ -985,6 +987,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires no Restate server running - fails when Restate is live"]
     async fn pause_invocation_connection_failed_without_server() {
         let client = RestateClient::local();
         let result = client.pause_invocation("inv_123").await;
@@ -995,6 +998,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires no Restate server running - fails when Restate is live"]
     async fn resume_invocation_connection_failed_without_server() {
         let client = RestateClient::local();
         let result = client.resume_invocation("inv_123").await;
@@ -1005,6 +1009,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires no Restate server running - fails when Restate is live"]
     async fn purge_invocation_connection_failed_without_server() {
         let client = RestateClient::local();
         let result = client.purge_invocation("inv_123").await;
