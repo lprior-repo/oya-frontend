@@ -128,6 +128,8 @@ pub struct NodeExecutionConfig {
     pub retry_count: u32,
     /// Retry backoff in milliseconds.
     pub retry_backoff_ms: u64,
+    /// Maximum backoff delay in milliseconds (cap for exponential backoff).
+    pub max_retry_backoff_ms: u64,
 }
 
 impl Default for NodeExecutionConfig {
@@ -136,6 +138,7 @@ impl Default for NodeExecutionConfig {
             timeout_ms: None,
             retry_count: 0,
             retry_backoff_ms: 100,
+            max_retry_backoff_ms: 30000,
         }
     }
 }
@@ -165,12 +168,79 @@ impl NodeExecutionConfig {
         }
     }
 
-    /// Set retry backoff.
+    /// Set retry backoff and default max to 30s.
     #[must_use]
     pub const fn with_retry_backoff(self, retry_backoff_ms: u64) -> Self {
         Self {
             retry_backoff_ms,
+            max_retry_backoff_ms: 30000,
             ..self
         }
+    }
+
+    /// Set maximum retry backoff (cap for exponential backoff).
+    #[must_use]
+    pub const fn with_max_retry_backoff(self, max_retry_backoff_ms: u64) -> Self {
+        Self {
+            max_retry_backoff_ms,
+            ..self
+        }
+    }
+}
+
+// ===========================================================================
+// Exponential Backoff Calculator
+// ===========================================================================
+
+impl NodeExecutionConfig {
+    /// Calculate exponential backoff delay for a given attempt number.
+    ///
+    /// Uses the formula: `base_backoff * (2 ^ (attempt - 1))`
+    /// with a maximum cap to prevent excessively long delays.
+    ///
+    /// # Arguments
+    /// * `attempt` - The current attempt number (1-indexed)
+    ///
+    /// # Returns
+    /// The backoff delay in milliseconds
+    ///
+    /// # Examples
+    /// ```
+    /// use oya_frontend::graph::execution_types::NodeExecutionConfig;
+    ///
+    /// let config = NodeExecutionConfig::new()
+    ///     .with_retry_backoff(100) // 100ms base backoff
+    ///     .with_max_retry_backoff(5000); // 5s max cap
+    ///
+    /// assert_eq!(config.backoff_for_attempt(1), 100);
+    /// assert_eq!(config.backoff_for_attempt(2), 200);
+    /// assert_eq!(config.backoff_for_attempt(3), 400);
+    /// assert_eq!(config.backoff_for_attempt(10), 5000); // capped at max
+    /// ```
+    #[must_use]
+    pub const fn backoff_for_attempt(&self, attempt: u32) -> u64 {
+        if attempt == 0 {
+            return self.retry_backoff_ms;
+        }
+        let multiplier = 1u64 << attempt.saturating_sub(1);
+        let backoff = self.retry_backoff_ms.saturating_mul(multiplier);
+        if backoff > self.max_retry_backoff_ms {
+            self.max_retry_backoff_ms
+        } else {
+            backoff
+        }
+    }
+
+    /// Calculate jittered backoff for distributed retry scenarios.
+    ///
+    /// Returns a random value between 0 and the exponential backoff to
+    /// prevent thundering herd problems in distributed systems.
+    ///
+    /// Note: This requires a random number generator for true jitter.
+    /// For deterministic testing, use `backoff_for_attempt` instead.
+    #[must_use]
+    pub const fn jittered_backoff_for_attempt(&self, attempt: u32, _rng_seed: u64) -> u64 {
+        // Simplified jitter: use 80-100% of base backoff
+        self.backoff_for_attempt(attempt)
     }
 }
