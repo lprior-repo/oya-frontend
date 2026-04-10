@@ -49,6 +49,10 @@ impl Workflow {
         self.current_memory_bytes = 0;
         self.execution_failed = false;
 
+        // Reset checkpoint and rollback state for new execution
+        self.reset_checkpoint();
+        self.clear_rollback_stack();
+
         Ok(())
     }
 
