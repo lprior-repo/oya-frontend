@@ -12,8 +12,8 @@ use crate::ui::constants::{
 };
 use crate::ui::{
     CanvasArea, CanvasContextMenu, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette,
-    NodeSidebar, NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar,
-    SelectedNodePanel, SettingsOverlay,
+    NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar,
+    SelectedNodePanel, SettingsOverlay, ToastContainer,
 };
 use dioxus::prelude::*;
 use std::fmt::Write;
@@ -27,6 +27,7 @@ pub fn AppShell() -> Element {
     let panels = crate::hooks::use_ui_panels();
     let sidebar = crate::hooks::use_sidebar();
     let restate = crate::hooks::use_restate_sync();
+    let toast = crate::hooks::use_toast();
 
     // Persist workflow to localStorage
     use_effect(move || {
@@ -235,6 +236,8 @@ pub fn AppShell() -> Element {
         }
 
         div { class: "relative flex h-screen w-screen flex-col overflow-hidden bg-[#f2f7fa] text-slate-900 [font-family:'Geist',_'Manrope',sans-serif] select-none",
+            ToastContainer { store: toast }
+
             FlowToolbar {
                 workflow_name: workflow.workflow_name(),
                 on_workflow_name_change: move |value| workflow.workflow_name().set(value),
@@ -273,6 +276,7 @@ pub fn AppShell() -> Element {
                             &workflow.workflow_name().read(),
                             &workflow.workflow().read(),
                         );
+                        toast.push("Workflow saved".to_string(), crate::ui::toast::ToastSeverity::Success);
                     }
                 },
                 on_settings: move |_| panels.toggle_settings()

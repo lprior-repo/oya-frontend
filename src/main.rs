@@ -89,6 +89,7 @@ mod wasm_app {
         let _panels = hooks::provide_ui_panels_context();
         let _sidebar = hooks::provide_sidebar_context();
         let _restate = hooks::provide_restate_sync_context();
+        let _toast = hooks::provide_toast_context();
 
         let _global_mouseup_listener =
             use_hook(move || register_global_mouseup_listener(canvas, selection));

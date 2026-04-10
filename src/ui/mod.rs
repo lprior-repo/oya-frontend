@@ -37,6 +37,7 @@ pub mod selected_node_panel;
 #[cfg(target_arch = "wasm32")]
 pub mod settings_overlay;
 pub mod sidebar;
+pub mod toast;
 pub mod toolbar;
 pub mod validation_panel;
 pub mod workflow_nodes;

@@ -10,9 +10,12 @@ pub mod use_frozen_mode;
 pub mod use_restate_sync;
 pub mod use_selection;
 pub mod use_sidebar;
+pub mod use_toast;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
+#[cfg(target_arch = "wasm32")]
+pub use use_toast::{provide_toast_context, use_toast, ToastStore};
 pub use use_canvas_interaction::{
     provide_canvas_interaction_context, use_canvas_interaction, InteractionMode,
 };
