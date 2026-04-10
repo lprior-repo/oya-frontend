@@ -30,6 +30,7 @@ pub enum EditorCommand {
     AutoLayout,
     Undo,
     Redo,
+    Duplicate,
 }
 
 /// Keyboard modifier state for command routing.
@@ -59,6 +60,9 @@ pub fn parse_key_event(key: &str, modifiers: KeyModifiers) -> Option<EditorComma
 
         // Auto layout - accessible via toolbar/context
         "l" if modifiers.ctrl => Some(EditorCommand::AutoLayout),
+
+        // Duplicate selected node - Ctrl+D
+        "d" if modifiers.ctrl => Some(EditorCommand::Duplicate),
 
         _ => None,
     }
@@ -158,6 +162,13 @@ pub fn handle_canvas_keydown(
                 let _ = (*workflow).redo();
                 extension_previews.set(Vec::new());
                 selection.clear();
+            }
+            EditorCommand::Duplicate => {
+                if let Some(selected_id) = *selection.selected_id().read() {
+                    if let Some(new_id) = (*workflow).duplicate_node(selected_id) {
+                        selection.select_single(new_id);
+                    }
+                }
             }
         }
         return;

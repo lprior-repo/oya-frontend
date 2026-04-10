@@ -245,6 +245,27 @@ impl WorkflowState {
         self.workflow.write().add_node(node_type, x, y)
     }
 
+    /// Duplicate a node at an offset position. Returns the new node's ID.
+    #[must_use]
+    pub fn duplicate_node(mut self, node_id: NodeId) -> Option<NodeId> {
+        let wf = self.workflow.read();
+        let original = wf.nodes.iter().find(|n| n.id == node_id)?;
+        let new_id = NodeId::new();
+        let mut new_node = original.clone();
+        new_node.id = new_id;
+        new_node.x += 40.0;
+        new_node.y += 40.0;
+        new_node.name = format!("{} (copy)", original.name);
+        new_node.execution_state = crate::graph::ExecutionState::Idle;
+        new_node.last_output = None;
+        new_node.error = None;
+        drop(wf);
+
+        self.save_undo_point();
+        self.workflow.write().nodes.push(new_node);
+        Some(new_id)
+    }
+
     /// Add a node at the viewport center using explicit canvas dimensions
     #[must_use]
     pub fn add_node_at_viewport_center_with_canvas(
