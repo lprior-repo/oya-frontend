@@ -107,6 +107,106 @@ pub fn download_workflow_json(name: &str, workflow: &Workflow) {
     Url::revoke_object_url(&url);
 }
 
+/// Result type for import operations.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ImportResult {
+    Success(crate::graph::Workflow),
+    Error(String),
+}
+
+#[cfg(target_arch = "wasm32")]
+/// Triggers a file picker for JSON import. The callback receives the result.
+pub fn trigger_import<F>(mut on_result: F)
+where
+    F: FnMut(ImportResult) + 'static,
+{
+    use wasm_bindgen::{closure::Closure, JsCast};
+    use web_sys::{window, HtmlInputElement};
+
+    let document = match window().and_then(|w| w.document()) {
+        Some(d) => d,
+        None => return,
+    };
+
+    let input = match document.create_element("input") {
+        Ok(el) => el,
+        Err(_) => return,
+    };
+    let input: HtmlInputElement = match input.dyn_into() {
+        Ok(i) => i,
+        Err(_) => return,
+    };
+    input.set_type("file");
+    input.set_accept(".json");
+    input.set_style("display:none");
+
+    let input_clone = input.clone();
+
+    let callback = Closure::<dyn Fn()>::new(move || {
+        let files = input_clone.files();
+        let file = files.and_then(|fl| fl.get(0));
+        if let Some(file) = file {
+            let reader = match web_sys::FileReader::new() {
+                Ok(r) => r,
+                Err(_) => {
+                    on_result(ImportResult::Error(
+                        "Failed to create FileReader".to_string(),
+                    ));
+                    return;
+                }
+            };
+
+            let onload = Closure::<dyn Fn()>::new(move || {
+                let text = match reader.result().and_then(|v| v.as_string()) {
+                    Some(t) => t,
+                    None => {
+                        on_result(ImportResult::Error(
+                            "Failed to read file content".to_string(),
+                        ));
+                        return;
+                    }
+                };
+
+                match serde_json::from_str::<crate::graph::Workflow>(&text) {
+                    Ok(workflow) => on_result(ImportResult::Success(workflow)),
+                    Err(e) => on_result(ImportResult::Error(format!("Invalid workflow JSON: {e}"))),
+                }
+            });
+
+            if reader
+                .set_onload(Some(onload.as_ref().unchecked_ref()))
+                .is_err()
+            {
+                on_result(ImportResult::Error(
+                    "Failed to set onload handler".to_string(),
+                ));
+                return;
+            }
+            onload.forget();
+
+            if reader.read_as_text(&file).is_err() {
+                on_result(ImportResult::Error("Failed to read file".to_string()));
+            }
+        }
+    });
+
+    if input
+        .set_onchange(Some(callback.as_ref().unchecked_ref()))
+        .is_err()
+    {
+        return;
+    }
+    callback.forget();
+
+    if let Some(body) = document.body() {
+        let _ = body.append_child(&input);
+    }
+    input.click();
+    if let Some(body) = document.body() {
+        let _ = body.remove_child(&input);
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 pub fn export_restate_history<T: serde::Serialize>(invocations: &[T]) {
     use js_sys::Array;

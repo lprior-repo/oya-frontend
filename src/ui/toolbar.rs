@@ -1,6 +1,6 @@
 use crate::ui::icons::{
-    LayersIcon, MaximizeIcon, PlayIcon, RedoIcon, SaveIcon, SettingsIcon, UndoIcon, ZoomInIcon,
-    ZoomOutIcon,
+    LayersIcon, MaximizeIcon, PlayIcon, RedoIcon, SaveIcon, SettingsIcon, UndoIcon, UploadIcon,
+    ZoomInIcon, ZoomOutIcon,
 };
 use dioxus::prelude::*;
 
@@ -52,6 +52,7 @@ pub fn FlowToolbar(
     on_undo: EventHandler<MouseEvent>,
     on_redo: EventHandler<MouseEvent>,
     on_save: EventHandler<MouseEvent>,
+    on_import: EventHandler<MouseEvent>,
     on_settings: EventHandler<MouseEvent>,
     can_undo: ReadSignal<bool>,
     can_redo: ReadSignal<bool>,
@@ -143,6 +144,12 @@ pub fn FlowToolbar(
                     RedoIcon { class: "h-4 w-4" }
                 }
                 div { class: "mx-1 h-5 w-px bg-slate-300" }
+                ToolbarButton {
+                    label: "Import Workflow",
+                    state: ButtonState::Enabled,
+                    on_click: move |evt| on_import.call(evt),
+                    UploadIcon { class: "h-4 w-4" }
+                }
                 ToolbarButton {
                     label: "Save Workflow",
                     state: ButtonState::Enabled,

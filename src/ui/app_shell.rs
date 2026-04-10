@@ -279,6 +279,23 @@ pub fn AppShell() -> Element {
                         toast.push("Workflow saved".to_string(), crate::ui::toast::ToastSeverity::Success);
                     }
                 },
+                on_import: move |_| {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        let toast_clone = toast;
+                        crate::ui::app_io::trigger_import(move |result| {
+                            match result {
+                                crate::ui::app_io::ImportResult::Success(imported) => {
+                                    workflow.load_workflow(imported);
+                                    toast_clone.push("Workflow imported".to_string(), crate::ui::toast::ToastSeverity::Success);
+                                }
+                                crate::ui::app_io::ImportResult::Error(msg) => {
+                                    toast_clone.push(format!("Import failed: {msg}"), crate::ui::toast::ToastSeverity::Error);
+                                }
+                            }
+                        });
+                    }
+                },
                 on_settings: move |_| panels.toggle_settings()
             }
 

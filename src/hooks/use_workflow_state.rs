@@ -198,6 +198,15 @@ impl WorkflowState {
         self.workflow_name
     }
 
+    /// Replace the entire workflow with a new one (for import)
+    pub fn load_workflow(&mut self, workflow: crate::graph::Workflow) {
+        let name = workflow.name.clone();
+        self.workflow.set(workflow);
+        if !name.is_empty() {
+            self.workflow_name.set(name);
+        }
+    }
+
     /// Read-only access to nodes list (memoized)
     #[must_use]
     pub fn nodes(&self) -> ReadSignal<Vec<Node>> {

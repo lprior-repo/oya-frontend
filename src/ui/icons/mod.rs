@@ -13,5 +13,5 @@ pub use set_b::{
 };
 pub use set_c::{
     AlertTriangleIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, HelpCircleIcon, LayersIcon,
-    SettingsIcon, TrashIcon, XIcon,
+    ServerIcon, SettingsIcon, TrashIcon, UploadIcon, XIcon, ZapIcon,
 };
