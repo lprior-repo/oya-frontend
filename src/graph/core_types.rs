@@ -242,6 +242,23 @@ pub struct Workflow {
     /// Used to stop the execution loop when limits are exceeded.
     #[serde(skip)]
     pub execution_failed: bool,
+    /// Track checkpoint state for durable execution recovery.
+    #[serde(skip, default)]
+    pub last_checkpoint_step: Option<usize>,
+    /// Track rollback state for saga compensation.
+    #[serde(skip, default)]
+    pub rollback_stack: Vec<RollbackAction>,
+}
+
+/// Action to perform during saga rollback.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RollbackAction {
+    /// The node ID that needs to be rolled back.
+    pub node_id: NodeId,
+    /// The state to restore (previous output).
+    pub previous_output: Option<serde_json::Value>,
+    /// Compensation handler to invoke if available.
+    pub compensation_handler: Option<String>,
 }
 
 fn default_restate_ingress_url() -> String {

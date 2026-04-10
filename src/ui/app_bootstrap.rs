@@ -46,6 +46,8 @@ pub fn default_workflow() -> Workflow {
         current_memory_bytes: 0,
         execution_config: ExecutionConfig::default(),
         execution_failed: false,
+        last_checkpoint_step: None,
+        rollback_stack: vec![],
     }
 }
 
