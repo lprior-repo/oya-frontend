@@ -1,5 +1,5 @@
 use super::execution_types::ExecutionConfig;
-use super::{can_transition, ExecutionState, Node, NodeId, Viewport, Workflow};
+use super::{can_transition, ExecutionState, Node, NodeId, RollbackAction, Viewport, Workflow};
 use crate::graph::{calc, workflow_node::WorkflowNode};
 use std::str::FromStr;
 
@@ -101,7 +101,50 @@ impl Workflow {
             current_memory_bytes: 0,
             execution_config: ExecutionConfig::default(),
             execution_failed: false,
+            last_checkpoint_step: None,
+            rollback_stack: Vec::new(),
         }
+    }
+
+    /// Create a checkpoint at the current step for durable execution recovery.
+    #[allow(clippy::missing_const_for_fn)]
+    pub fn create_checkpoint(&mut self) {
+        self.last_checkpoint_step = Some(self.current_step);
+    }
+
+    /// Reset checkpoint state for a new execution.
+    pub const fn reset_checkpoint(&mut self) {
+        self.last_checkpoint_step = None;
+    }
+
+    /// Push a rollback action for saga compensation.
+    pub fn push_rollback(
+        &mut self,
+        node_id: NodeId,
+        previous_output: Option<serde_json::Value>,
+        compensation_handler: Option<String>,
+    ) {
+        self.rollback_stack.push(RollbackAction {
+            node_id,
+            previous_output,
+            compensation_handler,
+        });
+    }
+
+    /// Pop and return the next rollback action.
+    pub fn pop_rollback(&mut self) -> Option<RollbackAction> {
+        self.rollback_stack.pop()
+    }
+
+    /// Clear all rollback actions.
+    pub fn clear_rollback_stack(&mut self) {
+        self.rollback_stack.clear();
+    }
+
+    /// Get the number of pending rollback actions.
+        #[must_use]
+    pub const fn rollback_count(&self) -> usize {
+        self.rollback_stack.len()
     }
 
     pub fn add_node(&mut self, node_type: &str, x: f32, y: f32) -> NodeId {
@@ -561,3 +604,59 @@ mod tests {
         assert!(workflow.nodes.is_empty());
     }
 }
+
+    // ---------------------------------------------------------------------------
+    // checkpoint and rollback functionality
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn given_workflow_when_create_checkpoint_then_last_checkpoint_step_is_set() {
+        let mut workflow = Workflow::new();
+        workflow.current_step = 5;
+        workflow.create_checkpoint();
+        assert_eq!(workflow.last_checkpoint_step, Some(5));
+    }
+
+    #[test]
+    fn given_workflow_when_reset_checkpoint_then_last_checkpoint_step_is_none() {
+        let mut workflow = Workflow::new();
+        workflow.last_checkpoint_step = Some(10);
+        workflow.reset_checkpoint();
+        assert_eq!(workflow.last_checkpoint_step, None);
+    }
+
+    #[test]
+    fn given_workflow_when_push_rollback_then_action_is_added_to_stack() {
+        let mut workflow = Workflow::new();
+        let node_id = NodeId::new();
+        let output = serde_json::json!({"key": "value"});
+        workflow.push_rollback(node_id, Some(output.clone()), Some("compensate".to_string()));
+        assert_eq!(workflow.rollback_count(), 1);
+    }
+
+    #[test]
+    fn given_workflow_when_pop_rollback_then_action_is_removed() {
+        let mut workflow = Workflow::new();
+        let node_id = NodeId::new();
+        workflow.push_rollback(node_id, None, None);
+        let action = workflow.pop_rollback();
+        assert!(action.is_some());
+        assert_eq!(action.unwrap().node_id, node_id);
+        assert_eq!(workflow.rollback_count(), 0);
+    }
+
+    #[test]
+    fn given_workflow_when_pop_rollback_on_empty_stack_then_none_is_returned() {
+        let mut workflow = Workflow::new();
+        let action = workflow.pop_rollback();
+        assert!(action.is_none());
+    }
+
+    #[test]
+    fn given_workflow_when_clear_rollback_stack_then_stack_is_empty() {
+        let mut workflow = Workflow::new();
+        workflow.push_rollback(NodeId::new(), None, None);
+        workflow.push_rollback(NodeId::new(), None, None);
+        workflow.clear_rollback_stack();
+        assert_eq!(workflow.rollback_count(), 0);
+    }

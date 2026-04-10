@@ -46,7 +46,7 @@ pub use connectivity::{
 // Re-export ConnectionError for backward compatibility
 // Tests expect connection_errors::ConnectionError to be available
 pub use connection_errors::ConnectionError;
-pub use core_types::{Node, RunRecord, Viewport, Workflow};
+pub use core_types::{Node, RollbackAction, RunRecord, Viewport, Workflow};
 pub use domain_types::{
     EmptyStringError, NodeIcon, NodeMetadata, NodeUiState, NonEmptyString, PositiveDuration,
     RunOutcome, ServiceName, StateKey,
