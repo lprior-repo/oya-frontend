@@ -11,9 +11,9 @@ use crate::ui::constants::{
     NODE_WIDTH, ZOOM_CENTER_X, ZOOM_CENTER_Y, ZOOM_DELTA,
 };
 use crate::ui::{
-    CanvasArea, CanvasContextMenu, FlowPosition, FlowToolbar, InspectorPanel, NodeCommandPalette,
-    NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel, RunStatusBar,
-    SelectedNodePanel, SettingsOverlay, ToastContainer,
+    CanvasArea, CanvasContextMenu, EmptyCanvas, FlowPosition, FlowToolbar, InspectorPanel,
+    NodeCommandPalette, NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel,
+    RunStatusBar, SelectedNodePanel, SettingsOverlay, ShortcutsOverlay, ToastContainer,
 };
 use dioxus::prelude::*;
 use std::fmt::Write;
@@ -311,6 +311,12 @@ pub fn AppShell() -> Element {
 
             SettingsOverlay { panels: panels }
 
+            if panels.shortcuts_open() {
+                ShortcutsOverlay {
+                    on_close: move |_| panels.close_shortcuts(),
+                }
+            }
+
             NodeCommandPalette {
                 open: panels.palette_open(),
                 query: panels.palette_query(),
@@ -444,6 +450,29 @@ pub fn AppShell() -> Element {
                         preview_nodes: preview_nodes,
                         preview_edges: preview_edges,
                         show_inspector: show_inspector,
+                    }
+
+                    if *node_count.read() == 0 {
+                        EmptyCanvas {
+                            on_add_node: move |_| panels.open_palette(),
+                            on_import: move |_| {
+                                #[cfg(target_arch = "wasm32")]
+                                {
+                                    let toast_clone = toast;
+                                    crate::ui::app_io::trigger_import(move |result| {
+                                        match result {
+                                            crate::ui::app_io::ImportResult::Success(imported) => {
+                                                workflow.load_workflow(imported);
+                                                toast_clone.push("Workflow imported".to_string(), crate::ui::toast::ToastSeverity::Success);
+                                            }
+                                            crate::ui::app_io::ImportResult::Error(msg) => {
+                                                toast_clone.push(format!("Import failed: {msg}"), crate::ui::toast::ToastSeverity::Error);
+                                            }
+                                        }
+                                    });
+                                }
+                            },
+                        }
                     }
                 }
 

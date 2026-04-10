@@ -13,6 +13,8 @@ pub mod domain_types;
 pub mod edges;
 pub mod editor_interactions;
 #[cfg(target_arch = "wasm32")]
+pub mod empty_canvas;
+#[cfg(target_arch = "wasm32")]
 pub mod execution_history_panel;
 #[cfg(target_arch = "wasm32")]
 pub mod execution_plan_panel;
@@ -36,6 +38,7 @@ pub mod run_status_bar;
 pub mod selected_node_panel;
 #[cfg(target_arch = "wasm32")]
 pub mod settings_overlay;
+pub mod shortcuts_overlay;
 pub mod sidebar;
 pub mod toast;
 pub mod toolbar;
@@ -57,7 +60,8 @@ pub use edges::{FlowEdges, Position as FlowPosition};
 pub use execution_history_panel::ExecutionHistoryPanel;
 #[cfg(target_arch = "wasm32")]
 pub use execution_plan_panel::ExecutionPlanPanel;
-#[allow(unused_imports)]
+#[cfg(target_arch = "wasm32")]
+pub use empty_canvas::EmptyCanvas;
 pub use expression_input::{ExpressionInput, NodeInfo};
 pub use inline_config_panel::InlineConfigPanel;
 pub use inspector_panel::InspectorPanel;
@@ -75,6 +79,7 @@ pub use run_status_bar::RunStatusBar;
 pub use selected_node_panel::SelectedNodePanel;
 #[cfg(target_arch = "wasm32")]
 pub use settings_overlay::SettingsOverlay;
+pub use shortcuts_overlay::ShortcutsOverlay;
 pub use sidebar::NodeSidebar;
 pub use toolbar::FlowToolbar;
 pub use validation_panel::ValidationPanel;

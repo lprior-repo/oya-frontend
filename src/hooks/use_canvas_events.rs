@@ -131,6 +131,12 @@ pub fn handle_canvas_keydown(
         return;
     }
 
+    if key == "?" || key == "/" && evt.modifiers().shift() {
+        evt.prevent_default();
+        panels.toggle_shortcuts();
+        return;
+    }
+
     // Use command dispatcher for editor commands
     // Dioxus 0.7 has limited modifier detection - use default
     let modifiers = KeyModifiers::default();

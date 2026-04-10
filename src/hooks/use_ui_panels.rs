@@ -134,6 +134,7 @@ pub struct UiPanelsState {
     pub palette: PaletteState,
     pub context_menu: ContextMenuState,
     pub inline_panel: InlinePanelState,
+    pub shortcuts: PanelState,
 }
 
 impl UiPanelsState {
@@ -167,6 +168,18 @@ impl UiPanelsState {
     #[must_use]
     pub fn close_settings(mut self) -> Self {
         self.settings = PanelState::Closed;
+        self
+    }
+
+    #[must_use]
+    pub fn toggle_shortcuts(mut self) -> Self {
+        self.shortcuts = self.shortcuts.toggle();
+        self
+    }
+
+    #[must_use]
+    pub fn close_shortcuts(mut self) -> Self {
+        self.shortcuts = PanelState::Closed;
         self
     }
 
@@ -339,6 +352,20 @@ impl UiPanels {
 
     pub fn close_settings(mut self) {
         self.settings.set(PanelState::Closed);
+    }
+
+    #[must_use]
+    pub fn shortcuts_open(&self) -> bool {
+        self.shortcuts.read().is_open()
+    }
+
+    pub fn toggle_shortcuts(mut self) {
+        let current = (*self.shortcuts.read()).toggle();
+        self.shortcuts.set(current);
+    }
+
+    pub fn close_shortcuts(mut self) {
+        self.shortcuts.set(PanelState::Closed);
     }
 
     pub fn toggle_palette(mut self) {
