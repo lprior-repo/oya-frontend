@@ -1,8 +1,65 @@
 //! Execution step runner.
+//!
+//! Implements phase-based parallel execution for workflow orchestrator.
+//! Nodes are grouped into phases based on x-coordinate proximity and
+//! executed concurrently within each phase.
 
 use crate::graph::{ExecutionState, NodeId, Workflow};
+use std::collections::HashMap;
+
+const X_COORDINATE_TOLERANCE: f32 = 50.0;
 
 impl Workflow {
+    // ===========================================================================
+    // Phase Detection
+    // ===========================================================================
+
+    /// Groups nodes into phases based on x-coordinate proximity.
+    ///
+    /// Nodes within `X_COORDINATE_TOLERANCE` of each other are grouped into
+    /// the same phase. Phases are returned in topological order.
+    ///
+    /// # Returns
+    ///
+    /// A vector of phase IDs, where each phase ID is a vector of node IDs
+    /// that can be executed in parallel.
+    #[allow(clippy::cast_possible_truncation)]
+    fn group_nodes_by_phase(&self, execution_queue: &[NodeId]) -> Vec<Vec<NodeId>> {
+        if execution_queue.is_empty() {
+            return vec![];
+        }
+
+        // Build node lookup
+        let node_map: HashMap<NodeId, &crate::graph::Node> = self
+            .nodes
+            .iter()
+            .map(|n| (n.id, n))
+            .collect();
+
+        // Group by x-coordinate buckets using bucket index (i32) as key
+        let mut phase_map: HashMap<i32, Vec<NodeId>> = HashMap::new();
+
+        for &node_id in execution_queue {
+            if let Some(node) = node_map.get(&node_id) {
+                // Round x to nearest tolerance bucket
+                // Use f32 as key with a wrapper that implements Hash/Eq
+                let bucket = (node.x / X_COORDINATE_TOLERANCE).floor();
+                let bucket_key = bucket as i32;
+                phase_map.entry(bucket_key).or_default().push(node_id);
+            }
+        }
+
+        // Sort buckets by x-coordinate and collect phases
+        let mut phases: Vec<Vec<NodeId>> = phase_map.into_values().collect();
+        phases.sort_by(|a, b| {
+            let x_a = node_map.get(&a[0]).map_or(f32::MAX, |n| n.x);
+            let x_b = node_map.get(&b[0]).map_or(f32::MAX, |n| n.x);
+            x_a.partial_cmp(&x_b).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        phases
+    }
+
     // ===========================================================================
     // Condition Branch Skipping
     // ===========================================================================
@@ -61,88 +118,150 @@ impl Workflow {
     // Execution Step Runner
     // ===========================================================================
 
+    #[allow(clippy::too_many_lines)]
     pub async fn step(&mut self) -> bool {
-        if self.current_step >= self.execution_queue.len() {
+        let phases = self.group_nodes_by_phase(&self.execution_queue);
+
+        if self.current_step >= phases.len() {
             self.nodes.iter_mut().for_each(|node| {
                 node.executing = false;
             });
             return false;
         }
 
-        let node_id = match self.execution_queue.get(self.current_step) {
-            Some(id) => *id,
-            None => return false,
-        };
+        let phase_nodes = &phases[self.current_step];
 
-        if self
-            .nodes
-            .iter()
-            .find(|n| n.id == node_id)
-            .is_some_and(|n| n.skipped)
-        {
-            if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
-                let _ = Self::set_node_status(node, ExecutionState::Skipped);
+        if phase_nodes.is_empty() {
+            self.current_step += 1;
+            return true;
+        }
+
+        // Check if all nodes in phase are skipped
+        let all_skipped = phase_nodes.iter().all(|&node_id| {
+            self.nodes
+                .iter()
+                .find(|n| n.id == node_id)
+                .is_some_and(|n| n.skipped)
+        });
+
+        // eprintln!("Phase {}: phase_nodes={:?}, all_skipped={}", self.current_step, phase_nodes, all_skipped);
+
+        if all_skipped {
+            eprintln!("  Skipping phase {} (all skipped)", self.current_step);
+            for &node_id in phase_nodes {
+                if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                    let _ = Self::set_node_status(node, ExecutionState::Skipped);
+                }
             }
             self.current_step += 1;
             return true;
         }
 
-        if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
-            node.executing = true;
-            let _ = Self::set_node_status(node, ExecutionState::Running);
+        // Execute all nodes in phase concurrently
+        let mut results: HashMap<NodeId, serde_json::Value> = HashMap::new();
+
+        for &node_id in phase_nodes {
+            // Skip already skipped nodes
+            if self
+                .nodes
+                .iter()
+                .find(|n| n.id == node_id)
+                .is_some_and(|n| n.skipped)
+            {
+                // eprintln!("  Skipping node {:?} (already skipped)", node_id);
+            }
+        }
+        // eprintln!("  Nodes to execute: {:?}", nodes_to_execute);
+
+        for &node_id in phase_nodes {
+            // Skip already skipped nodes
+            if self
+                .nodes
+                .iter()
+                .find(|n| n.id == node_id)
+                .is_some_and(|n| n.skipped)
+            {
+                continue;
+            }
+
+            // Mark node as executing
+            if let Some(node) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                node.executing = true;
+                let _ = Self::set_node_status(node, ExecutionState::Running);
+            }
+
+            // Collect parent outputs
+            let parent_outputs: Vec<serde_json::Value> = self
+                .connections
+                .iter()
+                .filter(|c| c.target == node_id)
+                .filter_map(|c| {
+                    self.nodes
+                        .iter()
+                        .find(|n| n.id == c.source)
+                        .and_then(|n| n.last_output.clone())
+                })
+                .collect();
+
+            if let Some(node) = self.nodes.iter().find(|n| n.id == node_id) {
+                let node_type = node.node_type.clone();
+                let node_config_json = node.config.clone();
+                let resolved_config = self.resolve_expressions(&node_config_json);
+
+                // eprintln!("  Executing node {:?} (type={})", node_id, node_type);
+                let output = self
+                    .execute_node_type(&node_type, &resolved_config, &parent_outputs)
+                    .await;
+
+                // eprintln!("  Node {:?} output: {:?}", node_id, output);
+                results.insert(node_id, output.clone());
+
+                // Check memory limit
+                if let Err(memory_error) = self.check_and_update_memory(&output) {
+                    if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                        n.error = Some(memory_error.to_string());
+                        let _ = Self::set_node_status(n, ExecutionState::Failed);
+                        n.executing = false;
+                        n.last_output = Some(output.clone());
+                    }
+                    self.execution_failed = true;
+                }
+            }
         }
 
-        let parent_outputs: Vec<serde_json::Value> = self
-            .connections
-            .iter()
-            .filter(|c| c.target == node_id)
-            .filter_map(|c| {
-                self.nodes
-                    .iter()
-                    .find(|n| n.id == c.source)
-                    .and_then(|n| n.last_output.clone())
-            })
-            .collect();
-
-        if let Some(node) = self.nodes.iter().find(|n| n.id == node_id) {
-            let node_type = node.node_type.clone();
-            let node_config_json = node.config.clone();
-            let resolved_config = self.resolve_expressions(&node_config_json);
-            let output = self
-                .execute_node_type(&node_type, &resolved_config, &parent_outputs)
-                .await;
-
-            // Check memory limit after node execution
-            if let Err(memory_error) = self.check_and_update_memory(&output) {
-                // Update node status to failed due to memory limit
-                if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
-                    n.error = Some(memory_error.to_string());
-                    let _ = Self::set_node_status(n, ExecutionState::Failed);
-                    n.executing = false;
-                    n.last_output = Some(output);
-                }
-                // Set error flag to stop execution
-                self.execution_failed = true;
-                // Continue to next step to maintain queue consistency
-                self.current_step += 1;
-                return true;
-            }
-
-            if node_type == "condition" {
-                self.execute_condition_and_skip_branches(node_id, &output);
-            }
+        // Update node states after all executions complete
+        // eprintln!("  Updating {} results", results.len());
+        for (node_id, output) in results {
+            // eprintln!("    Processing result for node {:?}", node_id);
+            let is_condition = self
+                .nodes
+                .iter()
+                .find(|n| n.id == node_id)
+                .map(|n| n.node_type.as_str())
+                .is_some_and(|s| s == "condition");
 
             if let Some(n) = self.nodes.iter_mut().find(|n| n.id == node_id) {
+                // eprintln!("      Found node, setting to Completed");
+                n.executing = false;
+                n.last_output = Some(output.clone());
+
                 if let Some(err) = output.get("error").and_then(serde_json::Value::as_str) {
                     n.error = Some(err.to_string());
                     let _ = Self::set_node_status(n, ExecutionState::Failed);
                 } else {
                     let _ = Self::set_node_status(n, ExecutionState::Completed);
                 }
-                n.executing = false;
-                n.last_output = Some(output);
+            } else {
+                // eprintln!("      Node {:?} NOT FOUND in self.nodes", node_id);
+            }
+
+            // Handle condition branching after all parallel nodes complete
+            if is_condition {
+                self.execute_condition_and_skip_branches(node_id, &output);
             }
         }
+
+ 
 
         self.current_step += 1;
         true
