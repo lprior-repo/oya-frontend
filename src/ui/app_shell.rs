@@ -510,6 +510,7 @@ pub fn AppShell() -> Element {
                     step_end_time: ReadSignal::from(use_memo(move || None::<String>)),
                     step_duration_ms: ReadSignal::from(use_memo(move || None::<i64>)),
                     step_attempt: ReadSignal::from(use_memo(move || 1u32)),
+                    right_offset_px: if selection.selected_id().read().is_some() { 320 } else { 0 },
                     on_close: move |()| { show_inspector.set(false); }
                 }
             }

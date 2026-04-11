@@ -128,6 +128,8 @@ pub fn InspectorPanel(
     step_end_time: ReadSignal<Option<String>>,
     step_duration_ms: ReadSignal<Option<i64>>,
     step_attempt: ReadSignal<u32>,
+    /// Horizontal offset from the right edge in pixels.
+    right_offset_px: i32,
     on_close: EventHandler<()>,
 ) -> Element {
     const SLIDE_STYLE: &str = "@keyframes slide-in-right { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-in-right { animation: slide-in-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }";
@@ -198,7 +200,8 @@ pub fn InspectorPanel(
         style { "{SLIDE_STYLE}" }
 
         aside {
-            class: "animate-slide-in-right fixed right-0 top-0 z-30 flex h-full w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl",
+            class: "animate-slide-in-right fixed top-0 z-30 flex h-full w-[420px] flex-col border-l border-slate-200 bg-white shadow-xl",
+            style: "right: {right_offset_px}px;",
 
             div { class: "shrink-0 border-b border-slate-200 px-4 py-3",
 
