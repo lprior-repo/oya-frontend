@@ -20,8 +20,11 @@ impl Workflow {
             return vec![];
         }
 
-        let node_map: HashMap<NodeId, &crate::graph::Node> =
-            self.nodes.iter().map(|n| (n.id, n)).collect();
+        let node_map: HashMap<NodeId, &crate::graph::Node> = self
+            .nodes
+            .iter()
+            .map(|n| (n.id, n))
+            .collect();
 
         let mut phase_map: HashMap<i32, Vec<NodeId>> = HashMap::new();
 
