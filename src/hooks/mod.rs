@@ -14,8 +14,6 @@ pub mod use_toast;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-#[cfg(target_arch = "wasm32")]
-pub use use_toast::{provide_toast_context, use_toast, ToastStore};
 pub use use_canvas_interaction::{
     provide_canvas_interaction_context, use_canvas_interaction, InteractionMode,
 };
@@ -25,5 +23,7 @@ pub use use_restate_sync::{
 };
 pub use use_selection::{provide_selection_context, use_selection};
 pub use use_sidebar::{provide_sidebar_context, use_sidebar};
+#[cfg(target_arch = "wasm32")]
+pub use use_toast::{provide_toast_context, use_toast, ToastStore};
 pub use use_ui_panels::{provide_ui_panels_context, use_ui_panels};
 pub use use_workflow_state::{provide_workflow_state_context, use_workflow_state};

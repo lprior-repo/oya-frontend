@@ -45,7 +45,9 @@ async fn given_service_call_config_when_invoked_then_posts_to_service_endpoint()
         "endpoint": "greet",
         "payload": {"name": "world"}
     });
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
     assert_eq!(result["restate_invocation_id"], "inv-123");
@@ -61,7 +63,9 @@ async fn given_service_call_missing_service_when_invoked_then_error() {
         "service": "",
         "endpoint": "greet"
     });
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert!(result.get("error").is_some());
     let msg = result["error"].as_str().unwrap();
@@ -80,7 +84,9 @@ async fn given_service_call_missing_endpoint_when_invoked_then_error() {
     let config = json!({
         "service": "greeter"
     });
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert!(result.get("error").is_some());
     let msg = result["error"].as_str().unwrap();
@@ -108,7 +114,9 @@ async fn given_service_call_no_payload_when_invoked_then_empty_json_sent() {
         "service": "svc",
         "endpoint": "do"
     });
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
 }
@@ -127,7 +135,9 @@ async fn given_service_call_no_id_in_response_when_invoked_then_invocation_id_nu
         .await;
 
     let config = json!({"service": "svc", "endpoint": "handler"});
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
     assert!(result["restate_invocation_id"].is_null());
@@ -161,7 +171,9 @@ async fn given_object_call_config_when_invoked_then_posts_to_object_endpoint_wit
         "key": "my-key",
         "payload": {"amount": 5}
     });
-    let result = workflow.execute_service_call_internal("object-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("object-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
     assert_eq!(result["restate_invocation_id"], "inv-obj-1");
@@ -184,7 +196,9 @@ async fn given_object_call_no_key_when_invoked_then_uses_default_key() {
         "object_name": "myObject",
         "handler": "get"
     });
-    let result = workflow.execute_service_call_internal("object-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("object-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
     assert_eq!(result["restate_invocation_id"], "inv-dk");
@@ -208,7 +222,9 @@ async fn given_object_call_empty_key_when_invoked_then_uses_default_key() {
         "handler": "handler",
         "key": ""
     });
-    let result = workflow.execute_service_call_internal("object-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("object-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
 }
@@ -220,7 +236,9 @@ async fn given_object_call_missing_object_name_when_invoked_then_error() {
     let workflow = workflow_with_ingress(&server.uri());
 
     let config = json!({"handler": "get"});
-    let result = workflow.execute_service_call_internal("object-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("object-call", &config)
+        .await;
 
     assert!(result.get("error").is_some());
     let msg = result["error"].as_str().unwrap();
@@ -237,7 +255,9 @@ async fn given_object_call_missing_handler_when_invoked_then_error() {
     let workflow = workflow_with_ingress(&server.uri());
 
     let config = json!({"object_name": "counter"});
-    let result = workflow.execute_service_call_internal("object-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("object-call", &config)
+        .await;
 
     assert!(result.get("error").is_some());
     let msg = result["error"].as_str().unwrap();
@@ -386,7 +406,9 @@ async fn given_server_error_when_invoked_then_status_captured() {
         .await;
 
     let config = json!({"service": "svc", "endpoint": "handler"});
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert_eq!(result["status"], 500);
     assert_eq!(result["body"]["message"], "internal error");
@@ -410,7 +432,9 @@ async fn given_non_json_response_when_invoked_then_error_captured() {
         .await;
 
     let config = json!({"service": "svc", "endpoint": "handler"});
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     assert_eq!(result["status"], 200);
     assert!(
@@ -426,7 +450,9 @@ async fn given_unknown_node_type_when_invoked_then_returns_executed() {
     let workflow = workflow_with_ingress(&server.uri());
 
     let config = json!({});
-    let result = workflow.execute_service_call_internal("unknown-type", &config).await;
+    let result = workflow
+        .execute_service_call_internal("unknown-type", &config)
+        .await;
 
     assert_eq!(result["executed"], true);
 }
@@ -459,7 +485,9 @@ async fn given_real_restate_service_call_when_invoked_then_gets_invocation_id() 
         "endpoint": "check",
         "payload": {}
     });
-    let result = workflow.execute_service_call_internal("service-call", &config).await;
+    let result = workflow
+        .execute_service_call_internal("service-call", &config)
+        .await;
 
     if let Some(status) = result.get("status") {
         let code = status.as_u64().unwrap();
