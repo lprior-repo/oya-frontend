@@ -51,11 +51,23 @@ pub enum ServiceKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseServiceKindError(pub String);
+pub enum ParseServiceKindError {
+    UnknownVariant {
+        input: String,
+        expected: &'static str,
+    },
+}
 
 impl std::fmt::Display for ParseServiceKindError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid ServiceKind: {}", self.0)
+        match self {
+            Self::UnknownVariant { input, expected } => {
+                write!(
+                    f,
+                    "Unknown ServiceKind '{input}': expected one of {expected}"
+                )
+            }
+        }
     }
 }
 
@@ -80,7 +92,10 @@ impl FromStr for ServiceKind {
             "handler" => Ok(Self::Handler),
             "workflow" => Ok(Self::Workflow),
             "actor" => Ok(Self::Actor),
-            _ => Err(ParseServiceKindError(s.to_string())),
+            _ => Err(ParseServiceKindError::UnknownVariant {
+                input: s.to_string(),
+                expected: "handler, workflow, actor",
+            }),
         }
     }
 }
@@ -207,11 +222,23 @@ pub enum ContextTrait {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseContextTypeError(pub String);
+pub enum ParseContextTypeError {
+    UnknownVariant {
+        input: String,
+        expected: &'static str,
+    },
+}
 
 impl std::fmt::Display for ParseContextTypeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid ContextType: {}", self.0)
+        match self {
+            Self::UnknownVariant { input, expected } => {
+                write!(
+                    f,
+                    "Unknown ContextType '{input}': expected one of {expected}"
+                )
+            }
+        }
     }
 }
 
@@ -234,7 +261,10 @@ impl FromStr for ContextType {
         match lower.as_str() {
             "synchronous" | "sync" => Ok(Self::Synchronous),
             "asynchronous" | "async" => Ok(Self::Asynchronous),
-            _ => Err(ParseContextTypeError(s.to_string())),
+            _ => Err(ParseContextTypeError::UnknownVariant {
+                input: s.to_string(),
+                expected: "synchronous, sync, asynchronous, async",
+            }),
         }
     }
 }

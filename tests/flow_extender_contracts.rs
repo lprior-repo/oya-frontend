@@ -69,7 +69,10 @@ fn service_kind_from_str_rejects_invalid() {
     let result: Result<ServiceKind, _> = "invalid".parse();
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.to_string(), "Invalid ServiceKind: invalid".to_string());
+    assert_eq!(
+        err.to_string(),
+        "Unknown ServiceKind 'invalid': expected one of handler, workflow, actor".to_string()
+    );
 }
 
 #[test]
@@ -305,7 +308,11 @@ fn context_type_from_str_rejects_invalid() {
     let result: Result<ContextType, _> = "invalid".parse();
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.to_string(), "Invalid ContextType: invalid".to_string());
+    assert_eq!(
+        err.to_string(),
+        "Unknown ContextType 'invalid': expected one of synchronous, sync, asynchronous, async"
+            .to_string()
+    );
 }
 
 #[test]
@@ -505,7 +512,11 @@ fn port_type_from_str_rejects_invalid() {
     let result: Result<PortType, _> = "invalid".parse();
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.to_string(), "Invalid PortType: invalid".to_string());
+    assert_eq!(
+        err.to_string(),
+        "Unknown PortType 'invalid': expected one of any, event, state, signal, flow-control, json"
+            .to_string()
+    );
 }
 
 #[test]

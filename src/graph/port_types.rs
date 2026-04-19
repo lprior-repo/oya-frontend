@@ -51,17 +51,29 @@ impl FromStr for PortType {
             "signal" => Ok(Self::Signal),
             "flow-control" | "flowcontrol" => Ok(Self::FlowControl),
             "json" => Ok(Self::Json),
-            _ => Err(ParsePortTypeError(s.to_string())),
+            _ => Err(ParsePortTypeError::UnknownVariant {
+                input: s.to_string(),
+                expected: "any, event, state, signal, flow-control, json",
+            }),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParsePortTypeError(pub String);
+pub enum ParsePortTypeError {
+    UnknownVariant {
+        input: String,
+        expected: &'static str,
+    },
+}
 
 impl std::fmt::Display for ParsePortTypeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Invalid PortType: {}", self.0)
+        match self {
+            Self::UnknownVariant { input, expected } => {
+                write!(f, "Unknown PortType '{input}': expected one of {expected}")
+            }
+        }
     }
 }
 

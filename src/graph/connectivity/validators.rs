@@ -153,13 +153,23 @@ pub(super) fn check_port_type_compatibility(
 fn get_node_output_port_type(node: &Node) -> Result<PortType, ConnectionError> {
     node.node_type
         .parse::<WorkflowNode>()
-        .map_err(|_| ConnectionError::ParseError(ParsePortTypeError(node.node_type.clone())))
+        .map_err(|_| {
+            ConnectionError::ParseError(ParsePortTypeError::UnknownVariant {
+                input: node.node_type.clone(),
+                expected: "any, event, state, signal, flow-control, json",
+            })
+        })
         .map(|workflow_node| workflow_node.output_port_type())
 }
 
 fn get_node_input_port_type(node: &Node) -> Result<PortType, ConnectionError> {
     node.node_type
         .parse::<WorkflowNode>()
-        .map_err(|_| ConnectionError::ParseError(ParsePortTypeError(node.node_type.clone())))
+        .map_err(|_| {
+            ConnectionError::ParseError(ParsePortTypeError::UnknownVariant {
+                input: node.node_type.clone(),
+                expected: "any, event, state, signal, flow-control, json",
+            })
+        })
         .map(|workflow_node| workflow_node.input_port_type())
 }
