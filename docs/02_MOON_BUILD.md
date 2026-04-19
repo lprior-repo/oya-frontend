@@ -12,6 +12,7 @@ moon run :ci --force
 
 | Gate | Command | What it checks |
 |------|---------|----------------|
+| **secrets** | `./scripts/scan-secrets.sh` | Accidental API keys, tokens, passwords |
 | **fmt** | `cargo fmt --check --quiet` | Code formatting (rustfmt) |
 | **check** | `cargo check` | Compilation (no codegen) |
 | **test** | `cargo test` | Unit tests, integration tests, doc tests |

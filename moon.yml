@@ -34,8 +34,12 @@ tasks:
 
   ci:
     script: |
+      ./scripts/scan-secrets.sh
       cargo fmt --check --quiet
       cargo check
       cargo test
       cargo clippy -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic
       node_modules/.bin/playwright test
+
+  scan-secrets:
+    command: "./scripts/scan-secrets.sh"
