@@ -18,7 +18,7 @@ export default defineConfig({
     video: "off",
   },
   webServer: {
-    command: "dx serve --platform web --port 8081",
+    command: "dx build --platform web && cp -r target/dx/oya-frontend/debug/web/public dist && node_modules/.bin/tailwindcss --input assets/tailwind.css --output dist/assets/tailwind.css --minify && python3 -m http.server 8081 --directory dist",
     url: "http://127.0.0.1:8081",
     timeout: 240_000,
     reuseExistingServer: !process.env.CI,

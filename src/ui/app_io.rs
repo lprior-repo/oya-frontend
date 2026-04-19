@@ -74,7 +74,7 @@ pub fn download_workflow_json(name: &str, workflow: &Workflow) {
     let element = match document.create_element("a") {
         Ok(value) => value,
         Err(_) => {
-            Url::revoke_object_url(&url);
+            let _ = Url::revoke_object_url(&url);
             return;
         }
     };
@@ -82,7 +82,7 @@ pub fn download_workflow_json(name: &str, workflow: &Workflow) {
     let anchor = match element.dyn_into::<HtmlAnchorElement>() {
         Ok(value) => value,
         Err(_) => {
-            Url::revoke_object_url(&url);
+            let _ = Url::revoke_object_url(&url);
             return;
         }
     };
@@ -104,10 +104,10 @@ pub fn download_workflow_json(name: &str, workflow: &Workflow) {
     anchor.set_href(&url);
     anchor.set_download(&filename);
     anchor.click();
-    Url::revoke_object_url(&url);
+    let _ = Url::revoke_object_url(&url);
 }
 
-/// Result type for import operations.
+#[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImportResult {
     Success(crate::graph::Workflow),
@@ -249,7 +249,7 @@ pub fn export_restate_history<T: serde::Serialize>(invocations: &[T]) {
     let element = match document.create_element("a") {
         Ok(value) => value,
         Err(_) => {
-            Url::revoke_object_url(&url);
+            let _ = Url::revoke_object_url(&url);
             return;
         }
     };
@@ -257,7 +257,7 @@ pub fn export_restate_history<T: serde::Serialize>(invocations: &[T]) {
     let anchor = match element.dyn_into::<HtmlAnchorElement>() {
         Ok(value) => value,
         Err(_) => {
-            Url::revoke_object_url(&url);
+            let _ = Url::revoke_object_url(&url);
             return;
         }
     };
@@ -268,7 +268,7 @@ pub fn export_restate_history<T: serde::Serialize>(invocations: &[T]) {
     anchor.set_href(&url);
     anchor.set_download(&filename);
     anchor.click();
-    Url::revoke_object_url(&url);
+    let _ = Url::revoke_object_url(&url);
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

@@ -83,7 +83,7 @@ mod wasm_app {
 
     #[component]
     pub fn App() -> Element {
-        let workflow = hooks::provide_workflow_state_context();
+        let _workflow = hooks::provide_workflow_state_context();
         let selection = hooks::provide_selection_context();
         let canvas = hooks::provide_canvas_interaction_context();
         let _panels = hooks::provide_ui_panels_context();
@@ -121,7 +121,6 @@ mod wasm_app {
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
-    wasm_app::App();
     launch(wasm_app::App);
 }
 

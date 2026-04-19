@@ -73,7 +73,7 @@ pub fn RestateInvocationsPanel(handle: RestateSyncHandle) -> Element {
     let count = invocations.len();
 
     // Resolve selected invocation from state reactively
-    let selected_inv = selected_inv_id
+    let _selected_inv = selected_inv_id
         .read()
         .as_ref()
         .and_then(|id| invocations.get(id).cloned());
