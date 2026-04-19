@@ -262,7 +262,8 @@ mod view {
     /// Container that renders all active toasts in a fixed position (top-right).
     #[component]
     pub fn ToastContainer(store: ToastStore) -> Element {
-        let toasts = store.toasts().read();
+        let toasts_signal = store.toasts();
+        let toasts = toasts_signal.read();
 
         if toasts.toasts.is_empty() {
             return rsx! {};

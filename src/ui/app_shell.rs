@@ -12,8 +12,9 @@ use crate::ui::constants::{
 };
 use crate::ui::{
     CanvasArea, CanvasContextMenu, EmptyCanvas, FlowPosition, FlowToolbar, InspectorPanel,
-    NodeCommandPalette, NodeTemplateId, PayloadPreviewPanel, PrototypePalette, RightPanel,
-    RunStatusBar, SelectedNodePanel, SettingsOverlay, ShortcutsOverlay, ToastContainer,
+    NodeCommandPalette, NodeSidebar, NodeTemplateId, PayloadPreviewPanel, PrototypePalette,
+    RightPanel, RunStatusBar, SelectedNodePanel, SettingsOverlay, ShortcutsOverlay,
+    ToastContainer,
 };
 use dioxus::prelude::*;
 use std::fmt::Write;
@@ -21,13 +22,13 @@ use std::fmt::Write;
 #[component]
 pub fn AppShell() -> Element {
     // Hook-based state management
-    let workflow = crate::hooks::use_workflow_state();
+    let mut workflow = crate::hooks::use_workflow_state();
     let selection = crate::hooks::use_selection();
     let canvas = crate::hooks::use_canvas_interaction();
     let panels = crate::hooks::use_ui_panels();
     let sidebar = crate::hooks::use_sidebar();
     let restate = crate::hooks::use_restate_sync();
-    let toast = crate::hooks::use_toast();
+    let mut toast = crate::hooks::use_toast();
 
     // Persist workflow to localStorage
     use_effect(move || {
@@ -282,7 +283,7 @@ pub fn AppShell() -> Element {
                 on_import: move |_| {
                     #[cfg(target_arch = "wasm32")]
                     {
-                        let toast_clone = toast;
+                        let mut toast_clone = toast;
                         crate::ui::app_io::trigger_import(move |result| {
                             match result {
                                 crate::ui::app_io::ImportResult::Success(imported) => {
@@ -458,7 +459,7 @@ pub fn AppShell() -> Element {
                             on_import: move |_| {
                                 #[cfg(target_arch = "wasm32")]
                                 {
-                                    let toast_clone = toast;
+                                    let mut toast_clone = toast;
                                     crate::ui::app_io::trigger_import(move |result| {
                                         match result {
                                             crate::ui::app_io::ImportResult::Success(imported) => {

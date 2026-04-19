@@ -17,9 +17,7 @@ pub mod use_toast;
 pub mod use_ui_panels;
 pub mod use_workflow_state;
 
-pub use use_canvas_interaction::{
-    provide_canvas_interaction_context, use_canvas_interaction, InteractionMode,
-};
+pub use use_canvas_interaction::{provide_canvas_interaction_context, use_canvas_interaction};
 pub use use_restate_sync::{
     build_restate_config_from_url, poll_sleep_ms, provide_restate_sync_context, use_restate_sync,
     RestateSyncHandle,

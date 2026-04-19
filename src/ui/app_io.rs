@@ -115,11 +115,12 @@ pub enum ImportResult {
 }
 
 #[cfg(target_arch = "wasm32")]
-/// Triggers a file picker for JSON import. The callback receives the result.
-pub fn trigger_import<F>(mut on_result: F)
+pub fn trigger_import<F>(on_result: F)
 where
     F: FnMut(ImportResult) + 'static,
 {
+    use std::cell::RefCell;
+    use std::rc::Rc;
     use wasm_bindgen::{closure::Closure, JsCast};
     use web_sys::{window, HtmlInputElement};
 
@@ -138,9 +139,13 @@ where
     };
     input.set_type("file");
     input.set_accept(".json");
-    input.set_style("display:none");
+    {
+        let _ = input.set_attribute("style", "display:none");
+    }
 
     let input_clone = input.clone();
+    let on_result = Rc::new(RefCell::new(on_result));
+    let on_result_outer = Rc::clone(&on_result);
 
     let callback = Closure::<dyn Fn()>::new(move || {
         let files = input_clone.files();
@@ -149,18 +154,28 @@ where
             let reader = match web_sys::FileReader::new() {
                 Ok(r) => r,
                 Err(_) => {
-                    on_result(ImportResult::Error(
+                    on_result_outer.borrow_mut()(ImportResult::Error(
                         "Failed to create FileReader".to_string(),
                     ));
                     return;
                 }
             };
 
+            let on_result_inner = Rc::clone(&on_result);
+            let reader_clone = reader.clone();
             let onload = Closure::<dyn Fn()>::new(move || {
-                let text = match reader.result().and_then(|v| v.as_string()) {
-                    Some(t) => t,
-                    None => {
-                        on_result(ImportResult::Error(
+                let text = match reader_clone.result() {
+                    Ok(v) => match v.as_string() {
+                        Some(t) => t,
+                        None => {
+                            on_result_inner.borrow_mut()(ImportResult::Error(
+                                "Failed to read file content".to_string(),
+                            ));
+                            return;
+                        }
+                    },
+                    Err(_) => {
+                        on_result_inner.borrow_mut()(ImportResult::Error(
                             "Failed to read file content".to_string(),
                         ));
                         return;
@@ -168,34 +183,29 @@ where
                 };
 
                 match serde_json::from_str::<crate::graph::Workflow>(&text) {
-                    Ok(workflow) => on_result(ImportResult::Success(workflow)),
-                    Err(e) => on_result(ImportResult::Error(format!("Invalid workflow JSON: {e}"))),
+                    Ok(workflow) => {
+                        on_result_inner.borrow_mut()(ImportResult::Success(workflow));
+                    }
+                    Err(e) => {
+                        on_result_inner.borrow_mut()(ImportResult::Error(format!(
+                            "Invalid workflow JSON: {e}"
+                        )));
+                    }
                 }
             });
 
-            if reader
-                .set_onload(Some(onload.as_ref().unchecked_ref()))
-                .is_err()
-            {
-                on_result(ImportResult::Error(
-                    "Failed to set onload handler".to_string(),
-                ));
-                return;
-            }
+            let _ = reader.set_onload(Some(onload.as_ref().unchecked_ref()));
             onload.forget();
 
             if reader.read_as_text(&file).is_err() {
-                on_result(ImportResult::Error("Failed to read file".to_string()));
+                on_result_outer.borrow_mut()(ImportResult::Error(
+                    "Failed to read file".to_string(),
+                ));
             }
         }
     });
 
-    if input
-        .set_onchange(Some(callback.as_ref().unchecked_ref()))
-        .is_err()
-    {
-        return;
-    }
+    let _ = input.set_onchange(Some(callback.as_ref().unchecked_ref()));
     callback.forget();
 
     if let Some(body) = document.body() {

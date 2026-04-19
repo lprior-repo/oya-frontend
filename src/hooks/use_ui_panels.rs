@@ -287,6 +287,7 @@ pub struct UiPanels {
     palette: Signal<PaletteState>,
     context_menu: Signal<ContextMenuState>,
     inline_panel: Signal<InlinePanelState>,
+    shortcuts: Signal<PanelState>,
     settings_open_memo: Memo<bool>,
     palette_open_memo: Memo<bool>,
     palette_query_memo: Memo<String>,
@@ -300,6 +301,7 @@ impl UiPanels {
             palette: Signal::new(PaletteState::default()),
             context_menu: Signal::new(ContextMenuState::Hidden),
             inline_panel: Signal::new(InlinePanelState::Closed),
+            shortcuts: Signal::new(PanelState::Closed),
             settings_open_memo: Memo::new(|| false),
             palette_open_memo: Memo::new(|| false),
             palette_query_memo: Memo::new(|| String::new()),
@@ -460,6 +462,7 @@ pub fn provide_ui_panels_context() -> UiPanels {
     let palette = use_signal(PaletteState::default);
     let context_menu = use_signal(ContextMenuState::default);
     let inline_panel = use_signal(InlinePanelState::default);
+    let shortcuts = use_signal(PanelState::default);
     let settings_open_memo = use_memo(move || settings.read().is_open());
     let palette_open_memo = use_memo(move || palette.read().visibility.is_open());
     let palette_query_memo = use_memo(move || palette.read().query.clone());
@@ -469,6 +472,7 @@ pub fn provide_ui_panels_context() -> UiPanels {
         palette,
         context_menu,
         inline_panel,
+        shortcuts,
         settings_open_memo,
         palette_open_memo,
         palette_query_memo,

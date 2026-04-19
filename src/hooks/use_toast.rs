@@ -8,7 +8,7 @@ use crate::ui::toast::{ToastDuration, ToastSeverity, ToastStoreState};
 use dioxus::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ToastStore {
     state: Signal<ToastStoreState>,
 }
@@ -78,7 +78,7 @@ pub fn provide_toast_context() -> ToastStore {
                 gloo_timers::future::TimeoutFuture::new(500).await;
                 let current = s.state.read().clone();
                 let now = chrono::Utc::now();
-                let evicted = current.evict_expired(now);
+                let evicted = current.clone().evict_expired(now);
                 if evicted != current {
                     s.state.set(evicted);
                 }

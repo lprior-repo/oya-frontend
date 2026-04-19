@@ -80,6 +80,8 @@ pub use selected_node_panel::SelectedNodePanel;
 #[cfg(target_arch = "wasm32")]
 pub use settings_overlay::SettingsOverlay;
 pub use shortcuts_overlay::ShortcutsOverlay;
+#[cfg(target_arch = "wasm32")]
+pub use toast::ToastContainer;
 pub use sidebar::NodeSidebar;
 pub use toolbar::FlowToolbar;
 pub use validation_panel::ValidationPanel;
