@@ -6,9 +6,9 @@
 #![forbid(unsafe_code)]
 
 mod config;
-mod expressions;
 mod plan;
 mod runner;
+mod template_resolver;
 
 #[cfg(test)]
 mod tests;
