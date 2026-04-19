@@ -2,9 +2,12 @@
 #![deny(clippy::expect_used)]
 #![deny(clippy::pedantic)]
 
-pub mod interaction_mode;
 pub mod use_canvas_events;
 pub mod use_canvas_interaction;
+pub use crate::interaction_mode::{
+    cursor_class_for, drag_mode_from_selection, update_marquee_mode, CanvasPoint, CursorTool,
+    DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
+};
 pub mod use_canvas_mouse;
 pub mod use_frozen_mode;
 pub mod use_restate_sync;

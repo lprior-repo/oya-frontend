@@ -26,5 +26,12 @@ pub mod scenario_runner;
 #[cfg(target_arch = "wasm32")]
 pub mod hooks;
 
+pub mod interaction_mode;
+
+pub use interaction_mode::{
+    cursor_class_for, drag_mode_from_selection, update_marquee_mode, CanvasPoint, CursorTool,
+    DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
+};
+
 pub mod errors;
 pub mod ui;

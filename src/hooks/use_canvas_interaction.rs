@@ -3,14 +3,14 @@
 #![deny(clippy::panic)]
 
 use crate::graph::NodeId;
-use crate::hooks::interaction_mode::{
+use crate::interaction_mode::{
     cursor_class_for, drag_mode_from_selection, update_marquee_mode,
 };
 use crate::ui::edges::Position as FlowPosition;
 use dioxus::prelude::*;
 
 // Re-export all interaction-mode types so the public API is unchanged.
-pub use crate::hooks::interaction_mode::{
+pub use crate::interaction_mode::{
     CanvasPoint, CursorTool, DragAnchor, HandleName, HoveredHandle, InteractionMode, TempEdge,
 };
 
