@@ -26,6 +26,16 @@ tasks:
   coverage-core:
     command: "cargo llvm-cov --summary-only --ignore-filename-regex '(src/main.rs|src/bin/|src/ui/|src/hooks/)'"
 
+  audit:
+    command: "cargo audit"
+    options:
+      cache: false
+
+  outdated:
+    command: "cargo outdated --root-deps-only"
+    options:
+      cache: false
+
   ci:
     script: |
       cargo check
