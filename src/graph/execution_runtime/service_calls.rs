@@ -3,7 +3,7 @@
 use crate::graph::Workflow;
 
 impl Workflow {
-    pub(super) async fn execute_service_call_internal(
+    pub async fn execute_service_call_internal(
         &self,
         node_type: &str,
         config: &serde_json::Value,

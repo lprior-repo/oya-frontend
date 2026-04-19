@@ -37,6 +37,7 @@ tokio = { version = "1", features = ["full"] }
 proptest = "1.7.0"
 criterion = "0.5"
 insta = { version = "1.39", features = ["json", "yaml"] }
+wiremock = "0.6"
 
 [lib]
 name = "oya_frontend"
