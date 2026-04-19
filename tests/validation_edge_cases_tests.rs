@@ -187,7 +187,10 @@ fn given_two_disconnected_entry_nodes_when_validated_then_valid() {
     };
 
     let result = validate_workflow(&workflow);
-    assert!(result.valid, "Two entry nodes with no connections should be valid");
+    assert!(
+        result.valid,
+        "Two entry nodes with no connections should be valid"
+    );
 }
 
 #[test]
@@ -233,10 +236,7 @@ fn given_disconnected_subgraph_when_validated_then_warns_about_orphan() {
     let orphan_warnings: Vec<_> = result
         .issues
         .iter()
-        .filter(|i| {
-            i.node_id == Some(orphan_id)
-                && i.severity == ValidationSeverity::Warning
-        })
+        .filter(|i| i.node_id == Some(orphan_id) && i.severity == ValidationSeverity::Warning)
         .collect();
     assert!(
         !orphan_warnings.is_empty(),
@@ -301,14 +301,8 @@ fn given_two_isolated_clusters_when_validated_then_unreachable_cluster_warned() 
 
     let result = validate_workflow(&workflow);
 
-    let unreachable_b = result
-        .issues
-        .iter()
-        .any(|i| i.node_id == Some(node_b));
-    let unreachable_c = result
-        .issues
-        .iter()
-        .any(|i| i.node_id == Some(node_c));
+    let unreachable_b = result.issues.iter().any(|i| i.node_id == Some(node_b));
+    let unreachable_c = result.issues.iter().any(|i| i.node_id == Some(node_c));
     assert!(
         unreachable_b || unreachable_c,
         "Nodes in disconnected cluster should be flagged"
@@ -611,10 +605,7 @@ fn given_workflow_with_only_warnings_when_validated_then_valid_is_true() {
 
     let result = validate_workflow(&workflow);
 
-    assert!(
-        result.valid,
-        "Workflow with only warnings should be valid"
-    );
+    assert!(result.valid, "Workflow with only warnings should be valid");
     assert_eq!(result.error_count(), 0);
     assert!(result.warning_count() > 0, "Should have warnings");
 }
