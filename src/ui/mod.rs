@@ -57,11 +57,11 @@ pub use config_panel::NodeConfigEditor;
 pub use domain_types::NodeTemplateId;
 pub use edges::{FlowEdges, Position as FlowPosition};
 #[cfg(target_arch = "wasm32")]
+pub use empty_canvas::EmptyCanvas;
+#[cfg(target_arch = "wasm32")]
 pub use execution_history_panel::ExecutionHistoryPanel;
 #[cfg(target_arch = "wasm32")]
 pub use execution_plan_panel::ExecutionPlanPanel;
-#[cfg(target_arch = "wasm32")]
-pub use empty_canvas::EmptyCanvas;
 pub use expression_input::{ExpressionInput, NodeInfo};
 pub use inline_config_panel::InlineConfigPanel;
 pub use inspector_panel::InspectorPanel;
