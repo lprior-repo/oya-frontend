@@ -1,6 +1,4 @@
-use uuid::Uuid;
-
-use crate::graph::{Connection, NodeId, PortName, Workflow};
+use crate::graph::{Connection, ConnectionId, NodeId, PortName, Workflow};
 
 use super::validators::{validate_connection, ValidationState};
 use super::{ConnectionError, ConnectionResult};
@@ -88,7 +86,7 @@ impl Workflow {
 /// Only call this after `validate_connection` has succeeded.
 fn commit_connection(connections: &mut Vec<Connection>, validation: ValidationState) {
     connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: validation.source,
         target: validation.target,
         source_port: validation.source_port,

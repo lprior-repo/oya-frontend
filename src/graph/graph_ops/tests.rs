@@ -1,13 +1,12 @@
 //! Tests for graph_ops — queries and mutations.
 
 use super::*;
-use crate::graph::{Connection, Node, NodeId, PortName};
+use crate::graph::{Connection, ConnectionId, Node, NodeId, PortName};
 use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
 
 fn make_connection(source: NodeId, target: NodeId) -> Connection {
     Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source,
         target,
         source_port: PortName::from("main"),

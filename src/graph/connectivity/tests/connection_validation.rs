@@ -6,7 +6,7 @@
 )]
 
 use super::super::*;
-use crate::graph::PortName;
+use crate::graph::{ConnectionId, PortName};
 use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
@@ -279,7 +279,7 @@ fn given_self_loop_connection_when_checking_path_exists_from_node_to_itself_then
 {
     let node = NodeId(Uuid::new_v4());
     let connections = vec![Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: node,
         target: node,
         source_port: PortName("main".to_string()),

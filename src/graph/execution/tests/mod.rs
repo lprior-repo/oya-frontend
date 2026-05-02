@@ -14,9 +14,7 @@ mod topo_tests;
 mod validation_tests;
 
 pub(super) use super::super::{NodeId, Workflow, WorkflowExecutionError};
-pub(super) use crate::graph::{Connection, PortName};
-pub(super) use std::collections::HashMap;
-pub(super) use uuid::Uuid;
+pub(super) use crate::graph::{Connection, ConnectionId, PortName};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -28,7 +26,7 @@ pub(super) fn main_port() -> PortName {
 
 pub(super) fn add_connection(workflow: &mut Workflow, source: NodeId, target: NodeId) {
     workflow.connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source,
         target,
         source_port: main_port(),

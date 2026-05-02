@@ -61,7 +61,7 @@ pub use execution_state::{
     can_transition, try_transition, CompletedState, ExecutionState, FailedState, IdleState,
     InvalidTransition, QueuedState, RunningState, SkippedState, StateTransition, TerminalState,
 };
-pub use primitives::{Connection, NodeCategory, NodeId, PortName};
+pub use primitives::{Connection, ConnectionId, NodeCategory, NodeId, PortName};
 pub use validation::{
     validate_unique_node_ids, validate_workflow, ValidationIssue, ValidationResult,
     ValidationSeverity,

@@ -7,9 +7,8 @@
 //! never silently excluded.
 
 use super::WorkflowExecutionError;
-use super::{Connection, Node, NodeId, PortName, Workflow};
+use super::{Connection, ConnectionId, Node, NodeId, PortName, Workflow};
 use std::collections::HashMap;
-use uuid::Uuid;
 
 // Helper function to create a node with a given ID and dependencies
 fn make_node(id: NodeId, deps: Vec<NodeId>) -> Node {
@@ -44,7 +43,7 @@ fn create_workflow_with_connections(
     for (source, targets) in &deps {
         for target in targets {
             workflow.connections.push(Connection {
-                id: Uuid::new_v4(),
+                id: ConnectionId::new(),
                 source: *source,
                 target: *target,
                 source_port: PortName::from("main"),
@@ -354,7 +353,7 @@ fn prepare_run_rejects_missing_dependency() {
 
     // Add a fake connection to the non-existent node
     workflow.connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: node_0,
         target: node_999,
         source_port: PortName::from("main"),
@@ -399,14 +398,14 @@ fn prepare_run_rejects_duplicate_dependencies() {
 
     // Add the same connection twice
     workflow.connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: node_0,
         target: node_1,
         source_port: PortName::from("main"),
         target_port: PortName::from("main"),
     });
     workflow.connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: node_0,
         target: node_1,
         source_port: PortName::from("main"),
@@ -875,7 +874,7 @@ fn prepare_run_detects_diamond_cycle() {
 
     // Add extra edge: 3 -> 2 (creates diamond but no new cycle)
     workflow.connections.push(Connection {
-        id: Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: node_3,
         target: node_2,
         source_port: PortName::from("main"),
