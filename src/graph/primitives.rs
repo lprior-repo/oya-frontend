@@ -37,6 +37,32 @@ impl fmt::Display for NodeId {
 }
 
 // ===========================================================================
+// Connection ID
+// ===========================================================================
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ConnectionId(pub Uuid);
+
+impl ConnectionId {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
+
+impl Default for ConnectionId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Display for ConnectionId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+// ===========================================================================
 // Port Name
 // ===========================================================================
 
@@ -125,7 +151,7 @@ impl fmt::Display for NodeCategory {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Connection {
-    pub id: Uuid,
+    pub id: ConnectionId,
     pub source: NodeId,
     pub target: NodeId,
     pub source_port: PortName,

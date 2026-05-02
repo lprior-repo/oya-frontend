@@ -1,5 +1,5 @@
 use super::super::graph_ops;
-use super::super::NodeId;
+use super::super::{ConnectionId, NodeId};
 use super::super::Workflow;
 use super::super::WorkflowExecutionError;
 
@@ -128,7 +128,7 @@ impl Workflow {
 
     /// Checks for duplicate connections in the connection list.
     pub(super) fn check_duplicate_connections(&self) -> Result<(), WorkflowExecutionError> {
-        let mut seen: HashMap<(NodeId, NodeId), Vec<uuid::Uuid>> = HashMap::new();
+        let mut seen: HashMap<(NodeId, NodeId), Vec<ConnectionId>> = HashMap::new();
 
         for conn in &self.connections {
             let key = (conn.source, conn.target);

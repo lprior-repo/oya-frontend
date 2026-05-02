@@ -222,7 +222,7 @@ impl DagLayout {
 )]
 mod tests {
     use super::{DagLayout, LEFT_PADDING, NODE_WIDTH, TOP_PADDING};
-    use crate::graph::{Connection, NodeId, PortName, Workflow};
+    use crate::graph::{Connection, ConnectionId, NodeId, PortName, Workflow};
 
     #[test]
     fn given_cycle_when_applying_layout_then_node_positions_remain_unchanged() {
@@ -232,14 +232,14 @@ mod tests {
         let before: Vec<(f32, f32)> = workflow.nodes.iter().map(|n| (n.x, n.y)).collect();
 
         workflow.connections.push(Connection {
-            id: uuid::Uuid::new_v4(),
+            id: ConnectionId::new(),
             source: a,
             target: b,
             source_port: PortName::from("main"),
             target_port: PortName::from("main"),
         });
         workflow.connections.push(Connection {
-            id: uuid::Uuid::new_v4(),
+            id: ConnectionId::new(),
             source: b,
             target: a,
             source_port: PortName::from("main"),

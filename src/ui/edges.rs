@@ -261,8 +261,7 @@ mod tests {
         calculate_parallel_offset, find_parallel_branches, normalize_bend_delta,
         resolve_edge_anchors_with_parallel, AggregateStatus, BoundingBox, ParallelGroup, Rect,
     };
-    use crate::graph::{Connection, Node, NodeId, PortName, WorkflowNode};
-    use uuid::Uuid;
+    use crate::graph::{Connection, ConnectionId, Node, NodeId, PortName, WorkflowNode};
 
     // Constants for test data builders
     const NODE_HEIGHT: f32 = 68.0;
@@ -292,7 +291,7 @@ mod tests {
         node
     }
 
-    fn build_connection(id: Uuid, source: NodeId, target: NodeId) -> Connection {
+    fn build_connection(id: ConnectionId, source: NodeId, target: NodeId) -> Connection {
         Connection {
             id,
             source,
@@ -316,8 +315,8 @@ mod tests {
 
         let nodes = vec![source.clone(), target_a.clone(), target_b.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
         let connections = vec![conn_a, conn_b];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -352,9 +351,9 @@ mod tests {
 
         let nodes = vec![source, target_a, target_b, target_c];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
-        let conn_c = build_connection(Uuid::new_v4(), source_id, target_c_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
+        let conn_c = build_connection(ConnectionId::new(), source_id, target_c_id);
         let connections = vec![conn_a, conn_b, conn_c];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -374,7 +373,7 @@ mod tests {
             let target_id = NodeId::new();
             target_ids.push(target_id);
             nodes.push(build_node(target_id, 300.0, 100.0 + (i as f32) * 100.0));
-            connections.push(build_connection(Uuid::new_v4(), source_id, target_id));
+            connections.push(build_connection(ConnectionId::new(), source_id, target_id));
         }
 
         let source = build_parallel_node(source_id, 100.0, 100.0);
@@ -396,7 +395,7 @@ mod tests {
 
         let nodes = vec![source, target];
 
-        let connection = build_connection(Uuid::new_v4(), source_id, target_id);
+        let connection = build_connection(ConnectionId::new(), source_id, target_id);
         let connections = vec![connection];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -420,7 +419,7 @@ mod tests {
         let source_id = NodeId::new();
         let target_id = NodeId::new();
 
-        let connection = build_connection(Uuid::new_v4(), source_id, target_id);
+        let connection = build_connection(ConnectionId::new(), source_id, target_id);
         let connections = vec![connection];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -443,7 +442,7 @@ mod tests {
             nodes.push(source);
             nodes.push(target);
 
-            connections.push(build_connection(Uuid::new_v4(), source_id, target_id));
+            connections.push(build_connection(ConnectionId::new(), source_id, target_id));
         }
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -462,8 +461,8 @@ mod tests {
         let nodes = vec![source, target];
 
         // Two connections from same source to same target
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_id);
         let connections = vec![conn_a, conn_b];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -487,9 +486,9 @@ mod tests {
 
         let nodes = vec![source_a, source_b, target_a1, target_a2, target_b1];
 
-        let conn_a1 = build_connection(Uuid::new_v4(), source_a_id, target_a1_id);
-        let conn_a2 = build_connection(Uuid::new_v4(), source_a_id, target_a2_id);
-        let conn_b1 = build_connection(Uuid::new_v4(), source_b_id, target_b1_id);
+        let conn_a1 = build_connection(ConnectionId::new(), source_a_id, target_a1_id);
+        let conn_a2 = build_connection(ConnectionId::new(), source_a_id, target_a2_id);
+        let conn_b1 = build_connection(ConnectionId::new(), source_b_id, target_b1_id);
         let connections = vec![conn_a1, conn_a2, conn_b1];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -683,8 +682,8 @@ mod tests {
 
         let nodes = vec![source, target_a.clone(), target_b.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
         let connections = vec![conn_a, conn_b];
 
         // Create parallel group
@@ -743,7 +742,7 @@ mod tests {
 
         let nodes = vec![source, target];
 
-        let connection = build_connection(Uuid::new_v4(), source_id, target_id);
+        let connection = build_connection(ConnectionId::new(), source_id, target_id);
         let connections = vec![connection.clone()];
 
         let groups: Vec<ParallelGroup> = vec![];
@@ -773,9 +772,9 @@ mod tests {
 
         let nodes = vec![source, target_a.clone(), target_b.clone(), target_c.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
-        let conn_c = build_connection(Uuid::new_v4(), source_id, target_c_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
+        let conn_c = build_connection(ConnectionId::new(), source_id, target_c_id);
         let connections = vec![conn_a.clone(), conn_b.clone(), conn_c.clone()];
 
         // Only target_a and target_b are in parallel group
@@ -851,8 +850,8 @@ mod tests {
 
         let nodes = vec![source, target_a, target_b];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
         let connections = vec![conn_a.clone(), conn_b.clone()];
 
         // Step 1: Find parallel groups
@@ -892,8 +891,8 @@ mod tests {
 
         let nodes = vec![source.clone(), target_a.clone(), target_b.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
         let connections = vec![conn_a, conn_b];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -914,8 +913,8 @@ mod tests {
 
         let nodes = vec![source.clone(), target_a.clone(), target_b.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_id, target_a_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_id, target_b_id);
+        let conn_a = build_connection(ConnectionId::new(), source_id, target_a_id);
+        let conn_b = build_connection(ConnectionId::new(), source_id, target_b_id);
         let connections = vec![conn_a, conn_b];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -947,10 +946,10 @@ mod tests {
             source_a, source_b, target_a1, target_a2, target_b1, target_b2,
         ];
 
-        let conn_a1 = build_connection(Uuid::new_v4(), source_a_id, target_a1_id);
-        let conn_a2 = build_connection(Uuid::new_v4(), source_a_id, target_a2_id);
-        let conn_b1 = build_connection(Uuid::new_v4(), source_b_id, target_b1_id);
-        let conn_b2 = build_connection(Uuid::new_v4(), source_b_id, target_b2_id);
+        let conn_a1 = build_connection(ConnectionId::new(), source_a_id, target_a1_id);
+        let conn_a2 = build_connection(ConnectionId::new(), source_a_id, target_a2_id);
+        let conn_b1 = build_connection(ConnectionId::new(), source_b_id, target_b1_id);
+        let conn_b2 = build_connection(ConnectionId::new(), source_b_id, target_b2_id);
         let connections = vec![conn_a1, conn_a2, conn_b1, conn_b2];
 
         let groups = find_parallel_branches(&nodes, &connections);
@@ -1037,8 +1036,8 @@ mod tests {
 
         let nodes = vec![source_a.clone(), source_b.clone(), shared_target.clone()];
 
-        let conn_a = build_connection(Uuid::new_v4(), source_a_id, shared_target_id);
-        let conn_b = build_connection(Uuid::new_v4(), source_b_id, shared_target_id);
+        let conn_a = build_connection(ConnectionId::new(), source_a_id, shared_target_id);
+        let conn_b = build_connection(ConnectionId::new(), source_b_id, shared_target_id);
         let connections = vec![conn_a.clone(), conn_b.clone()];
 
         // Create parallel groups for each source (each has single target)

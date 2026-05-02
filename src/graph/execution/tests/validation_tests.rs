@@ -37,7 +37,7 @@ fn given_connection_to_nonexistent_target_when_preparing_run_then_unresolved_dep
 
     // Directly inject a connection referencing a non-existent node
     workflow.connections.push(Connection {
-        id: uuid::Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: a,
         target: ghost,
         source_port: main_port(),
@@ -163,7 +163,7 @@ fn given_connection_from_nonexistent_source_when_preparing_run_then_no_unresolve
 
     // Inject connection from ghost source to existing target
     workflow.connections.push(Connection {
-        id: uuid::Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: ghost_source,
         target,
         source_port: main_port(),
@@ -256,7 +256,7 @@ fn given_connection_with_same_source_and_target_when_preparing_run_then_cycle_de
     // Directly inject a self-referencing connection (bypasses add_connection_checked
     // which would reject self-connections)
     workflow.connections.push(Connection {
-        id: uuid::Uuid::new_v4(),
+        id: ConnectionId::new(),
         source: a,
         target: a,
         source_port: main_port(),

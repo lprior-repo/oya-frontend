@@ -272,6 +272,7 @@ pub fn ParallelGroupOverlay(
 mod tests {
     use super::*;
     use crate::graph::workflow_node::WorkflowNode;
+    use crate::graph::ConnectionId;
     use uuid::Uuid;
 
     fn make_node(id: Uuid, node_type: &str, x: f32, y: f32) -> Node {
@@ -285,7 +286,7 @@ mod tests {
 
     fn make_connection(source: Uuid, target: Uuid) -> Connection {
         Connection {
-            id: Uuid::new_v4(),
+            id: ConnectionId::new(),
             source: NodeId(source),
             target: NodeId(target),
             source_port: crate::graph::PortName("main".to_string()),
