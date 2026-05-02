@@ -116,10 +116,11 @@ impl RestateClient {
         let req = req.timeout(std::time::Duration::from_secs(self.config.timeout_secs));
 
         let response: reqwest::Response = req.send().await.map_err(|error| {
-            if error.is_timeout() {
+            let msg = error.to_string();
+            if error.is_timeout() || msg.contains("canceled") {
                 ClientError::Timeout
             } else {
-                ClientError::ConnectionFailed(error.to_string())
+                ClientError::ConnectionFailed(msg)
             }
         })?;
 
@@ -419,10 +420,11 @@ impl RestateClient {
         let req = req.timeout(std::time::Duration::from_secs(self.config.timeout_secs));
 
         let response: reqwest::Response = req.send().await.map_err(|error| {
-            if error.is_timeout() {
+            let msg = error.to_string();
+            if error.is_timeout() || msg.contains("canceled") {
                 ClientError::Timeout
             } else {
-                ClientError::ConnectionFailed(error.to_string())
+                ClientError::ConnectionFailed(msg)
             }
         })?;
 
